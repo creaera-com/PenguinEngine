@@ -9,7 +9,7 @@ set(CMAKE_C_EXTENSIONS OFF)
 option(PENGUIN_BUILD_EDITOR "Build SDL3 editor and game" ON)
 option(PENGUIN_FETCH_SDL "Download pinned SDL3 if not installed" ON)
 option(PENGUIN_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
-add_library(penguin STATIC engine/src/core.c engine/src/scene.c third_party/cjson/cJSON.c)
+add_library(penguin STATIC engine/src/core.c engine/src/scene.c engine/src/project.c third_party/cjson/cJSON.c)
 target_include_directories(penguin PUBLIC engine/include PRIVATE third_party/cjson)
 if(NOT MSVC)
  target_compile_options(penguin PRIVATE -Wall -Wextra -Wpedantic)
@@ -56,12 +56,22 @@ if(PENGUIN_BUILD_EDITOR)
   endif()
  endforeach()
  add_custom_target(copy_example ALL
-  COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/example
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/examples/topdown/project.json ${CMAKE_BINARY_DIR}/example/project.json
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/examples/topdown/assets ${CMAKE_BINARY_DIR}/example/assets
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/examples/topdown/scenes ${CMAKE_BINARY_DIR}/example/scenes
+  COMMAND ${CMAKE_COMMAND} -DSOURCE=${CMAKE_SOURCE_DIR}/examples/topdown
+   -DDEST=${CMAKE_BINARY_DIR}/example -P ${CMAKE_SOURCE_DIR}/cmake/CopyExample.cmake
+  VERBATIM
  )
+ add_dependencies(penguin_editor copy_example)
+ add_dependencies(penguin_game copy_example)
  if(BUILD_TESTING)
+  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/unrelated-working-directory)
+  add_test(NAME editor_default_project COMMAND penguin_editor --smoke)
+  add_test(NAME game_default_project COMMAND penguin_game --smoke)
+  set_tests_properties(editor_default_project game_default_project PROPERTIES
+   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unrelated-working-directory
+   ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy" TIMEOUT 20)
+  add_test(NAME example_copy_preserves_edits COMMAND ${CMAKE_COMMAND}
+   -DSOURCE=${CMAKE_SOURCE_DIR} -DBINARY=${CMAKE_BINARY_DIR}
+   -P ${CMAKE_SOURCE_DIR}/tests/test_copy_example.cmake)
   add_test(NAME editor_smoke COMMAND penguin_editor --project ${CMAKE_BINARY_DIR}/example --smoke)
   add_test(NAME game_smoke COMMAND penguin_game --project ${CMAKE_BINARY_DIR}/example --smoke)
   set_tests_properties(editor_smoke game_smoke PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy" TIMEOUT 20)

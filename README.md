@@ -33,6 +33,8 @@ Linux benötigt zusätzlich SDL-Entwicklungsvoraussetzungen, mindestens ein Desk
 sudo apt-get install build-essential cmake pkg-config libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev
 ```
 
+Ohne `--project` suchen Editor und Spiel das Beispiel relativ zur Programmdatei, auch in `build/Debug` bei Visual Studio. Das funktioniert unabhängig vom Arbeitsverzeichnis. Der Build richtet das Beispiel auch dann ein, wenn nur das Editor- oder Spiel-Target gebaut wird.
+
 Start von Linux/macOS aus dem Repository-Ordner:
 
 ```sh
@@ -50,7 +52,7 @@ ctest --test-dir build -C Debug --output-on-failure
 .\build\Debug\penguin_game.exe --project build/example
 ```
 
-Das Beispiel wird in `build/example` kopiert. **Eigene Änderungen dort vor einem erneuten Build in einen eigenen Projektordner sichern**, denn der Build kopiert die Vorlage erneut. Dauerhafte eigene Projekte außerhalb des Build-Ordners öffnen:
+Das Beispiel wird einmalig in `build/example` eingerichtet. Erneute Builds überschreiben bestehende Projektdaten nicht. Beim Löschen des Build-Ordners gehen Daten darin jedoch verloren; dauerhafte eigene Projekte deshalb außerhalb des Build-Ordners speichern:
 
 ```sh
 ./build/penguin_editor --project /pfad/zu/meinem-projekt

@@ -79,6 +79,10 @@ void pe_update(PeScene *scene, float input_x, float input_y, float dt);
 /* On failure load leaves destination unchanged. Errors are caller-owned buffers. */
 bool pe_scene_save(const PeScene *scene, const char *path, char *error, size_t size);
 bool pe_scene_load(PeScene *scene, const char *path, char *error, size_t size);
+/* Explicit roots are authoritative. Otherwise resolve beside the executable, then cwd.
+   executable_directory may be NULL. No SDL dependency; output is caller-owned. */
+bool pe_project_resolve(const char *explicit_root, const char *executable_directory, char *root,
+                        size_t size, char *error, size_t error_size);
 bool pe_project_load(const char *root, char *scene_path, size_t size, char *error,
                      size_t error_size);
 #endif
