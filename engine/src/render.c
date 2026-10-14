@@ -116,7 +116,7 @@ void pe_render_scene(SDL_Renderer *r, const PeScene *s, const PeAssets *a, const
         SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_NONE);
     }
     if (grid && size >= 8) {
-        color(r, 0x435165ff);
+        color(r, 0x3c3c3cff);
         for (int x = 0; x <= s->width; x++) {
             float sx = v.x + (x * s->tile_size - c->x) * c->zoom;
             SDL_RenderLine(r, sx, v.y - c->y * c->zoom, sx,

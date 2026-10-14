@@ -2,10 +2,13 @@
 
 Eine kleine 2D-Engine in **C17 mit SDL3**, einem einfachen ECS und einem Tilemap-Editor. Die erste Version enthält ein spielbares Top-down-Beispiel und **Unity-Unit-Tests**.
 
+![Editor mit Dunkelgrau-/Orange-Theme und Icons](docs/images/editor.png)
+
 ## Enthalten
 
 - Entities mit Generationen und Komponentenmasken; feste, geprüfte Kapazitäten.
 - Tilemaps mit bis zu vier Ebenen und separatem Kollisionsraster.
+- Dunkelgrau-/Orange-Editor mit Icon-Buttons und Werkzeug-Tooltips.
 - Projekt-Dateibaum, PNG-Import per Drag-and-drop oder Dateipfad, Tile-Palette.
 - Pinsel, Radierer, Rechteck, Füllen, Entity-Auswahl und Verschieben.
 - Ebenen hinzufügen, löschen, umbenennen, sortieren und ausblenden.
