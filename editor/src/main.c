@@ -1,4 +1,5 @@
 #include "penguin/render.h"
+#include "script_editor.h"
 #include "ui.h"
 #include <SDL3/SDL_main.h>
 #include <errno.h>
@@ -9,6 +10,7 @@
 #define LEFT 240
 #define RIGHT 280
 #define TOP 64
+#define TABS 32
 #define BOTTOM 48
 #define TREE_MAX 256
 typedef enum { BRUSH, ERASE, RECTANGLE, FILL, SELECT } Tool;
@@ -22,7 +24,7 @@ typedef enum {
     FIELD_W,
     FIELD_H
 } Field;
-typedef enum { REQUEST_NONE, REQUEST_QUIT, REQUEST_OPEN } Request;
+typedef enum { REQUEST_NONE, REQUEST_QUIT, REQUEST_OPEN, REQUEST_SCRIPT_OPEN } Request;
 typedef struct {
     char path[PE_PATH];
     char name[128];
@@ -33,6 +35,8 @@ typedef struct {
     SDL_Window *window;
     SDL_Renderer *renderer;
     PeScene scene, runtime;
+    PeScriptEditor script;
+    bool script_tab;
     PeHistory history;
     PeAssets assets;
     PeCamera camera;
@@ -58,6 +62,7 @@ typedef struct {
 } Editor;
 static Editor app;
 static const char *screenshot_path;
+static bool start_scripts;
 static bool inside(float x, float y, SDL_FRect r) {
     return x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;
 }
@@ -116,7 +121,7 @@ static void selection_sync(void) {
         app.selected = 0;
     assets_sync();
 }
-static bool save(void) {
+static bool save_scene(void) {
     char error[256];
     if (!pe_scene_save(&app.scene, app.scene_path, error, sizeof error)) {
         message(error);
@@ -125,6 +130,58 @@ static bool save(void) {
     pe_history_saved(&app.history);
     message("Scene saved");
     return true;
+}
+static bool save(void) {
+    if (app.script_tab) {
+        bool ok = se_save(&app.script);
+        message(app.script.status);
+        return ok;
+    }
+    return save_scene();
+}
+static void tab_select(bool scripts) {
+    if (app.history.pending)
+        return;
+    app.script_tab = scripts;
+    se_focus(&app.script, app.window, scripts && !app.playing);
+}
+static bool request_dirty(Request r) {
+    if (r == REQUEST_SCRIPT_OPEN)
+        return se_dirty(&app.script);
+    if (r == REQUEST_QUIT)
+        return pe_history_dirty(&app.history) || se_dirty(&app.script);
+    return pe_history_dirty(&app.history);
+}
+static bool request_save(void) {
+    if (app.request == REQUEST_SCRIPT_OPEN) {
+        bool ok = se_save(&app.script);
+        if (!ok)
+            message(app.script.status);
+        return ok;
+    }
+    if (app.request == REQUEST_QUIT) {
+        if (pe_history_dirty(&app.history) && !save_scene())
+            return false;
+        if (se_dirty(&app.script) && !se_save(&app.script)) {
+            message(app.script.status);
+            return false;
+        }
+        return true;
+    }
+    return save_scene();
+}
+static void undo_active(bool redo) {
+    if (app.script_tab) {
+        bool ok = redo ? pe_text_redo(&app.script.document) : pe_text_undo(&app.script.document);
+        if (ok)
+            se_changed(&app.script, app.viewport, false);
+    } else {
+        if (redo)
+            pe_redo(&app.history, &app.scene);
+        else
+            pe_undo(&app.history, &app.scene);
+        selection_sync();
+    }
 }
 static bool is_expanded(const char *p) {
     for (int i = 0; i < app.expanded_count; i++)
@@ -212,20 +269,31 @@ static void load_scene(const char *path) {
     app.selected = 0;
     app.camera = (PeCamera){-16, -16, 2};
     assets_sync();
+    tab_select(false);
     message("Scene opened");
 }
 static void request(Request type, const char *path) {
     if (app.playing)
         return;
-    if (path)
+    if (path) {
+        if (strlen(path) >= sizeof app.open_path) {
+            message("Path too long");
+            return;
+        }
         snprintf(app.open_path, sizeof app.open_path, "%s", path);
-    if (pe_history_dirty(&app.history)) {
+    }
+    if (request_dirty(type)) {
         app.request = type;
         return;
     }
     if (type == REQUEST_QUIT)
         app.running = false;
-    else
+    else if (type == REQUEST_SCRIPT_OPEN) {
+        if (se_open(&app.script, app.open_path))
+            tab_select(true);
+        else
+            message(app.script.status);
+    } else
         load_scene(app.open_path);
 }
 static void request_finish(void) {
@@ -235,6 +303,12 @@ static void request_finish(void) {
         app.running = false;
     else if (r == REQUEST_OPEN)
         load_scene(app.open_path);
+    else if (r == REQUEST_SCRIPT_OPEN) {
+        if (se_open(&app.script, app.open_path))
+            tab_select(true);
+        else
+            message(app.script.status);
+    }
 }
 static bool set_tileset(const char *relative, int tile_size) {
     PeScene candidate = app.scene;
@@ -302,7 +376,10 @@ static void field_start(Field f, const char *value) {
 }
 static void field_stop(void) {
     app.field = FIELD_NONE;
-    SDL_StopTextInput(app.window);
+    if (app.script_tab && app.script.focused)
+        SDL_StartTextInput(app.window);
+    else
+        SDL_StopTextInput(app.window);
 }
 static void field_apply(void) {
     if (app.field == FIELD_IMPORT) {
@@ -536,9 +613,14 @@ static void draw_tree(void) {
                 tree_toggle(row.path);
                 break;
             }
-            if (suffix(row.path, ".png"))
+            if (suffix(row.path, ".js")) {
+                char path[1024];
+                snprintf(path, sizeof path, "%s/%s", app.root, row.path);
+                request(REQUEST_SCRIPT_OPEN, path);
+            } else if (suffix(row.path, ".png")) {
+                tab_select(false);
                 set_tileset(row.path, app.scene.tileset_tile_size);
-            else if (suffix(row.path, ".json") && strcmp(row.path, "project.json")) {
+            } else if (suffix(row.path, ".json") && strcmp(row.path, "project.json")) {
                 char path[1024];
                 snprintf(path, sizeof path, "%s/%s", app.root, row.path);
                 request(REQUEST_OPEN, path);
@@ -692,6 +774,23 @@ static void draw_inspector(void) {
         }
     }
 }
+static void draw_script_inspector(void) {
+    float x = (float)(app.width - RIGHT + 12), y = TOP + 18;
+    section(x, y, ICON_FILE, "JAVASCRIPT");
+    text(x, y + 28, "Parser: QuickJS-ng", UI_TEXT);
+    text(x, y + 48, "Compile only / no execution", UI_MUTED);
+    section(x, y + 90, ICON_EDIT, "EDITOR SHORTCUTS");
+    const char *help[] = {
+        "Ctrl+S     Save script",  "Ctrl+Z     Undo",       "Ctrl+Shift+Z  Redo",
+        "Ctrl+Space  Suggestions", "Enter / Tab  Accept",   "F7         Check syntax",
+        "Shift+arrows  Select",    "Ctrl+C/X/V  Clipboard", "Shift+wheel  Horizontal"};
+    for (int i = 0; i < 9; i++)
+        text(x, y + 116 + i * 24, help[i], UI_MUTED);
+    text(x, y + 354, "Completion: keywords,", UI_TEXT);
+    text(x, y + 374, "standard JS objects and", UI_TEXT);
+    text(x, y + 394, "document identifiers.", UI_TEXT);
+    text(x, y + 426, "Type analysis / LSP later.", UI_MUTED);
+}
 static void draw_modal(void) {
     SDL_SetRenderDrawBlendMode(app.renderer, SDL_BLENDMODE_BLEND);
     box((SDL_FRect){0, 0, (float)app.width, (float)app.height}, 0x000000a0);
@@ -703,7 +802,7 @@ static void draw_modal(void) {
     if (app.request != REQUEST_NONE) {
         text(x + 20, y + 24, "Unsaved changes", UI_ACCENT);
         text(x + 20, y + 54, "Save before opening another scene or closing?", UI_TEXT);
-        if (button(x + 20, y + 110, 170, "Save and continue", false, true) && save())
+        if (button(x + 20, y + 110, 170, "Save and continue", false, true) && request_save())
             request_finish();
         if (button(x + 210, y + 110, 170, "Discard changes", false, true))
             request_finish();
@@ -727,8 +826,8 @@ static void draw_modal(void) {
 }
 static void draw(void) {
     SDL_GetWindowSize(app.window, &app.width, &app.height);
-    app.viewport = (SDL_FRect){LEFT, TOP, (float)(app.width - LEFT - RIGHT),
-                               (float)(app.height - TOP - BOTTOM)};
+    app.viewport = (SDL_FRect){LEFT, TOP + TABS, (float)(app.width - LEFT - RIGHT),
+                               (float)(app.height - TOP - TABS - BOTTOM)};
     draw_color(UI_CANVAS);
     SDL_RenderClear(app.renderer);
     box((SDL_FRect){0, 0, (float)app.width, TOP}, UI_PANEL);
@@ -742,85 +841,116 @@ static void draw(void) {
     if (modal)
         app.click = false;
     tooltip = NULL;
-    if (icon_button(14, 12, 88, ICON_SAVE, "Save", "Save scene (Ctrl+S)", false,
+    bool map_active = !app.script_tab;
+    if (icon_button(14, 12, 88, ICON_SAVE, "Save",
+                    app.script_tab ? "Save script (Ctrl+S)" : "Save scene (Ctrl+S)", false,
                     !app.playing && !app.history.pending))
         save();
-    if (icon_button(110, 12, 38, ICON_UNDO, "", "Undo (Ctrl+Z)", false,
-                    !app.playing && app.history.cursor > 0 && !app.history.pending)) {
-        pe_undo(&app.history, &app.scene);
-        selection_sync();
+    if (icon_button(
+            110, 12, 38, ICON_UNDO, "", "Undo (Ctrl+Z)", false,
+            !app.playing &&
+                (app.script_tab ? app.script.document.position > 0 : app.history.cursor > 0) &&
+                !app.history.pending)) {
+        undo_active(false);
     }
     if (icon_button(156, 12, 38, ICON_REDO, "", "Redo (Ctrl+Shift+Z)", false,
-                    !app.playing && app.history.cursor < app.history.count &&
+                    !app.playing &&
+                        (app.script_tab ? app.script.document.position < app.script.document.count
+                                        : app.history.cursor < app.history.count) &&
                         !app.history.pending)) {
-        pe_redo(&app.history, &app.scene);
-        selection_sync();
+        undo_active(true);
     }
     if (icon_button(214, 12, 88, app.playing ? ICON_STOP : ICON_PLAY, app.playing ? "Stop" : "Play",
-                    "Play / Stop (F5)", app.playing, !app.history.pending))
+                    "Play / Stop (F5)", app.playing, !app.history.pending && map_active))
         play_toggle();
     if (icon_button(310, 12, 122, ICON_IMPORT, "Import PNG", "Import a tileset image", false,
-                    !app.playing))
+                    !app.playing && map_active))
         field_start(FIELD_IMPORT, "");
     const UiIcon tool_icons[] = {ICON_BRUSH, ICON_ERASE, ICON_RECTANGLE, ICON_FILL, ICON_SELECT};
     const char *tool_hints[] = {"Brush (B)", "Eraser (E)", "Rectangle (R)", "Fill (F)",
                                 "Select entity (V)"};
     for (int i = 0; i < 5; i++)
         if (icon_button(458 + i * 48, 12, 40, tool_icons[i], "", tool_hints[i], app.tool == i,
-                        !app.playing && !app.history.pending))
+                        !app.playing && !app.history.pending && map_active))
             app.tool = i;
     if (icon_button(714, 12, 108, ICON_COLLISION, "Collision", "Edit collision grid", app.collision,
-                    !app.playing))
+                    !app.playing && map_active))
         app.collision = !app.collision;
-    if (icon_button(830, 12, 80, ICON_GRID, "Grid", "Show tile grid", app.grid, true))
+    if (icon_button(830, 12, 80, ICON_GRID, "Grid", "Show tile grid", app.grid, map_active))
         app.grid = !app.grid;
     text(14, 49,
-         "Drop PNG to import | B/E/R/F/V tools | Ctrl+S save | Ctrl+Z undo | F5 play | MMB pan | "
-         "wheel zoom",
+         app.script_tab
+             ? "JavaScript | Ctrl+Space suggestions | F7 syntax | Ctrl+S save | Ctrl+Z undo"
+             : "Drop PNG to import | B/E/R/F/V tools | Ctrl+S save | Ctrl+Z undo | F5 play | MMB "
+               "pan | wheel zoom",
          UI_MUTED);
-    pe_render_scene(app.renderer, app.playing ? &app.runtime : &app.scene, &app.assets, &app.camera,
-                    app.viewport, app.grid && !app.playing, app.collision && !app.playing);
-    if (!app.playing) {
-        PeObject *o = pe_entity_get(&app.scene, pe_entity_find(&app.scene, app.selected));
-        if (o) {
-            SDL_FRect rect = {app.viewport.x + (o->x - app.camera.x) * app.camera.zoom,
-                              app.viewport.y + (o->y - app.camera.y) * app.camera.zoom,
-                              o->w * app.camera.zoom, o->h * app.camera.zoom};
-            draw_color(UI_ACCENT);
-            SDL_RenderRect(app.renderer, &rect);
+    box((SDL_FRect){LEFT, TOP, (float)(app.width - LEFT - RIGHT), TABS}, UI_PANEL);
+    if (icon_button(LEFT + 10, TOP + 3, 92, ICON_GRID, "Map", NULL, !app.script_tab,
+                    !app.history.pending))
+        tab_select(false);
+    if (icon_button(LEFT + 110, TOP + 3, 108, ICON_FILE, "Scripts", NULL, app.script_tab,
+                    !app.history.pending && !app.playing))
+        tab_select(true);
+    if (!app.script_tab) {
+        pe_render_scene(app.renderer, app.playing ? &app.runtime : &app.scene, &app.assets,
+                        &app.camera, app.viewport, app.grid && !app.playing,
+                        app.collision && !app.playing);
+        if (!app.playing) {
+            PeObject *o = pe_entity_get(&app.scene, pe_entity_find(&app.scene, app.selected));
+            if (o) {
+                SDL_FRect rect = {app.viewport.x + (o->x - app.camera.x) * app.camera.zoom,
+                                  app.viewport.y + (o->y - app.camera.y) * app.camera.zoom,
+                                  o->w * app.camera.zoom, o->h * app.camera.zoom};
+                draw_color(UI_ACCENT);
+                SDL_RenderRect(app.renderer, &rect);
+            }
+            if (inside(app.mx, app.my, app.viewport) && !modal && app.tool != SELECT) {
+                int x, y;
+                tile_coords(app.mx, app.my, &x, &y);
+                int sx = app.painting && app.tool == RECTANGLE ? app.start_x : x,
+                    sy = app.painting && app.tool == RECTANGLE ? app.start_y : y;
+                int minx = sx < x ? sx : x, miny = sy < y ? sy : y;
+                SDL_FRect rect = {
+                    app.viewport.x + (minx * app.scene.tile_size - app.camera.x) * app.camera.zoom,
+                    app.viewport.y + (miny * app.scene.tile_size - app.camera.y) * app.camera.zoom,
+                    (abs(x - sx) + 1) * app.scene.tile_size * app.camera.zoom,
+                    (abs(y - sy) + 1) * app.scene.tile_size * app.camera.zoom};
+                SDL_Rect clip = {(int)app.viewport.x, (int)app.viewport.y, (int)app.viewport.w,
+                                 (int)app.viewport.h};
+                SDL_SetRenderClipRect(app.renderer, &clip);
+                draw_color(UI_ACCENT);
+                SDL_RenderRect(app.renderer, &rect);
+                SDL_SetRenderClipRect(app.renderer, NULL);
+            }
         }
-        if (inside(app.mx, app.my, app.viewport) && !modal && app.tool != SELECT) {
-            int x, y;
-            tile_coords(app.mx, app.my, &x, &y);
-            int sx = app.painting && app.tool == RECTANGLE ? app.start_x : x,
-                sy = app.painting && app.tool == RECTANGLE ? app.start_y : y;
-            int minx = sx < x ? sx : x, miny = sy < y ? sy : y;
-            SDL_FRect rect = {
-                app.viewport.x + (minx * app.scene.tile_size - app.camera.x) * app.camera.zoom,
-                app.viewport.y + (miny * app.scene.tile_size - app.camera.y) * app.camera.zoom,
-                (abs(x - sx) + 1) * app.scene.tile_size * app.camera.zoom,
-                (abs(y - sy) + 1) * app.scene.tile_size * app.camera.zoom};
-            SDL_Rect clip = {(int)app.viewport.x, (int)app.viewport.y, (int)app.viewport.w,
-                             (int)app.viewport.h};
-            SDL_SetRenderClipRect(app.renderer, &clip);
-            draw_color(UI_ACCENT);
-            SDL_RenderRect(app.renderer, &rect);
-            SDL_SetRenderClipRect(app.renderer, NULL);
-        }
-    }
+    } else
+        se_draw(&app.script, app.renderer, app.viewport, app.mx, app.my, app.click);
     draw_tree();
-    draw_inspector();
+    if (app.script_tab)
+        draw_script_inspector();
+    else
+        draw_inspector();
     box((SDL_FRect){0, (float)(app.height - BOTTOM), (float)app.width, BOTTOM}, UI_PANEL);
     box((SDL_FRect){0, (float)(app.height - BOTTOM), (float)app.width, 1}, UI_BORDER);
-    text(14, (float)(app.height - 34), app.status, UI_TEXT);
+    text(14, (float)(app.height - 34), app.script_tab ? app.script.status : app.status, UI_TEXT);
     char details[128];
-    snprintf(details, sizeof details, "Zoom %.0f%% | Tile %d | Undo %d / %d", app.camera.zoom * 100,
-             app.tile, app.history.cursor, app.history.count);
+    if (app.script_tab) {
+        int line, column;
+        pe_text_location(&app.script.document, app.script.document.cursor, &line, &column);
+        snprintf(details, sizeof details, "JS | Ln %d, Col %d | Undo %d / %d", line + 1, column + 1,
+                 app.script.document.position, app.script.document.count);
+    } else
+        snprintf(details, sizeof details, "Zoom %.0f%% | Tile %d | Undo %d / %d",
+                 app.camera.zoom * 100, app.tile, app.history.cursor, app.history.count);
     float status_y = (float)(app.height - 18);
     text(14, status_y, app.playing ? "PLAY" : "EDIT", UI_ACCENT);
     text(54, status_y, "|", UI_DISABLED);
-    text(70, status_y, pe_history_dirty(&app.history) ? "Modified" : "Saved",
-         pe_history_dirty(&app.history) ? UI_ACCENT : UI_MUTED);
+    bool active_dirty = app.script_tab ? se_dirty(&app.script) : pe_history_dirty(&app.history);
+    text(70, status_y,
+         active_dirty                           ? "Modified"
+         : app.script_tab && !app.script.exists ? "Untitled"
+                                                : "Saved",
+         active_dirty ? UI_ACCENT : UI_MUTED);
     text(142, status_y, "|", UI_DISABLED);
     text(158, status_y, details, UI_MUTED);
     if (tooltip && !modal) {
@@ -914,6 +1044,15 @@ static void keyboard(SDL_KeyboardEvent *key) {
 }
 static void event(SDL_Event *e) {
     bool modal = app.field != FIELD_NONE || app.request != REQUEST_NONE;
+    if (e->type == SDL_EVENT_MOUSE_MOTION) {
+        app.mx = e->motion.x;
+        app.my = e->motion.y;
+    } else if (e->type == SDL_EVENT_MOUSE_BUTTON_DOWN || e->type == SDL_EVENT_MOUSE_BUTTON_UP) {
+        app.mx = e->button.x;
+        app.my = e->button.y;
+    }
+    if (app.script_tab && !modal && se_event(&app.script, app.window, e, app.viewport))
+        return;
     switch (e->type) {
     case SDL_EVENT_QUIT:
         if (app.playing)
@@ -932,8 +1071,12 @@ static void event(SDL_Event *e) {
             strcat(app.input, e->text.text);
         break;
     case SDL_EVENT_DROP_FILE:
-        if (!modal && !app.history.pending)
-            import_png(e->drop.data);
+        if (!modal && !app.history.pending) {
+            if (suffix(e->drop.data, ".js"))
+                request(REQUEST_SCRIPT_OPEN, e->drop.data);
+            else if (!app.script_tab)
+                import_png(e->drop.data);
+        }
         break;
     case SDL_EVENT_WINDOW_FOCUS_LOST:
         if (app.history.pending) {
@@ -944,7 +1087,7 @@ static void event(SDL_Event *e) {
         break;
     case SDL_EVENT_MOUSE_WHEEL:
         if (!modal && !app.history.pending) {
-            if (inside(app.mx, app.my, app.viewport))
+            if (inside(app.mx, app.my, app.viewport) && !app.script_tab)
                 pe_camera_zoom(&app.camera, app.mx - app.viewport.x, app.my - app.viewport.y,
                                powf(1.15f, e->wheel.y));
             else if (app.mx < LEFT) {
@@ -971,11 +1114,11 @@ static void event(SDL_Event *e) {
         if (e->button.button == SDL_BUTTON_LEFT) {
             if (modal)
                 app.click = true;
-            else if (inside(app.mx, app.my, app.viewport) && !app.playing)
+            else if (inside(app.mx, app.my, app.viewport) && !app.playing && !app.script_tab)
                 edit_start(app.mx, app.my, false);
             else if (!app.history.pending)
                 app.click = true;
-        } else if (!modal && inside(app.mx, app.my, app.viewport)) {
+        } else if (!modal && inside(app.mx, app.my, app.viewport) && !app.script_tab) {
             if (e->button.button == SDL_BUTTON_MIDDLE)
                 app.panning = true;
             else if (e->button.button == SDL_BUTTON_RIGHT && !app.playing && !app.history.pending)
@@ -1069,6 +1212,71 @@ static bool verify_editor(void) {
         fprintf(stderr, "Editor interaction smoke test failed\n");
     return ok;
 }
+
+static bool verify_script_editor(void) {
+    PeText original = app.script.document;
+    PeScene scene_before = app.scene;
+    pe_text_init(&app.script.document, "");
+    tab_select(true);
+    SDL_Event e = {0};
+    e.type = SDL_EVENT_TEXT_INPUT;
+    e.text.text = "cons";
+    event(&e);
+    memset(&e, 0, sizeof e);
+    e.type = SDL_EVENT_KEY_DOWN;
+    e.key.key = SDLK_SPACE;
+    e.key.mod = SDL_KMOD_CTRL;
+    event(&e);
+    bool ok = app.script.show_completion;
+    draw();
+    ok = ok && app.script.popup.w > 0;
+    e.key.key = SDLK_RETURN;
+    e.key.mod = 0;
+    event(&e);
+    ok = ok && !strcmp(app.script.document.text, "const");
+    e.key.key = SDLK_Z;
+    e.key.mod = SDL_KMOD_CTRL;
+    event(&e);
+    ok = ok && !strcmp(app.script.document.text, "cons");
+    e.key.mod = SDL_KMOD_CTRL | SDL_KMOD_SHIFT;
+    event(&e);
+    ok = ok && !strcmp(app.script.document.text, "const");
+    e.key.key = SDLK_BACKSPACE;
+    e.key.mod = 0;
+    event(&e);
+    draw();
+    memset(&e, 0, sizeof e);
+    e.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
+    e.button.button = SDL_BUTTON_LEFT;
+    e.button.x = app.script.popup.x + 8;
+    e.button.y = app.script.popup.y + 8;
+    event(&e);
+    ok = ok && !strcmp(app.script.document.text, "const");
+    memset(&e, 0, sizeof e);
+    e.type = SDL_EVENT_TEXT_INPUT;
+    e.text.text = " value = ;\n";
+    event(&e);
+    memset(&e, 0, sizeof e);
+    e.type = SDL_EVENT_KEY_DOWN;
+    e.key.key = SDLK_F7;
+    event(&e);
+    ok = ok && !app.script.diagnostic.valid && app.script.diagnostic.line == 1;
+    request(REQUEST_QUIT, NULL);
+    ok = ok && app.request == REQUEST_QUIT && app.running;
+    app.request = REQUEST_NONE;
+    ok = ok && !memcmp(&scene_before, &app.scene, sizeof scene_before);
+    se_free(&app.script);
+    app.script.document = original;
+    app.script.highlighted_revision = UINT64_MAX;
+    app.script.checked_revision = UINT64_MAX;
+    app.script.show_completion = false;
+    app.script.top_line = app.script.left_column = 0;
+    se_check(&app.script);
+    tab_select(false);
+    if (!ok)
+        fprintf(stderr, "Script editor interaction smoke test failed\n");
+    return ok;
+}
 int main(int argc, char **argv) {
     const char *root = NULL;
     for (int i = 1; i < argc; i++) {
@@ -1076,11 +1284,13 @@ int main(int argc, char **argv) {
             root = argv[++i];
         else if (!strcmp(argv[i], "--screenshot") && i + 1 < argc)
             screenshot_path = argv[++i];
+        else if (!strcmp(argv[i], "--scripts"))
+            start_scripts = true;
         else if (!strcmp(argv[i], "--smoke"))
             app.smoke = true;
         else {
-            fprintf(stderr,
-                    "Usage: penguin_editor [--project path] [--smoke] [--screenshot file.bmp]\n");
+            fprintf(stderr, "Usage: penguin_editor [--project path] [--smoke] [--scripts] "
+                            "[--screenshot file.bmp]\n");
             return 1;
         }
     }
@@ -1112,7 +1322,15 @@ int main(int argc, char **argv) {
     SDL_SetRenderVSync(app.renderer, 1);
     app.width = 1280;
     app.height = 800;
-    app.viewport = (SDL_FRect){LEFT, TOP, 1280 - LEFT - RIGHT, 800 - TOP - BOTTOM};
+    app.viewport = (SDL_FRect){LEFT, TOP + TABS, 1280 - LEFT - RIGHT, 800 - TOP - TABS - BOTTOM};
+    if (!se_init(&app.script, root)) {
+        fprintf(stderr, "%s\n", app.script.status);
+        se_free(&app.script);
+        SDL_DestroyRenderer(app.renderer);
+        SDL_DestroyWindow(app.window);
+        SDL_Quit();
+        return 1;
+    }
     pe_history_init(&app.history);
     app.camera = (PeCamera){-16, -16, 1.4f};
     app.grid = true;
@@ -1121,15 +1339,18 @@ int main(int argc, char **argv) {
     app.last_time = SDL_GetTicksNS();
     strcpy(app.expanded[0], "assets");
     strcpy(app.expanded[1], "scenes");
-    app.expanded_count = 2;
+    strcpy(app.expanded[2], "scripts");
+    app.expanded_count = 3;
     tree_refresh();
     message("Welcome! Select a tile, paint a map, and press F5 to play.");
     assets_sync();
     int exit_code = 0;
-    if (app.smoke && !verify_editor()) {
+    if (app.smoke && (!verify_editor() || !verify_script_editor())) {
         app.running = false;
         exit_code = 1;
     }
+    if (start_scripts)
+        tab_select(true);
     int frames = 0;
     while (app.running) {
         SDL_Event e;
@@ -1157,6 +1378,7 @@ int main(int argc, char **argv) {
             app.running = false;
         SDL_Delay(1);
     }
+    se_free(&app.script);
     pe_history_free(&app.history);
     pe_assets_free(&app.assets);
     SDL_DestroyRenderer(app.renderer);
