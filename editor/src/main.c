@@ -8,7 +8,7 @@
 #include <string.h>
 #define LEFT 240
 #define RIGHT 280
-#define TOP 92
+#define TOP 64
 #define BOTTOM 48
 #define TREE_MAX 256
 typedef enum { BRUSH, ERASE, RECTANGLE, FILL, SELECT } Tool;
@@ -506,15 +506,15 @@ static void play_toggle(void) {
         message("Stopped; edited scene preserved");
 }
 static void draw_tree(void) {
-    section(14, 110, ICON_FOLDER, "PROJECT");
-    if (icon_button(190, 102, 32, ICON_REFRESH, "", "Refresh project files", false, true))
+    section(14, TOP + 18, ICON_FOLDER, "PROJECT");
+    if (icon_button(190, TOP + 10, 32, ICON_REFRESH, "", "Refresh project files", false, true))
         tree_refresh();
-    SDL_Rect clip = {0, 138, LEFT, app.height - 138 - BOTTOM};
+    SDL_Rect clip = {0, TOP + 46, LEFT, app.height - TOP - 46 - BOTTOM};
     SDL_SetRenderClipRect(app.renderer, &clip);
-    int visible = (app.height - 138 - BOTTOM) / 23;
+    int visible = (app.height - TOP - 46 - BOTTOM) / 23;
     for (int i = app.tree_scroll; i < app.tree_count && i < app.tree_scroll + visible; i++) {
         TreeRow row = app.tree[i];
-        float y = 142 + (i - app.tree_scroll) * 23;
+        float y = TOP + 50 + (i - app.tree_scroll) * 23;
         char label[128];
         snprintf(label, sizeof label, "%.20s", row.name);
         SDL_FRect r = {8, y, LEFT - 16, 22};
@@ -551,7 +551,7 @@ static void draw_inspector(void) {
     float x = (float)(app.width - RIGHT + 12);
     char label[128], value[64];
     bool enabled = !app.playing;
-    float y = 110;
+    float y = TOP + 18;
     section(x, y, ICON_LAYERS, "TILEMAP / LAYERS");
     y += 22;
     snprintf(label, sizeof label, "Map: %dx%d  tile: %d", app.scene.width, app.scene.height,
@@ -741,46 +741,40 @@ static void draw(void) {
     bool saved_click = app.click;
     if (modal)
         app.click = false;
-    ui_icon(app.renderer, ICON_ENTITY, 14, 10, 16, UI_ACCENT);
-    text(38, 14, "PENGUIN ENGINE", UI_TEXT);
-    char heading[160];
-    snprintf(heading, sizeof heading, "%s  |  %s",
-             pe_history_dirty(&app.history) ? "Modified" : "Saved", app.playing ? "PLAY" : "EDIT");
-    text(208, 14, heading, UI_MUTED);
     tooltip = NULL;
-    if (icon_button(14, 40, 88, ICON_SAVE, "Save", "Save scene (Ctrl+S)", false,
+    if (icon_button(14, 12, 88, ICON_SAVE, "Save", "Save scene (Ctrl+S)", false,
                     !app.playing && !app.history.pending))
         save();
-    if (icon_button(110, 40, 38, ICON_UNDO, "", "Undo (Ctrl+Z)", false,
+    if (icon_button(110, 12, 38, ICON_UNDO, "", "Undo (Ctrl+Z)", false,
                     !app.playing && app.history.cursor > 0 && !app.history.pending)) {
         pe_undo(&app.history, &app.scene);
         selection_sync();
     }
-    if (icon_button(156, 40, 38, ICON_REDO, "", "Redo (Ctrl+Shift+Z)", false,
+    if (icon_button(156, 12, 38, ICON_REDO, "", "Redo (Ctrl+Shift+Z)", false,
                     !app.playing && app.history.cursor < app.history.count &&
                         !app.history.pending)) {
         pe_redo(&app.history, &app.scene);
         selection_sync();
     }
-    if (icon_button(214, 40, 88, app.playing ? ICON_STOP : ICON_PLAY, app.playing ? "Stop" : "Play",
+    if (icon_button(214, 12, 88, app.playing ? ICON_STOP : ICON_PLAY, app.playing ? "Stop" : "Play",
                     "Play / Stop (F5)", app.playing, !app.history.pending))
         play_toggle();
-    if (icon_button(310, 40, 122, ICON_IMPORT, "Import PNG", "Import a tileset image", false,
+    if (icon_button(310, 12, 122, ICON_IMPORT, "Import PNG", "Import a tileset image", false,
                     !app.playing))
         field_start(FIELD_IMPORT, "");
     const UiIcon tool_icons[] = {ICON_BRUSH, ICON_ERASE, ICON_RECTANGLE, ICON_FILL, ICON_SELECT};
     const char *tool_hints[] = {"Brush (B)", "Eraser (E)", "Rectangle (R)", "Fill (F)",
                                 "Select entity (V)"};
     for (int i = 0; i < 5; i++)
-        if (icon_button(458 + i * 48, 40, 40, tool_icons[i], "", tool_hints[i], app.tool == i,
+        if (icon_button(458 + i * 48, 12, 40, tool_icons[i], "", tool_hints[i], app.tool == i,
                         !app.playing && !app.history.pending))
             app.tool = i;
-    if (icon_button(714, 40, 108, ICON_COLLISION, "Collision", "Edit collision grid", app.collision,
+    if (icon_button(714, 12, 108, ICON_COLLISION, "Collision", "Edit collision grid", app.collision,
                     !app.playing))
         app.collision = !app.collision;
-    if (icon_button(830, 40, 80, ICON_GRID, "Grid", "Show tile grid", app.grid, true))
+    if (icon_button(830, 12, 80, ICON_GRID, "Grid", "Show tile grid", app.grid, true))
         app.grid = !app.grid;
-    text(14, 77,
+    text(14, 49,
          "Drop PNG to import | B/E/R/F/V tools | Ctrl+S save | Ctrl+Z undo | F5 play | MMB pan | "
          "wheel zoom",
          UI_MUTED);
@@ -822,7 +816,13 @@ static void draw(void) {
     char details[128];
     snprintf(details, sizeof details, "Zoom %.0f%% | Tile %d | Undo %d / %d", app.camera.zoom * 100,
              app.tile, app.history.cursor, app.history.count);
-    text(14, (float)(app.height - 18), details, UI_MUTED);
+    float status_y = (float)(app.height - 18);
+    text(14, status_y, app.playing ? "PLAY" : "EDIT", UI_ACCENT);
+    text(54, status_y, "|", UI_DISABLED);
+    text(70, status_y, pe_history_dirty(&app.history) ? "Modified" : "Saved",
+         pe_history_dirty(&app.history) ? UI_ACCENT : UI_MUTED);
+    text(142, status_y, "|", UI_DISABLED);
+    text(158, status_y, details, UI_MUTED);
     if (tooltip && !modal) {
         float width = (float)strlen(tooltip) * 8 + 20;
         float tx = fminf(app.mx + 12, app.width - width - 8),
