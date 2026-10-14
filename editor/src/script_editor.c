@@ -436,6 +436,8 @@ void se_draw(PeScriptEditor *e, SDL_Renderer *r, SDL_FRect area, float mx, float
                  0x5a3d26ff);
         p++;
     }
+    SDL_Rect caret_clip = {(int)e->body.x, (int)e->body.y, (int)e->body.w, (int)e->body.h};
+    SDL_SetRenderClipRect(r, &caret_clip);
     if (e->focused && SDL_GetTicks() % 1000 < 650) {
         float cx = e->body.x + (caret_col - e->left_column) * CHAR_WIDTH,
               cy = e->body.y + (caret_line - e->top_line) * LINE_HEIGHT;

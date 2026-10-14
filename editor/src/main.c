@@ -1228,6 +1228,8 @@ static bool verify_script_editor(void) {
     e.key.mod = SDL_KMOD_CTRL;
     event(&e);
     bool ok = app.script.show_completion;
+    draw();
+    ok = ok && app.script.popup.w > 0;
     e.key.key = SDLK_RETURN;
     e.key.mod = 0;
     event(&e);
@@ -1237,6 +1239,17 @@ static bool verify_script_editor(void) {
     event(&e);
     ok = ok && !strcmp(app.script.document.text, "cons");
     e.key.mod = SDL_KMOD_CTRL | SDL_KMOD_SHIFT;
+    event(&e);
+    ok = ok && !strcmp(app.script.document.text, "const");
+    e.key.key = SDLK_BACKSPACE;
+    e.key.mod = 0;
+    event(&e);
+    draw();
+    memset(&e, 0, sizeof e);
+    e.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
+    e.button.button = SDL_BUTTON_LEFT;
+    e.button.x = app.script.popup.x + 8;
+    e.button.y = app.script.popup.y + 8;
     event(&e);
     ok = ok && !strcmp(app.script.document.text, "const");
     memset(&e, 0, sizeof e);
