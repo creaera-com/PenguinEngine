@@ -8,6 +8,7 @@ Die erste Basis ist implementiert. Dieses Dokument beschreibt den tatsächlichen
 | --- | --- |
 | `engine/include/penguin/engine.h` | Öffentliche, von SDL unabhängige C-Datentypen und Funktionen. |
 | `engine/src/core.c` | Entities, Tile-Werkzeuge, Undo/Redo, Kamera und Bewegung/Kollision. |
+| `engine/src/project.c` | Projektsuche relativ zur Programmdatei und explizite Projektpfade. |
 | `engine/src/scene.c` | Validiertes JSON-Laden, Speichern und Projektmanifest. |
 | `engine/include/penguin/render.h` | SDL-Rendering und Textur-Lebenszyklus. |
 | `engine/src/render.c` | PNG-Laden, Tile-Zeichnung, Entity-Darstellung, Raster und Kollisionsanzeige. |
@@ -83,6 +84,12 @@ Der Dateibaum nutzt die plattformübergreifenden SDL3-Dateifunktionen. Ordner la
 
 In dieser Version sind Asset-Referenzen relative Pfade, **noch keine Asset-UUIDs oder ein Asset-Katalog**. Dateien extern umzubenennen bricht Referenzen. Bei fehlenden oder ungültigen Tiles werden Platzhalter gezeichnet und ein Fehler angezeigt. Umbenennen und Löschen von Assets im Editor wird erst mit einem Referenzsystem ergänzt.
 
+## Projektsuche beim Start
+
+Ein expliziter `--project`-Pfad hat Vorrang. Ist er ungültig, wird ein Fehler mit Bedienhinweis gemeldet; es wird kein anderes Projekt geöffnet. Ohne Argument suchen beide Programme zuerst `example/` neben der ausführbaren Datei, danach `../example/` (für Visual-Studio-Konfigurationen wie `Debug/`). Erst dann folgen `example/`, `examples/topdown/` und ein Projekt direkt im Arbeitsverzeichnis. `SDL_GetBasePath` liefert den Programmpfad; die Suchfunktion selbst bleibt SDL-unabhängig und wird mit Unity geprüft.
+
+Die Build-Targets für Editor und Spiel hängen ausdrücklich von der erstmaligen Beispielinitialisierung ab. Existierende Projekte werden dabei nicht überschrieben. Zwei zusätzliche Smoke-Tests starten beide Programme ohne Projektargument aus einem unbeteiligten Arbeitsverzeichnis.
+
 ## Speichern und Laden
 
 `project.json` enthält `version`, `name` und `start_scene`. Nur `version` und `start_scene` werden für den Start benötigt. Projekt- und Szenenformat haben Version 1.
@@ -113,7 +120,9 @@ Bewegung wird in kleine Schritte unterteilt und pro Achse geprüft, damit Körpe
 
 ## Tests und CI
 
-Unity 2.6.1 prüft 32 Regeln, unter anderem Entity-Lebenszyklen, Kapazität, Rastergrenzen, Füllen, gruppierte Commands, Historienbegrenzung, gespeicherte Revisionen, Kameraanker, Kollision, Dateiformate und abgelehnte Szenendaten.
+Unity 2.6.1 prüft 33 Regeln, unter anderem Entity-Lebenszyklen, Kapazität, Rastergrenzen, Füllen, gruppierte Commands, Historienbegrenzung, gespeicherte Revisionen, Kameraanker, Kollision, Dateiformate und abgelehnte Szenendaten.
+
+Ein zusätzlicher CMake-Test prüft, dass die Beispielkopie korrekt eingerichtet wird und erneute Builds bearbeitete Dateien nicht überschreiben.
 
 Der Editor-Smoke-Test verwendet dieselben Eingabehandler wie Maus und Tastatur: Malen, Undo, Redo und Play/Stop werden ohne Desktop geprüft. Ein weiterer Smoke-Test startet und rendert das Beispielspiel. SDL-Dummy-Tests ersetzen keine manuelle Desktop-Bedienungsprüfung.
 

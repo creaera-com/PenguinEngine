@@ -1019,7 +1019,7 @@ static bool verify_editor(void) {
     return ok;
 }
 int main(int argc, char **argv) {
-    const char *root = "example";
+    const char *root = NULL;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--project") && i + 1 < argc)
             root = argv[++i];
@@ -1033,12 +1033,13 @@ int main(int argc, char **argv) {
             return 1;
         }
     }
-    if (strlen(root) >= sizeof app.root) {
-        fprintf(stderr, "Project path too long\n");
+    char error[256];
+    if (!pe_project_resolve(root, SDL_GetBasePath(), app.root, sizeof app.root, error,
+                            sizeof error)) {
+        fprintf(stderr, "%s\n", error);
         return 1;
     }
-    strcpy(app.root, root);
-    char error[256];
+    root = app.root;
     if (!pe_project_load(root, app.scene_path, sizeof app.scene_path, error, sizeof error) ||
         !pe_scene_load(&app.scene, app.scene_path, error, sizeof error)) {
         fprintf(stderr, "%s\n", error);

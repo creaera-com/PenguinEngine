@@ -2,6 +2,16 @@
 #include "penguin/engine.h"
 #include "unity.h"
 #include <math.h>
+#ifdef _WIN32
+#include <direct.h>
+#define make_dir(path) _mkdir(path)
+#define remove_dir(path) _rmdir(path)
+#else
+#include <sys/stat.h>
+#include <unistd.h>
+#define make_dir(path) mkdir(path, 0700)
+#define remove_dir(path) rmdir(path)
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -329,6 +339,40 @@ static void test_save_failure_retains_file(void) {
     TEST_ASSERT_TRUE(pe_scene_load(&loaded, "test_scene.json", error, sizeof error));
     TEST_ASSERT_EQUAL_INT(0, pe_tile_get(&loaded, 0, 1, 1));
 }
+
+static void test_project_resolution(void) {
+    make_dir("test-resolution");
+    make_dir("test-resolution/example");
+    make_dir("test-resolution/Debug");
+    FILE *file = fopen("test-resolution/example/project.json", "wb");
+    TEST_ASSERT_NOT_NULL(file);
+    fputs("{}", file);
+    fclose(file);
+    char root[768];
+    bool beside =
+        pe_project_resolve(NULL, "test-resolution", root, sizeof root, error, sizeof error);
+    bool beside_path = !strcmp(root, "test-resolution/example");
+    bool parent =
+        pe_project_resolve(NULL, "test-resolution/Debug", root, sizeof root, error, sizeof error);
+    bool parent_path = !strcmp(root, "test-resolution/Debug/../example");
+    bool explicit_ok =
+        pe_project_resolve("test-resolution/example", NULL, root, sizeof root, error, sizeof error);
+    bool explicit_path = !strcmp(root, "test-resolution/example");
+    bool invalid = pe_project_resolve("test-resolution/missing", "test-resolution", root,
+                                      sizeof root, error, sizeof error);
+    char short_root[2];
+    bool truncated = pe_project_resolve("test-resolution/example", NULL, short_root,
+                                        sizeof short_root, error, sizeof error);
+    remove("test-resolution/example/project.json");
+    remove_dir("test-resolution/example");
+    remove_dir("test-resolution/Debug");
+    remove_dir("test-resolution");
+    TEST_ASSERT_TRUE(beside && beside_path);
+    TEST_ASSERT_TRUE(parent && parent_path);
+    TEST_ASSERT_TRUE(explicit_ok && explicit_path);
+    TEST_ASSERT_FALSE(invalid);
+    TEST_ASSERT_FALSE(truncated);
+}
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_stale_entity);
@@ -363,5 +407,6 @@ int main(void) {
     RUN_TEST(test_nonfinite_collision_and_movement);
     RUN_TEST(test_runtime_copy_isolation);
     RUN_TEST(test_save_failure_retains_file);
+    RUN_TEST(test_project_resolution);
     return UNITY_END();
 }

@@ -33,6 +33,8 @@ Linux benötigt zusätzlich SDL-Entwicklungsvoraussetzungen, mindestens ein Desk
 sudo apt-get install build-essential cmake pkg-config libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev
 ```
 
+Ohne `--project` suchen Editor und Spiel das Beispiel relativ zur Programmdatei, auch in `build/Debug` bei Visual Studio. Das funktioniert unabhängig vom Arbeitsverzeichnis. Der Build richtet das Beispiel auch dann ein, wenn nur das Editor- oder Spiel-Target gebaut wird.
+
 Start von Linux/macOS aus dem Repository-Ordner:
 
 ```sh
@@ -50,13 +52,23 @@ ctest --test-dir build -C Debug --output-on-failure
 .\build\Debug\penguin_game.exe --project build/example
 ```
 
-Das Beispiel wird in `build/example` kopiert. **Eigene Änderungen dort vor einem erneuten Build in einen eigenen Projektordner sichern**, denn der Build kopiert die Vorlage erneut. Dauerhafte eigene Projekte außerhalb des Build-Ordners öffnen:
+Das Beispiel wird einmalig in `build/example` eingerichtet. Erneute Builds überschreiben bestehende Projektdaten nicht. Beim Löschen des Build-Ordners gehen Daten darin jedoch verloren; dauerhafte eigene Projekte deshalb außerhalb des Build-Ordners speichern:
 
 ```sh
 ./build/penguin_editor --project /pfad/zu/meinem-projekt
 ```
 
 Zum Anlegen eines eigenen Projekts zunächst `examples/topdown/project.json`, `assets/` und `scenes/` in einen eigenen Ordner kopieren. Projektname und Startszene lassen sich in `project.json` ändern. Kartenabmessungen und Welt-Tilegröße werden in dieser Version über die Szenendatei festgelegt.
+
+## CLion
+
+1. Repository-Ordner als CMake-Projekt öffnen und CMake laden lassen.
+2. Als Run-Konfiguration das CMake-Target `penguin_editor` auswählen und bauen/starten.
+3. Der Editor findet `example/` automatisch neben der Programmdatei, zum Beispiel in `cmake-build-debug/example`. Ein gezielter Editor-Build richtet diesen Ordner automatisch ein.
+4. Für ein eigenes Projekt unter **Run → Edit Configurations** die Program arguments auf `--project /absoluter/pfad/zum/projekt` setzen.
+5. Zum Testen die Konfiguration `penguin_tests` starten oder CTest verwenden.
+
+Bei älteren Ständen mit `Cannot open example/project.json`: Working directory auf den Repository-Ordner und Program arguments auf `--project examples/topdown` setzen. Das öffnet die Vorlage direkt; Speichern verändert ihre Szenendateien im Repo.
 
 ## Tests ohne SDL oder Fenster
 

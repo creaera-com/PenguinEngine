@@ -4,7 +4,7 @@
 #include <string.h>
 static PeScene scene;
 int main(int argc, char **argv) {
-    const char *root = "example";
+    const char *root = NULL;
     bool smoke = false;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--project") && i + 1 < argc)
@@ -16,7 +16,13 @@ int main(int argc, char **argv) {
             return 1;
         }
     }
-    char path[1024], error[256];
+    char path[1024], error[256], resolved_root[768];
+    if (!pe_project_resolve(root, SDL_GetBasePath(), resolved_root, sizeof resolved_root, error,
+                            sizeof error)) {
+        fprintf(stderr, "%s\n", error);
+        return 1;
+    }
+    root = resolved_root;
     if (!pe_project_load(root, path, sizeof path, error, sizeof error) ||
         !pe_scene_load(&scene, path, error, sizeof error)) {
         fprintf(stderr, "%s\n", error);
