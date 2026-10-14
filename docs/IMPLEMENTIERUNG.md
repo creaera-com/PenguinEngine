@@ -8,6 +8,9 @@ Die erste Basis ist implementiert. Dieses Dokument beschreibt den tatsächlichen
 | --- | --- |
 | `engine/include/penguin/engine.h` | Öffentliche, von SDL unabhängige C-Datentypen und Funktionen. |
 | `engine/src/core.c` | Entities, Tile-Werkzeuge, Undo/Redo, Kamera und Bewegung/Kollision. |
+| `engine/src/text.c` | UTF-8-Textpuffer, Auswahl, Undo/Redo und sichere Script-Dateioperationen. |
+| `engine/src/javascript.c` | QuickJS-ng-Syntaxprüfung, lexikalisches Highlighting und einfache Vervollständigung. |
+| `editor/src/script_editor.c` | Textansicht, Eingaben, Zeilennummern, Vorschläge und Fehleranzeige. |
 | `engine/src/project.c` | Projektsuche relativ zur Programmdatei und explizite Projektpfade. |
 | `engine/src/scene.c` | Validiertes JSON-Laden, Speichern und Projektmanifest. |
 | `engine/include/penguin/render.h` | SDL-Rendering und Textur-Lebenszyklus. |
@@ -17,7 +20,7 @@ Die erste Basis ist implementiert. Dieses Dokument beschreibt den tatsächlichen
 | `examples/topdown/main.c` | Eigenständige Spielruntime ohne Editor. |
 | `tests/test_engine.c` | Unity-Tests der Kernregeln. |
 
-CMake erzeugt die Bibliotheken `penguin`, `penguin_sdl` und `unity` sowie die Programme `penguin_editor`, `penguin_game` und `penguin_tests`.
+CMake erzeugt die Bibliotheken `penguin`, `penguin_sdl` und `unity` sowie die Programme `penguin_editor`, `penguin_game`, `penguin_tests` und `penguin_script_tests`. `penguin_script` enthält die von SDL unabhängigen Script-Werkzeuge und nutzt die vendorte `penguin_js_parser`-Bibliothek. Das eigenständige Beispielspiel bindet diese Bibliotheken nicht ein.
 
 ## Das ECS
 
@@ -109,7 +112,7 @@ Weltkoordinaten sind Pixel, X zeigt nach rechts und Y nach unten. Die Kamera spe
 
 Der Renderer zeichnet sichtbare Tile-Ebenen, danach Entity-Rechtecke. Die erste Version hat noch keine frei konfigurierbare Sprite-Sortierung. Die Szene ist auf den mittleren Viewport begrenzt. PNG-Texturen verwenden nearest-neighbor filtering. Subpixel-Zoom ist im Editor erlaubt; eine feste interne Spielauflösung mit ganzzahliger Skalierung ist noch nicht umgesetzt.
 
-Die eigene Editor-GUI verwendet dunkelgraue Panels, orange Akzente, abgerundete Buttons und `SDL_RenderDebugText`. Das Farbschema ist zentral in `editor/src/ui.h` definiert. Die Icons werden mit SDL-Linien und Flächen gezeichnet, benötigen keine Icon-Schrift oder Bilddateien und folgen den Hover-, Auswahl- und Deaktiviert-Zuständen. Werkzeugbuttons zeigen Tooltips mit Namen und Tastenkürzeln. Die kompakte Toolbar enthält keinen App-Titel; EDIT/PLAY und Saved/Modified stehen unten in der Statuszeile zusammen mit Zoom, Tile-Auswahl und Undo-Verlauf. Panel-Positionen richten sich nach der Toolbar-Höhe. Sie benötigt keine zusätzliche GUI-Abhängigkeit. Textfelder akzeptieren SDL-Texteingabe; Backspace entfernt ein UTF-8-Zeichen, aber die Debug-Schrift stellt nicht alle Unicode-Zeichen dar. Textauswahl, Zwischenablage, Docking und frei verschiebbare Panels sind noch nicht vorhanden.
+Die eigene Editor-GUI verwendet dunkelgraue Panels, orange Akzente, abgerundete Buttons und `SDL_RenderDebugText`. Das Farbschema ist zentral in `editor/src/ui.h` definiert. Die Icons werden mit SDL-Linien und Flächen gezeichnet, benötigen keine Icon-Schrift oder Bilddateien und folgen den Hover-, Auswahl- und Deaktiviert-Zuständen. Werkzeugbuttons zeigen Tooltips mit Namen und Tastenkürzeln. Die kompakte Toolbar enthält keinen App-Titel; EDIT/PLAY und Saved/Modified stehen unten in der Statuszeile zusammen mit Zoom, Tile-Auswahl und Undo-Verlauf. Panel-Positionen richten sich nach der Toolbar-Höhe. Sie benötigt keine zusätzliche GUI-Abhängigkeit. Textfelder akzeptieren SDL-Texteingabe; Backspace entfernt ein UTF-8-Zeichen, aber die Debug-Schrift stellt nicht alle Unicode-Zeichen dar. Der Script-Editor ergänzt Textauswahl und Zwischenablage. Die kleinen Inspector-/Modal-Felder bleiben einfache Eingaben. Docking und frei verschiebbare Panels sind noch nicht vorhanden.
 
 ## Play-Modus und Kollision
 
@@ -119,13 +122,31 @@ Die Hauptschleife sammelt vergangene Zeit und führt Simulation mit 1/60 Sekunde
 
 Bewegung wird in kleine Schritte unterteilt und pro Achse geprüft, damit Körper an Wänden entlanggleiten können. Extrem große oder nicht endliche Bewegungen werden verworfen. Bei einfachen Wandkontakten wird die Bewegung schrittweise blockiert; es gibt noch keine exakte Kontaktauflösung. Kollision zwischen Entities, Trigger-Ereignisse, Schwerkraft, Sprünge und dynamische Physikkörper sind noch nicht implementiert.
 
+## Map-/Scripts-Tabs und Texteditor
+
+Die Tabs liegen über der mittleren Arbeitsfläche. Ein Wechsel erhält Karte, Kamera, Dokument, Cursor und Scrollposition. Szene und Script haben getrennte Undo-Verläufe; die Toolbar und Saved/Modified-Anzeige beziehen sich auf den aktiven Tab. Während Play bleiben Scripts und Textbearbeitung gesperrt.
+
+Der Script-Editor hält zunächst ein Dokument. Beim Start wird `scripts/player.js` oder ein vorhandenes `scripts/new_script.js` geladen. Ohne beides beginnt ein leeres Dokument, das beim ersten Speichern als `scripts/new_script.js` angelegt wird. Andere `.js`-Dateien werden über Dateibaum oder Drag-and-drop geöffnet. Wechsel und Beenden berücksichtigen ungespeicherten Text; beim Beenden können Szene und Script gemeinsam gespeichert werden.
+
+`PeText` speichert maximal 64 KiB UTF-8, Cursor und Auswahlanker. Einfügen, Löschen, Paste und Completion sind atomare Text-Commands. Jeder SDL-Texteingabevorgang ist ein Undo-Schritt; die Historie umfasst 64 Schritte. Cursor-Navigation erzeugt keine Änderungen. UTF-8-Zeichen werden vollständig entfernt, Tabulatoren werden in vier Spalten dargestellt und CRLF wird beim Laden/Paste normalisiert. Die Debug-Schrift stellt nicht alle Unicode-Zeichen dar; nicht unterstützte Zeichen bleiben im Text erhalten und erscheinen als Platzhalter.
+
+QuickJS-ng wird mit `JS_EVAL_FLAG_COMPILE_ONLY` verwendet. Nach erfolgreichem Parsen bricht ein eigener Module-Loader die Import-Auflösung absichtlich ab; es werden keine fremden Module geladen. Syntaxfehler bleiben Fehler, fehlende Importdateien sind für diese Prüfung irrelevant. Das Prüf-Runtime ist auf 64 MiB Speicher und 256 KiB JavaScript-Stack begrenzt. Die Prüfung erfolgt nach 300 ms Schreibpause im sichtbaren Tab oder explizit mit F7. Sie kennt keine Gameplay-Bindings und führt keine Statements aus.
+
+Highlighting ist ein eigener einfacher Lexer für Keywords, Standardobjekte, Zahlen, Strings und Kommentare. Template-Strings werden als ein String eingefärbt; Regex-Literale und Template-Interpolation haben noch kein vollständiges eigenes Highlighting. Die Syntaxprüfung verwendet unabhängig davon den echten JavaScript-Parser.
+
+Completion schlägt Keywords, Standardobjekte, `Math`-/`JSON`-/`console`-Methoden und Bezeichner aus dem aktuellen Text vor. Vorschläge berücksichtigen keine Scopes oder Typen und werden in Strings/Kommentaren unterdrückt. Cursor und Dokumentrevision werden vor dem Übernehmen geprüft, sodass veraltete Vorschläge keinen anderen Text ersetzen. Strg+Leertaste öffnet die Liste, Pfeiltasten wählen und Enter/Tab übernimmt.
+
+Für eine spätere umfangreiche Completion wäre eine LSP-Anbindung, etwa an einen TypeScript/JavaScript Language Server, passend. Das bräuchte einen zusätzlichen Serverprozess, Dokument-Synchronisation und dessen Laufzeit/Abhängigkeiten. Die Engine selbst kann dabei in C bleiben. Dies ist noch nicht eingebaut.
+
 ## Tests und CI
 
-Unity 2.6.1 prüft 33 Regeln, unter anderem Entity-Lebenszyklen, Kapazität, Rastergrenzen, Füllen, gruppierte Commands, Historienbegrenzung, gespeicherte Revisionen, Kameraanker, Kollision, Dateiformate und abgelehnte Szenendaten.
+Unity 2.6.1 prüft 33 Engine-Regeln, unter anderem Entity-Lebenszyklen, Kapazität, Rastergrenzen, Füllen, gruppierte Commands, Historienbegrenzung, gespeicherte Revisionen, Kameraanker, Kollision, Dateiformate und abgelehnte Szenendaten.
+
+32 weitere Unity-Tests prüfen Textbearbeitung, UTF-8-Grenzen, Dateioperationen, Parserfehler mit Zeilenangabe, Compile-only-Verhalten, Imports, Highlighting und Vervollständigung. Insgesamt laufen acht CTest-Prüfungen.
 
 Ein zusätzlicher CMake-Test prüft, dass die Beispielkopie korrekt eingerichtet wird und erneute Builds bearbeitete Dateien nicht überschreiben.
 
-Der Editor-Smoke-Test verwendet dieselben Eingabehandler wie Maus und Tastatur: Malen, Undo, Redo und Play/Stop werden ohne Desktop geprüft. Ein weiterer Smoke-Test startet und rendert das Beispielspiel. SDL-Dummy-Tests ersetzen keine manuelle Desktop-Bedienungsprüfung.
+Der Editor-Smoke-Test verwendet dieselben Eingabehandler wie Maus und Tastatur: Malen, Undo, Redo und Play/Stop werden ohne Desktop geprüft. Die Editor-Smoke-Tests prüfen zusätzlich Script-Eingabe, Completion, Undo/Redo, Syntaxfehler, den Schutz ungespeicherter Scripts und die Trennung von Szenenänderungen. Ein Test rendert ausdrücklich den Scripts-Tab. Ein weiterer Smoke-Test startet und rendert das Beispielspiel. SDL-Dummy-Tests ersetzen keine manuelle Desktop-Bedienungsprüfung.
 
 In der lokalen verwalteten Umgebung verhindert die Prozessüberwachung LeakSanitizer (ptrace-Einschränkung). Hier werden AddressSanitizer und UndefinedBehaviorSanitizer mit `ASAN_OPTIONS=detect_leaks=0` ausgeführt; der CI-Job deaktiviert die Leak-Prüfung nicht.
 
