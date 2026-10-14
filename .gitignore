@@ -1,0 +1,5 @@
+build*/
+.cache/
+*.tmp
+*.bak
+.DS_Store

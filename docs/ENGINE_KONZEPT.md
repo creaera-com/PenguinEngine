@@ -2,7 +2,7 @@
 
 Stand: 14. Oktober 2026
 
-**Status: Planungsdokument. Es wurde noch keine Engine implementiert.** Die hier beschriebenen APIs, Ordner und Funktionen sind Vorschläge für die gemeinsame Umsetzung. Entscheidungen können wir beim Aufbau des Repositories anpassen.
+**Status: Ursprüngliches Planungsdokument. Die erste Basis ist inzwischen implementiert; den tatsächlichen Stand beschreibt [IMPLEMENTIERUNG.md](IMPLEMENTIERUNG.md).** Die hier beschriebenen APIs, Ordner und Funktionen sind Vorschläge für die gemeinsame Umsetzung. Entscheidungen können wir beim Aufbau des Repositories anpassen.
 
 ## 1. Ziel
 

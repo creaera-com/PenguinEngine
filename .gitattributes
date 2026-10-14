@@ -1,0 +1,4 @@
+* text=auto
+*.png binary
+# Preserve upstream vendored sources; do not apply project whitespace checks.
+third_party/** -whitespace
