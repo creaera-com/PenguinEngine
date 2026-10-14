@@ -60,6 +60,16 @@ Das Beispiel wird einmalig in `build/example` eingerichtet. Erneute Builds über
 
 Zum Anlegen eines eigenen Projekts zunächst `examples/topdown/project.json`, `assets/` und `scenes/` in einen eigenen Ordner kopieren. Projektname und Startszene lassen sich in `project.json` ändern. Kartenabmessungen und Welt-Tilegröße werden in dieser Version über die Szenendatei festgelegt.
 
+## CLion
+
+1. Repository-Ordner als CMake-Projekt öffnen und CMake laden lassen.
+2. Als Run-Konfiguration das CMake-Target `penguin_editor` auswählen und bauen/starten.
+3. Der Editor findet `example/` automatisch neben der Programmdatei, zum Beispiel in `cmake-build-debug/example`. Ein gezielter Editor-Build richtet diesen Ordner automatisch ein.
+4. Für ein eigenes Projekt unter **Run → Edit Configurations** die Program arguments auf `--project /absoluter/pfad/zum/projekt` setzen.
+5. Zum Testen die Konfiguration `penguin_tests` starten oder CTest verwenden.
+
+Bei älteren Ständen mit `Cannot open example/project.json`: Working directory auf den Repository-Ordner und Program arguments auf `--project examples/topdown` setzen. Das öffnet die Vorlage direkt; Speichern verändert ihre Szenendateien im Repo.
+
 ## Tests ohne SDL oder Fenster
 
 Unity 2.6.1 ist im Repo enthalten; die Kern-Tests benötigen keinen Download.
