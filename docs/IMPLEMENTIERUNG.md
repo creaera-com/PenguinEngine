@@ -12,6 +12,7 @@ Die erste Basis ist implementiert. Dieses Dokument beschreibt den tatsächlichen
 | `engine/src/scene.c` | Validiertes JSON-Laden, Speichern und Projektmanifest. |
 | `engine/include/penguin/render.h` | SDL-Rendering und Textur-Lebenszyklus. |
 | `engine/src/render.c` | PNG-Laden, Tile-Zeichnung, Entity-Darstellung, Raster und Kollisionsanzeige. |
+| `editor/src/ui.c` / `ui.h` | Dunkelgrau-/Orange-Theme, abgerundete Buttons und gezeichnete Icons. |
 | `editor/src/main.c` | Editor-Oberfläche, Eingabe, Dateibaum und Bearbeitungsabläufe. |
 | `examples/topdown/main.c` | Eigenständige Spielruntime ohne Editor. |
 | `tests/test_engine.c` | Unity-Tests der Kernregeln. |
@@ -108,7 +109,7 @@ Weltkoordinaten sind Pixel, X zeigt nach rechts und Y nach unten. Die Kamera spe
 
 Der Renderer zeichnet sichtbare Tile-Ebenen, danach Entity-Rechtecke. Die erste Version hat noch keine frei konfigurierbare Sprite-Sortierung. Die Szene ist auf den mittleren Viewport begrenzt. PNG-Texturen verwenden nearest-neighbor filtering. Subpixel-Zoom ist im Editor erlaubt; eine feste interne Spielauflösung mit ganzzahliger Skalierung ist noch nicht umgesetzt.
 
-Die eigene Editor-GUI verwendet SDL-Rechtecke und `SDL_RenderDebugText`. Sie benötigt keine zusätzliche GUI-Abhängigkeit. Textfelder akzeptieren SDL-Texteingabe; Backspace entfernt ein UTF-8-Zeichen, aber die Debug-Schrift stellt nicht alle Unicode-Zeichen dar. Textauswahl, Zwischenablage, Docking und frei verschiebbare Panels sind noch nicht vorhanden.
+Die eigene Editor-GUI verwendet dunkelgraue Panels, orange Akzente, abgerundete Buttons und `SDL_RenderDebugText`. Das Farbschema ist zentral in `editor/src/ui.h` definiert. Die Icons werden mit SDL-Linien und Flächen gezeichnet, benötigen keine Icon-Schrift oder Bilddateien und folgen den Hover-, Auswahl- und Deaktiviert-Zuständen. Werkzeugbuttons zeigen Tooltips mit Namen und Tastenkürzeln. Sie benötigt keine zusätzliche GUI-Abhängigkeit. Textfelder akzeptieren SDL-Texteingabe; Backspace entfernt ein UTF-8-Zeichen, aber die Debug-Schrift stellt nicht alle Unicode-Zeichen dar. Textauswahl, Zwischenablage, Docking und frei verschiebbare Panels sind noch nicht vorhanden.
 
 ## Play-Modus und Kollision
 

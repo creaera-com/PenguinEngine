@@ -1,12 +1,13 @@
 #include "penguin/render.h"
+#include "ui.h"
 #include <SDL3/SDL_main.h>
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define LEFT 232
-#define RIGHT 256
+#define LEFT 240
+#define RIGHT 280
 #define TOP 92
 #define BOTTOM 48
 #define TREE_MAX 256
@@ -72,12 +73,22 @@ static void text(float x, float y, const char *label, uint32_t color) {
     draw_color(color);
     SDL_RenderDebugText(app.renderer, x, y, label);
 }
-static bool button(float x, float y, float w, const char *label, bool active, bool enabled) {
+static const char *tooltip;
+static bool icon_button(float x, float y, float w, UiIcon icon, const char *label, const char *hint,
+                        bool active, bool enabled) {
     SDL_FRect r = {x, y, w, 25};
     bool hover = inside(app.mx, app.my, r);
-    box(r, !enabled ? 0x222c38ff : active ? 0x347e83ff : hover ? 0x41556dff : 0x2a3c50ff);
-    text(x + 7, y + 8, label, enabled ? 0xe5edf6ff : 0x65758aff);
+    ui_draw_button(app.renderer, r, icon, label, active, enabled, hover);
+    if (hover && hint)
+        tooltip = hint;
     return enabled && app.click && hover;
+}
+static bool button(float x, float y, float w, const char *label, bool active, bool enabled) {
+    return icon_button(x, y, w, ICON_NONE, label, NULL, active, enabled);
+}
+static void section(float x, float y, UiIcon icon, const char *title) {
+    ui_icon(app.renderer, icon, x, y - 4, 16, UI_ACCENT);
+    text(x + 24, y, title, UI_MUTED);
 }
 static void message(const char *s) {
     snprintf(app.status, sizeof app.status, "%s", s);
@@ -495,8 +506,8 @@ static void play_toggle(void) {
         message("Stopped; edited scene preserved");
 }
 static void draw_tree(void) {
-    text(14, 110, "PROJECT FILES", 0x95b1caff);
-    if (button(142, 102, 75, "Refresh", false, true))
+    section(14, 110, ICON_FOLDER, "PROJECT");
+    if (icon_button(190, 102, 32, ICON_REFRESH, "", "Refresh project files", false, true))
         tree_refresh();
     SDL_Rect clip = {0, 138, LEFT, app.height - 138 - BOTTOM};
     SDL_SetRenderClipRect(app.renderer, &clip);
@@ -505,13 +516,21 @@ static void draw_tree(void) {
         TreeRow row = app.tree[i];
         float y = 142 + (i - app.tree_scroll) * 23;
         char label[128];
-        snprintf(label, sizeof label, "%s %.105s", row.directory ? (row.expanded ? "v" : ">") : " ",
-                 row.name);
+        snprintf(label, sizeof label, "%.20s", row.name);
         SDL_FRect r = {8, y, LEFT - 16, 22};
         bool hover = inside(app.mx, app.my, r);
         if (hover)
-            box(r, 0x2e4358ff);
-        text(12 + row.depth * 12, y + 6, label, 0xd0dbe6ff);
+            box(r, UI_HOVER);
+        float row_x = 12 + row.depth * 12;
+        if (row.directory)
+            ui_icon(app.renderer, row.expanded ? ICON_DOWN : ICON_RIGHT, row_x, y + 5, 12,
+                    UI_MUTED);
+        ui_icon(app.renderer,
+                row.directory              ? ICON_FOLDER
+                : suffix(row.path, ".png") ? ICON_IMAGE
+                                           : ICON_FILE,
+                row_x + 16, y + 3, 16, row.directory ? UI_ACCENT : UI_MUTED);
+        text(row_x + 40, y + 7, label, UI_TEXT);
         if (app.click && hover && !app.playing) {
             if (row.directory) {
                 tree_toggle(row.path);
@@ -533,11 +552,11 @@ static void draw_inspector(void) {
     char label[128], value[64];
     bool enabled = !app.playing;
     float y = 110;
-    text(x, y, "TILEMAP / LAYERS", 0x95b1caff);
+    section(x, y, ICON_LAYERS, "TILEMAP / LAYERS");
     y += 22;
     snprintf(label, sizeof label, "Map: %dx%d  tile: %d", app.scene.width, app.scene.height,
              app.scene.tile_size);
-    text(x, y, label, 0xd0dbe6ff);
+    text(x, y, label, UI_TEXT);
     y += 22;
     snprintf(label, sizeof label, "PNG tile: %d (change)", app.scene.tileset_tile_size);
     if (button(x, y, 228, label, false, enabled)) {
@@ -549,14 +568,16 @@ static void draw_inspector(void) {
         snprintf(label, sizeof label, "%d %.20s", l + 1, app.scene.layers[l].name);
         if (button(x, y, 178, label, l == app.layer, enabled))
             app.layer = l;
-        if (button(x + 184, y, 44, app.scene.layers[l].visible ? "Eye" : "Off", false, enabled) &&
+        if (icon_button(x + 184, y, 44, app.scene.layers[l].visible ? ICON_EYE : ICON_EYE_OFF, "",
+                        "Toggle layer visibility", false, enabled) &&
             begin()) {
             app.scene.layers[l].visible = !app.scene.layers[l].visible;
             commit();
         }
         y += 30;
     }
-    if (button(x, y, 108, "Add layer", false, enabled && app.scene.layer_count < PE_LAYERS) &&
+    if (icon_button(x, y, 108, ICON_PLUS, "Add layer", NULL, false,
+                    enabled && app.scene.layer_count < PE_LAYERS) &&
         begin()) {
         app.layer = app.scene.layer_count++;
         memset(&app.scene.layers[app.layer], 0, sizeof(PeLayer));
@@ -564,7 +585,8 @@ static void draw_inspector(void) {
         app.scene.layers[app.layer].visible = true;
         commit();
     }
-    if (button(x + 116, y, 112, "Delete layer", false, enabled && app.scene.layer_count > 1) &&
+    if (icon_button(x + 116, y, 112, ICON_DELETE, "Delete", "Delete layer", false,
+                    enabled && app.scene.layer_count > 1) &&
         begin()) {
         memmove(&app.scene.layers[app.layer], &app.scene.layers[app.layer + 1],
                 (size_t)(app.scene.layer_count - app.layer - 1) * sizeof(PeLayer));
@@ -575,15 +597,18 @@ static void draw_inspector(void) {
         commit();
     }
     y += 32;
-    if (button(x, y, 108, "Rename", false, enabled))
+    if (icon_button(x, y, 108, ICON_EDIT, "Rename", NULL, false, enabled))
         field_start(FIELD_LAYER, app.scene.layers[app.layer].name);
-    if (button(x + 116, y, 52, "Up", false, enabled && app.layer > 0) && begin()) {
+    if (icon_button(x + 116, y, 52, ICON_UP, "", "Move layer up", false,
+                    enabled && app.layer > 0) &&
+        begin()) {
         PeLayer temp = app.scene.layers[app.layer];
         app.scene.layers[app.layer] = app.scene.layers[app.layer - 1];
         app.scene.layers[--app.layer] = temp;
         commit();
     }
-    if (button(x + 176, y, 52, "Down", false, enabled && app.layer + 1 < app.scene.layer_count) &&
+    if (icon_button(x + 176, y, 52, ICON_DOWN, "", "Move layer down", false,
+                    enabled && app.layer + 1 < app.scene.layer_count) &&
         begin()) {
         PeLayer temp = app.scene.layers[app.layer];
         app.scene.layers[app.layer] = app.scene.layers[app.layer + 1];
@@ -591,9 +616,9 @@ static void draw_inspector(void) {
         commit();
     }
     y += 40;
-    text(x, y, "ENTITY INSPECTOR", 0x95b1caff);
+    section(x, y, ICON_ENTITY, "ENTITY INSPECTOR");
     y += 22;
-    if (button(x, y, 108, "New entity", false, enabled) && begin()) {
+    if (icon_button(x, y, 108, ICON_PLUS, "New", "Create entity", false, enabled) && begin()) {
         PeEntity e = pe_entity_create(&app.scene, PE_TRANSFORM | PE_SPRITE | PE_BODY);
         PeObject *o = pe_entity_get(&app.scene, e);
         if (o) {
@@ -606,7 +631,8 @@ static void draw_inspector(void) {
         commit();
     }
     PeObject *o = pe_entity_get(&app.scene, pe_entity_find(&app.scene, app.selected));
-    if (button(x + 116, y, 112, "Delete", false, enabled && o) && begin()) {
+    if (icon_button(x + 116, y, 112, ICON_DELETE, "Delete", "Delete entity", false, enabled && o) &&
+        begin()) {
         pe_entity_destroy(&app.scene, pe_entity_find(&app.scene, app.selected));
         app.selected = 0;
         commit();
@@ -615,7 +641,7 @@ static void draw_inspector(void) {
     y += 34;
     if (o) {
         snprintf(label, sizeof label, "Entity #%u", o->stable_id);
-        text(x, y, label, 0xd0dbe6ff);
+        text(x, y, label, UI_TEXT);
         y += 20;
         float values[] = {o->x, o->y, o->w, o->h};
         const char *names[] = {"X", "Y", "Width", "Height"};
@@ -636,10 +662,10 @@ static void draw_inspector(void) {
         }
         y += 35;
     } else {
-        text(x, y, "Select an entity in the view.", 0x7c93aaff);
+        text(x, y, "Select an entity in the view.", UI_MUTED);
         y += 28;
     }
-    text(x, y, "TILE PALETTE", 0x95b1caff);
+    section(x, y, ICON_GRID, "TILE PALETTE");
     y += 22;
     int total = app.assets.tileset ? (app.assets.width / app.assets.source_tile) *
                                          (app.assets.height / app.assets.source_tile)
@@ -656,7 +682,7 @@ static void draw_inspector(void) {
                          (float)app.assets.source_tile, (float)app.assets.source_tile};
         SDL_RenderTexture(app.renderer, app.assets.tileset, &src, &dst);
         if (app.tile == i + 1) {
-            draw_color(0xffd277ff);
+            draw_color(UI_ACCENT);
             SDL_RenderRect(app.renderer, &dst);
         }
         if (enabled && app.click && inside(app.mx, app.my, dst)) {
@@ -667,12 +693,16 @@ static void draw_inspector(void) {
     }
 }
 static void draw_modal(void) {
-    box((SDL_FRect){0, 0, (float)app.width, (float)app.height}, 0x101923ff);
+    SDL_SetRenderDrawBlendMode(app.renderer, SDL_BLENDMODE_BLEND);
+    box((SDL_FRect){0, 0, (float)app.width, (float)app.height}, 0x000000a0);
+    SDL_SetRenderDrawBlendMode(app.renderer, SDL_BLENDMODE_NONE);
     float x = app.width / 2.f - 310, y = app.height / 2.f - 95;
-    box((SDL_FRect){x, y, 620, 190}, 0x293c51ff);
+    ui_round_rect(app.renderer, (SDL_FRect){x + 5, y + 8, 620, 190}, 10, 0x111111ff);
+    ui_round_rect(app.renderer, (SDL_FRect){x, y, 620, 190}, 10, UI_BORDER);
+    ui_round_rect(app.renderer, (SDL_FRect){x + 1, y + 1, 618, 188}, 9, UI_SURFACE);
     if (app.request != REQUEST_NONE) {
-        text(x + 20, y + 24, "Unsaved changes", 0xffd277ff);
-        text(x + 20, y + 54, "Save before opening another scene or closing?", 0xe5edf6ff);
+        text(x + 20, y + 24, "Unsaved changes", UI_ACCENT);
+        text(x + 20, y + 54, "Save before opening another scene or closing?", UI_TEXT);
         if (button(x + 20, y + 110, 170, "Save and continue", false, true) && save())
             request_finish();
         if (button(x + 210, y + 110, 170, "Discard changes", false, true))
@@ -683,65 +713,77 @@ static void draw_modal(void) {
         const char *title = app.field == FIELD_IMPORT  ? "Import PNG: enter full file path"
                             : app.field == FIELD_LAYER ? "Layer name"
                                                        : "Enter value";
-        text(x + 20, y + 24, title, 0xffd277ff);
-        box((SDL_FRect){x + 20, y + 54, 580, 28}, 0x122334ff);
+        text(x + 20, y + 24, title, UI_ACCENT);
+        box((SDL_FRect){x + 20, y + 54, 580, 28}, UI_CANVAS);
         size_t n = strlen(app.input);
-        text(x + 26, y + 64, app.input + (n > 69 ? n - 69 : 0), 0xe5edf6ff);
-        text(x + 20, y + 94, "Enter: apply   Escape: cancel   Ctrl+A: clear", 0x95b1caff);
+        text(x + 26, y + 64, app.input + (n > 69 ? n - 69 : 0), UI_TEXT);
+        text(x + 20, y + 94, "Enter: apply   Escape: cancel   Ctrl+A: clear", UI_MUTED);
         if (button(x + 20, y + 125, 110, "Apply", false, true))
             field_apply();
         if (button(x + 145, y + 125, 110, "Cancel", false, true))
             field_stop();
     }
-    text(x + 20, y + 164, app.status, 0xffc692ff);
+    text(x + 20, y + 164, app.status, UI_ACCENT);
 }
 static void draw(void) {
     SDL_GetWindowSize(app.window, &app.width, &app.height);
     app.viewport = (SDL_FRect){LEFT, TOP, (float)(app.width - LEFT - RIGHT),
                                (float)(app.height - TOP - BOTTOM)};
-    draw_color(0x111e2bff);
+    draw_color(UI_CANVAS);
     SDL_RenderClear(app.renderer);
-    box((SDL_FRect){0, 0, (float)app.width, TOP}, 0x1d2d40ff);
-    box((SDL_FRect){0, TOP, LEFT, (float)app.height}, 0x192939ff);
-    box((SDL_FRect){(float)(app.width - RIGHT), TOP, RIGHT, (float)app.height}, 0x192939ff);
+    box((SDL_FRect){0, 0, (float)app.width, TOP}, UI_PANEL);
+    box((SDL_FRect){0, TOP, LEFT, (float)app.height}, UI_PANEL);
+    box((SDL_FRect){LEFT - 1, TOP, 1, (float)app.height}, UI_BORDER);
+    box((SDL_FRect){(float)(app.width - RIGHT), TOP, 1, (float)app.height}, UI_BORDER);
+    box((SDL_FRect){0, TOP - 1, (float)app.width, 1}, UI_BORDER);
+    box((SDL_FRect){(float)(app.width - RIGHT), TOP, RIGHT, (float)app.height}, UI_PANEL);
     bool modal = app.field != FIELD_NONE || app.request != REQUEST_NONE;
     bool saved_click = app.click;
     if (modal)
         app.click = false;
-    text(14, 14, "PENGUIN ENGINE", 0x66d8ceff);
+    ui_icon(app.renderer, ICON_ENTITY, 14, 10, 16, UI_ACCENT);
+    text(38, 14, "PENGUIN ENGINE", UI_TEXT);
     char heading[160];
     snprintf(heading, sizeof heading, "%s  |  %s",
              pe_history_dirty(&app.history) ? "Modified" : "Saved", app.playing ? "PLAY" : "EDIT");
-    text(180, 14, heading, 0xa8bfd3ff);
-    if (button(14, 40, 72, "Save", false, !app.playing && !app.history.pending))
+    text(208, 14, heading, UI_MUTED);
+    tooltip = NULL;
+    if (icon_button(14, 40, 88, ICON_SAVE, "Save", "Save scene (Ctrl+S)", false,
+                    !app.playing && !app.history.pending))
         save();
-    if (button(94, 40, 72, "Undo", false,
-               !app.playing && app.history.cursor > 0 && !app.history.pending)) {
+    if (icon_button(110, 40, 38, ICON_UNDO, "", "Undo (Ctrl+Z)", false,
+                    !app.playing && app.history.cursor > 0 && !app.history.pending)) {
         pe_undo(&app.history, &app.scene);
         selection_sync();
     }
-    if (button(174, 40, 72, "Redo", false,
-               !app.playing && app.history.cursor < app.history.count && !app.history.pending)) {
+    if (icon_button(156, 40, 38, ICON_REDO, "", "Redo (Ctrl+Shift+Z)", false,
+                    !app.playing && app.history.cursor < app.history.count &&
+                        !app.history.pending)) {
         pe_redo(&app.history, &app.scene);
         selection_sync();
     }
-    if (button(254, 40, 102, app.playing ? "Stop" : "Play", app.playing, !app.history.pending))
+    if (icon_button(214, 40, 88, app.playing ? ICON_STOP : ICON_PLAY, app.playing ? "Stop" : "Play",
+                    "Play / Stop (F5)", app.playing, !app.history.pending))
         play_toggle();
-    if (button(364, 40, 102, "Import PNG", false, !app.playing))
+    if (icon_button(310, 40, 122, ICON_IMPORT, "Import PNG", "Import a tileset image", false,
+                    !app.playing))
         field_start(FIELD_IMPORT, "");
-    const char *tools[] = {"Brush", "Erase", "Rect", "Fill", "Select"};
+    const UiIcon tool_icons[] = {ICON_BRUSH, ICON_ERASE, ICON_RECTANGLE, ICON_FILL, ICON_SELECT};
+    const char *tool_hints[] = {"Brush (B)", "Eraser (E)", "Rectangle (R)", "Fill (F)",
+                                "Select entity (V)"};
     for (int i = 0; i < 5; i++)
-        if (button(474 + i * 68, 40, 62, tools[i], app.tool == i,
-                   !app.playing && !app.history.pending))
+        if (icon_button(458 + i * 48, 40, 40, tool_icons[i], "", tool_hints[i], app.tool == i,
+                        !app.playing && !app.history.pending))
             app.tool = i;
-    if (button(822, 40, 98, "Collision", app.collision, !app.playing))
+    if (icon_button(714, 40, 108, ICON_COLLISION, "Collision", "Edit collision grid", app.collision,
+                    !app.playing))
         app.collision = !app.collision;
-    if (button(928, 40, 65, "Grid", app.grid, true))
+    if (icon_button(830, 40, 80, ICON_GRID, "Grid", "Show tile grid", app.grid, true))
         app.grid = !app.grid;
     text(14, 77,
          "Drop PNG to import | B/E/R/F/V tools | Ctrl+S save | Ctrl+Z undo | F5 play | MMB pan | "
          "wheel zoom",
-         0x90a7bbff);
+         UI_MUTED);
     pe_render_scene(app.renderer, app.playing ? &app.runtime : &app.scene, &app.assets, &app.camera,
                     app.viewport, app.grid && !app.playing, app.collision && !app.playing);
     if (!app.playing) {
@@ -750,7 +792,7 @@ static void draw(void) {
             SDL_FRect rect = {app.viewport.x + (o->x - app.camera.x) * app.camera.zoom,
                               app.viewport.y + (o->y - app.camera.y) * app.camera.zoom,
                               o->w * app.camera.zoom, o->h * app.camera.zoom};
-            draw_color(0xffd277ff);
+            draw_color(UI_ACCENT);
             SDL_RenderRect(app.renderer, &rect);
         }
         if (inside(app.mx, app.my, app.viewport) && !modal && app.tool != SELECT) {
@@ -767,19 +809,28 @@ static void draw(void) {
             SDL_Rect clip = {(int)app.viewport.x, (int)app.viewport.y, (int)app.viewport.w,
                              (int)app.viewport.h};
             SDL_SetRenderClipRect(app.renderer, &clip);
-            draw_color(0x7ae3d6ff);
+            draw_color(UI_ACCENT);
             SDL_RenderRect(app.renderer, &rect);
             SDL_SetRenderClipRect(app.renderer, NULL);
         }
     }
     draw_tree();
     draw_inspector();
-    box((SDL_FRect){0, (float)(app.height - BOTTOM), (float)app.width, BOTTOM}, 0x203348ff);
-    text(14, (float)(app.height - 34), app.status, 0xc9d9e7ff);
+    box((SDL_FRect){0, (float)(app.height - BOTTOM), (float)app.width, BOTTOM}, UI_PANEL);
+    box((SDL_FRect){0, (float)(app.height - BOTTOM), (float)app.width, 1}, UI_BORDER);
+    text(14, (float)(app.height - 34), app.status, UI_TEXT);
     char details[128];
     snprintf(details, sizeof details, "Zoom %.0f%% | Tile %d | Undo %d / %d", app.camera.zoom * 100,
              app.tile, app.history.cursor, app.history.count);
-    text(14, (float)(app.height - 18), details, 0x8eacc5ff);
+    text(14, (float)(app.height - 18), details, UI_MUTED);
+    if (tooltip && !modal) {
+        float width = (float)strlen(tooltip) * 8 + 20;
+        float tx = fminf(app.mx + 12, app.width - width - 8),
+              ty = fminf(app.my + 30, app.height - 28.f);
+        ui_round_rect(app.renderer, (SDL_FRect){tx + 2, ty + 2, width, 24}, 5, 0x101010ff);
+        ui_round_rect(app.renderer, (SDL_FRect){tx, ty, width, 24}, 5, UI_BORDER);
+        text(tx + 10, ty + 8, tooltip, UI_TEXT);
+    }
     if (modal) {
         app.click = saved_click;
         draw_modal();
