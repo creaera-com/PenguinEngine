@@ -44,7 +44,9 @@ void editor_draw(void) {
     app.hit_count = 0;
     app.canvas_enabled = false;
     app.ui.blocked = app.field != FIELD_NONE || app.request != REQUEST_NONE;
-    layout_columns();
+    if (!app.window_collapsed) {
+        layout_columns();
+    }
     editor_draw_color(UI_CANVAS);
     SDL_RenderClear(app.renderer);
     /* Inset panels expose the dark application background as narrow gutters. */
@@ -59,7 +61,8 @@ void editor_draw(void) {
     app.ui.blocked = modal;
     editor_tooltip = NULL;
     editor_draw_global_tools();
-    UiRect nav = {(float)app.global_nav_x, 12, (float)(app.width - app.global_nav_x - 14), 25};
+    UiRect nav = {(float)app.global_nav_x, 12,
+                  fmaxf(0, editor_window_controls_left() - app.global_nav_x - 12), 25};
     const cJSON *toolbar = pe_ui_get(app.shell_layout->root, "toolbar");
     const cJSON *selector = cJSON_GetArrayItem(toolbar, cJSON_GetArraySize(toolbar) - 1);
     bool labels = cJSON_IsTrue(pe_ui_get(selector, "labels"));
@@ -84,6 +87,7 @@ void editor_draw(void) {
         const EditorView *item = editor_view(app.workspaces.items[i].id);
         const cJSON *entry = editor_layout_entry(item->id);
         UiRect r = ui_tab_rect(&app.workspaces, nav, 112, i);
+        editor_register_ui_hit(r);
         bool hover = ui_hovered(&app.ui, r);
         ui_draw_button(app.renderer, (SDL_FRect){r.x, r.y, r.w, r.h},
                        editor_yaml_icon(pe_ui_string(entry, "icon", "")),
@@ -95,6 +99,14 @@ void editor_draw(void) {
     }
     ui_clip_pop(&app.ui);
     ui_apply_clip(app.renderer, &app.ui);
+    editor_window_draw_controls();
+    if (app.window_collapsed) {
+        ui_end_frame(&app.ui);
+        app.click = false;
+        SDL_RenderPresent(app.renderer);
+        editor_process_deferred_ui();
+        return;
+    }
     if (!app.active_layout || (!app.map && !app.script)) {
         editor_text(LEFT + 16, TOP + 40, app.status, UI_TEXT);
         ui_end_frame(&app.ui);

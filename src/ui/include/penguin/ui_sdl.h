@@ -119,7 +119,11 @@ typedef enum {
     ICON_CHECK,
     ICON_CLOSE,
     ICON_MENU,
-    ICON_TERMINAL ///< Shell-/Konsolensymbol.
+    ICON_TERMINAL, ///< Shell-/Konsolensymbol.
+    ICON_MINIMIZE, ///< Fenster minimieren.
+    ICON_MAXIMIZE, ///< Fenster maximieren.
+    ICON_RESTORE,  ///< Fenstergröße wiederherstellen.
+    ICON_COLLAPSE  ///< Fenster auf Titelleiste reduzieren.
 } UiIcon;
 
 /**

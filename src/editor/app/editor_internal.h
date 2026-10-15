@@ -12,6 +12,7 @@
 
 #include "app/shell.h"
 #include "app/ui_helpers.h"
+#include "app/window.h"
 #include "browser/file_tree.h"
 #include "console/view.h"
 #include "dialogs/fields.h"
@@ -97,6 +98,10 @@ typedef struct {
 /** @brief Private Anwendungsinstanz; höchstens Map oder Scripts besitzt gleichzeitig ein geladenes
  * Dokument. */
 typedef struct {
+    bool window_collapsed;       ///< Nur die Titelleiste ist sichtbar.
+    bool window_was_maximized;   ///< Maximierung vor dem Wegklappen.
+    int window_restore_width;    ///< Fensterbreite vor dem Wegklappen.
+    int window_restore_height;   ///< Fensterhöhe vor dem Wegklappen.
     SDL_Window *window;          ///< Besitzendes Hauptfenster; vor SDL_Quit zerstören.
     SDL_Renderer *renderer;      ///< Besitzender SDL-Renderer; nach seinen Texturen freigeben.
     SDL_Cursor *vertical_cursor; ///< Besitzender Cursor für vertikale Größenänderung.

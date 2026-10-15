@@ -71,6 +71,9 @@ void editor_yaml_action(const char *name) {
     if (!name) {
         return;
     }
+    if (editor_window_action(name)) {
+        return;
+    }
     if (!strcmp(name, "document.save")) {
         if (!app.playing && !editor_edit_pending() && (app.map || app.script)) {
             editor_save();

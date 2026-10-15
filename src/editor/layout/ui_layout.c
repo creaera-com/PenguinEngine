@@ -5,23 +5,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-static const char *actions[] = {"document.save",      "document.undo",
-                                "document.redo",      "scene.toggle_play",
-                                "map.import_tileset", "map.select_brush",
-                                "map.select_eraser",  "map.select_rectangle",
-                                "map.select_fill",    "map.select_entity",
-                                "map.toggle_grid",    "map.toggle_collision",
-                                "script.check",       NULL};
+static const char *actions[] = {"document.save",     "document.undo",        "document.redo",
+                                "scene.toggle_play", "map.import_tileset",   "map.select_brush",
+                                "map.select_eraser", "map.select_rectangle", "map.select_fill",
+                                "map.select_entity", "map.toggle_grid",      "map.toggle_collision",
+                                "script.check",      "window.minimize",      "window.maximize",
+                                "window.collapse",   "window.close",         NULL};
 static const char *bindings[] = {
     "document.can_save",     "document.can_undo", "document.can_redo", "document.save_state",
     "editor.mode",           "editor.details",    "editor.message",    "map.grid_visible",
     "map.collision_visible", "project.files",     "scene.entities",    "scene.active",
     "selection.active",      "document.active",   "terminal.shared",   NULL};
 static const char *icons[] = {
-    "menu",  "save",      "undo",   "redo",    "play",      "stop",   "import",   "brush",
-    "erase", "rectangle", "fill",   "select",  "collision", "grid",   "refresh",  "folder",
-    "file",  "image",     "layers", "entity",  "plus",      "delete", "edit",     "up",
-    "down",  "right",     "eye",    "eye_off", "check",     "close",  "terminal", NULL};
+    "menu",     "save",      "undo",     "redo",    "play",      "stop",   "import",   "brush",
+    "erase",    "rectangle", "fill",     "select",  "collision", "grid",   "refresh",  "folder",
+    "file",     "image",     "layers",   "entity",  "plus",      "delete", "edit",     "up",
+    "down",     "right",     "eye",      "eye_off", "check",     "close",  "terminal", "minimize",
+    "maximize", "restore",   "collapse", NULL};
 
 static bool contains(const char *const *names, const char *name) {
     for (int i = 0; names[i]; i++) {
@@ -382,9 +382,24 @@ static bool validate(Check *c, const char *kind) {
                widget(c, pe_ui_get(cols, "right"), 0);
     }
     if (!fields(c, r,
-                "|schema||kind||id||layout||theme||toolbar||editors||editor_policy||statusbar|") ||
+                "|schema||kind||id||layout||theme||toolbar||editors||editor_policy||statusbar||"
+                "window_controls|") ||
         strcmp(pe_ui_string(r, "editor_policy", ""), "unload_on_leave")) {
         return error_at(c, r, "shell requires unload_on_leave policy");
+    }
+
+    const cJSON *controls = pe_ui_get(r, "window_controls");
+    if (controls) {
+        if (!cJSON_IsArray(controls) || cJSON_GetArraySize(controls) > 4) {
+            return error_at(c, controls, "window_controls requires at most four buttons");
+        }
+        for (const cJSON *v = controls->child; v; v = v->next) {
+            const char *action = pe_ui_string(v, "action", "");
+            if (strcmp(pe_ui_string(v, "type", ""), "button") || strncmp(action, "window.", 7) ||
+                !widget(c, v, 0)) {
+                return error_at(c, v, "window_controls only supports window action buttons");
+            }
+        }
     }
 
     const cJSON *layout = pe_ui_get(r, "layout");

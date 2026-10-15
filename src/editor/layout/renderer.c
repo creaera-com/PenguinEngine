@@ -26,7 +26,11 @@ UiIcon editor_yaml_icon(const char *name) {
     static const struct {
         const char *name;
         UiIcon icon;
-    } names[] = {{"terminal", ICON_TERMINAL},
+    } names[] = {{"minimize", ICON_MINIMIZE},
+                 {"maximize", ICON_MAXIMIZE},
+                 {"restore", ICON_RESTORE},
+                 {"collapse", ICON_COLLAPSE},
+                 {"terminal", ICON_TERMINAL},
                  {"menu", ICON_MENU},
                  {"save", ICON_SAVE},
                  {"undo", ICON_UNDO},

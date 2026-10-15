@@ -115,6 +115,10 @@ void editor_event(SDL_Event *e) {
         }
         return;
     }
+    if (app.window_collapsed && e->type != SDL_EVENT_QUIT &&
+        e->type != SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
+        return;
+    }
     if (e->type == SDL_EVENT_KEY_DOWN && !e->key.repeat &&
         (e->key.key == SDLK_RETURN || e->key.key == SDLK_SPACE) && app.field == FIELD_NONE &&
         !(editor_scripts_active() && (*app.script).focused)) {
@@ -128,7 +132,11 @@ void editor_event(SDL_Event *e) {
         return;
     }
     switch (e->type) {
+    case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
     case SDL_EVENT_QUIT:
+        if (app.window_collapsed) {
+            editor_window_action("window.collapse");
+        }
         if (app.playing) {
             editor_play_toggle();
         }
@@ -168,7 +176,8 @@ void editor_event(SDL_Event *e) {
         app.wheel_delta = e->wheel.y;
         if (!modal && !editor_edit_pending()) {
             if (app.my < TOP) {
-                ui_tabs_scroll(&app.workspaces, (float)(app.width - GLOBAL_NAV_X - 14), 112,
+                ui_tabs_scroll(&app.workspaces,
+                               fmaxf(0, editor_window_controls_left() - app.global_nav_x - 12), 112,
                                -e->wheel.y * 56);
             } else if (editor_inside(app.mx, app.my, app.viewport) && app.canvas_enabled &&
                        editor_map_active()) {

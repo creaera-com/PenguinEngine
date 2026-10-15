@@ -40,7 +40,8 @@ int main(int argc, char **argv) {
         fprintf(stderr, "%s\n", SDL_GetError());
         return 1;
     }
-    app.window = SDL_CreateWindow("PenguinEngine - Editor", 1280, 800, SDL_WINDOW_RESIZABLE);
+    app.window = SDL_CreateWindow("PenguinEngine - Editor", 1280, 800,
+                                  SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN);
     app.renderer = app.window ? SDL_CreateRenderer(app.window, NULL) : NULL;
     if (!app.renderer) {
         fprintf(stderr, "%s\n", SDL_GetError());
@@ -84,6 +85,7 @@ int main(int argc, char **argv) {
     app.resize_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE);
     app.width = 1280;
     app.height = 800;
+    editor_window_init();
     app.viewport = (SDL_FRect){LEFT, TOP + TABS, 1280 - LEFT - RIGHT, 800 - TOP - TABS - BOTTOM};
     char *pref = app.smoke ? SDL_strdup(SDL_GetBasePath())
                            : SDL_GetPrefPath("PenguinEngine", "editor-sessions");
@@ -112,11 +114,13 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    SDL_ShowWindow(app.window);
     int exit_code = 0;
 #ifdef PE_EDITOR_SMOKE_TESTS
-    if (app.smoke && (!editor_verify_editor() || !editor_verify_script_editor() ||
-                      !editor_verify_ui_layout() || !editor_verify_workspace_tools() ||
-                      !editor_verify_lifecycle() || !editor_verify_console())) {
+    if (app.smoke &&
+        (!editor_verify_editor() || !editor_verify_script_editor() || !editor_verify_ui_layout() ||
+         !editor_verify_workspace_tools() || !editor_verify_lifecycle() ||
+         !editor_verify_console() || !editor_verify_window())) {
         app.running = false;
         exit_code = 1;
     }
