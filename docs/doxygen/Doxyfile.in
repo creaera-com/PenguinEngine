@@ -28,3 +28,12 @@ ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = NO
 JAVADOC_AUTOBRIEF      = NO
 SORT_MEMBER_DOCS       = NO
+
+# Doxygen Awesome, with persistent tree navigation and local Penguin accents.
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+TREEVIEW_WIDTH         = 335
+HTML_COLORSTYLE        = LIGHT
+HTML_EXTRA_STYLESHEET  = "@PROJECT_SOURCE_DIR@/third_party/doxygen-awesome-css/doxygen-awesome.css" \
+                         "@PROJECT_SOURCE_DIR@/third_party/doxygen-awesome-css/doxygen-awesome-sidebar-only.css" \
+                         "@PROJECT_SOURCE_DIR@/docs/doxygen/penguin-theme.css"

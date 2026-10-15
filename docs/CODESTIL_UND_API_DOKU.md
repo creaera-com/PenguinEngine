@@ -15,6 +15,14 @@ Die Startseite liegt anschließend unter `build/docs/html/index.html`. Die Dokum
 
 Die Konfiguration liegt in `docs/doxygen/Doxyfile.in`, der Einstieg mit Modulgruppen in `docs/doxygen/mainpage.dox`. CMake erzeugt daraus `build/Doxyfile` mit absoluten Pfaden für den jeweiligen Buildordner. Dokumentationswarnungen lassen den Dokumentationsbuild fehlschlagen.
 
+## Theme und Navigation
+
+Die HTML-Doku verwendet **Doxygen Awesome 2.3.4** mit einer dauerhaft sichtbaren, aufklappbaren Navigation links, integrierter Suche und orangefarbenen Akzenten. Das Theme folgt der Hell-/Dunkeleinstellung des Systems; auf schmalen Bildschirmen passt sich die Navigation an.
+
+Die unveränderten MIT-lizenzierten Styles liegen unter `third_party/doxygen-awesome-css/`. Eigene Farben und Abstände werden in `docs/doxygen/penguin-theme.css` überschrieben. Sidebarbreite und `TREEVIEW_WIDTH` müssen übereinstimmen (aktuell 335 Pixel). Alle Dateien werden lokal mitgeliefert; beim Erzeugen oder Lesen wird kein CDN benötigt.
+
+Nach einer Änderung der Doxygen-Konfiguration CMake erneut konfigurieren und `api_docs` bauen. Die Zieladresse bleibt `build/docs/html/index.html`.
+
 ## Kommentare pflegen
 
 Die Beschreibung soll den Vertrag erklären: Was tut eine Funktion, wem gehören ihre Ressourcen, welche Einheiten haben ihre Werte und was geschieht bei Fehlern? Parametertexte gehören zur Deklaration im Header. Implementierungsdetails und Begründungen für einzelne Algorithmen bleiben bei der Implementierung.
