@@ -33,6 +33,20 @@
 /** @brief Aktueller Theme-Farbwert UI_DISABLED als RGBA. */
 #define UI_DISABLED (ui_theme.disabled)
 
+/**
+ * @brief Zeichnet ein einzeiliges Eingabefeld mit Auswahl, horizontalem Scrollen und Cursor.
+ * @param renderer Geliehener SDL-Renderer.
+ * @param rect Feldbereich in Fensterpixeln; der bisherige Render-Clip bleibt erhalten.
+ * @param text Nullterminierter UTF-8-Text.
+ * @param edit Feldzustand; scroll wird für den sichtbaren Cursor angepasst.
+ * @param focused Ob Auswahl und orange Fokusumrandung sichtbar sind.
+ * @param enabled Ob das Feld bedienbar ist.
+ * @param invalid Ob eine abgewiesene Eingabe rot markiert wird.
+ * @param cursor_visible Blinkphase des Cursors; wird vom Aufrufer gesteuert.
+ */
+void ui_draw_text_input(SDL_Renderer *renderer, SDL_FRect rect, const char *text, UiTextEdit *edit,
+                        bool focused, bool enabled, bool invalid, bool cursor_visible);
+
 /** @brief Interne Layout-/Darstellungsvorgabe UI_FONT_WIDTH. */
 #define UI_FONT_WIDTH 8
 /** @brief Interne Layout-/Darstellungsvorgabe UI_FONT_HEIGHT. */

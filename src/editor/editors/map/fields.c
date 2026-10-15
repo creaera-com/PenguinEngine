@@ -1,6 +1,14 @@
 #include "app/editor_internal.h"
 
 void editor_field_apply(void) {
+    if (app.field == FIELD_NONE) {
+        return;
+    }
+    if (app.field_inline && app.selected != app.field_entity) {
+        editor_field_stop();
+        return;
+    }
+    app.field_invalid = true;
     if (app.field == FIELD_IMPORT) {
         if (editor_import_png(app.input)) {
             editor_field_stop();

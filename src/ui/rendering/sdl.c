@@ -343,3 +343,43 @@ void ui_apply_clip(SDL_Renderer *r, const UiContext *c) {
         SDL_SetRenderClipRect(r, NULL);
     }
 }
+
+void ui_draw_text_input(SDL_Renderer *r, SDL_FRect rect, const char *text, UiTextEdit *edit,
+                        bool focused, bool enabled, bool invalid, bool cursor_visible) {
+    ui_panel(r, rect, UI_CANVAS);
+    Uint32 border = invalid ? 0xc97565ffu : focused ? UI_ACCENT : UI_BORDER;
+    color(r, border);
+    SDL_RenderRect(r, &rect);
+    SDL_Rect previous;
+    bool clipped = SDL_RenderClipEnabled(r);
+    SDL_GetRenderClipRect(r, &previous);
+    SDL_Rect inner = {(int)ceilf(rect.x + 5), (int)ceilf(rect.y + 2), (int)fmaxf(0, rect.w - 10),
+                      (int)fmaxf(0, rect.h - 4)};
+    if (clipped) {
+        SDL_GetRectIntersection(&inner, &previous, &inner);
+    }
+    SDL_SetRenderClipRect(r, &inner);
+    float cursor = (float)ui_text_edit_column(text, edit->cursor) * UI_FONT_WIDTH;
+    float available = fmaxf(0, rect.w - 14);
+    if (focused) {
+        edit->scroll = fmaxf(0, fminf(edit->scroll, cursor));
+        if (cursor - edit->scroll > available) {
+            edit->scroll = cursor - available;
+        }
+    } else {
+        edit->scroll = 0;
+    }
+    float x = rect.x + 7 - edit->scroll, y = rect.y + (rect.h - UI_FONT_HEIGHT) * .5f;
+    if (focused && edit->cursor != edit->anchor) {
+        float anchor = (float)ui_text_edit_column(text, edit->anchor) * UI_FONT_WIDTH;
+        ui_panel(r,
+                 (SDL_FRect){x + fminf(cursor, anchor), y, fabsf(cursor - anchor), UI_FONT_HEIGHT},
+                 UI_HOVER);
+    }
+    ui_text(r, x, y, text, enabled ? UI_TEXT : UI_DISABLED);
+    if (focused && cursor_visible) {
+        color(r, UI_ACCENT);
+        SDL_RenderLine(r, x + cursor, rect.y + 4, x + cursor, rect.y + rect.h - 4);
+    }
+    SDL_SetRenderClipRect(r, clipped ? &previous : NULL);
+}

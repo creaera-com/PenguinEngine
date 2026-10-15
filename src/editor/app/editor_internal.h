@@ -187,13 +187,22 @@ typedef struct {
     int last_y;               ///< Letzte vertikale Tileposition einer Pinselgeste.
     float drag_x; ///< Horizontaler Abstand zwischen Zeiger und ausgewähltem Objekt in Weltpixeln.
     float drag_y; ///< Vertikaler Abstand zwischen Zeiger und ausgewähltem Objekt in Weltpixeln.
-    uint32_t selected;          ///< Stabile ID der ausgewählten Entity; 0 bedeutet keine.
-    float mx;                   ///< Aktuelle horizontale Zeigerposition in Fensterpixeln.
-    float my;                   ///< Aktuelle vertikale Zeigerposition in Fensterpixeln.
-    bool click;                 ///< Noch zu verarbeitender UI-Klick.
-    SDL_FRect viewport;         ///< Sichtbarer Inhaltsbereich bzw. dessen Ausdehnung in Pixeln.
-    Field field;                ///< Aktives modales Eingabefeld.
-    char input[1024];           ///< Nullterminierter modaler Eingabepuffer.
+    uint32_t selected;  ///< Stabile ID der ausgewählten Entity; 0 bedeutet keine.
+    float mx;           ///< Aktuelle horizontale Zeigerposition in Fensterpixeln.
+    float my;           ///< Aktuelle vertikale Zeigerposition in Fensterpixeln.
+    bool click;         ///< Noch zu verarbeitender UI-Klick.
+    SDL_FRect viewport; ///< Sichtbarer Inhaltsbereich bzw. dessen Ausdehnung in Pixeln.
+    Field field;        ///< Aktives modales oder direktes Eingabefeld.
+    char input[1024];   ///< Nullterminierter Eingabepuffer; erst Bestätigung ändert das Dokument.
+    UiTextEdit field_edit;      ///< UTF-8-Cursor, Auswahl und horizontaler Scrollzustand.
+    UiRect field_rect;          ///< Aktueller sichtbarer Bereich des aktiven Felds.
+    UiId field_id;              ///< Stabile UI-ID des aktiven Eingabefelds.
+    uint32_t field_entity;      ///< Besitzer-ID eines direkt bearbeiteten Komponentenfelds.
+    Uint64 field_blink;         ///< SDL-Zeitpunkt der letzten Cursoraktion in Millisekunden.
+    bool field_inline;          ///< Ob direkt im Inspector statt im Dialog bearbeitet wird.
+    bool field_invalid;         ///< Ob die letzte Validierung fehlgeschlagen ist.
+    bool field_seen;            ///< Aktives direktes Feld wurde im aktuellen Frame gezeichnet.
+    bool field_selecting;       ///< Laufende Textauswahl mit gedrückter Maustaste.
     Request request;            ///< Aktive bestätigungspflichtige Anfrage.
     char open_path[1024];       ///< Kopierter Pfad der aktiven Anfrage.
     TreeRow tree[TREE_MAX];     ///< Sichtbare Projektbaumeinträge.

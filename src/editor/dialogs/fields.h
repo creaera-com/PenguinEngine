@@ -10,7 +10,7 @@
 #ifndef PENGUIN_DIALOGS_FIELDS_H
 #define PENGUIN_DIALOGS_FIELDS_H
 
-/** @brief Art des aktuell geöffneten modalen Map-Eingabefelds. */
+/** @brief Art des aktuell geöffneten Map-Eingabefelds. */
 typedef enum {
     FIELD_NONE,
     FIELD_IMPORT,
@@ -34,6 +34,19 @@ void editor_draw_modal(void);
  * @brief Öffnet ein modales Eingabefeld mit einem kopierten Anfangswert.
  */
 void editor_field_start(Field f, const char *value);
+
+/** @brief Beginnt direkte Komponentenbearbeitung; der Anfangswert wird zum Ersetzen markiert.
+ * @param field Zu bearbeitende Eigenschaft.
+ * @param value Geliehener Anfangswert; wird kopiert.
+ * @param id Stabile Feld-ID für Fokus und Rendering.
+ * @param rect Sichtbarer Feldbereich in Fensterpixeln.
+ */
+void editor_field_start_inline(Field field, const char *value, UiId id, UiRect rect);
+/** @brief Verarbeitet Text-/Cursorereignisse und bestätigt direkte Felder beim Fokuswechsel.
+ * @param event Geliehenes SDL-Ereignis des Hauptfensters.
+ * @return true, wenn das Ereignis vollständig vom Feld verarbeitet wurde.
+ */
+bool editor_field_event(SDL_Event *event);
 
 /**
  * @brief Schließt das Eingabefeld und stellt den Scriptfokus bei Bedarf wieder her.

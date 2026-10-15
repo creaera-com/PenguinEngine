@@ -763,11 +763,38 @@ bool editor_verify_components(void) {
     ok = ok && app.field == FIELD_NONE;
     smoke_click(x + 180, transform + 34 + 12);
     ok = ok && app.field == FIELD_X;
-    strcpy(app.input, "12.5");
-    editor_field_apply();
-    ok = ok && o->x == 12.5f;
+    ok = ok && app.field_inline && app.ui.focus == app.field_id;
+    SDL_Event text = {0};
+    text.type = SDL_EVENT_TEXT_INPUT;
+    text.text.text = "-12.5";
+    editor_event(&text);
+    ok = ok && !strcmp(app.input, "-12.5") && o->x == 0;
+    key.key.key = SDLK_LEFT;
+    editor_event(&key);
+    key.key.key = SDLK_DELETE;
+    editor_event(&key);
+    text.text.text = "25";
+    editor_event(&text);
+    ok = ok && !strcmp(app.input, "-12.25") && o->x == 0;
+    key.key.key = SDLK_RETURN;
+    editor_event(&key);
+    ok = ok && app.field == FIELD_NONE && o->x == -12.25f;
     editor_undo_active(false);
     ok = ok && o->x == 0;
+    editor_draw();
+    smoke_click(x + 180, transform + 34 + 12);
+    text.text.text = "99";
+    editor_event(&text);
+    key.key.key = SDLK_ESCAPE;
+    editor_event(&key);
+    ok = ok && app.field == FIELD_NONE && o->x == 0;
+    editor_draw();
+    smoke_click(x + 180, transform + 34 + 12);
+    text.text.text = "8";
+    editor_event(&text);
+    smoke_click(x + 20, sprite + 34 + 12);
+    ok = ok && app.field == FIELD_NONE && o->x == 8;
+    editor_undo_active(false);
     editor_draw();
     smoke_click(x + 20, sprite + 34 + 12);
     ok = ok && app.field == FIELD_NONE;
@@ -776,7 +803,10 @@ bool editor_verify_components(void) {
     uint32_t color = o->color;
     strcpy(app.input, "nothex");
     editor_field_apply();
-    ok = ok && app.field == FIELD_COLOR && o->color == color;
+    ok = ok && app.field == FIELD_COLOR && app.field_inline && app.field_invalid &&
+         o->color == color;
+    smoke_click(app.viewport.x + 40, app.viewport.y + 40);
+    ok = ok && app.field == FIELD_COLOR && app.selected == id && o->color == color;
     strcpy(app.input, "#12345678");
     editor_field_apply();
     ok = ok && app.field == FIELD_NONE && o->color == 0x12345678;
@@ -1019,6 +1049,20 @@ void editor_capture_component_dropdown(void) {
         escape.type = SDL_EVENT_KEY_DOWN;
         escape.key.key = SDLK_ESCAPE;
         editor_event(&escape);
+        editor_draw();
+        if (o->mask & PE_TRANSFORM) {
+            smoke_click(anchor.x + anchor.w - 40, anchor.y + 33 + 34 + 12);
+            SDL_Event end = {0};
+            end.type = SDL_EVENT_KEY_DOWN;
+            end.key.key = SDLK_END;
+            editor_event(&end);
+            if (snprintf(path, sizeof path, "%s.input.bmp", original_path) < (int)sizeof path) {
+                editor_screenshot_path = path;
+                editor_draw();
+                editor_screenshot_path = original_path;
+            }
+            editor_field_stop();
+        }
         break;
     }
     app.map->scene = scene;

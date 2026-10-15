@@ -42,12 +42,14 @@ void editor_draw(void) {
     app.rendering = true;
     SDL_GetWindowSize(app.window, &app.width, &app.height);
     app.hit_count = 0;
+    app.field_seen = false;
     app.canvas_enabled = false;
     bool popup = app.map && app.map->component_add_open;
     if (app.map) {
         app.map->component_anchor_seen = false;
     }
-    app.ui.blocked = app.field != FIELD_NONE || app.request != REQUEST_NONE || popup;
+    app.ui.blocked =
+        (app.field != FIELD_NONE && !app.field_inline) || app.request != REQUEST_NONE || popup;
     if (!app.window_collapsed) {
         layout_columns();
     }
@@ -57,7 +59,7 @@ void editor_draw(void) {
     editor_box(
         (SDL_FRect){PANEL_GAP, PANEL_GAP, (float)(app.width - 2 * PANEL_GAP), TOP - 2 * PANEL_GAP},
         UI_PANEL);
-    bool modal = app.field != FIELD_NONE || app.request != REQUEST_NONE;
+    bool modal = (app.field != FIELD_NONE && !app.field_inline) || app.request != REQUEST_NONE;
     bool saved_click = app.click;
     if (modal) {
         app.click = false;
@@ -198,6 +200,9 @@ void editor_draw(void) {
         SDL_SetCursor(app.layout_resize_y && app.vertical_cursor ? app.vertical_cursor
                       : (resize || app.layout_resize_x)          ? app.resize_cursor
                                                                  : SDL_GetDefaultCursor());
+    }
+    if (app.field_inline && !app.field_seen) {
+        editor_field_stop();
     }
     ui_end_frame(&app.ui);
     app.click = false;

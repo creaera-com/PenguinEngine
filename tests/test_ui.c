@@ -358,8 +358,86 @@ static void test_property_columns_tiny_and_clamped(void) {
     TEST_ASSERT_FLOAT_WITHIN(.01f, 0, row.value.w);
 }
 
+static void test_text_input_insert_at_cursor(void) {
+    char text[32] = "12.5";
+    UiTextEdit edit;
+    ui_text_edit_init(&edit, text, false);
+    ui_text_edit_key(&edit, text, UI_TEXT_HOME, false);
+    TEST_ASSERT_TRUE(ui_text_edit_insert(&edit, text, sizeof text, "-"));
+    TEST_ASSERT_EQUAL_STRING("-12.5", text);
+    ui_text_edit_key(&edit, text, UI_TEXT_END, false);
+    ui_text_edit_key(&edit, text, UI_TEXT_LEFT, false);
+    TEST_ASSERT_TRUE(ui_text_edit_key(&edit, text, UI_TEXT_DELETE, false));
+    TEST_ASSERT_EQUAL_STRING("-12.", text);
+    TEST_ASSERT_TRUE(ui_text_edit_insert(&edit, text, sizeof text, "25"));
+    TEST_ASSERT_EQUAL_STRING("-12.25", text);
+}
+
+static void test_text_input_utf8_selection_and_delete(void) {
+    char text[32] = "a\xc3\xa4"
+                    "b";
+    UiTextEdit edit;
+    ui_text_edit_init(&edit, text, false);
+    ui_text_edit_key(&edit, text, UI_TEXT_LEFT, false);
+    ui_text_edit_key(&edit, text, UI_TEXT_LEFT, true);
+    TEST_ASSERT_EQUAL_UINT(1, edit.cursor);
+    TEST_ASSERT_EQUAL_UINT(3, edit.anchor);
+    TEST_ASSERT_TRUE(ui_text_edit_key(&edit, text, UI_TEXT_BACKSPACE, false));
+    TEST_ASSERT_EQUAL_STRING("ab", text);
+    TEST_ASSERT_TRUE(ui_text_edit_insert(&edit, text, sizeof text, "\xc3\xb6"));
+    TEST_ASSERT_TRUE(ui_text_edit_key(&edit, text, UI_TEXT_BACKSPACE, false));
+    TEST_ASSERT_EQUAL_STRING("ab", text);
+}
+
+static void test_text_input_replacement_capacity_is_atomic(void) {
+    char text[6] = "12345";
+    UiTextEdit edit;
+    ui_text_edit_init(&edit, text, true);
+    TEST_ASSERT_FALSE(ui_text_edit_insert(&edit, text, sizeof text, "123456"));
+    TEST_ASSERT_EQUAL_STRING("12345", text);
+    TEST_ASSERT_TRUE(ui_text_edit_insert(&edit, text, sizeof text, "\xc3\xa4\xc3\xb6"));
+    TEST_ASSERT_EQUAL_STRING("\xc3\xa4\xc3\xb6", text);
+    TEST_ASSERT_FALSE(ui_text_edit_insert(&edit, text, sizeof text, "\xc3\xbc"));
+    TEST_ASSERT_EQUAL_STRING("\xc3\xa4\xc3\xb6", text);
+}
+
+static void test_text_input_rejects_multiline_and_invalid_utf8(void) {
+    char text[32] = "64";
+    UiTextEdit edit;
+    ui_text_edit_init(&edit, text, true);
+    TEST_ASSERT_FALSE(ui_text_edit_insert(&edit, text, sizeof text, "1\n2"));
+    TEST_ASSERT_FALSE(ui_text_edit_insert(&edit, text, sizeof text, "\t"));
+    TEST_ASSERT_FALSE(ui_text_edit_insert(&edit, text, sizeof text, "\xc0\xaf"));
+    TEST_ASSERT_FALSE(ui_text_edit_insert(&edit, text, sizeof text, "\xed\xa0\x80"));
+    TEST_ASSERT_FALSE(ui_text_edit_insert(&edit, text, sizeof text, "\xf0\x9f"));
+    TEST_ASSERT_EQUAL_STRING("64", text);
+}
+
+static void test_text_input_click_and_stale_offsets(void) {
+    char text[32] = "a\xc3\xa4"
+                    "b";
+    UiTextEdit edit = {100, 100, 0};
+    ui_text_edit_key(&edit, text, UI_TEXT_LEFT, false);
+    TEST_ASSERT_EQUAL_UINT(3, edit.cursor);
+    ui_text_edit_click(&edit, text, 2, false);
+    TEST_ASSERT_EQUAL_UINT(3, edit.cursor);
+    ui_text_edit_click(&edit, text, 1, true);
+    TEST_ASSERT_EQUAL_UINT(1, edit.cursor);
+    TEST_ASSERT_EQUAL_UINT(3, edit.anchor);
+    TEST_ASSERT_EQUAL_UINT(2, ui_text_edit_column(text, 3));
+    TEST_ASSERT_EQUAL_UINT(3, ui_text_edit_column(text, 999));
+    ui_text_edit_key(&edit, text, UI_TEXT_RIGHT, false);
+    TEST_ASSERT_EQUAL_UINT(3, edit.cursor);
+    TEST_ASSERT_EQUAL_UINT(edit.cursor, edit.anchor);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_text_input_insert_at_cursor);
+    RUN_TEST(test_text_input_utf8_selection_and_delete);
+    RUN_TEST(test_text_input_replacement_capacity_is_atomic);
+    RUN_TEST(test_text_input_rejects_multiline_and_invalid_utf8);
+    RUN_TEST(test_text_input_click_and_stale_offsets);
     RUN_TEST(test_property_columns_align_and_resize);
     RUN_TEST(test_property_columns_tiny_and_clamped);
     RUN_TEST(test_vertical_split_constraints);
