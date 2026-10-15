@@ -313,6 +313,22 @@ void ui_tabs_scroll(UiTabs *tabs, float viewport, float tab_width, float delta);
  */
 bool ui_tabs_update(UiContext *context, UiTabs *tabs, UiRect bar, float tab_width);
 
+/** @brief Zweispaltige Eigenschaftszeile ohne eigenen Zustand oder Rendering. */
+typedef struct {
+    UiRect label; ///< Linke Spalte für die Bezeichnung.
+    UiRect value; ///< Rechte Spalte für Wert oder Eingabefeld.
+} UiPropertyRow;
+
+/**
+ * @brief Teilt eine Eigenschaftszeile in bündige Bezeichnungs- und Wertspalten.
+ * @param area Zeilenbereich in Pixeln; negative Ausdehnungen werden auf 0 begrenzt.
+ * @param label_fraction Anteil der linken Spalte an der Breite ohne Zwischenraum (0 bis 1).
+ * @param gap Zwischenraum in Pixeln; wird auf die verfügbare Breite begrenzt.
+ * @return Nicht überlappende Spalten innerhalb des begrenzten Zeilenbereichs.
+ * Gleiche Breite, Anteil und Abstand ergeben über mehrere Zeilen dieselben Spaltenkanten.
+ */
+UiPropertyRow ui_property_row(UiRect area, float label_fraction, float gap);
+
 /** @brief Geometrie eines teilbaren Bereichs; second_size ist die begrenzte zweite Paneelgröße. */
 typedef struct {
     UiRect first;      ///< Erstes Panel.

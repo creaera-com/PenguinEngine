@@ -449,3 +449,12 @@ UiSplit ui_split_rects(UiRect area, UiAxis axis, float second_size, float first_
     }
     return result;
 }
+
+UiPropertyRow ui_property_row(UiRect area, float label_fraction, float gap) {
+    area.w = fmaxf(0, area.w);
+    area.h = fmaxf(0, area.h);
+    gap = fminf(area.w, fmaxf(0, gap));
+    float left = (area.w - gap) * fminf(1, fmaxf(0, label_fraction));
+    return (UiPropertyRow){{area.x, area.y, left, area.h},
+                           {area.x + left + gap, area.y, area.w - left - gap, area.h}};
+}

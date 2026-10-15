@@ -335,8 +335,33 @@ static void test_split_drag_reduces_lower_panel(void) {
     TEST_ASSERT_FLOAT_WITHIN(.01f, 140, size);
 }
 
+static void test_property_columns_align_and_resize(void) {
+    UiPropertyRow row = ui_property_row((UiRect){10, 20, 240, 25}, .45f, 8);
+    UiPropertyRow next = ui_property_row((UiRect){10, 49, 240, 25}, .45f, 8);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, row.value.x, next.value.x);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 8, row.value.x - row.label.x - row.label.w);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 250, row.value.x + row.value.w);
+    UiPropertyRow wider = ui_property_row((UiRect){10, 20, 400, 25}, .45f, 8);
+    TEST_ASSERT_TRUE(wider.label.w > row.label.w && wider.value.w > row.value.w);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 410, wider.value.x + wider.value.w);
+}
+
+static void test_property_columns_tiny_and_clamped(void) {
+    UiPropertyRow row = ui_property_row((UiRect){10, 20, 4, 25}, .45f, 8);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 0, row.label.w);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 0, row.value.w);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 14, row.value.x);
+    row = ui_property_row((UiRect){10, 20, -4, -2}, .45f, -8);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 0, row.label.w + row.value.w + row.value.h);
+    row = ui_property_row((UiRect){10, 20, 100, 25}, 2, -8);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 100, row.label.w);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 0, row.value.w);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_property_columns_align_and_resize);
+    RUN_TEST(test_property_columns_tiny_and_clamped);
     RUN_TEST(test_vertical_split_constraints);
     RUN_TEST(test_split_tiny_and_horizontal);
     RUN_TEST(test_split_drag_reduces_lower_panel);

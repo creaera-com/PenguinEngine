@@ -1,6 +1,6 @@
 # Komponenten im Inspector
 
-Der Inspector beginnt mit der ID der ausgewählten Entity; eine zusätzliche klappbare Entity-Überschrift entfällt. Jede vorhandene Komponente steht in einer eigenen klappbaren Karte. Die Karten verwenden denselben Hintergrund wie die Tree-Fläche: die Theme-Surface mit 5 Prozent Weiß, im aktuellen Theme `#333333`. Zwischen den Karten liegen 6 Pixel Abstand.
+Der Inspector beginnt mit der ID der ausgewählten Entity; eine zusätzliche klappbare Entity-Überschrift entfällt. Jede vorhandene Komponente steht in einer eigenen klappbaren Karte. Die Karten verwenden denselben Hintergrund wie die Tree-Fläche: die Theme-Surface mit 5 Prozent Weiß, im aktuellen Theme `#333333`. Zwischen den Karten liegen 6 Pixel Abstand. Eigenschaften stehen in zwei bündigen Spalten: links die Bezeichnung, rechts der Wert. Nur das Wertefeld öffnet die Bearbeitung. Transform, Sprite-Farbe und Body-Geschwindigkeit verwenden dieselben Spaltenkanten; Parent und Player-Informationen erscheinen als reine Anzeigewerte.
 
 ![Komponenten im Inspector](images/components.png)
 

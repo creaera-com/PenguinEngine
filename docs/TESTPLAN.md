@@ -70,7 +70,7 @@ Der native Sitzungscache ersetzt keine Backups und ist noch keine Crash-Recovery
 
 ## Fachliche Modultrennung
 
-- Im SDL-Build laufen insgesamt unter Linux 146 Unity-Tests und 15 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
+- Im SDL-Build laufen insgesamt unter Linux 148 Unity-Tests und 15 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
 - `tests/editor_smoke.c` verwendet weiterhin die echten Eingabehandler, Editorwechsel und F6-Reloads. Die Tests liegen außerhalb des produktiven Quellcodes und werden nur bei `BUILD_TESTING=ON` eingebunden.
 - Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die sieben SDL-freien Testgruppen verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
 - Für das Strukturrefactoring zusätzlich die Map-/Scripts-Aufnahmen gegen den vorherigen Stand vergleichen und einen vollständigen ASan-/UBSan-Testlauf ausführen.
@@ -119,3 +119,5 @@ Der neue Panel-Smoke wählt Map und Tiles per Tab-Klick, erstellt/benennt/sortie
 Diese Abläufe werden zusätzlich im Editor-Smoke geprüft. Bei `--smoke --screenshot /tmp/editor.bmp` entsteht neben dem normalen Bild `/tmp/editor.bmp.dropdown.bmp` mit geöffnetem Komponenten-Dropdown.
 
 Panel-Aktionen: Scene-Werkzeuge und Layer-Aktionsgruppen sitzen rechts; Add component und Import PNG verwenden Inhaltsbreite rechts. Spalten verbreitern/verkleinern und bei langen YAML-Labels den mehrzeiligen Umbruch prüfen. Inspector zeigt Entity-ID und Karten direkt, ohne äußere Entity-Klappüberschrift.
+
+Komponenten-Eigenschaften: Bezeichnung links, Wert rechts. Klick auf Bezeichnung startet keine Bearbeitung; Wertefeld von X, Farbe und Velocity öffnet das richtige Feld. Änderungen, ungültige Farbe und Undo/Redo prüfen. Beim Verbreitern des Inspectors bleiben die Spalten bündig; lange Labels dürfen nicht in Werte hineinzeichnen. Zwei UI-Unity-Tests prüfen bündige Spalten, Resize und begrenzte Geometrie bei Platzmangel.

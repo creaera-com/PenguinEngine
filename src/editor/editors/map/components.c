@@ -44,16 +44,31 @@ bool editor_component_change(uint32_t bit, bool add) {
     return true;
 }
 
-static void number_field(float x, float y, float w, const char *name, float value, Field field,
-                         bool enabled) {
-    char label[80], input[64];
-    snprintf(label, sizeof label, "%s: %.2f", name, value);
+static UiRect property_value(float x, float y, float w, const char *name) {
+    UiPropertyRow row = ui_property_row((UiRect){x, y, w, 25}, .45f, 8);
+    ui_clip_push(&app.ui, row.label);
+    ui_apply_clip(app.renderer, &app.ui);
+    editor_text(row.label.x, row.label.y + 10, name, UI_MUTED);
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
+    return row.value;
+}
+
+static void property_field(float x, float y, float w, const char *name, const char *value,
+                           const char *input, Field field, bool enabled) {
+    UiRect cell = property_value(x, y, w, name);
     app.widget_scope ^= (UiId)field * 16777619u;
-    if (button(x, y, w, label, false, enabled)) {
-        snprintf(input, sizeof input, "%.2f", value);
+    if (button(cell.x, cell.y, cell.w, value, false, enabled)) {
         editor_field_start(field, input);
     }
     app.widget_scope ^= (UiId)field * 16777619u;
+}
+
+static void number_field(float x, float y, float w, const char *name, float value, Field field,
+                         bool enabled) {
+    char input[64];
+    snprintf(input, sizeof input, "%.2f", value);
+    property_field(x, y, w, name, input, input, field, enabled);
 }
 
 static float component_card(PeEntity entity, int index, float x, float y, float w, bool enabled) {
@@ -71,7 +86,7 @@ static float component_card(PeEntity entity, int index, float x, float y, float 
     float content = bit == PE_TRANSFORM ? 4 * 29.f + (o->parent_id ? 22 : 0)
                     : bit == PE_BODY    ? 2 * 29.f
                     : bit == PE_SPRITE  ? 29
-                                        : 24;
+                                        : 2 * 29.f;
     float height = open ? 34 + content + 8 : 33;
     editor_box((SDL_FRect){x, y, w, height}, editor_widget_background());
     if (ui_hovered(&app.ui, header)) {
@@ -93,8 +108,9 @@ static float component_card(PeEntity entity, int index, float x, float y, float 
         if (bit == PE_TRANSFORM) {
             if (o->parent_id) {
                 char label[64];
-                snprintf(label, sizeof label, "Parent: #%u (local)", o->parent_id);
-                editor_text(fx, fy + 8, label, UI_MUTED);
+                snprintf(label, sizeof label, "#%u (local)", o->parent_id);
+                UiRect cell = property_value(fx, fy, fw, "Parent");
+                editor_text(cell.x + 9, cell.y + 10, label, UI_MUTED);
                 fy += 22;
             }
             number_field(fx, fy, fw, o->parent_id ? "Local X" : "X", o->x, FIELD_X, enabled);
@@ -103,16 +119,17 @@ static float component_card(PeEntity entity, int index, float x, float y, float 
             number_field(fx, fy + 87, fw, "Height", o->h, FIELD_H, enabled);
         } else if (bit == PE_SPRITE) {
             char label[64], color[16];
-            snprintf(label, sizeof label, "Color: #%08X", (unsigned)o->color);
-            if (button(fx, fy, fw, label, false, enabled)) {
-                snprintf(color, sizeof color, "%08X", (unsigned)o->color);
-                editor_field_start(FIELD_COLOR, color);
-            }
+            snprintf(label, sizeof label, "#%08X", (unsigned)o->color);
+            snprintf(color, sizeof color, "%08X", (unsigned)o->color);
+            property_field(fx, fy, fw, "Color", label, color, FIELD_COLOR, enabled);
         } else if (bit == PE_BODY) {
             number_field(fx, fy, fw, "Velocity X", o->vx, FIELD_VX, enabled);
             number_field(fx, fy + 29, fw, "Velocity Y", o->vy, FIELD_VY, enabled);
         } else {
-            editor_text(fx, fy + 8, "WASD / arrows | 90 px/s", UI_MUTED);
+            UiRect cell = property_value(fx, fy, fw, "Controls");
+            editor_text(cell.x + 9, cell.y + 10, "WASD/arrows", UI_TEXT);
+            cell = property_value(fx, fy + 29, fw, "Speed");
+            editor_text(cell.x + 9, cell.y + 10, "90 px/s", UI_TEXT);
         }
     }
     return y + height + 6;

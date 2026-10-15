@@ -9,7 +9,7 @@ Penguin UI ist eine kleine eigene UI-Bibliothek für Editor und SDL3-Spiele. Sie
 | `penguin_ui` | `src/ui/include/penguin/ui.h`, `src/ui/core/core.c` | Eingabe, Fokus, Capture, Layout und Widget-Zustände; C17, keine SDL-Abhängigkeit. |
 | `penguin_ui_sdl` | `src/ui/include/penguin/ui_sdl.h`, `src/ui/rendering/sdl.c` | Flat-Rendering, Icons und Themes; nutzt `penguin_ui` und SDL3. |
 | `penguin_ui_demo` | `examples/ui/main.c` | Eigenständiges Beispiel ohne Engine-/Editor-/Script-Bibliotheken. |
-| `penguin_ui_tests` | `tests/test_ui.c` | 28 Unity-Tests der UI-Regeln ohne Fenster. |
+| `penguin_ui_tests` | `tests/test_ui.c` | 33 Unity-Tests der UI-Regeln ohne Fenster. |
 
 Die beiden Bibliotheken werden statisch gebaut. Sie sind keine Kopie der UI in jedem Spiel: Editor und Demo verlinken dieselben Targets. Der Kern lässt sich auch mit einem anderen Renderer verwenden; momentan ist nur der SDL3-Backend implementiert.
 
@@ -20,6 +20,7 @@ Die beiden Bibliotheken werden statisch gebaut. Sie sind keine Kopie der UI in j
 - Klappbare Abschnitte: Überschrift und gespeicherter Offen-/Geschlossen-Zustand.
 - Scrollbars: vertikal/horizontal, Thumb-Ziehen und seitenweises Scrollen beim Klick auf den Track.
 - Splitter: Ziehen mit Mindest-/Maximalwerten, auch außerhalb des ursprünglichen Griffbereichs.
+- Eigenschaftszeilen: `ui_property_row(area, .45f, 8)` liefert linke Bezeichnungs- und rechte Wertspalte ohne Rendering oder Zustand. Gleiche Zeilenbreiten ergeben bündige Spalten; der Zwischenraum wird bei Platzmangel begrenzt. Verwendet im Komponenten-Inspector, auch für Spiele nutzbar.
 - Spaltenlayout: Mindestbreiten und Platz für die mittlere Arbeitsfläche.
 - Clip-Bereiche: Zeichen-/Hit-Test-Grenzen und verschachtelte Rechtecke.
 - Fokus-ID und Tastaturaktivierung von fokussierten Buttons über Enter/Leertaste.
@@ -115,7 +116,7 @@ Dateibrowser und Scripteditor behalten ihre spezialisierten Funktionen. Die Bibl
 
 ## Prüfung
 
-28 Unity-Tests prüfen unter anderem Press-/Release-Reihenfolge, schnelles Klicken, Disabled/Blocked, exklusives Capture, Fokus, Clip-Grenzen, Drag-Clamping, Spaltenbreiten, Scrollbar-Geometrie, Thumb-Ziehen, Track-Klicks und Tab-Auswahl/-Umsortierung.
+33 Unity-Tests prüfen unter anderem Press-/Release-Reihenfolge, schnelles Klicken, Disabled/Blocked, exklusives Capture, Fokus, Clip-Grenzen, Drag-Clamping, Spaltenbreiten, Scrollbar-Geometrie, Thumb-Ziehen, Track-Klicks und Tab-Auswahl/-Umsortierung.
 
 Editor-Smoke-Tests ziehen beide Spaltentrenner, klappen einen Inspector-Bereich zu, sortieren Tabs um und ziehen eine Script-Scrollbar. Sie prüfen, dass dadurch weder Szene noch Scripttext verändert werden. Das UI-Demo hat einen eigenen SDL-Dummy-Smoke-Test.
 
