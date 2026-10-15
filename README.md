@@ -33,6 +33,10 @@ Beim Bereichswechsel wird der bisherige Editor vollständig entladen. Ungespeich
 
 Produktiver C-Code liegt unter `src/`, geordnet nach Engine, Editor, UI und Plattform. Map und Scripts gehören zu `src/editor/editors/`. YAML-Layouts und Schriftdateien liegen unter `resources/`; Beispiele, Tests und Fremdbibliotheken bleiben getrennt. Die [Strukturanleitung](docs/PROJEKTSTRUKTUR.md) erklärt die Ordner, Schnittstellen und Abhängigkeiten.
 
+## Codestil und API-Dokumentation
+
+Die Header sind mit Doxygen dokumentiert. Bei installiertem Doxygen erzeugt `cmake --build build --target api_docs` die HTML-Dokumentation unter `build/docs/html/index.html`. [Codestil und API-Doku](docs/CODESTIL_UND_API_DOKU.md) erklärt Kommentare, Formatierung und die Prüfungen. `python tools/format_code.py` formatiert den eigenen C-Code; `--check` prüft ihn ohne Änderungen.
+
 ## Bauen und starten
 
 Voraussetzungen: C17-Compiler, CMake >= 3.20 und Git. SDL3 >= 3.2 wird verwendet, wenn es als CMake-Paket installiert ist. Andernfalls lädt CMake **SDL3 3.2.10** mit geprüftem SHA-256 herunter. Dafür ist beim ersten Konfigurieren Internetzugriff nötig.

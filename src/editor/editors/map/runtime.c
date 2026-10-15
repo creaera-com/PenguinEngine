@@ -1,15 +1,17 @@
 #include "app/editor_internal.h"
 
 void editor_play_toggle(void) {
-    if (editor_edit_pending())
+    if (editor_edit_pending()) {
         return;
+    }
     app.playing = !app.playing;
     if (app.playing) {
         app.map->runtime = app.map->scene;
         app.accumulator = 0;
         editor_message("Play: WASD / arrows. Stop restores edited scene.");
-    } else
+    } else {
         editor_message("Stopped; edited scene preserved");
+    }
 }
 
 void editor_map_update(double elapsed) {

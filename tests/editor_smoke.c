@@ -48,16 +48,20 @@ bool editor_verify_editor(void) {
     app.map->scene = baseline;
     pe_history_free(&app.map->history);
     app.tile = 1;
-    if (!ok)
+    if (!ok) {
         fprintf(stderr, "Editor interaction smoke test failed\n");
+    }
+
     return ok;
 }
 
 bool editor_verify_script_editor(void) {
     PeScene scene_before = app.map->scene;
     editor_tab_select(true);
-    if (!app.script || app.map)
+    if (!app.script || app.map) {
         return false;
+    }
+
     PeText original = (*app.script).document;
     pe_text_init(&(*app.script).document, "");
     editor_tab_select(true);
@@ -119,8 +123,10 @@ bool editor_verify_script_editor(void) {
     editor_tab_select(false);
     ok = ok && app.map && !app.script &&
          !memcmp(&scene_before, &app.map->scene, sizeof scene_before);
-    if (!ok)
+    if (!ok) {
         fprintf(stderr, "Script editor interaction smoke test failed\n");
+    }
+
     return ok;
 }
 
@@ -178,8 +184,9 @@ bool editor_verify_ui_layout(void) {
     uint32_t saved_selected = app.selected;
     int saved_tool = app.tool;
     for (int i = 0; i < PE_ENTITIES; i++) {
-        if (!app.map->scene.objects[i].alive)
+        if (!app.map->scene.objects[i].alive) {
             continue;
+        }
         smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 60, SIDE_TOP + 58);
         smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, 60, SIDE_TOP + 58);
         ok = ok && app.selected == app.map->scene.objects[i].stable_id &&
@@ -193,8 +200,9 @@ bool editor_verify_ui_layout(void) {
     editor_tab_select(true);
     PeText saved = (*app.script).document;
     char lines[4096] = "";
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < 100; i++) {
         strcat(lines, "// scrollable line\n");
+    }
     pe_text_init(&(*app.script).document, lines);
     (*app.script).extent_revision = (*app.script).highlighted_revision =
         (*app.script).checked_revision = UINT64_MAX;
@@ -220,14 +228,17 @@ bool editor_verify_ui_layout(void) {
     app.layers_open = app.entity_open = app.palette_open = true;
     app.tree_view.offset = app.inspector_view.offset = 0;
     UiTab tabs[UI_MAX_TABS];
-    for (int i = 0; i < editor_view_count; i++)
+    for (int i = 0; i < editor_view_count; i++) {
         tabs[i] = (UiTab){editor_views[i].id, true, 0};
+    }
     ui_tabs_init(&app.workspaces, tabs, editor_view_count, UI_MAP_VIEW);
     ui_cancel(&app.ui);
     editor_tab_select(false);
     editor_draw();
-    if (!ok)
+    if (!ok) {
         fprintf(stderr, "Shared UI layout / capture smoke test failed\n");
+    }
+
     return ok;
 }
 
@@ -250,8 +261,9 @@ bool editor_verify_workspace_tools(void) {
         editor_map_active() && app.request == REQUEST_NONE && app.field == FIELD_NONE;
     smoke_click(GLOBAL_NAV_X + app.workspaces.items[0].width + 16, 24);
     bool ok = menu_unchanged && editor_scripts_active() && !app.map;
-    if (!app.script)
+    if (!app.script) {
         return false;
+    }
     revision = (*app.script).document.revision;
     (*app.script).checked_revision = UINT64_MAX;
     smoke_click(LEFT + PANEL_GAP + 8 + 16, action_y);
@@ -298,8 +310,10 @@ bool editor_verify_workspace_tools(void) {
     ui_cancel(&app.ui);
     editor_tab_select(false);
     editor_draw();
-    if (!ok)
+    if (!ok) {
         fprintf(stderr, "Workspace navigation / contextual toolbar smoke test failed\n");
+    }
+
     return ok;
 }
 
@@ -308,15 +322,18 @@ bool editor_verify_lifecycle(void) {
     snprintf(map_backup, sizeof map_backup, "%s.baseline", app.session_paths[0]);
     snprintf(script_backup, sizeof script_backup, "%s.baseline", app.session_paths[1]);
     snprintf(original_ui, sizeof original_ui, "%s", app.ui_path);
-    if (strlen(app.ui_path) + 7 >= sizeof test_ui)
+    if (strlen(app.ui_path) + 7 >= sizeof test_ui) {
         return false;
+    }
     memcpy(test_ui, app.ui_path, strlen(app.ui_path));
     strcpy(test_ui + strlen(app.ui_path), ".smoke");
     UiId id = UI_MAP_VIEW;
     editor_tab_select(false);
     editor_draw();
-    if (!app.map || !pe_session_save(map_backup, id, editor_checkpoint, &id, error, sizeof error))
+    if (!app.map || !pe_session_save(map_backup, id, editor_checkpoint, &id, error, sizeof error)) {
         return false;
+    }
+
     bool ok = editor_begin();
     if (ok) {
         pe_tile_set(&app.map->scene, 0, 1, 1, 7);
@@ -335,20 +352,23 @@ bool editor_verify_lifecycle(void) {
     snprintf(app.session_paths[0], sizeof app.session_paths[0], "%s", original_cache);
     editor_select_workspace(UI_SCRIPT_VIEW);
     editor_draw();
-    if (!app.script || app.map)
+    if (!app.script || app.map) {
         return false;
+    }
     ok = ok && app.session_dirty[0];
     id = UI_SCRIPT_VIEW;
-    if (!pe_session_save(script_backup, id, editor_checkpoint, &id, error, sizeof error))
+    if (!pe_session_save(script_backup, id, editor_checkpoint, &id, error, sizeof error)) {
         return false;
+    }
     pe_text_insert(&app.script->document, "// unsaved lifecycle test\n");
     se_changed(app.script, app.viewport, false);
     uint64_t script_revision = app.script->document.revision;
     int script_position = app.script->document.position;
     editor_select_workspace(UI_MAP_VIEW);
     editor_draw();
-    if (!app.map || app.script)
+    if (!app.map || app.script) {
         return false;
+    }
     ok = ok && app.session_dirty[1] && !memcmp(&edited, &app.map->scene, sizeof edited) &&
          app.map->history.revision == map_revision && app.camera.x == 11 && app.camera.zoom == 2.5f;
     editor_undo_active(false);
@@ -357,8 +377,9 @@ bool editor_verify_lifecycle(void) {
     ok = ok && pe_tile_get(&app.map->scene, 0, 1, 1) == 7;
     /* Corrupt a target checkpoint: the source must be restored, never discarded. */
     FILE *f = fopen(app.session_paths[1], "r+b");
-    if (!f)
+    if (!f) {
         return false;
+    }
     fseek(f, -1, SEEK_END);
     int byte = fgetc(f);
     fseek(f, -1, SEEK_END);
@@ -368,15 +389,17 @@ bool editor_verify_lifecycle(void) {
     ok = ok && editor_map_active() && app.map && !app.script &&
          app.map->history.revision == map_revision;
     f = fopen(app.session_paths[1], "r+b");
-    if (!f)
+    if (!f) {
         return false;
+    }
     fseek(f, -1, SEEK_END);
     fputc(byte, f);
     fclose(f);
     editor_select_workspace(UI_SCRIPT_VIEW);
     editor_draw();
-    if (!app.script || app.map)
+    if (!app.script || app.map) {
         return false;
+    }
     ok = ok && app.script->document.revision == script_revision &&
          app.script->document.position == script_position;
     editor_undo_active(false);
@@ -410,8 +433,9 @@ bool editor_verify_lifecycle(void) {
          app.map->history.revision == map_revision;
     MapPayload *before = app.map;
     f = fopen(test_ui, "wb");
-    if (!f)
+    if (!f) {
         return false;
+    }
     fputs("broken: [", f);
     fclose(f);
     ok = ok && !editor_reload_layout() && app.map == before && UI_ACCENT == 0xb08968ffu;
@@ -420,16 +444,18 @@ bool editor_verify_lifecycle(void) {
     remove(test_ui);
     /* Restore the test baseline without writing any project files. */
     editor_select_workspace(UI_SCRIPT_VIEW);
-    if (!app.script)
+    if (!app.script) {
         return false;
+    }
     se_free(app.script);
     memset(app.script, 0, sizeof *app.script);
     id = UI_SCRIPT_VIEW;
     ok = pe_session_load(script_backup, id, editor_checkpoint, &id, error, sizeof error) && ok;
     se_check(app.script);
     editor_select_workspace(UI_MAP_VIEW);
-    if (!app.map)
+    if (!app.map) {
         return false;
+    }
     pe_assets_free(&app.map->assets);
     pe_history_free(&app.map->history);
     memset(app.map, 0, sizeof *app.map);
@@ -442,7 +468,9 @@ bool editor_verify_lifecycle(void) {
     app.mx = app.my = 0;
     ui_cancel(&app.ui);
     editor_draw();
-    if (!ok)
+    if (!ok) {
         fprintf(stderr, "Editor lifecycle / checkpoint / YAML reload smoke failed\n");
+    }
+
     return ok;
 }

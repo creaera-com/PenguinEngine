@@ -192,3 +192,14 @@ if(PENGUIN_BUILD_EDITOR)
   set_tests_properties(editor_smoke game_smoke PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy" TIMEOUT 20)
  endif()
 endif()
+
+# API documentation is optional; normal builds never require Doxygen.
+find_package(Doxygen QUIET)
+if(DOXYGEN_FOUND)
+ configure_file(docs/doxygen/Doxyfile.in ${CMAKE_BINARY_DIR}/Doxyfile @ONLY)
+ add_custom_target(api_docs
+  COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_BINARY_DIR}/Doxyfile
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  COMMENT "Generating PenguinEngine API documentation"
+  VERBATIM)
+endif()

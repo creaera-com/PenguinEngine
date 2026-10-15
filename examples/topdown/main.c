@@ -3,19 +3,21 @@
 #include <stdio.h>
 #include <string.h>
 static PeScene scene;
+
 int main(int argc, char **argv) {
     const char *root = NULL;
     bool smoke = false;
     for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "--project") && i + 1 < argc)
+        if (!strcmp(argv[i], "--project") && i + 1 < argc) {
             root = argv[++i];
-        else if (!strcmp(argv[i], "--smoke"))
+        } else if (!strcmp(argv[i], "--smoke")) {
             smoke = true;
-        else {
+        } else {
             fprintf(stderr, "Usage: penguin_game [--project path] [--smoke]\n");
             return 1;
         }
     }
+
     char path[1024], error[256], resolved_root[768];
     if (!pe_project_resolve(root, SDL_GetBasePath(), resolved_root, sizeof resolved_root, error,
                             sizeof error)) {
@@ -32,6 +34,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "%s\n", SDL_GetError());
         return 1;
     }
+
     SDL_Window *w =
         SDL_CreateWindow("PenguinEngine - Top-down example", 960, 640, SDL_WINDOW_RESIZABLE);
     SDL_Renderer *r = w ? SDL_CreateRenderer(w, NULL) : NULL;
@@ -50,6 +53,7 @@ int main(int argc, char **argv) {
         SDL_Quit();
         return 1;
     }
+
     bool running = true;
     Uint64 last = SDL_GetTicksNS();
     double accumulator = 0;
@@ -58,14 +62,16 @@ int main(int argc, char **argv) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_EVENT_QUIT ||
-                (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE))
+                (event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE)) {
                 running = false;
+            }
         }
         Uint64 now = SDL_GetTicksNS();
         double elapsed = (now - last) / 1e9;
         last = now;
-        if (elapsed > .1)
+        if (elapsed > .1) {
             elapsed = .1;
+        }
         accumulator += elapsed;
         const bool *keys = SDL_GetKeyboardState(NULL);
         float x = (keys[SDL_SCANCODE_D] || keys[SDL_SCANCODE_RIGHT]) -
@@ -80,8 +86,9 @@ int main(int argc, char **argv) {
         SDL_GetRenderOutputSize(r, &rw, &rh);
         float zoom = (float)rw / (scene.width * scene.tile_size);
         float zy = (float)rh / (scene.height * scene.tile_size);
-        if (zy < zoom)
+        if (zy < zoom) {
             zoom = zy;
+        }
         PeCamera camera = {0, 0, zoom};
         SDL_SetRenderDrawColor(r, 14, 20, 28, 255);
         SDL_RenderClear(r);
@@ -90,8 +97,9 @@ int main(int argc, char **argv) {
         SDL_SetRenderDrawColor(r, 240, 240, 240, 255);
         SDL_RenderDebugText(r, 12, 12, "WASD / arrows: move   ESC: quit");
         SDL_RenderPresent(r);
-        if (smoke && ++frames >= 3)
+        if (smoke && ++frames >= 3) {
             running = false;
+        }
         SDL_Delay(1);
     }
     pe_assets_free(&assets);

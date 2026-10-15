@@ -23,11 +23,15 @@ static void layout_columns(void) {
 }
 
 bool editor_ui_controls_hit(float x, float y) {
-    if (ui_contains(left_split(), x, y) || ui_contains(right_split(), x, y))
+    if (ui_contains(left_split(), x, y) || ui_contains(right_split(), x, y)) {
         return true;
-    for (int i = 0; i < app.hit_count; i++)
-        if (ui_contains(app.hits[i], x, y))
+    }
+    for (int i = 0; i < app.hit_count; i++) {
+        if (ui_contains(app.hits[i], x, y)) {
             return true;
+        }
+    }
+
     return app.script && se_scroll_hit(app.script, x, y, app.viewport);
 }
 
@@ -47,8 +51,9 @@ void editor_draw(void) {
         UI_PANEL);
     bool modal = app.field != FIELD_NONE || app.request != REQUEST_NONE;
     bool saved_click = app.click;
-    if (modal)
+    if (modal) {
         app.click = false;
+    }
     app.ui.blocked = modal;
     editor_tooltip = NULL;
     editor_draw_global_tools();
@@ -68,8 +73,9 @@ void editor_draw(void) {
         app.workspaces.items[i].enabled =
             !editor_edit_pending() && (item->id == UI_MAP_VIEW || !app.playing);
     }
-    if (ui_tabs_update(&app.ui, &app.workspaces, nav, 112))
+    if (ui_tabs_update(&app.ui, &app.workspaces, nav, 112)) {
         editor_select_workspace(app.workspaces.selected);
+    }
     ui_clip_push(&app.ui, nav);
     ui_apply_clip(app.renderer, &app.ui);
     for (int i = 0; i < app.workspaces.count; i++) {
@@ -81,8 +87,9 @@ void editor_draw(void) {
                        editor_yaml_icon(pe_ui_string(entry, "icon", "")),
                        labels ? pe_ui_string(entry, "title", item->label) : "",
                        app.workspaces.selected == item->id, app.workspaces.items[i].enabled, hover);
-        if (hover)
+        if (hover) {
             editor_tooltip = pe_ui_string(entry, "title", item->label);
+        }
     }
     ui_clip_pop(&app.ui);
     ui_apply_clip(app.renderer, &app.ui);
@@ -98,6 +105,7 @@ void editor_draw(void) {
         editor_process_deferred_ui();
         return;
     }
+
     const EditorView *view = editor_view(app.workspaces.selected);
     float center_width = (float)(app.width - LEFT - RIGHT - 2 * PANEL_GAP);
     int rows = editor_yaml_toolbar_rows(center_width);
@@ -135,8 +143,9 @@ void editor_draw(void) {
         Uint32 color = !strcmp(binding, "editor.mode")      ? UI_ACCENT
                        : !strcmp(binding, "editor.message") ? UI_TEXT
                                                             : UI_MUTED;
-        if (!strcmp(binding, "document.save_state") && !strcmp(value, "Modified"))
+        if (!strcmp(binding, "document.save_state") && !strcmp(value, "Modified")) {
             color = UI_ACCENT;
+        }
         editor_text(status_x, status_y, value, color);
         status_x += ui_text_width(value) + 16;
         if (field->next) {
@@ -153,6 +162,7 @@ void editor_draw(void) {
         ui_panel(app.renderer, (SDL_FRect){tx, ty, width, 24}, UI_BORDER);
         editor_text(tx + 10, ty + 8, editor_tooltip, UI_TEXT);
     }
+
     UiRect ls = left_split(), rs = right_split();
     bool left_highlight = !modal && (ui_hovered(&app.ui, ls) || app.ui.active == UI_SPLIT_LEFT);
     bool right_highlight = !modal && (ui_hovered(&app.ui, rs) || app.ui.active == UI_SPLIT_RIGHT);
@@ -165,14 +175,16 @@ void editor_draw(void) {
         editor_draw_modal();
     }
     app.ui.blocked = false;
-    if (app.resize_cursor)
+    if (app.resize_cursor) {
         SDL_SetCursor(resize ? app.resize_cursor : SDL_GetDefaultCursor());
+    }
     ui_end_frame(&app.ui);
     app.click = false;
     if (editor_screenshot_path) {
         SDL_Surface *capture = SDL_RenderReadPixels(app.renderer, NULL);
-        if (!capture || !SDL_SaveBMP(capture, editor_screenshot_path))
+        if (!capture || !SDL_SaveBMP(capture, editor_screenshot_path)) {
             fprintf(stderr, "Screenshot failed: %s\n", SDL_GetError());
+        }
         SDL_DestroySurface(capture);
     }
     SDL_RenderPresent(app.renderer);

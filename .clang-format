@@ -4,3 +4,9 @@ ColumnLimit: 100
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: Never
 BreakBeforeBraces: Attach
+
+# Keep every control-flow body explicit, including single statements.
+InsertBraces: true
+SeparateDefinitionBlocks: Always
+MaxEmptyLinesToKeep: 1
+AllowShortLoopsOnASingleLine: false

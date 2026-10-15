@@ -9,37 +9,46 @@
 #define SCRIPT_VSCROLL 0x10005u
 #define SCRIPT_HSCROLL 0x10006u
 #define SCRIPT_DOCUMENT 0x10007u
+
 static bool inside(float x, float y, SDL_FRect r) {
     return x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;
 }
+
 static void color(SDL_Renderer *r, Uint32 c) {
     SDL_SetRenderDrawColor(r, (Uint8)(c >> 24), (Uint8)(c >> 16), (Uint8)(c >> 8), (Uint8)c);
 }
+
 static void rect(SDL_Renderer *r, SDL_FRect b, Uint32 c) {
     color(r, c);
     SDL_RenderFillRect(r, &b);
 }
+
 static void text(SDL_Renderer *r, float x, float y, const char *s, Uint32 c) {
     color(r, c);
     ui_text(r, x, y - 2, s, c);
 }
+
 static void layout(PeScriptEditor *e, SDL_FRect a) {
     e->body = (SDL_FRect){a.x + GUTTER, a.y + 38, a.w - GUTTER - 18, a.h - 98};
 }
+
 static void extent(PeScriptEditor *e) {
     if (e->extent_revision != e->document.revision) {
         int lines = 1, column = 0, max = 0;
         for (size_t p = 0; p < e->document.length; p = pe_text_next(&e->document, p)) {
             if (e->document.text[p] == '\n') {
-                if (column > max)
+                if (column > max) {
                     max = column;
+                }
                 column = 0;
                 lines++;
-            } else
+            } else {
                 column += e->document.text[p] == '\t' ? 4 - column % 4 : 1;
+            }
         }
-        if (column > max)
+        if (column > max) {
             max = column;
+        }
         e->line_count = lines;
         e->max_column = max;
         e->extent_revision = e->document.revision;
@@ -51,57 +60,72 @@ static void extent(PeScriptEditor *e) {
     ui_scroll_clamp(&e->vertical);
     ui_scroll_clamp(&e->horizontal);
 }
+
 static UiRect vertical_track(PeScriptEditor *e, SDL_FRect area) {
     return (UiRect){area.x + area.w - 12, e->body.y, 8, e->body.h};
 }
+
 static UiRect horizontal_track(PeScriptEditor *e) {
     return (UiRect){e->body.x, e->body.y + e->body.h + 4, e->body.w, 8};
 }
+
 bool se_scroll_hit(PeScriptEditor *e, float x, float y, SDL_FRect area) {
     layout(e, area);
     extent(e);
     return (ui_scroll_max(&e->vertical) > 0 && ui_contains(vertical_track(e, area), x, y)) ||
            (ui_scroll_max(&e->horizontal) > 0 && ui_contains(horizontal_track(e), x, y));
 }
+
 static void reveal(PeScriptEditor *e, SDL_FRect area) {
     layout(e, area);
     int line, col;
     pe_text_location(&e->document, e->document.cursor, &line, &col);
     int rows = (int)e->body.h / LINE_HEIGHT, columns = (int)e->body.w / CHAR_WIDTH;
-    if (rows < 1)
+    if (rows < 1) {
         rows = 1;
-    if (columns < 1)
+    }
+    if (columns < 1) {
         columns = 1;
-    if (line < e->top_line)
+    }
+    if (line < e->top_line) {
         e->top_line = line;
-    if (line >= e->top_line + rows)
+    }
+    if (line >= e->top_line + rows) {
         e->top_line = line - rows + 1;
-    if (col < e->left_column)
+    }
+    if (col < e->left_column) {
         e->left_column = col;
-    if (col >= e->left_column + columns)
+    }
+    if (col >= e->left_column + columns) {
         e->left_column = col - columns + 1;
+    }
     extent(e);
     e->top_line = (int)(e->vertical.offset / LINE_HEIGHT);
     e->left_column = (int)(e->horizontal.offset / CHAR_WIDTH);
 }
+
 void se_check(PeScriptEditor *e) {
     e->diagnostic = pe_js_check(e->document.text, e->path);
     e->checked_revision = e->document.revision;
     snprintf(e->status, sizeof e->status, "%s", e->diagnostic.message);
 }
+
 bool se_init(PeScriptEditor *e, const char *root) {
     memset(e, 0, sizeof *e);
-    if (strlen(root) >= sizeof e->root)
+    if (strlen(root) >= sizeof e->root) {
         return false;
+    }
     strcpy(e->root, root);
     pe_text_init(&e->document, "");
     snprintf(e->path, sizeof e->path, "%s/scripts/player.js", root);
     SDL_PathInfo info;
-    if (!SDL_GetPathInfo(e->path, &info) || info.type != SDL_PATHTYPE_FILE)
+    if (!SDL_GetPathInfo(e->path, &info) || info.type != SDL_PATHTYPE_FILE) {
         snprintf(e->path, sizeof e->path, "%s/scripts/new_script.js", root);
+    }
     if (SDL_GetPathInfo(e->path, &info) && info.type == SDL_PATHTYPE_FILE) {
-        if (!pe_text_load(&e->document, e->path, e->status, sizeof e->status))
+        if (!pe_text_load(&e->document, e->path, e->status, sizeof e->status)) {
             return false;
+        }
         e->exists = true;
     }
     e->extent_revision = UINT64_MAX;
@@ -111,30 +135,37 @@ bool se_init(PeScriptEditor *e, const char *root) {
     se_check(e);
     return true;
 }
+
 void se_free(PeScriptEditor *e) {
     pe_text_free(&e->document);
 }
+
 void se_focus(PeScriptEditor *e, SDL_Window *w, bool focus) {
-    if (w)
+    if (w) {
         e->window = w;
+    }
     e->focused = focus;
     e->selecting = false;
     if (focus) {
-        if (e->window)
+        if (e->window) {
             SDL_StartTextInput(e->window);
+        }
     } else {
-        if (e->window)
+        if (e->window) {
             SDL_StopTextInput(e->window);
+        }
         e->show_completion = false;
     }
 }
+
 bool se_open(PeScriptEditor *e, const char *path) {
     if (strlen(path) >= sizeof e->path) {
         snprintf(e->status, sizeof e->status, "Script path too long");
         return false;
     }
-    if (!pe_text_load(&e->document, path, e->status, sizeof e->status))
+    if (!pe_text_load(&e->document, path, e->status, sizeof e->status)) {
         return false;
+    }
     strcpy(e->path, path);
     e->exists = true;
     e->top_line = e->left_column = 0;
@@ -144,6 +175,7 @@ bool se_open(PeScriptEditor *e, const char *path) {
     se_check(e);
     return true;
 }
+
 bool se_save(PeScriptEditor *e) {
     if (!e->exists) {
         char folder[1024];
@@ -153,17 +185,20 @@ bool se_save(PeScriptEditor *e) {
             return false;
         }
     }
-    if (!pe_text_save(&e->document, e->path, e->status, sizeof e->status))
+    if (!pe_text_save(&e->document, e->path, e->status, sizeof e->status)) {
         return false;
+    }
     e->exists = true;
     se_check(e);
     snprintf(e->status, sizeof e->status, "Script saved%s",
              e->diagnostic.valid ? "" : " (contains syntax errors)");
     return true;
 }
+
 bool se_dirty(const PeScriptEditor *e) {
     return pe_text_dirty(&e->document) || (!e->exists && e->document.length > 0);
 }
+
 void se_changed(PeScriptEditor *e, SDL_FRect area, bool completion) {
     e->changed_at = SDL_GetTicks();
     e->goal_column = -1;
@@ -180,24 +215,30 @@ void se_changed(PeScriptEditor *e, SDL_FRect area, bool completion) {
                  ? e->diagnostic.message
                  : "Editing JavaScript; syntax check after a short pause");
 }
+
 static void changed_result(PeScriptEditor *e, SDL_FRect area, bool ok, bool completion) {
-    if (ok)
+    if (ok) {
         se_changed(e, area, completion);
-    else
+    } else {
         snprintf(e->status, sizeof e->status,
                  "Edit rejected: invalid UTF-8, file limit (64 KiB) or out of memory");
+    }
 }
+
 static void caret(PeScriptEditor *e, size_t offset, bool shift, SDL_FRect area) {
     e->document.cursor = offset;
-    if (!shift)
+    if (!shift) {
         e->document.anchor = offset;
+    }
     e->show_completion = false;
     reveal(e, area);
 }
+
 static void complete(PeScriptEditor *e, SDL_FRect area) {
     changed_result(e, area, pe_js_accept(&e->document, &e->completions, e->completion_index),
                    false);
 }
+
 static void copy(PeScriptEditor *e, bool cut, SDL_FRect area) {
     size_t a = e->document.cursor, b = e->document.anchor;
     if (a > b) {
@@ -205,35 +246,45 @@ static void copy(PeScriptEditor *e, bool cut, SDL_FRect area) {
         a = b;
         b = t;
     }
-    if (a == b)
+    if (a == b) {
         return;
+    }
+
     char *selected = malloc(b - a + 1);
-    if (!selected)
+    if (!selected) {
         return;
+    }
     memcpy(selected, e->document.text + a, b - a);
     selected[b - a] = 0;
     bool ok = SDL_SetClipboardText(selected);
     free(selected);
-    if (ok && cut)
+    if (ok && cut) {
         changed_result(e, area, pe_text_insert(&e->document, ""), false);
+    }
 }
+
 static void newline(PeScriptEditor *e, SDL_FRect area) {
     size_t start = pe_text_line_start(&e->document, e->document.cursor), n = 0;
     char indent[512];
     indent[n++] = '\n';
     while (start < e->document.cursor &&
            (e->document.text[start] == ' ' || e->document.text[start] == '\t') &&
-           n < sizeof indent - 6)
+           n < sizeof indent - 6) {
         indent[n++] = e->document.text[start++];
+    }
     size_t p = e->document.cursor;
-    while (p > start && e->document.text[p - 1] == ' ')
+    while (p > start && e->document.text[p - 1] == ' ') {
         p--;
-    if (p && e->document.text[p - 1] == '{')
-        for (int i = 0; i < 4; i++)
+    }
+    if (p && e->document.text[p - 1] == '{') {
+        for (int i = 0; i < 4; i++) {
             indent[n++] = ' ';
+        }
+    }
     indent[n] = 0;
     changed_result(e, area, pe_text_insert(&e->document, indent), false);
 }
+
 bool se_event(PeScriptEditor *e, SDL_Window *window, const SDL_Event *event, SDL_FRect area) {
     layout(e, area);
     PeText *d = &e->document;
@@ -243,8 +294,9 @@ bool se_event(PeScriptEditor *e, SDL_Window *window, const SDL_Event *event, SDL
         return false;
     }
     if (event->type == SDL_EVENT_TEXT_INPUT) {
-        if (e->focused)
+        if (e->focused) {
             changed_result(e, area, pe_text_insert(d, event->text.text), true);
+        }
         return true;
     }
     if (event->type == SDL_EVENT_KEY_DOWN) {
@@ -256,17 +308,20 @@ bool se_event(PeScriptEditor *e, SDL_Window *window, const SDL_Event *event, SDL
             return true;
         }
         if (ctrl && (key == SDLK_Y || (key == SDLK_Z && shift))) {
-            if (pe_text_redo(d))
+            if (pe_text_redo(d)) {
                 se_changed(e, area, false);
+            }
             return true;
         }
         if (ctrl && key == SDLK_Z) {
-            if (pe_text_undo(d))
+            if (pe_text_undo(d)) {
                 se_changed(e, area, false);
+            }
             return true;
         }
-        if (!e->focused)
+        if (!e->focused) {
             return true;
+        }
         if (ctrl && key == SDLK_SPACE) {
             e->completions = pe_js_complete(d);
             e->show_completion = e->completions.count > 0;
@@ -293,43 +348,46 @@ bool se_event(PeScriptEditor *e, SDL_Window *window, const SDL_Event *event, SDL
             d->anchor = 0;
             d->cursor = d->length;
             reveal(e, area);
-        } else if (ctrl && key == SDLK_C)
+        } else if (ctrl && key == SDLK_C) {
             copy(e, false, area);
-        else if (ctrl && key == SDLK_X)
+        } else if (ctrl && key == SDLK_X) {
             copy(e, true, area);
-        else if (ctrl && key == SDLK_V) {
+        } else if (ctrl && key == SDLK_V) {
             char *clipboard = SDL_GetClipboardText();
             if (clipboard) {
                 size_t out = 0;
                 for (size_t i = 0; clipboard[i]; i++) {
                     if (clipboard[i] == '\r') {
                         clipboard[out++] = '\n';
-                        if (clipboard[i + 1] == '\n')
+                        if (clipboard[i + 1] == '\n') {
                             i++;
-                    } else
+                        }
+                    } else {
                         clipboard[out++] = clipboard[i];
+                    }
                 }
                 clipboard[out] = 0;
                 changed_result(e, area, pe_text_insert(d, clipboard), false);
                 SDL_free(clipboard);
             }
-        } else if (key == SDLK_F7)
+        } else if (key == SDLK_F7) {
             se_check(e);
-        else if (key == SDLK_BACKSPACE)
+        } else if (key == SDLK_BACKSPACE) {
             changed_result(e, area, pe_text_backspace(d), true);
-        else if (key == SDLK_DELETE)
+        } else if (key == SDLK_DELETE) {
             changed_result(e, area, pe_text_delete(d), true);
-        else if (key == SDLK_RETURN)
+        } else if (key == SDLK_RETURN) {
             newline(e, area);
-        else if (key == SDLK_TAB)
+        } else if (key == SDLK_TAB) {
             changed_result(e, area, pe_text_insert(d, "    "), false);
-        else if (key == SDLK_LEFT || key == SDLK_RIGHT) {
+        } else if (key == SDLK_LEFT || key == SDLK_RIGHT) {
             size_t p;
-            if (!shift && d->cursor != d->anchor)
+            if (!shift && d->cursor != d->anchor) {
                 p = key == SDLK_LEFT ? (d->cursor < d->anchor ? d->cursor : d->anchor)
                                      : (d->cursor > d->anchor ? d->cursor : d->anchor);
-            else
+            } else {
                 p = key == SDLK_LEFT ? pe_text_previous(d, d->cursor) : pe_text_next(d, d->cursor);
+            }
             e->goal_column = -1;
             caret(e, p, shift, area);
         } else if (key == SDLK_HOME || key == SDLK_END) {
@@ -343,23 +401,26 @@ bool se_event(PeScriptEditor *e, SDL_Window *window, const SDL_Event *event, SDL
                    key == SDLK_PAGEDOWN) {
             int line, col;
             pe_text_location(d, d->cursor, &line, &col);
-            if (e->goal_column < 0)
+            if (e->goal_column < 0) {
                 e->goal_column = col;
+            }
             int amount =
                 (key == SDLK_PAGEUP || key == SDLK_PAGEDOWN) ? (int)e->body.h / LINE_HEIGHT : 1;
             line += (key == SDLK_UP || key == SDLK_PAGEUP) ? -amount : amount;
             caret(e, pe_text_offset(d, line, e->goal_column), shift, area);
-        } else if (key == SDLK_ESCAPE)
+        } else if (key == SDLK_ESCAPE) {
             e->show_completion = false;
+        }
         return true;
     }
     if (event->type == SDL_EVENT_MOUSE_WHEEL &&
         inside(event->wheel.mouse_x, event->wheel.mouse_y, area)) {
         extent(e);
-        if (SDL_GetModState() & SDL_KMOD_SHIFT)
+        if (SDL_GetModState() & SDL_KMOD_SHIFT) {
             ui_scroll_by(&e->horizontal, -event->wheel.y * 32);
-        else
+        } else {
             ui_scroll_by(&e->vertical, -event->wheel.y * 54);
+        }
         e->top_line = (int)(e->vertical.offset / LINE_HEIGHT);
         e->left_column = (int)(e->horizontal.offset / CHAR_WIDTH);
         e->show_completion = false;
@@ -384,16 +445,19 @@ bool se_event(PeScriptEditor *e, SDL_Window *window, const SDL_Event *event, SDL
             e->selecting = true;
             return true;
         }
-        if (!inside(x, y, area) && y >= area.y - 32)
+        if (!inside(x, y, area) && y >= area.y - 32) {
             se_focus(e, window, false);
+        }
     }
     if (event->type == SDL_EVENT_MOUSE_MOTION && e->selecting) {
         int line = e->top_line + (int)((event->motion.y - e->body.y) / LINE_HEIGHT),
             col = e->left_column + (int)((event->motion.x - e->body.x) / CHAR_WIDTH);
-        if (line < 0)
+        if (line < 0) {
             line = 0;
-        if (col < 0)
+        }
+        if (col < 0) {
             col = 0;
+        }
         caret(e, pe_text_offset(d, line, col), true, area);
         return true;
     }
@@ -402,8 +466,10 @@ bool se_event(PeScriptEditor *e, SDL_Window *window, const SDL_Event *event, SDL
         e->selecting = false;
         return true;
     }
+
     return false;
 }
+
 void se_draw(PeScriptEditor *e, SDL_Renderer *r, UiContext *context, SDL_FRect area, float mx,
              float my, bool click) {
     layout(e, area);
@@ -418,8 +484,9 @@ void se_draw(PeScriptEditor *e, SDL_Renderer *r, UiContext *context, SDL_FRect a
         pe_js_highlight(d->text, e->tokens, d->length);
         e->highlighted_revision = d->revision;
     }
-    if (e->checked_revision != d->revision && SDL_GetTicks() - e->changed_at >= 300)
+    if (e->checked_revision != d->revision && SDL_GetTicks() - e->changed_at >= 300) {
         se_check(e);
+    }
     rect(r, area, UI_CANVAS);
     rect(r, (SDL_FRect){area.x, area.y, area.w, 30}, UI_PANEL);
     const char *filename = strrchr(e->path, '/');
@@ -446,8 +513,9 @@ void se_draw(PeScriptEditor *e, SDL_Renderer *r, UiContext *context, SDL_FRect a
         char number[16];
         snprintf(number, sizeof number, "%4d", line + 1);
         text(r, area.x + 8, y + 5, number, line == caret_line ? UI_ACCENT : UI_DISABLED);
-        if (e->diagnostic.line == line + 1 && !e->diagnostic.valid)
+        if (e->diagnostic.line == line + 1 && !e->diagnostic.valid) {
             rect(r, (SDL_FRect){area.x + GUTTER - 7, y + 4, 3, 10}, UI_ACCENT);
+        }
         SDL_Rect body_clip = {(int)e->body.x, (int)e->body.y, (int)e->body.w, (int)e->body.h};
         SDL_SetRenderClipRect(r, &body_clip);
         int col = 0;
@@ -456,9 +524,10 @@ void se_draw(PeScriptEditor *e, SDL_Renderer *r, UiContext *context, SDL_FRect a
             int width = d->text[p] == '\t' ? 4 - col % 4 : 1;
             float x = e->body.x + (col - e->left_column) * CHAR_WIDTH;
             if (x + width * CHAR_WIDTH >= e->body.x && x < e->body.x + e->body.w) {
-                if (p >= selected_start && p < selected_end)
+                if (p >= selected_start && p < selected_end) {
                     rect(r, (SDL_FRect){x, y, (float)(width * CHAR_WIDTH), LINE_HEIGHT},
                          0x5a3d26ff);
+                }
                 char glyph[2] = {
                     d->text[p] == '\t' ? ' ' : ((unsigned char)d->text[p] < 128 ? d->text[p] : '?'),
                     0};
@@ -468,13 +537,16 @@ void se_draw(PeScriptEditor *e, SDL_Renderer *r, UiContext *context, SDL_FRect a
             p = next;
         }
         SDL_SetRenderClipRect(r, &clip);
-        if (p == d->length)
+        if (p == d->length) {
             break;
-        if (p >= selected_start && p < selected_end)
+        }
+        if (p >= selected_start && p < selected_end) {
             rect(r, (SDL_FRect){e->body.x + (col - e->left_column) * CHAR_WIDTH, y, 8, LINE_HEIGHT},
                  0x5a3d26ff);
+        }
         p++;
     }
+
     SDL_Rect caret_clip = {(int)e->body.x, (int)e->body.y, (int)e->body.w, (int)e->body.h};
     SDL_SetRenderClipRect(r, &caret_clip);
     if (e->focused && SDL_GetTicks() % 1000 < 650) {
@@ -490,13 +562,15 @@ void se_draw(PeScriptEditor *e, SDL_Renderer *r, UiContext *context, SDL_FRect a
     ui_icon(r, e->diagnostic.valid ? ICON_CHECK : ICON_COLLISION, area.x + 12, diagnostic.y + 11,
             16, e->diagnostic.valid ? UI_MUTED : UI_ACCENT);
     char status[320];
-    if (e->checked_revision != d->revision)
+    if (e->checked_revision != d->revision) {
         snprintf(status, sizeof status, "Checking JavaScript...");
-    else if (e->diagnostic.valid)
+    } else if (e->diagnostic.valid) {
         snprintf(status, sizeof status, "Syntax OK | compile only; scripts are not executed");
-    else
+    } else {
         snprintf(status, sizeof status, "Line %d: %.220s", e->diagnostic.line,
                  e->diagnostic.message);
+    }
+
     SDL_Rect status_clip = {(int)area.x + 36, (int)diagnostic.y, (int)area.w - 44, 40};
     SDL_SetRenderClipRect(r, &status_clip);
     text(r, area.x + 36, diagnostic.y + 15, status, e->diagnostic.valid ? UI_MUTED : UI_ACCENT);
@@ -512,10 +586,12 @@ void se_draw(PeScriptEditor *e, SDL_Renderer *r, UiContext *context, SDL_FRect a
         float x = e->body.x + (caret_col - e->left_column) * CHAR_WIDTH,
               y = e->body.y + (caret_line - e->top_line + 1) * LINE_HEIGHT;
         float height = e->completions.count * 22.f;
-        if (x + 216 > area.x + area.w)
+        if (x + 216 > area.x + area.w) {
             x = area.x + area.w - 216;
-        if (y + height > diagnostic.y)
+        }
+        if (y + height > diagnostic.y) {
             y = fmaxf(e->body.y, y - height - LINE_HEIGHT);
+        }
         e->popup = (SDL_FRect){x, y, 212, height};
         ui_panel(r, e->popup, UI_BORDER);
         for (int i = 0; i < e->completions.count; i++) {

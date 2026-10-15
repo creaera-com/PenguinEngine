@@ -41,8 +41,9 @@ void editor_register_ui_hit(UiRect rect) {
         rect.w = right - rect.x;
         rect.h = bottom - rect.y;
     }
-    if (app.hit_count < PE_UI_MAX_NODES && rect.w > 0 && rect.h > 0)
+    if (app.hit_count < PE_UI_MAX_NODES && rect.w > 0 && rect.h > 0) {
         app.hits[app.hit_count++] = rect;
+    }
 }
 
 bool editor_icon_button_impl(UiId callsite, float x, float y, float w, UiIcon icon,
@@ -52,8 +53,10 @@ bool editor_icon_button_impl(UiId callsite, float x, float y, float w, UiIcon ic
     editor_register_ui_hit(hit);
     bool hover = ui_hovered(&app.ui, hit);
     ui_draw_button(app.renderer, r, icon, label, active, enabled, hover);
-    if (hover && hint)
+    if (hover && hint) {
         editor_tooltip = hint;
+    }
+
     UiId id = ui_id("editor_button") ^ (callsite * 16777619u) ^ app.widget_scope;
     return ui_button(&app.ui, id ? id : 1, hit, enabled);
 }

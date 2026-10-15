@@ -5,19 +5,23 @@
 #include <string.h>
 static PeText doc;
 static char error[256];
+
 void setUp(void) {
     TEST_ASSERT_TRUE(pe_text_init(&doc, ""));
     error[0] = 0;
 }
+
 void tearDown(void) {
     pe_text_free(&doc);
     remove("test_script.js");
     remove("test_script.js.tmp");
 }
+
 static void source(const char *s) {
     pe_text_free(&doc);
     TEST_ASSERT_TRUE(pe_text_init(&doc, s));
 }
+
 static void test_insert_and_selection(void) {
     pe_text_insert(&doc, "hello world");
     doc.anchor = 6;
@@ -27,6 +31,7 @@ static void test_insert_and_selection(void) {
     TEST_ASSERT_EQUAL_UINT(13, doc.cursor);
     TEST_ASSERT_EQUAL_UINT(doc.cursor, doc.anchor);
 }
+
 static void test_utf8_backspace(void) {
     pe_text_insert(&doc, "a\xc3\xa4\xf0\x9f\x90\xa7");
     TEST_ASSERT_TRUE(pe_text_backspace(&doc));
@@ -34,11 +39,13 @@ static void test_utf8_backspace(void) {
     TEST_ASSERT_TRUE(pe_text_backspace(&doc));
     TEST_ASSERT_EQUAL_STRING("a", doc.text);
 }
+
 static void test_utf8_delete(void) {
     source("\xc3\xa4z");
     TEST_ASSERT_TRUE(pe_text_delete(&doc));
     TEST_ASSERT_EQUAL_STRING("z", doc.text);
 }
+
 static void test_invalid_utf8_atomic(void) {
     source("ok");
     TEST_ASSERT_FALSE(pe_text_insert(&doc, "\xc0\xaf"));
@@ -46,11 +53,13 @@ static void test_invalid_utf8_atomic(void) {
     TEST_ASSERT_EQUAL_STRING("ok", doc.text);
     TEST_ASSERT_EQUAL_INT(0, doc.count);
 }
+
 static void test_utf8_boundary(void) {
     source("\xc3\xa4z");
     TEST_ASSERT_FALSE(pe_text_replace(&doc, 1, 2, "x", 1));
     TEST_ASSERT_EQUAL_STRING("\xc3\xa4z", doc.text);
 }
+
 static void test_file_limit(void) {
     char *large = malloc(PE_TEXT_MAX + 2);
     TEST_ASSERT_NOT_NULL(large);
@@ -65,6 +74,7 @@ static void test_file_limit(void) {
     TEST_ASSERT_FALSE(pe_text_insert(&doc, "b"));
     TEST_ASSERT_EQUAL_UINT(PE_TEXT_MAX, doc.length);
 }
+
 static void test_undo_redo_cursor(void) {
     source("abc");
     doc.cursor = 3;
@@ -78,6 +88,7 @@ static void test_undo_redo_cursor(void) {
     TEST_ASSERT_EQUAL_STRING("aX", doc.text);
     TEST_ASSERT_EQUAL_UINT(2, doc.cursor);
 }
+
 static void test_undo_new_branch(void) {
     pe_text_insert(&doc, "a");
     pe_text_insert(&doc, "b");
@@ -86,6 +97,7 @@ static void test_undo_new_branch(void) {
     TEST_ASSERT_FALSE(pe_text_redo(&doc));
     TEST_ASSERT_EQUAL_STRING("ac", doc.text);
 }
+
 static void test_saved_marker(void) {
     pe_text_insert(&doc, "a");
     pe_text_saved(&doc);
@@ -97,21 +109,26 @@ static void test_saved_marker(void) {
     pe_text_insert(&doc, "x");
     TEST_ASSERT_TRUE(pe_text_dirty(&doc));
 }
+
 static void test_history_limit(void) {
-    for (int i = 0; i < 100; i++)
+    for (int i = 0; i < 100; i++) {
         TEST_ASSERT_TRUE(pe_text_insert(&doc, "x"));
+    }
     TEST_ASSERT_EQUAL_INT(PE_TEXT_HISTORY, doc.count);
-    for (int i = 0; i < PE_TEXT_HISTORY; i++)
+    for (int i = 0; i < PE_TEXT_HISTORY; i++) {
         TEST_ASSERT_TRUE(pe_text_undo(&doc));
+    }
     TEST_ASSERT_EQUAL_UINT(36, doc.length);
     TEST_ASSERT_FALSE(pe_text_undo(&doc));
 }
+
 static void test_noop_not_dirty(void) {
     source("abc");
     TEST_ASSERT_TRUE(pe_text_replace(&doc, 0, 3, "abc", 3));
     TEST_ASSERT_FALSE(pe_text_dirty(&doc));
     TEST_ASSERT_EQUAL_INT(0, doc.count);
 }
+
 static void test_location_tabs_unicode(void) {
     source("a\n\t\xc3\xa4z\n");
     int line, col;
@@ -122,6 +139,7 @@ static void test_location_tabs_unicode(void) {
     TEST_ASSERT_EQUAL_UINT(2, pe_text_offset(&doc, 1, 2));
     TEST_ASSERT_EQUAL_UINT(7, pe_text_offset(&doc, 2, 0));
 }
+
 static void test_line_bounds(void) {
     source("one\ntwo\n");
     TEST_ASSERT_EQUAL_UINT(4, pe_text_line_start(&doc, 5));
@@ -129,6 +147,7 @@ static void test_line_bounds(void) {
     TEST_ASSERT_EQUAL_UINT(8, pe_text_offset(&doc, 100, 0));
     TEST_ASSERT_EQUAL_UINT(0, pe_text_offset(&doc, -1, -4));
 }
+
 static void test_save_load(void) {
     pe_text_insert(&doc, "export const value = 42;\n");
     TEST_ASSERT_TRUE(pe_text_save(&doc, "test_script.js", error, sizeof error));
@@ -138,6 +157,7 @@ static void test_save_load(void) {
     TEST_ASSERT_EQUAL_STRING("export const value = 42;\n", doc.text);
     TEST_ASSERT_EQUAL_INT(0, doc.count);
 }
+
 static void test_load_normalizes_crlf(void) {
     FILE *f = fopen("test_script.js", "wb");
     TEST_ASSERT_NOT_NULL(f);
@@ -146,6 +166,7 @@ static void test_load_normalizes_crlf(void) {
     TEST_ASSERT_TRUE(pe_text_load(&doc, "test_script.js", error, sizeof error));
     TEST_ASSERT_EQUAL_STRING("a\nb\nc", doc.text);
 }
+
 static void test_bad_load_preserves_edits(void) {
     pe_text_insert(&doc, "keep");
     FILE *f = fopen("test_script.js", "wb");
@@ -156,36 +177,43 @@ static void test_bad_load_preserves_edits(void) {
     TEST_ASSERT_EQUAL_STRING("keep", doc.text);
     TEST_ASSERT_EQUAL_INT(1, doc.count);
 }
+
 static void test_save_failure(void) {
     pe_text_insert(&doc, "keep");
     TEST_ASSERT_FALSE(pe_text_save(&doc, "missing-directory/script.js", error, sizeof error));
     TEST_ASSERT_TRUE(pe_text_dirty(&doc));
 }
+
 static void test_valid_javascript(void) {
     PeJsDiagnostic d =
         pe_js_check("export function update(p) { return {...p, x: 4}; }", "player.js");
     TEST_ASSERT_TRUE_MESSAGE(d.valid, d.message);
 }
+
 static void test_invalid_javascript_line(void) {
     PeJsDiagnostic d = pe_js_check("const a = 1;\nconst b = ;\n", "broken.js");
     TEST_ASSERT_FALSE(d.valid);
     TEST_ASSERT_EQUAL_INT(2, d.line);
     TEST_ASSERT_NOT_NULL(strstr(d.message, "SyntaxError"));
 }
+
 static void test_compile_only_no_execution(void) {
     PeJsDiagnostic d =
         pe_js_check("throw new Error('must never run'); while (true) {}", "check.js");
     TEST_ASSERT_TRUE_MESSAGE(d.valid, d.message);
 }
+
 static void test_undefined_names_not_syntax_errors(void) {
     PeJsDiagnostic d = pe_js_check("missingEngineFunction();", "check.js");
     TEST_ASSERT_TRUE(d.valid);
 }
+
 static void test_import_without_execution(void) {
     PeJsDiagnostic d =
         pe_js_check("import {x} from './does-not-exist.js'; export {x};", "check.js");
     TEST_ASSERT_TRUE_MESSAGE(d.valid, d.message);
 }
+
 static void test_highlight(void) {
     const char *s = "const a = 42; // note\nMath.floor('x');";
     PeJsToken tokens[128];
@@ -196,6 +224,7 @@ static void test_highlight(void) {
     TEST_ASSERT_EQUAL_INT(JS_BUILTIN, tokens[22]);
     TEST_ASSERT_EQUAL_INT(JS_STRING, tokens[33]);
 }
+
 static void test_unclosed_highlight(void) {
     PeJsToken tokens[32];
     pe_js_highlight("/* comment", tokens, 32);
@@ -203,12 +232,14 @@ static void test_unclosed_highlight(void) {
     pe_js_highlight("`template ${value}", tokens, 32);
     TEST_ASSERT_EQUAL_INT(JS_STRING, tokens[15]);
 }
+
 static void test_highlight_capacity(void) {
     PeJsToken tokens[] = {JS_PLAIN, JS_STRING};
     pe_js_highlight("const value", tokens, 1);
     TEST_ASSERT_EQUAL_INT(JS_KEYWORD, tokens[0]);
     TEST_ASSERT_EQUAL_INT(JS_STRING, tokens[1]);
 }
+
 static void test_keyword_completion(void) {
     pe_text_insert(&doc, "cons");
     PeCompletions c = pe_js_complete(&doc);
@@ -219,6 +250,7 @@ static void test_keyword_completion(void) {
     pe_text_undo(&doc);
     TEST_ASSERT_EQUAL_STRING("cons", doc.text);
 }
+
 static void test_member_completion(void) {
     pe_text_insert(&doc, "Math.fl");
     PeCompletions c = pe_js_complete(&doc);
@@ -227,6 +259,7 @@ static void test_member_completion(void) {
     TEST_ASSERT_TRUE(pe_js_accept(&doc, &c, 0));
     TEST_ASSERT_EQUAL_STRING("Math.floor", doc.text);
 }
+
 static void test_document_completion(void) {
     source("const playerSpeed = 90;\nplayerS");
     doc.cursor = doc.anchor = doc.length;
@@ -234,6 +267,7 @@ static void test_document_completion(void) {
     TEST_ASSERT_EQUAL_INT(1, c.count);
     TEST_ASSERT_EQUAL_STRING("playerSpeed", c.values[0]);
 }
+
 static void test_completion_ignores_strings_comments(void) {
     source("// cons");
     doc.cursor = doc.anchor = doc.length;
@@ -242,6 +276,7 @@ static void test_completion_ignores_strings_comments(void) {
     doc.cursor = doc.anchor = doc.length;
     TEST_ASSERT_EQUAL_INT(0, pe_js_complete(&doc).count);
 }
+
 static void test_completion_stale_cursor(void) {
     pe_text_insert(&doc, "cons");
     PeCompletions c = pe_js_complete(&doc);
@@ -249,11 +284,13 @@ static void test_completion_stale_cursor(void) {
     TEST_ASSERT_FALSE(pe_js_accept(&doc, &c, 0));
     TEST_ASSERT_EQUAL_STRING("cons", doc.text);
 }
+
 static void test_import_does_not_hide_syntax_errors(void) {
     PeJsDiagnostic d = pe_js_check("import {x} from './missing.js'; const value = ;", "check.js");
     TEST_ASSERT_FALSE(d.valid);
     TEST_ASSERT_NOT_NULL(strstr(d.message, "SyntaxError"));
 }
+
 static void test_completion_stale_revision(void) {
     pe_text_insert(&doc, "cons");
     PeCompletions c = pe_js_complete(&doc);
@@ -261,6 +298,7 @@ static void test_completion_stale_revision(void) {
     TEST_ASSERT_FALSE(pe_js_accept(&doc, &c, 0));
     TEST_ASSERT_EQUAL_STRING("xxxx", doc.text);
 }
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_insert_and_selection);

@@ -1,4 +1,5 @@
 #include "app/editor_internal.h"
+
 typedef struct {
     float left, right;
     PeCamera camera;
@@ -44,8 +45,9 @@ static void snapshot_ui(UiSnapshot *s, bool load) {
         for (int k = 0; k < 2; k++) {
             s->counts[k] = tabs[k]->count;
             s->selected_tabs[k] = tabs[k]->selected;
-            for (int i = 0; i < tabs[k]->count; i++)
+            for (int i = 0; i < tabs[k]->count; i++) {
                 s->tabs[k][i] = tabs[k]->items[i].id;
+            }
         }
         snprintf(s->scene_path, sizeof s->scene_path, "%s", app.scene_path);
         snprintf(s->status, sizeof s->status, "%s", app.status);
@@ -74,8 +76,9 @@ static void snapshot_ui(UiSnapshot *s, bool load) {
         UiTabs *tabs[] = {&app.left_tabs, &app.right_tabs};
         for (int k = 0; k < 2; k++) {
             UiTab items[UI_MAX_TABS];
-            for (int i = 0; i < s->counts[k]; i++)
+            for (int i = 0; i < s->counts[k]; i++) {
                 items[i] = (UiTab){s->tabs[k][i], true, 0};
+            }
             ui_tabs_init(tabs[k], items, s->counts[k], s->selected_tabs[k]);
         }
         snprintf(app.scene_path, sizeof app.scene_path, "%s", s->scene_path);
@@ -84,36 +87,49 @@ static void snapshot_ui(UiSnapshot *s, bool load) {
 }
 
 static bool valid_snapshot(const UiSnapshot *s) {
-    if (s->expanded_count < 0 || s->expanded_count > 64)
+    if (s->expanded_count < 0 || s->expanded_count > 64) {
         return false;
-    for (int i = 0; i < s->expanded_count; i++)
-        if (!memchr(s->expanded[i], 0, PE_PATH))
+    }
+    for (int i = 0; i < s->expanded_count; i++) {
+        if (!memchr(s->expanded[i], 0, PE_PATH)) {
             return false;
-    if (s->widget_count < 0 || s->widget_count > 64)
+        }
+    }
+    if (s->widget_count < 0 || s->widget_count > 64) {
         return false;
-    for (int i = 0; i < s->widget_count; i++)
+    }
+    for (int i = 0; i < s->widget_count; i++) {
         if (s->widgets[i].count < 0 || s->widgets[i].count > UI_MAX_TABS ||
-            !isfinite(s->widgets[i].scroll) || s->widgets[i].scroll < 0)
+            !isfinite(s->widgets[i].scroll) || s->widgets[i].scroll < 0) {
             return false;
+        }
+    }
     if (!isfinite(s->left) || !isfinite(s->right) || s->left < 64 || s->right < 64 ||
         !isfinite(s->camera.x) || !isfinite(s->camera.y) || !isfinite(s->camera.zoom) ||
         s->camera.zoom <= 0 || s->layer < 0 || s->layer >= PE_LAYERS || s->tool < BRUSH ||
         s->tool > SELECT || !memchr(s->scene_path, 0, sizeof s->scene_path) ||
-        !memchr(s->status, 0, sizeof s->status))
+        !memchr(s->status, 0, sizeof s->status)) {
         return false;
-    for (int k = 0; k < 4; k++)
-        if (!isfinite(s->scroll[k]) || s->scroll[k] < 0)
+    }
+    for (int k = 0; k < 4; k++) {
+        if (!isfinite(s->scroll[k]) || s->scroll[k] < 0) {
             return false;
+        }
+    }
     for (int k = 0; k < 2; k++) {
         UiTabs t;
         UiTab items[UI_MAX_TABS];
-        if (s->counts[k] < 1 || s->counts[k] > UI_MAX_TABS)
+        if (s->counts[k] < 1 || s->counts[k] > UI_MAX_TABS) {
             return false;
-        for (int i = 0; i < s->counts[k]; i++)
+        }
+        for (int i = 0; i < s->counts[k]; i++) {
             items[i] = (UiTab){s->tabs[k][i], true, 0};
-        if (!ui_tabs_init(&t, items, s->counts[k], s->selected_tabs[k]))
+        }
+        if (!ui_tabs_init(&t, items, s->counts[k], s->selected_tabs[k])) {
             return false;
+        }
     }
+
     return true;
 }
 
@@ -122,19 +138,27 @@ bool editor_checkpoint(PeSession *io, void *opaque) {
     uint32_t abi[3] = {sizeof(PeScene), sizeof(UiSnapshot), se_checkpoint_header_size()};
     uint32_t expected[3];
     memcpy(expected, abi, sizeof abi);
-    if (!pe_session_block(io, abi, sizeof abi) || memcmp(abi, expected, sizeof abi))
+    if (!pe_session_block(io, abi, sizeof abi) || memcmp(abi, expected, sizeof abi)) {
         return false;
+    }
+
     UiSnapshot ui;
-    if (!io->reading)
+    if (!io->reading) {
         snapshot_ui(&ui, false);
-    if (!pe_session_block(io, &ui, sizeof ui) || !valid_snapshot(&ui))
+    }
+    if (!pe_session_block(io, &ui, sizeof ui) || !valid_snapshot(&ui)) {
         return false;
+    }
+
     bool ok = id == UI_MAP_VIEW ? me_checkpoint(app.map, io)
                                 : se_checkpoint(app.script, app.root, app.window, io);
-    if (!ok)
+    if (!ok) {
         return false;
-    if (io->reading)
+    }
+    if (io->reading) {
         snapshot_ui(&ui, true);
+    }
+
     return true;
 }
 
@@ -187,31 +211,37 @@ static void default_editor_ui(bool scripts) {
 }
 
 bool editor_activate(UiId id, char *error, size_t size) {
-    if (!app.active_layout)
+    if (!app.active_layout) {
         app.active_layout = editor_load_editor_layout(id, error, size);
-    if (!app.active_layout)
+    }
+    if (!app.active_layout) {
         return false;
+    }
+
     int index = id == UI_MAP_VIEW ? 0 : 1;
-    if (index == 0)
+    if (index == 0) {
         app.map = calloc(1, sizeof *app.map);
-    else
+    } else {
         app.script = calloc(1, sizeof *app.script);
+    }
     if ((index == 0 && !app.map) || (index == 1 && !app.script)) {
         snprintf(error, size, "Out of memory loading editor");
         return false;
     }
+
     bool ok;
-    if (app.session_exists[index])
+    if (app.session_exists[index]) {
         ok = pe_session_load(app.session_paths[index], id, editor_checkpoint, &id, error, size);
-    else {
+    } else {
         default_editor_ui(index == 1);
         if (index == 0) {
             pe_history_init(&app.map->history);
             ok = pe_scene_load(&app.map->scene, app.scene_path, error, size);
         } else {
             ok = se_init(app.script, app.root);
-            if (!ok)
+            if (!ok) {
                 snprintf(error, size, "%s", app.script->status);
+            }
         }
     }
     if (!ok) {
@@ -221,22 +251,27 @@ bool editor_activate(UiId id, char *error, size_t size) {
     app.loaded_view = id;
     app.needs_layout = true;
     editor_tree_refresh();
-    if (index == 0)
+    if (index == 0) {
         editor_assets_sync();
-    else
+    } else {
         se_check(app.script);
+    }
+
     return true;
 }
 
 bool editor_switch(UiId id) {
-    if (id == app.loaded_view)
+    if (id == app.loaded_view) {
         return true;
+    }
+
     char error[256];
     PeUiLayout *candidate = editor_load_editor_layout(id, error, sizeof error);
     if (!candidate) {
         editor_message(error);
         return false;
     }
+
     UiId previous = app.loaded_view;
     if (previous) {
         int index = previous == UI_MAP_VIEW ? 0 : 1;
@@ -251,26 +286,32 @@ bool editor_switch(UiId id) {
         release_editor();
     }
     app.active_layout = candidate;
-    if (editor_activate(id, error, sizeof error))
+    if (editor_activate(id, error, sizeof error)) {
         return true;
+    }
+
     char original[256];
     snprintf(original, sizeof original, "%s", error);
-    if (previous)
+    if (previous) {
         editor_activate(previous, error, sizeof error);
+    }
     editor_message(original);
     return false;
 }
 
 bool editor_reload_layout(void) {
     if (editor_edit_pending() || app.playing || app.request != REQUEST_NONE ||
-        app.field != FIELD_NONE)
+        app.field != FIELD_NONE) {
         return false;
+    }
+
     char error[256];
     PeUiLayout *next = pe_ui_layout_load(app.ui_path, "shell", error, sizeof error);
     if (!next) {
         editor_message(error);
         return false;
     }
+
     PeUiLayout *old_shell = app.shell_layout;
     app.shell_layout = next;
     UiId id = app.loaded_view;
@@ -281,6 +322,7 @@ bool editor_reload_layout(void) {
         editor_message(error);
         return false;
     }
+
     int index = id == UI_MAP_VIEW ? 0 : 1;
     if (!pe_session_save(app.session_paths[index], id, editor_checkpoint, &id, error,
                          sizeof error)) {
@@ -303,6 +345,7 @@ bool editor_reload_layout(void) {
         editor_message("UI reloaded (F6)");
         return true;
     }
+
     char original[256];
     snprintf(original, sizeof original, "%s", error);
     app.shell_layout = old_shell;

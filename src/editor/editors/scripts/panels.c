@@ -14,8 +14,9 @@ void editor_draw_script_inspector(void) {
         "Ctrl+S     Save script",  "Ctrl+Z     Undo",       "Ctrl+Shift+Z  Redo",
         "Ctrl+Space  Suggestions", "Enter / Tab  Accept",   "F7         Check syntax",
         "Shift+arrows  Select",    "Ctrl+C/X/V  Clipboard", "Shift+wheel  Horizontal"};
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < 9; i++) {
         editor_text(x, y + 116 + i * 24, help[i], UI_MUTED);
+    }
     editor_text(x, y + 354, "Completion: keywords,", UI_TEXT);
     editor_text(x, y + 374, "standard JS objects and", UI_TEXT);
     editor_text(x, y + 394, "document identifiers.", UI_TEXT);

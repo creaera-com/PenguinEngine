@@ -2,16 +2,21 @@
 #include <SDL3/SDL_main.h>
 #include <stdio.h>
 #include <string.h>
+
 static void text(SDL_Renderer *r, float x, float y, const char *s, Uint32 c) {
     SDL_SetRenderDrawColor(r, (Uint8)(c >> 24), (Uint8)(c >> 16), (Uint8)(c >> 8), (Uint8)c);
     ui_text(r, x, y, s, c);
 }
+
 int main(int argc, char **argv) {
     bool smoke = argc == 2 && !strcmp(argv[1], "--smoke");
-    if (argc > 1 && !smoke)
+    if (argc > 1 && !smoke) {
         return 1;
-    if (!SDL_Init(SDL_INIT_VIDEO))
+    }
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
         return 1;
+    }
+
     SDL_Window *window =
         SDL_CreateWindow("Penguin UI - reusable C widgets", 960, 640, SDL_WINDOW_RESIZABLE);
     SDL_Renderer *r = window ? SDL_CreateRenderer(window, NULL) : NULL;
@@ -34,23 +39,25 @@ int main(int argc, char **argv) {
     while (running) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_EVENT_QUIT)
+            if (e.type == SDL_EVENT_QUIT) {
                 running = false;
-            else if (e.type == SDL_EVENT_WINDOW_FOCUS_LOST)
+            } else if (e.type == SDL_EVENT_WINDOW_FOCUS_LOST) {
                 ui_cancel(&context);
-            else if (e.type == SDL_EVENT_MOUSE_MOTION)
+            } else if (e.type == SDL_EVENT_MOUSE_MOTION) {
                 ui_pointer(&context, e.motion.x, e.motion.y, context.down);
-            else if ((e.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
-                      e.type == SDL_EVENT_MOUSE_BUTTON_UP) &&
-                     e.button.button == SDL_BUTTON_LEFT)
+            } else if ((e.type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+                        e.type == SDL_EVENT_MOUSE_BUTTON_UP) &&
+                       e.button.button == SDL_BUTTON_LEFT) {
                 ui_pointer(&context, e.button.x, e.button.y, e.type == SDL_EVENT_MOUSE_BUTTON_DOWN);
-            else if (e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat) {
-                if (e.key.key == SDLK_ESCAPE)
+            } else if (e.type == SDL_EVENT_KEY_DOWN && !e.key.repeat) {
+                if (e.key.key == SDLK_ESCAPE) {
                     running = false;
-                else if (e.key.key == SDLK_RETURN || e.key.key == SDLK_SPACE)
+                } else if (e.key.key == SDLK_RETURN || e.key.key == SDLK_SPACE) {
                     ui_activate(&context);
-            } else if (e.type == SDL_EVENT_MOUSE_WHEEL && e.wheel.mouse_x < left)
+                }
+            } else if (e.type == SDL_EVENT_MOUSE_WHEEL && e.wheel.mouse_x < left) {
                 ui_scroll_by(&scroll, -e.wheel.y * 64);
+            }
         }
         int width, height;
         SDL_GetWindowSize(window, &width, &height);
@@ -76,8 +83,9 @@ int main(int argc, char **argv) {
             snprintf(label, sizeof label, "Item %02d", i + 1);
             ui_draw_button(r, (SDL_FRect){b.x, b.y, b.w, b.h}, ICON_NONE, label, false, true,
                            ui_hovered(&context, b));
-            if (ui_button(&context, 1000u + (UiId)i, b, true))
+            if (ui_button(&context, 1000u + (UiId)i, b, true)) {
                 clicks++;
+            }
         }
         ui_clip_pop(&context);
         ui_apply_clip(r, &context);
@@ -128,8 +136,9 @@ int main(int argc, char **argv) {
         ui_end_frame(&context);
         SDL_RenderPresent(r);
         SDL_Delay(1);
-        if (smoke && ++frames >= 3)
+        if (smoke && ++frames >= 3) {
             running = false;
+        }
     }
     SDL_DestroyRenderer(r);
     SDL_DestroyWindow(window);

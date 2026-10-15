@@ -1,0 +1,39 @@
+/**
+ * @mainpage PenguinEngine: C-Schnittstellen
+ *
+ * Die Dokumentation beschreibt die öffentlichen Engine- und UI-Schnittstellen
+ * sowie die privaten Integrationsverträge des Editors. Alle Koordinaten sind
+ * Pixelwerte, sofern eine Funktion nicht ausdrücklich Tile- oder Textpositionen
+ * verwendet. Textoffsets sind UTF-8-Byteoffsets; Zeilen und Zeichenspalten der
+ * Textnavigation sind nullbasiert, Parserfehler einbasiert.
+ *
+ * @section ownership Besitz und Lebensdauer
+ * Szenen enthalten feste Daten. Verlaufs-, Text-, Layout- und Assettypen besitzen
+ * dagegen Ressourcen und müssen über die jeweilige Free-Funktion freigegeben
+ * werden. Geliehene Modell- und Entityzeiger nicht separat freigeben und nach
+ * Laden, Editorwechsel oder Dokumentersatz nicht weiterverwenden.
+ *
+ * @section editor_lifecycle Editor-Lebenszyklus
+ * Die Editor-UI verwendet eine private Anwendungsinstanz. Nur ein Map- oder
+ * Scriptdokument ist gleichzeitig geladen. Temporäre Checkpoints sichern
+ * Dokument und Undo/Redo beim Wechsel; sie sind kein portables Projektformat.
+ * Die Dokument-Codecs erhalten ihren Kontext explizit.
+ *
+ * @section navigation Einstieg
+ * Die Modulübersicht gruppiert die APIs nach Zuständigkeit. Die zusätzliche
+ * Anleitung docs/PROJEKTSTRUKTUR.md im Repository erklärt den Aufbau und
+ * docs/UI_YAML.md die deklarative Oberfläche.
+ */
+
+/** @defgroup engine_api Engine und SDL-Szenenrenderer
+ *  @brief Szenen, Entities, Tilemaps, Undo/Redo, Textdokumente und Rendering.
+ */
+/** @defgroup ui_api Wiederverwendbare UI
+ *  @brief Eingabekontexte, Widgets, Layout und SDL-Darstellung für Spiele und Editor.
+ */
+/** @defgroup editor_api Editorintern
+ *  @brief Private Modulverträge; keine stabile Schnittstelle für Spielcode.
+ */
+/** @defgroup shared_api Gemeinsame Hilfsfunktionen
+ *  @brief Fachlich unabhängige JSON-Datei- und Validierungshelfer.
+ */

@@ -27,9 +27,12 @@ bool editor_script_dirty(void) {
 }
 
 const EditorView *editor_view(UiId id) {
-    for (int i = 0; i < editor_view_count; i++)
-        if (editor_views[i].id == id)
+    for (int i = 0; i < editor_view_count; i++) {
+        if (editor_views[i].id == id) {
             return &editor_views[i];
+        }
+    }
+
     return &editor_views[0];
 }
 
@@ -37,6 +40,7 @@ void editor_message(const char *s) {
     char copy[256] = {0};
     snprintf(copy, sizeof copy, "%s", s);
     memcpy(app.status, copy, sizeof copy);
-    if (app.script)
+    if (app.script) {
         memcpy(app.script->status, copy, sizeof copy);
+    }
 }
