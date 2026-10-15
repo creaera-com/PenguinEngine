@@ -139,6 +139,10 @@ void editor_draw_scene_tree(void) {
     SceneRow rows[PE_ENTITIES];
     int count = 0;
     collect(rows, &count, 0, 0);
+    int depths[PE_ENTITIES];
+    for (int i = 0; i < count; i++) {
+        depths[i] = rows[i].depth;
+    }
     SDL_FRect body = {app.panel_area.x + 6, app.panel_area.y + 6, fmaxf(0, app.panel_area.w - 12),
                       fmaxf(0, app.panel_area.h - 12)};
     editor_box(body, editor_widget_background());
@@ -159,7 +163,7 @@ void editor_draw_scene_tree(void) {
         float y = body.y + 4 + i * 26 - app.scene_view.offset;
         Uint32 background = editor_tree_row_background(i);
         editor_box((SDL_FRect){body.x + 4, y, fmaxf(0, body.w - 20), 26}, background);
-        float indent = fminf(rows[i].depth * 12.f, fmaxf(0, body.w - 100));
+        float indent = fminf(rows[i].depth * 20.f, fmaxf(0, body.w - 100));
         float x = body.x + 4 + indent;
         app.widget_scope = ui_id("scene_entity") ^ o->stable_id;
         bool open = !collapsed(o->stable_id);
@@ -181,6 +185,9 @@ void editor_draw_scene_tree(void) {
             app.tool = SELECT;
             editor_inspect_entity();
         }
+        ui_draw_tree_guides(app.renderer, depths, count, i,
+                            (UiRect){body.x + 4, y, fmaxf(0, body.w - 20), 26}, 20, 10,
+                            fmaxf(0, body.w - 100), x + (rows[i].children ? -2 : 28), UI_DISABLED);
     }
     app.widget_scope = 0;
     ui_clip_pop(&app.ui);

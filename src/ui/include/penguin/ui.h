@@ -367,6 +367,16 @@ void ui_text_edit_click(UiTextEdit *edit, const char *text, size_t column, bool 
  */
 size_t ui_text_edit_column(const char *text, size_t offset);
 
+/** @brief Prüft die Fortsetzung einer Hierarchieebene in einer aufgeklappten Baum-Liste.
+ * @param depths Geliehene Preorder-Liste nichtnegativer Einrückungstiefen.
+ * @param count Anzahl sichtbarer (nicht eingeklappter) Einträge, einschließlich außerhalb des
+ * Viewports.
+ * @param row Nullbasierter aktueller Zeilenindex.
+ * @param level Eigene oder übergeordnete Tiefe, deren nächstes Geschwister gesucht wird.
+ * @return true bei einem folgenden Eintrag derselben Ebene vor dem Ende des Teilbaums.
+ */
+bool ui_tree_continues(const int *depths, int count, int row, int level);
+
 /** @brief Zweispaltige Eigenschaftszeile ohne eigenen Zustand oder Rendering. */
 typedef struct {
     UiRect label; ///< Linke Spalte für die Bezeichnung.

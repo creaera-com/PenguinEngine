@@ -34,6 +34,23 @@
 #define UI_DISABLED (ui_theme.disabled)
 
 /**
+ * @brief Zeichnet gestrichelte Baumverbindungen für eine Zeile; erhält den aktiven Clip.
+ * @param renderer Geliehener SDL-Renderer.
+ * @param depths Preorder-Tiefen aller aufgeklappten Zeilen, auch außerhalb des Viewports.
+ * @param count Anzahl Einträge in depths.
+ * @param row Nullbasierter aktueller Zeilenindex.
+ * @param area Zeilenbereich; x ist der Ursprung der Wurzel-Einrückung, h die Zeilenhöhe.
+ * @param indent Abstand pro Hierarchieebene in Pixeln.
+ * @param marker_center Horizontale Mitte des Aufklappsymbols relativ zum Knotenanfang.
+ * @param max_indent Maximale Einrückung; tiefere Linien werden begrenzt.
+ * @param branch_end Horizontales Ende des Asts in Fensterpixeln, vor Symbol oder Label.
+ * @param rgba Linienfarbe aus dem aktuellen Theme.
+ */
+void ui_draw_tree_guides(SDL_Renderer *renderer, const int *depths, int count, int row, UiRect area,
+                         float indent, float marker_center, float max_indent, float branch_end,
+                         Uint32 rgba);
+
+/**
  * @brief Zeichnet ein einzeiliges Eingabefeld mit Auswahl, horizontalem Scrollen und Cursor.
  * @param renderer Geliehener SDL-Renderer.
  * @param rect Feldbereich in Fensterpixeln; der bisherige Render-Clip bleibt erhalten.

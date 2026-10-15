@@ -70,7 +70,7 @@ Der native Sitzungscache ersetzt keine Backups und ist noch keine Crash-Recovery
 
 ## Fachliche Modultrennung
 
-- Im SDL-Build laufen insgesamt unter Linux 156 Unity-Tests und 15 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
+- Im SDL-Build laufen insgesamt unter Linux 158 Unity-Tests und 15 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
 - `tests/editor_smoke.c` verwendet weiterhin die echten Eingabehandler, Editorwechsel und F6-Reloads. Die Tests liegen außerhalb des produktiven Quellcodes und werden nur bei `BUILD_TESTING=ON` eingebunden.
 - Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die sieben SDL-freien Testgruppen verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
 - Für das Strukturrefactoring zusätzlich die Map-/Scripts-Aufnahmen gegen den vorherigen Stand vergleichen und einen vollständigen ASan-/UBSan-Testlauf ausführen.
@@ -133,3 +133,5 @@ Komponenten-Eigenschaften: Bezeichnung links, Wert rechts. Klick auf Bezeichnung
 - Bei `--smoke --screenshot /tmp/editor.bmp` entsteht zusätzlich `/tmp/editor.bmp.input.bmp` mit aktivem Inspector-Feld.
 
 Entity-Namen: im Inspector umbenennen, Scene-Anzeige und unveränderte ID prüfen. Enter/Außenklick, Escape, leere/zu lange Namen, Undo/Redo, Speichern/Laden sowie F6 und Map → Scripts → Map testen. Drei zusätzliche Engine-Tests prüfen Namen, UTF-8/Grenzen, stabile Identität, Undo und alte/ungültige JSON-Dateien.
+
+Tree-Verbindungen: Explorer-Ordner und Scene-Unterbäume öffnen/schließen. Gestrichelte Linien verbinden Parents und Kinder, enden beim letzten Kind und setzen sich für spätere Geschwister korrekt fort. Bei Scrollen bleiben sie an den Zeilen ausgerichtet, auch wenn Parent oder nächste Geschwister außerhalb des Viewports liegen. Tiefe Szenen/Spaltenresize dürfen keine Linien über das Panel hinaus zeichnen; Hover/Auswahl bleiben sichtbar. Zwei UI-Tests prüfen Geschwister, letzte Kinder, eingeklappte Listen und ungültige Indizes.

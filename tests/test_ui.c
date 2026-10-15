@@ -431,8 +431,32 @@ static void test_text_input_click_and_stale_offsets(void) {
     TEST_ASSERT_EQUAL_UINT(edit.cursor, edit.anchor);
 }
 
+static void test_tree_guides_follow_siblings_and_last_children(void) {
+    const int depths[] = {0, 1, 2, 2, 1, 0, 1};
+    TEST_ASSERT_TRUE(ui_tree_continues(depths, 7, 2, 2));
+    TEST_ASSERT_FALSE(ui_tree_continues(depths, 7, 3, 2));
+    TEST_ASSERT_TRUE(ui_tree_continues(depths, 7, 2, 1));
+    TEST_ASSERT_FALSE(ui_tree_continues(depths, 7, 4, 1));
+    TEST_ASSERT_FALSE(ui_tree_continues(depths, 7, 6, 1));
+    const int collapsed[] = {0, 1, 1, 0, 1};
+    TEST_ASSERT_TRUE(ui_tree_continues(collapsed, 5, 1, 1));
+    TEST_ASSERT_FALSE(ui_tree_continues(collapsed, 5, 2, 1));
+}
+
+static void test_tree_guides_invalid_and_clipped_lists(void) {
+    const int depths[] = {0, 1, 2, 1, 0};
+    TEST_ASSERT_TRUE(ui_tree_continues(depths, 5, 2, 1));
+    TEST_ASSERT_FALSE(ui_tree_continues(NULL, 0, 0, 0));
+    TEST_ASSERT_FALSE(ui_tree_continues(depths, 5, -1, 0));
+    TEST_ASSERT_FALSE(ui_tree_continues(depths, 5, 5, 0));
+    TEST_ASSERT_FALSE(ui_tree_continues(depths, 5, 1, -1));
+    TEST_ASSERT_FALSE(ui_tree_continues(depths, 5, 1, 2));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_tree_guides_follow_siblings_and_last_children);
+    RUN_TEST(test_tree_guides_invalid_and_clipped_lists);
     RUN_TEST(test_text_input_insert_at_cursor);
     RUN_TEST(test_text_input_utf8_selection_and_delete);
     RUN_TEST(test_text_input_replacement_capacity_is_atomic);

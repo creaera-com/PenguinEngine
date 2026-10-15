@@ -348,3 +348,5 @@ Die Entity-Auswahl öffnet den Inspector und lässt den Layer- und Palettenzusta
 ![Map und Tiles](images/map-tiles.png)
 
 Explorer und Scene-Baum verwenden dezente alternierende Zeilenfarben aus der Theme-Surface. Die Parität folgt dem Index in der aufgeklappten Liste und bleibt beim Scrollen stabil; Hover und Auswahl überlagern die Zeilenfarbe. Dafür sind keine zusätzlichen YAML-Eigenschaften nötig.
+
+Beide Bäume zeichnen zusätzlich gestrichelte Hierarchielinien. Grundlage ist die aufgeklappte Preorder-Liste; eingeklappte Kinder erzeugen keine Verbindung. Linien enden beim letzten Kind und werden am Viewport abgeschnitten. Der Scene-Baum rückt pro Ebene 20 Pixel ein, mit begrenzter Einrückung bei tiefen Hierarchien. Dafür nutzt der Adapter die gemeinsamen C-UI-Helfer; zusätzliche YAML-Knoten sind nicht nötig.
