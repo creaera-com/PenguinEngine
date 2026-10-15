@@ -14,6 +14,7 @@ void editor_inspect_entity(void) {
     app.entity_open = true;
     app.inspector_view.offset = 0;
     app.map->component_add_open = false;
+    app.map->reveal_selected = true;
 }
 
 bool editor_component_change(uint32_t bit, bool add) {
@@ -35,6 +36,9 @@ bool editor_component_change(uint32_t bit, bool add) {
     editor_commit();
     if (app.map->history.revision == revision) {
         return false;
+    }
+    if (add) {
+        app.map->reveal_selected = true;
     }
     app.map->component_closed[entity.index] &= ~bit;
     app.map->component_add_open = false;
@@ -127,28 +131,27 @@ float editor_draw_components(float x, float y, float width) {
         app.map->component_add_open = false;
     }
     bool enabled = !app.playing && !editor_edit_pending();
-    if ((o->mask & 15u) == 15u) {
-        app.map->component_add_open = false;
-    }
-    if (icon_button(x, y, width, ICON_PLUS, "Add component", "Show missing components", false,
-                    enabled && (o->mask & 15u) != 15u)) {
+    app.map->component_anchor = (SDL_FRect){x, y, width, 25};
+    app.map->component_anchor_seen = true;
+    if (icon_button(x, y, width, ICON_PLUS, "Add component", "Choose a component",
+                    app.map->component_add_open, enabled)) {
         app.map->component_add_open = !app.map->component_add_open;
-    }
-    y += 33;
-    if (app.map->component_add_open && enabled) {
+        app.map->component_owner = o->stable_id;
+        app.map->component_pressed = -1;
+        app.map->component_choice = -1;
         for (int i = 0; i < 4; i++) {
-            if (o->mask & components[i].bit) {
-                continue;
+            if (!(o->mask & components[i].bit)) {
+                app.map->component_choice = i;
+                break;
             }
-            app.widget_scope = ui_id("add_component") ^ o->stable_id ^ components[i].bit * 31u;
-            if (icon_button(x + 8, y, width - 16, components[i].icon, components[i].name,
-                            "Add component and required dependencies", false, true)) {
-                editor_component_change(components[i].bit, true);
-            }
-            y += 29;
         }
-        y += 4;
+        if (app.map->component_add_open) {
+            app.ui.blocked = true;
+        }
     }
+    ui_icon(app.renderer, app.map->component_add_open ? ICON_UP : ICON_DOWN, x + width - 20, y + 6,
+            12, enabled ? UI_TEXT : UI_DISABLED);
+    y += 33;
     for (int i = 0; i < 4; i++) {
         if (o->mask & components[i].bit) {
             y = component_card(entity, i, x, y, width, enabled);
@@ -156,4 +159,123 @@ float editor_draw_components(float x, float y, float width) {
     }
     app.widget_scope = 0;
     return y;
+}
+
+static void close_popup(void) {
+    app.map->component_add_open = false;
+    app.map->component_pressed = -1;
+    app.needs_layout = true;
+    ui_cancel(&app.ui);
+}
+
+void editor_draw_component_popup(void) {
+    if (!app.map || !app.map->component_add_open) {
+        return;
+    }
+    PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
+    if (!o || o->stable_id != app.map->component_owner || !app.map->component_anchor_seen ||
+        app.playing || app.window_collapsed || app.field != FIELD_NONE ||
+        app.request != REQUEST_NONE) {
+        close_popup();
+        return;
+    }
+    SDL_FRect anchor = app.map->component_anchor;
+    SDL_FRect popup = {fmaxf(4, fminf(anchor.x, app.width - anchor.w - 4)), anchor.y + anchor.h + 4,
+                       anchor.w, 120};
+    if (popup.y + popup.h > app.height - BOTTOM - 4) {
+        popup.y = anchor.y - popup.h - 4;
+    }
+    popup.y = fmaxf(TOP + 4, popup.y);
+    app.map->component_popup = popup;
+    editor_box((SDL_FRect){popup.x + 3, popup.y + 3, popup.w, popup.h}, UI_CANVAS);
+    editor_box(popup, UI_BORDER);
+    editor_box((SDL_FRect){popup.x + 1, popup.y + 1, popup.w - 2, popup.h - 2},
+               editor_widget_background());
+    for (int i = 0; i < 4; i++) {
+        bool present = (o->mask & components[i].bit) != 0;
+        SDL_FRect row = {popup.x + 4, popup.y + 4 + i * 28, popup.w - 8, 28};
+        if (!present && app.map->component_choice == i) {
+            editor_box(row, UI_HOVER);
+        }
+        ui_icon(app.renderer, components[i].icon, row.x + 7, row.y + 6, 16,
+                present ? UI_DISABLED : UI_ACCENT);
+        editor_text(row.x + 31, row.y + 10, components[i].name, present ? UI_MUTED : UI_TEXT);
+        if (present) {
+            ui_icon(app.renderer, ICON_CHECK, row.x + row.w - 23, row.y + 6, 16, UI_MUTED);
+        }
+    }
+}
+
+bool editor_component_popup_event(const SDL_Event *e) {
+    if (!app.map || !app.map->component_add_open) {
+        return false;
+    }
+    if (e->type == SDL_EVENT_QUIT || e->type == SDL_EVENT_WINDOW_CLOSE_REQUESTED ||
+        e->type == SDL_EVENT_WINDOW_FOCUS_LOST || e->type == SDL_EVENT_WINDOW_RESIZED) {
+        close_popup();
+        return false;
+    }
+    PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
+    if (!o || o->stable_id != app.map->component_owner) {
+        close_popup();
+        return false;
+    }
+    if (e->type == SDL_EVENT_KEY_DOWN) {
+        if (e->key.repeat) {
+            return true;
+        }
+        if (e->key.key == SDLK_ESCAPE) {
+            close_popup();
+        } else if (e->key.key == SDLK_DOWN || e->key.key == SDLK_UP) {
+            int direction = e->key.key == SDLK_DOWN ? 1 : -1;
+            int choice = app.map->component_choice;
+            if (choice < 0) {
+                choice = direction > 0 ? 3 : 0;
+            }
+            for (int i = 0; i < 4; i++) {
+                choice = (choice + direction + 4) % 4;
+                if (!(o->mask & components[choice].bit)) {
+                    app.map->component_choice = choice;
+                    break;
+                }
+            }
+        } else if (e->key.key == SDLK_RETURN || e->key.key == SDLK_SPACE) {
+            int choice = app.map->component_choice;
+            if (choice >= 0 && choice < 4 && !(o->mask & components[choice].bit)) {
+                editor_component_change(components[choice].bit, true);
+                close_popup();
+            }
+        }
+        return true;
+    }
+    if (e->type == SDL_EVENT_MOUSE_MOTION || e->type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
+        e->type == SDL_EVENT_MOUSE_BUTTON_UP) {
+        float x = e->type == SDL_EVENT_MOUSE_MOTION ? e->motion.x : e->button.x;
+        float y = e->type == SDL_EVENT_MOUSE_MOTION ? e->motion.y : e->button.y;
+        SDL_FRect p = app.map->component_popup;
+        int row = editor_inside(x, y, p) ? (int)floorf((y - p.y - 4) / 28) : -1;
+        if (row < 0 || row >= 4 || (o->mask & components[row].bit)) {
+            row = -1;
+        }
+        if (row >= 0) {
+            app.map->component_choice = row;
+        }
+        if (e->type == SDL_EVENT_MOUSE_BUTTON_DOWN && e->button.button == SDL_BUTTON_LEFT) {
+            if (!editor_inside(x, y, p)) {
+                close_popup();
+            } else {
+                app.map->component_pressed = row;
+            }
+        } else if (e->type == SDL_EVENT_MOUSE_BUTTON_UP && e->button.button == SDL_BUTTON_LEFT) {
+            if (row >= 0 && row == app.map->component_pressed) {
+                editor_component_change(components[row].bit, true);
+                close_popup();
+            } else {
+                app.map->component_pressed = -1;
+            }
+        }
+        return true;
+    }
+    return e->type == SDL_EVENT_TEXT_INPUT || e->type == SDL_EVENT_MOUSE_WHEEL ||
+           e->type == SDL_EVENT_KEY_UP;
 }

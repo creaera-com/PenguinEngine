@@ -80,6 +80,9 @@ void editor_event(SDL_Event *e) {
         app.mx = e->button.x;
         app.my = e->button.y;
     }
+    if (editor_component_popup_event(e)) {
+        return;
+    }
     if (e->type == SDL_EVENT_MOUSE_MOTION) {
         ui_pointer(&app.ui, app.mx, app.my, app.ui.down);
     }

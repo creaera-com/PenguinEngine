@@ -27,7 +27,14 @@ typedef struct {
         component_ids[PE_ENTITIES]; ///< IDs zur Zuordnung der Inspector-Navigation zu Entity-Slots.
     uint32_t component_closed[PE_ENTITIES]; ///< Bits zugeklappter Komponenten; keine Dokumentdaten.
     bool component_add_open;                ///< Flüchtiger Zustand der Hinzufügen-Auswahl.
-    int collapsed_count;                    ///< Anzahl gültiger Einträge in collapsed.
+    SDL_FRect component_anchor; ///< Bildschirmbereich des Dropdown-Buttons im aktuellen Frame.
+    SDL_FRect component_popup;  ///< Bildschirmbereich des geöffneten Komponentenmenüs.
+    uint32_t component_owner;   ///< Entity-ID des geöffneten Dropdowns.
+    int component_choice;       ///< Tastatur-/Hoverauswahl im Dropdown.
+    int component_pressed;      ///< Beim Drücken ausgewählter Menüeintrag, -1 für keinen.
+    bool component_anchor_seen; ///< Dropdown-Anker wurde im aktuellen Frame gezeichnet.
+    bool reveal_selected;       ///< Ausgewählte Entity beim nächsten Canvas-Frame sichtbar machen.
+    int collapsed_count;        ///< Anzahl gültiger Einträge in collapsed.
 } MapPayload;
 
 /* Map-specific operations, used only within the editor. */
@@ -67,6 +74,14 @@ void editor_draw_tiles_panel(void);
  * @param width Verfügbare Breite in Fensterpixeln.
  */
 float editor_draw_components(float x, float y, float width);
+/** @brief Zeichnet das Komponenten-Dropdown nach den Panels als überlagerndes Menü. */
+void editor_draw_component_popup(void);
+/**
+ * @brief Verarbeitet Dropdown-Ereignisse und verhindert Eingaben in verdeckte Widgets.
+ * @param event Geliehenes SDL-Ereignis; wird nicht verändert.
+ * @return true, wenn das Menü die Eingabe verbraucht hat.
+ */
+bool editor_component_popup_event(const SDL_Event *event);
 /**
  * @brief Fügt eine Komponente zur Auswahl hinzu oder entfernt sie als Undo-Schritt.
  * @param component Genau ein bekanntes Komponentenbit.

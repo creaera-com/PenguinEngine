@@ -43,8 +43,7 @@ void editor_draw_info(void) {
 void editor_draw_inspector(void) {
     float x = (float)(app.panel_area.x + 9);
     char label[128];
-    bool enabled = !app.playing && !editor_edit_pending();
-    float w = app.panel_area.w - 32, half = (w - 8) / 2;
+    float w = app.panel_area.w - 32;
     UiRect panel = {(float)(app.panel_area.x + 5), app.panel_top + 8,
                     (float)(app.panel_area.w - 18), (float)(app.panel_area.h - 16)};
     ui_scroll_clamp(&app.inspector_view);
@@ -54,20 +53,15 @@ void editor_draw_inspector(void) {
     editor_disclosure(x, y, w, "Entity", &app.entity_open);
     y += 32;
     if (app.entity_open) {
-        if (icon_button(x, y, half, ICON_PLUS, "New", "Create root entity", false, enabled)) {
-            editor_scene_add(0);
-        }
         PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
-        if (icon_button(x + half + 8, y, half, ICON_DELETE, "Delete", "Delete entity and children",
-                        false, enabled && o)) {
-            editor_scene_delete();
-            o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
-        }
-        y += 34;
         if (o) {
             snprintf(label, sizeof label, "Entity #%u", o->stable_id);
             editor_text(x, y, label, UI_TEXT);
             y += 20;
+            if (!(o->mask & PE_TRANSFORM)) {
+                editor_text(x, y, "No Transform: no map position", UI_MUTED);
+                y += 22;
+            }
             y = editor_draw_components(x, y + 4, w);
         } else {
             editor_text(x, y, "Select an entity in the view.", UI_MUTED);
