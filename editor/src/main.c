@@ -9,7 +9,7 @@
 #include <string.h>
 #define LEFT ((int)app.left_width)
 #define RIGHT ((int)app.right_width)
-#define TOP 64
+#define TOP 50
 #define TABS 32
 #define BOTTOM 48
 #define PANEL_GAP 6
@@ -1113,12 +1113,6 @@ static void draw(void) {
         app.collision = !app.collision;
     if (icon_button(730, 12, 80, ICON_GRID, "Grid", "Show tile grid", app.grid, map_active))
         app.grid = !app.grid;
-    text(14, 45,
-         app.script_tab
-             ? "JavaScript | Ctrl+Space suggestions | F7 syntax | Ctrl+S save | Ctrl+Z undo"
-             : "Drop PNG to import | B/E/R/F/V tools | Ctrl+S save | Ctrl+Z undo | F5 play | MMB "
-               "pan | wheel zoom",
-         UI_MUTED);
     box((SDL_FRect){LEFT + PANEL_GAP, SIDE_TOP, (float)(app.width - LEFT - RIGHT - 2 * PANEL_GAP),
                     PANEL_GAP},
         UI_PANEL);

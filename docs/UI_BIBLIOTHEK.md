@@ -132,3 +132,5 @@ Zwischen den Spalten werden keine Trennlinien gezeichnet, auch nicht bei Hover. 
 
 
 Tabbreiten folgen dem Inhalt: `ui_text_width()` misst UTF-8 nach denselben festen Zeichenbreiten wie `ui_text()`, nicht nach UTF-8-Bytes. `ui_tab_content_width(icon, label)` addiert Icon und Innenabstände. Mit `ui_tabs_set_width(tabs, id, content_width + 4)` bekommt jeder Tab seine eigene Slotbreite inklusive 4 px Zwischenraum. `UiTab.width = 0` erhält die bisherige Fallbackbreite aus `ui_tabs_update`/`ui_tab_rect`. Die Messung und Darstellung bleiben im SDL-Backend, das Layoutmodell bleibt SDL-frei. Beim Umsortieren wandert die Breite mit der ID; Ziele werden über die Mittelpunkte der Nachbartabs bestimmt, damit unterschiedlich breite Tabs bei gehaltenem Mauszeiger nicht hin- und herspringen. Überlaufende Tabreihen lassen sich mit dem Mausrad über der Kopfzeile scrollen. Hinter dem letzten Tab wird kein zusätzlicher Zwischenraum gescrollt.
+
+Die obere Toolbar enthält nur die Aktionsbuttons, ohne zusätzliche Bedienhinweiszeile. Tooltips und Tastenkürzel bleiben verfügbar; die kompaktere Toolbar gibt dem Arbeitsbereich 14 px mehr Höhe.
