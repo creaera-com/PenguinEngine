@@ -12,6 +12,7 @@
 #define TOP 64
 #define TABS 32
 #define BOTTOM 48
+#define PANEL_GAP 6
 #define TREE_MAX 256
 #define UI_SPLIT_LEFT 0x10001u
 #define UI_SPLIT_RIGHT 0x10002u
@@ -613,12 +614,12 @@ static void draw_tree(void) {
                     true))
         tree_refresh();
     app.tree_view.content = app.tree_count * 23.f;
-    app.tree_view.viewport = (float)(app.height - TOP - 46 - BOTTOM);
+    app.tree_view.viewport = (float)(app.height - TOP - 46 - BOTTOM - PANEL_GAP);
     ui_scroll_clamp(&app.tree_view);
-    UiRect track = {LEFT - 12, TOP + 46, 8, app.tree_view.viewport};
+    UiRect track = {LEFT - 18, TOP + 46, 8, app.tree_view.viewport};
     ui_scrollbar(&app.ui, UI_TREE_SCROLL, track, &app.tree_view, UI_AXIS_Y);
     app.tree_scroll = (int)(app.tree_view.offset / 23);
-    UiRect tree_clip = {0, TOP + 46, LEFT - 16, app.tree_view.viewport};
+    UiRect tree_clip = {PANEL_GAP, TOP + 46, LEFT - 24, app.tree_view.viewport};
     ui_clip_push(&app.ui, tree_clip);
     ui_apply_clip(app.renderer, &app.ui);
     int visible = (int)(app.tree_view.viewport / 23) + 2;
@@ -841,7 +842,7 @@ static void draw_inspector(void) {
     ui_scroll_clamp(&app.inspector_view);
     ui_clip_pop(&app.ui);
     ui_apply_clip(app.renderer, &app.ui);
-    UiRect track = {(float)(app.width - 12), TOP + 8, 8, app.inspector_view.viewport};
+    UiRect track = {(float)(app.width - 18), TOP + 8, 8, app.inspector_view.viewport};
     ui_scrollbar(&app.ui, UI_INSPECTOR_SCROLL, track, &app.inspector_view, UI_AXIS_Y);
     ui_draw_scrollbar(app.renderer, &app.ui, UI_INSPECTOR_SCROLL, track, &app.inspector_view,
                       UI_AXIS_Y);
@@ -871,7 +872,7 @@ static void draw_script_inspector(void) {
     ui_scroll_clamp(&app.inspector_view);
     ui_clip_pop(&app.ui);
     ui_apply_clip(app.renderer, &app.ui);
-    UiRect track = {(float)(app.width - 12), TOP + 8, 8, app.inspector_view.viewport};
+    UiRect track = {(float)(app.width - 18), TOP + 8, 8, app.inspector_view.viewport};
     ui_scrollbar(&app.ui, UI_INSPECTOR_SCROLL, track, &app.inspector_view, UI_AXIS_Y);
     ui_draw_scrollbar(app.renderer, &app.ui, UI_INSPECTOR_SCROLL, track, &app.inspector_view,
                       UI_AXIS_Y);
@@ -925,11 +926,11 @@ static bool ui_controls_hit(float x, float y) {
         return true;
     if (y >= TOP && y < TOP + TABS && x >= LEFT && x < app.width - RIGHT)
         return true;
-    if (ui_scroll_max(&app.tree_view) > 0 && x >= LEFT - 14 && x < LEFT && y >= TOP + 46 &&
-        y < app.height - BOTTOM)
+    if (ui_scroll_max(&app.tree_view) > 0 && x >= LEFT - 20 && x < LEFT - PANEL_GAP &&
+        y >= TOP + 46 && y < app.height - BOTTOM)
         return true;
-    if (ui_scroll_max(&app.inspector_view) > 0 && x >= app.width - 14 && y >= TOP &&
-        y < app.height - BOTTOM)
+    if (ui_scroll_max(&app.inspector_view) > 0 && x >= app.width - 20 &&
+        x < app.width - PANEL_GAP && y >= TOP && y < app.height - BOTTOM)
         return true;
     if (app.script_tab && se_scroll_hit(&app.script, x, y, app.viewport))
         return true;
@@ -939,16 +940,20 @@ static void draw(void) {
     SDL_GetWindowSize(app.window, &app.width, &app.height);
     app.ui.blocked = app.field != FIELD_NONE || app.request != REQUEST_NONE;
     layout_columns();
-    app.viewport = (SDL_FRect){LEFT, TOP + TABS, (float)(app.width - LEFT - RIGHT),
-                               (float)(app.height - TOP - TABS - BOTTOM)};
+    app.viewport = (SDL_FRect){LEFT + PANEL_GAP, TOP + TABS + PANEL_GAP,
+                               (float)(app.width - LEFT - RIGHT - 2 * PANEL_GAP),
+                               (float)(app.height - TOP - TABS - BOTTOM - 2 * PANEL_GAP)};
     draw_color(UI_CANVAS);
     SDL_RenderClear(app.renderer);
-    box((SDL_FRect){0, 0, (float)app.width, TOP}, UI_PANEL);
-    box((SDL_FRect){0, TOP, LEFT, (float)app.height}, UI_PANEL);
-    box((SDL_FRect){LEFT - 1, TOP, 1, (float)app.height}, UI_BORDER);
-    box((SDL_FRect){(float)(app.width - RIGHT), TOP, 1, (float)app.height}, UI_BORDER);
-    box((SDL_FRect){0, TOP - 1, (float)app.width, 1}, UI_BORDER);
-    box((SDL_FRect){(float)(app.width - RIGHT), TOP, RIGHT, (float)app.height}, UI_PANEL);
+    /* Inset panels expose the dark application background as narrow gutters. */
+    box((SDL_FRect){PANEL_GAP, PANEL_GAP, (float)(app.width - 2 * PANEL_GAP), TOP - 2 * PANEL_GAP},
+        UI_PANEL);
+    box((SDL_FRect){PANEL_GAP, TOP + PANEL_GAP, LEFT - 2 * PANEL_GAP,
+                    (float)(app.height - TOP - BOTTOM - 2 * PANEL_GAP)},
+        UI_PANEL);
+    box((SDL_FRect){(float)(app.width - RIGHT + PANEL_GAP), TOP + PANEL_GAP, RIGHT - 2 * PANEL_GAP,
+                    (float)(app.height - TOP - BOTTOM - 2 * PANEL_GAP)},
+        UI_PANEL);
     bool modal = app.field != FIELD_NONE || app.request != REQUEST_NONE;
     bool saved_click = app.click;
     if (modal)
@@ -995,14 +1000,16 @@ static void draw(void) {
         app.collision = !app.collision;
     if (icon_button(730, 12, 80, ICON_GRID, "Grid", "Show tile grid", app.grid, map_active))
         app.grid = !app.grid;
-    text(14, 49,
+    text(14, 45,
          app.script_tab
              ? "JavaScript | Ctrl+Space suggestions | F7 syntax | Ctrl+S save | Ctrl+Z undo"
              : "Drop PNG to import | B/E/R/F/V tools | Ctrl+S save | Ctrl+Z undo | F5 play | MMB "
                "pan | wheel zoom",
          UI_MUTED);
-    box((SDL_FRect){LEFT, TOP, (float)(app.width - LEFT - RIGHT), TABS}, UI_PANEL);
-    UiRect tab_bar = {LEFT + 10, TOP + 3, (float)(app.width - LEFT - RIGHT - 20), 25};
+    box((SDL_FRect){LEFT + PANEL_GAP, TOP + PANEL_GAP,
+                    (float)(app.width - LEFT - RIGHT - 2 * PANEL_GAP), TABS - PANEL_GAP},
+        UI_PANEL);
+    UiRect tab_bar = {LEFT + 10, TOP + PANEL_GAP, (float)(app.width - LEFT - RIGHT - 20), 25};
     for (int i = 0; i < app.tabs.count; i++)
         app.tabs.items[i].enabled =
             !app.history.pending && (app.tabs.items[i].id == UI_MAP_TAB || !app.playing);
@@ -1470,7 +1477,7 @@ static bool verify_ui_layout(void) {
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
     smoke_pointer(SDL_EVENT_MOUSE_MOTION, x + 100, y);
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 100, y);
-    bool ok = fabsf(app.left_width - 340) < .01f && app.viewport.x == 340;
+    bool ok = fabsf(app.left_width - 340) < .01f && app.viewport.x == 340 + PANEL_GAP;
     x = app.width - app.right_width;
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
     smoke_pointer(SDL_EVENT_MOUSE_MOTION, x - 80, y);

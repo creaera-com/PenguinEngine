@@ -4,10 +4,10 @@
 #include <SDL3/SDL.h>
 /* Editor theme: RGBA, separate from game artwork. */
 #define UI_CANVAS 0x101010ffu
-#define UI_PANEL 0x181818ffu
-#define UI_SURFACE 0x242424ffu
+#define UI_PANEL 0x202020ffu
+#define UI_SURFACE 0x292929ffu
 #define UI_BORDER 0x303030ffu
-#define UI_HOVER 0x333333ffu
+#define UI_HOVER 0x393939ffu
 #define UI_ACCENT 0xff932bffu
 #define UI_ACCENT_BG 0xff932bffu
 #define UI_TEXT 0xe9e9e9ffu

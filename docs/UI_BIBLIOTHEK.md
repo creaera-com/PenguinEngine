@@ -122,3 +122,5 @@ Editor-Smoke-Tests ziehen beide Spaltentrenner, klappen einen Inspector-Bereich 
 ## Nächste Komponenten
 
 Nach Bedarf ergänzen wir Checkboxen/Radio-Buttons, Slider, Dropdowns, allgemeine Text-/Zahlenfelder, Menüleisten, Dialogbausteine und Listen-/Baumansichten. Dazu gehören später Tab-Navigation, eine bessere Textdarstellung und gespeicherte Benutzerlayouts. Jede Komponente soll einen kleinen Daten-/Eingabeteil und eine getrennte Darstellung erhalten. Freies Docking und ein vollständiges IDE-Framework bleiben größere, separate Aufgaben.
+
+Der Editor verwendet `UI_CANVAS` (#101010) als dunkle Grundfläche und `UI_PANEL` (#202020) für abgesetzte Panels. Toolbar, Dateibaum und Inspector haben 6 px Außenabstand. Buttons verwenden #292929, Hover #393939; die orange Akzentfarbe bleibt erhalten. Map- und Script-Arbeitsflächen berücksichtigen dieselben Abstände bei Darstellung und Eingabe.
