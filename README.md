@@ -23,6 +23,10 @@ Eine kleine 2D-Engine in **C17 mit SDL3**, einem einfachen ECS und einem Tilemap
 
 **Noch nicht enthalten:** Ausführen von JavaScript/Python im Spiel, Language-Server-/Typanalyse, Dialogeditor, Shooter-Logik, Plattformphysik, Animationen, Audio, Asset-Umbenennung und Tile-Auswahl/Kopieren. Diese Erweiterungen bleiben im Entwicklungsplan.
 
+## Geplante deklarative UI
+
+Der [YAML-UI-Entwurf](docs/UI_YAML.md) beschreibt Layouts für alle drei Editor-Spalten, Aktionen, Datenbindungen und vollständiges Entladen beim Bereichswechsel. [Beispieldateien](docs/examples/ui/shell.yaml) liegen bei. **Loader und Editor-Lebenszyklus sind noch nicht implementiert.**
+
 ## Bauen und starten
 
 Voraussetzungen: C17-Compiler, CMake >= 3.20 und Git. SDL3 >= 3.2 wird verwendet, wenn es als CMake-Paket installiert ist. Andernfalls lädt CMake **SDL3 3.2.10** mit geprüftem SHA-256 herunter. Dafür ist beim ersten Konfigurieren Internetzugriff nötig.

@@ -1,0 +1,61 @@
+# Entwurf für penguin.ui/v1. Wird vom aktuellen Editor noch nicht eingelesen.
+schema: penguin.ui/v1
+kind: shell
+id: penguin
+
+layout:
+  gap: 3
+  tab_gap: 2
+  columns:
+    left: {initial: 240, minimum: 192}
+    center: {minimum: 320}
+    right: {initial: 280, minimum: 264}
+
+theme:
+  background: "#101010"
+  panel: "#202020"
+  surface: "#292929"
+  hover: "#393939"
+  accent: "#C28E5C"
+  text: "#E9E9E9"
+  muted: "#A2A2A2"
+
+toolbar:
+  - {type: button, id: menu, icon: menu, tooltip: "Menü"}
+  - {type: separator, id: menu_gap}
+  - type: button
+    id: save
+    icon: save
+    tooltip: "Speichern (Ctrl+S)"
+    action: document.save
+    enabled: {binding: document.can_save}
+  - {type: separator, id: save_gap}
+  - type: button
+    id: undo
+    icon: undo
+    tooltip: "Undo (Ctrl+Z)"
+    action: document.undo
+    enabled: {binding: document.can_undo}
+  - type: button
+    id: redo
+    icon: redo
+    tooltip: "Redo (Ctrl+Shift+Z)"
+    action: document.redo
+    enabled: {binding: document.can_redo}
+  - {type: separator, id: views_gap}
+  - {type: editor_switcher, id: editors, labels: false}
+
+editors:
+  - {id: map, title: "Map", icon: grid, module: map, file: editors/map.yaml}
+  - {id: scripts, title: "Scripts", icon: file, module: scripts, file: editors/scripts.yaml}
+
+editor_policy: unload_on_leave
+
+statusbar:
+  id: status
+  lines: 1
+  fields:
+    - {binding: editor.mode}
+    - {binding: document.save_state}
+    - {binding: editor.details}
+    - {binding: editor.message}

@@ -152,3 +152,7 @@ Für einen weiteren Bereich eine neue stabile ID, eigenen Datenzustand, Toolbar-
 Werkzeugbuttons bleiben Icons mit Tooltips. `action_count` bestimmt die benötigten Zeilen; bei schmaler mittlerer Spalte werden die Aktionen auf weitere Zeilen verteilt. Der Canvas beginnt unter der vollständigen Toolbar, und alle Toolbar-Zeilen erhalten Eingabevorrang vor Karte/Text. F5 startet ausschließlich im Map-Bereich; während Play ist der Wechsel zu anderen Editoren gesperrt. Die Syntaxprüfung steht nur einmal in der Scripts-Werkzeugleiste; die Dokumentkopfzeile zeigt den Dateinamen.
 
 Die Statusleiste ist 28 px hoch und zeigt EDIT/PLAY, Saved/Modified, Dokumentdetails und die letzte Meldung in einer Zeile. Die Meldung folgt der gemessenen Breite der Details und wird bei Platzmangel rechts abgeschnitten, ohne andere Angaben zu überdecken. Die zentralen Panel-Abstände betragen 3 px.
+
+## Geplanter YAML-Aufbau
+
+Der [Entwurf für deklarative UI](UI_YAML.md) beschreibt Shell, drei kontextbezogene Spalten, Komponenten-/Aktionsregistrierung und Editor-Lebenszyklus mit Sitzungssicherung auf Datenträger. Die YAML-Beispiele werden derzeit nicht eingelesen; das vollständige Entladen beim Editorwechsel ist ebenfalls ein geplanter Umbau.
