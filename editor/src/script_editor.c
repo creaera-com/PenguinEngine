@@ -427,15 +427,6 @@ void se_draw(PeScriptEditor *e, SDL_Renderer *r, UiContext *context, SDL_FRect a
     char title[96];
     snprintf(title, sizeof title, "JS  %.55s%s", filename, se_dirty(e) ? " *" : "");
     text(r, area.x + 14, area.y + 11, title, UI_TEXT);
-    SDL_FRect check = {area.x + area.w - 158, area.y + 3, 146, 24};
-    bool hover = inside(mx, my, check);
-    ui_draw_button(r, check, ICON_CHECK, "Check (F7)", false, true, hover);
-    if (ui_button(context, ui_id("script_check"), (UiRect){check.x, check.y, check.w, check.h},
-                  true)) {
-        se_check(e);
-        ui_focus(context, SCRIPT_DOCUMENT);
-        se_focus(e, e->window, true);
-    }
     SDL_Rect clip = {(int)area.x, (int)e->body.y, (int)area.w, (int)e->body.h};
     SDL_SetRenderClipRect(r, &clip);
     int caret_line, caret_col;

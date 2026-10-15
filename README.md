@@ -11,7 +11,7 @@ Eine kleine 2D-Engine in **C17 mit SDL3**, einem einfachen ECS und einem Tilemap
 - Wiederverwendbare C-UI-Bibliothek mit dunklem Flat-Design, geraden Kanten und orangefarbenen Akzenten.
 - Ziehbare Spaltentrenner, umsortierbare Tabs, Scrollbars und klappbare Inspector-Bereiche.
 - Icon-Buttons und Werkzeug-Tooltips.
-- Workspace-Tabs **Map** und **Scripts** mit JavaScript-Texteditor, Highlighting, Syntaxprüfung und einfacher Autovervollständigung.
+- Globale Arbeitsbereichsauswahl **Map / Scripts** mit eigenen Werkzeugleisten direkt über dem Inhalt; Scripts bietet einen JavaScript-Texteditor, Highlighting, Syntaxprüfung und einfache Autovervollständigung.
 - Projekt-Dateibaum, PNG-Import per Drag-and-drop oder Dateipfad, Tile-Palette.
 - Pinsel, Radierer, Rechteck, Füllen, Entity-Auswahl und Verschieben.
 - Ebenen hinzufügen, löschen, umbenennen, sortieren und ausblenden.

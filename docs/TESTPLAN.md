@@ -41,7 +41,7 @@ Die automatisierten Tests wurden in der Entwicklungsumgebung headless ausgeführ
 2. Beide Spaltentrenner ziehen, auch über ihren ursprünglichen Bereich hinaus. Mindestbreiten erhalten die mittlere Arbeitsfläche. Keine Tiles oder Texte dürfen dabei verändert werden.
 3. Rechts Inspector-Bereiche ein-/ausklappen und die Tile-Palette bei geänderter Spaltenbreite prüfen. Rename und Sortieraktionen bleiben erreichbar.
 4. Mit vielen Dateien, vier Ebenen/ausgewählter Entity und langen Scripts Scrollbars prüfen: Mausrad, Thumb-Ziehen und Track-Klicks. Ausgeblendete Controls dürfen nicht anklickbar sein.
-5. Map-/Scripts-Tabs umsortieren. Der Inhalt bleibt seinem Tab zugeordnet, Wechsel erhält Text und Kamera.
+5. Map-/Scripts-Buttons in der globalen Toolbar umsortieren. Der Inhalt bleibt seinem Tab zugeordnet, Wechsel erhält Text und Kamera.
 6. Button drücken und außerhalb loslassen: keine Aktion. Fokusverlust während Drag beendet Capture.
 7. `penguin_ui_demo` starten und dieselben UI-Komponenten ohne Engine-/Editorfunktionen prüfen.
 
@@ -51,3 +51,7 @@ Die automatisierten Tests wurden in der Entwicklungsumgebung headless ausgeführ
 11. Zwischenräume der Spalten prüfen: keine sichtbaren Trennstriche, auch bei Hover. Jeweils drei senkrecht angeordnete Punkte sitzen mittig, folgen beim Resize und werden bei Hover/Ziehen orange. Resize-Cursor und Ziehen funktionieren weiterhin.
 
 12. Reiter prüfen: kurze Titel belegen weniger Breite als lange Titel, neben dem letzten Tab bleibt die dunkle Grundfläche frei. Der aktive Tab geht bündig ins Panel über. Unterschiedlich breite Tabs ziehen, Maus dabei kurz halten: keine springende Reihenfolge. Bei schmalen Seitenpanels über der Tabreihe mit dem Mausrad scrollen; abgeschnittene Tabs bleiben erreichbar. Umlaut-Titel zählen als einzelne Zeichen.
+
+13. Globale Toolbar: nur Map/Scripts. Zwischen den Bereichen wechseln; Werkzeuge wechseln passend zum Inhalt. Im Scripts-Bereich fehlen Play, Import und Kartenwerkzeuge. Die Syntaxprüfung erscheint ausschließlich in seiner Werkzeugleiste, nicht nochmals im Dokumentkopf.
+14. Map-Spalte stark verengen. Werkzeugleiste bricht um; auch Raster und Kollision bleiben erreichbar. Klicks in beiden Toolbar-Zeilen verändern keine Tiles, Textauswahl oder Zoom. Bei breiterer Spalte entsteht wieder eine Zeile.
+15. Scripts wählen, F5 drücken: kein Play. Map wählen, Play starten: Wechsel zu Scripts gesperrt; Stop stellt die bearbeitete Szene wieder her. Tooltips, Ctrl+S, Ctrl+Z und Ctrl+Shift+Z gelten für das aktive Dokument, auch nach Fokus auf einen Toolbar-Button.
