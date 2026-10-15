@@ -78,7 +78,7 @@ Bei älteren Ständen mit `Cannot open example/project.json`: Working directory 
 
 ## Tests ohne SDL oder Fenster
 
-Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Insgesamt 91 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge und UI-Regeln ohne Download.
+Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Insgesamt 93 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge und UI-Regeln ohne Download.
 
 ```sh
 cmake -S . -B build-core -DPENGUIN_BUILD_EDITOR=OFF

@@ -9,7 +9,7 @@ Penguin UI ist eine kleine eigene UI-Bibliothek für Editor und SDL3-Spiele. Sie
 | `penguin_ui` | `ui/include/penguin/ui.h`, `ui/src/core.c` | Eingabe, Fokus, Capture, Layout und Widget-Zustände; C17, keine SDL-Abhängigkeit. |
 | `penguin_ui_sdl` | `ui/include/penguin/ui_sdl.h`, `ui/src/sdl.c` | Flat-Rendering, Icons und Themes; nutzt `penguin_ui` und SDL3. |
 | `penguin_ui_demo` | `examples/ui/main.c` | Eigenständiges Beispiel ohne Engine-/Editor-/Script-Bibliotheken. |
-| `penguin_ui_tests` | `tests/test_ui.c` | 26 Unity-Tests der UI-Regeln ohne Fenster. |
+| `penguin_ui_tests` | `tests/test_ui.c` | 28 Unity-Tests der UI-Regeln ohne Fenster. |
 
 Die beiden Bibliotheken werden statisch gebaut. Sie sind keine Kopie der UI in jedem Spiel: Editor und Demo verlinken dieselben Targets. Der Kern lässt sich auch mit einem anderen Renderer verwenden; momentan ist nur der SDL3-Backend implementiert.
 
@@ -29,7 +29,7 @@ Die Map-/Scripts-Tabs sind feste Arbeitsbereiche und können umsortiert, aber ni
 
 ## Das Flat-Design
 
-Buttons und Tabs haben gerade Kanten, eine einzelne flächige Hintergrundfarbe und keine Umrandung, Rundung oder Schatten. Aktiv ausgewählte Elemente sind orange mit dunklem Text; inaktive Elemente sind dunkelgrau. Hover und Disabled verwenden eigene einfarbige Zustände.
+Buttons und Tabs haben gerade Kanten, eine einzelne flächige Hintergrundfarbe und keine Umrandung, Rundung oder Schatten. Aktive Buttons sind orange mit dunklem Text. Aktive Tabs verwenden das Panelgrau, helle Schrift und eine 2 px hohe orange Markierung oben; sie schließen unten bündig an den Panelinhalt an. Neben den Reitern bleibt die dunkle Grundfläche sichtbar. Inaktive Elemente sind dunkelgrau. Hover und Disabled verwenden eigene einfarbige Zustände.
 
 Das Standardtheme verwendet unter anderem:
 
@@ -115,7 +115,7 @@ Dateibrowser und Scripteditor behalten ihre spezialisierten Funktionen. Die Bibl
 
 ## Prüfung
 
-26 Unity-Tests prüfen unter anderem Press-/Release-Reihenfolge, schnelles Klicken, Disabled/Blocked, exklusives Capture, Fokus, Clip-Grenzen, Drag-Clamping, Spaltenbreiten, Scrollbar-Geometrie, Thumb-Ziehen, Track-Klicks und Tab-Auswahl/-Umsortierung.
+28 Unity-Tests prüfen unter anderem Press-/Release-Reihenfolge, schnelles Klicken, Disabled/Blocked, exklusives Capture, Fokus, Clip-Grenzen, Drag-Clamping, Spaltenbreiten, Scrollbar-Geometrie, Thumb-Ziehen, Track-Klicks und Tab-Auswahl/-Umsortierung.
 
 Editor-Smoke-Tests ziehen beide Spaltentrenner, klappen einen Inspector-Bereich zu, sortieren Tabs um und ziehen eine Script-Scrollbar. Sie prüfen, dass dadurch weder Szene noch Scripttext verändert werden. Das UI-Demo hat einen eigenen SDL-Dummy-Smoke-Test.
 
@@ -129,3 +129,6 @@ Der Editor verwendet `UI_CANVAS` (#101010) als dunkle Grundfläche und `UI_PANEL
 Die Seitenpanels verwenden ebenfalls `UiTabs`: links **Explorer / Scene**, rechts **Inspector / Info**. Alle drei Tabgruppen haben unabhängige Auswahl und Reihenfolge; Tabs können innerhalb ihrer Gruppe umsortiert werden. Scene listet die lebenden Entities der bearbeiteten Szene. Ein Klick wählt die Entity aus, aktiviert Map und Inspector und ändert keine Szenendaten. Während Play oder einer laufenden Bearbeitung ist diese Auswahl gesperrt. Info zeigt Kartengröße, Tilegröße, Ebenen-/Entity-Anzahl und Tastenkürzel. Explorer, Scene und Info behalten eigene Scrollpositionen. Zusätzliche Ansichten können später mit einer stabilen Tab-ID und einem eigenen Inhaltsrenderer ergänzt werden; gruppenübergreifendes Docking ist noch nicht vorhanden.
 
 Zwischen den Spalten werden keine Trennlinien gezeichnet, auch nicht bei Hover. Drei vertikal angeordnete, mittig platzierte Punkte markieren jeden Resize-Griff. Sie sind im Ruhezustand grau und bei Hover oder aktivem Ziehen orange. Der gesamte Zwischenraum bleibt bedienbar und zeigt den horizontalen Resize-Cursor.
+
+
+Tabbreiten folgen dem Inhalt: `ui_text_width()` misst UTF-8 nach denselben festen Zeichenbreiten wie `ui_text()`, nicht nach UTF-8-Bytes. `ui_tab_content_width(icon, label)` addiert Icon und Innenabstände. Mit `ui_tabs_set_width(tabs, id, content_width + 4)` bekommt jeder Tab seine eigene Slotbreite inklusive 4 px Zwischenraum. `UiTab.width = 0` erhält die bisherige Fallbackbreite aus `ui_tabs_update`/`ui_tab_rect`. Die Messung und Darstellung bleiben im SDL-Backend, das Layoutmodell bleibt SDL-frei. Beim Umsortieren wandert die Breite mit der ID; Ziele werden über die Mittelpunkte der Nachbartabs bestimmt, damit unterschiedlich breite Tabs bei gehaltenem Mauszeiger nicht hin- und herspringen. Überlaufende Tabreihen lassen sich mit dem Mausrad über der Kopfzeile scrollen. Hinter dem letzten Tab wird kein zusätzlicher Zwischenraum gescrollt.

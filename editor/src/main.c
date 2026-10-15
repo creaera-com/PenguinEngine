@@ -627,7 +627,14 @@ static void play_toggle(void) {
 }
 static void draw_panel_tabs(UiTabs *tabs, UiRect bar, UiId first, const char *first_label,
                             const char *second_label, UiIcon first_icon, UiIcon second_icon) {
-    float width = bar.w / 2;
+    float width = 112;
+    for (int i = 0; i < tabs->count; i++) {
+        bool is_first = tabs->items[i].id == first;
+        ui_tabs_set_width(tabs, tabs->items[i].id,
+                          ui_tab_content_width(is_first ? first_icon : second_icon,
+                                               is_first ? first_label : second_label) +
+                              4);
+    }
     ui_tabs_update(&app.ui, tabs, bar, width);
     ui_clip_push(&app.ui, bar);
     ui_apply_clip(app.renderer, &app.ui);
@@ -635,11 +642,8 @@ static void draw_panel_tabs(UiTabs *tabs, UiRect bar, UiId first, const char *fi
         UiRect r = ui_tab_rect(tabs, bar, width, i);
         bool is_first = tabs->items[i].id == first;
         ui_draw_tab(app.renderer, (SDL_FRect){r.x, r.y, r.w, r.h},
-                    width < 110 ? ICON_NONE
-                    : is_first  ? first_icon
-                                : second_icon,
-                    is_first ? first_label : second_label, tabs->selected == tabs->items[i].id,
-                    true, ui_hovered(&app.ui, r));
+                    is_first ? first_icon : second_icon, is_first ? first_label : second_label,
+                    tabs->selected == tabs->items[i].id, true, ui_hovered(&app.ui, r));
     }
     ui_clip_pop(&app.ui);
     ui_apply_clip(app.renderer, &app.ui);
@@ -1057,11 +1061,11 @@ static void draw(void) {
     /* Inset panels expose the dark application background as narrow gutters. */
     box((SDL_FRect){PANEL_GAP, PANEL_GAP, (float)(app.width - 2 * PANEL_GAP), TOP - 2 * PANEL_GAP},
         UI_PANEL);
-    box((SDL_FRect){PANEL_GAP, TOP + PANEL_GAP, LEFT - 2 * PANEL_GAP,
-                    (float)(app.height - TOP - BOTTOM - 2 * PANEL_GAP)},
+    box((SDL_FRect){PANEL_GAP, SIDE_TOP, LEFT - 2 * PANEL_GAP,
+                    (float)(app.height - SIDE_TOP - BOTTOM - PANEL_GAP)},
         UI_PANEL);
-    box((SDL_FRect){(float)(app.width - RIGHT + PANEL_GAP), TOP + PANEL_GAP, RIGHT - 2 * PANEL_GAP,
-                    (float)(app.height - TOP - BOTTOM - 2 * PANEL_GAP)},
+    box((SDL_FRect){(float)(app.width - RIGHT + PANEL_GAP), SIDE_TOP, RIGHT - 2 * PANEL_GAP,
+                    (float)(app.height - SIDE_TOP - BOTTOM - PANEL_GAP)},
         UI_PANEL);
     bool modal = app.field != FIELD_NONE || app.request != REQUEST_NONE;
     bool saved_click = app.click;
@@ -1115,10 +1119,13 @@ static void draw(void) {
              : "Drop PNG to import | B/E/R/F/V tools | Ctrl+S save | Ctrl+Z undo | F5 play | MMB "
                "pan | wheel zoom",
          UI_MUTED);
-    box((SDL_FRect){LEFT + PANEL_GAP, TOP + PANEL_GAP,
-                    (float)(app.width - LEFT - RIGHT - 2 * PANEL_GAP), TABS - PANEL_GAP},
+    box((SDL_FRect){LEFT + PANEL_GAP, SIDE_TOP, (float)(app.width - LEFT - RIGHT - 2 * PANEL_GAP),
+                    PANEL_GAP},
         UI_PANEL);
-    UiRect tab_bar = {LEFT + 10, TOP + PANEL_GAP, (float)(app.width - LEFT - RIGHT - 20), 25};
+    ui_tabs_set_width(&app.tabs, UI_MAP_TAB, ui_tab_content_width(ICON_GRID, "Map") + 4);
+    ui_tabs_set_width(&app.tabs, UI_SCRIPT_TAB, ui_tab_content_width(ICON_FILE, "Scripts") + 4);
+    UiRect tab_bar = {LEFT + PANEL_GAP, TOP + PANEL_GAP,
+                      (float)(app.width - LEFT - RIGHT - 2 * PANEL_GAP), TABS - PANEL_GAP};
     for (int i = 0; i < app.tabs.count; i++)
         app.tabs.items[i].enabled =
             !app.history.pending && (app.tabs.items[i].id == UI_MAP_TAB || !app.playing);
@@ -1182,11 +1189,11 @@ static void draw(void) {
     } else
         se_draw(&app.script, app.renderer, &app.ui, app.viewport, app.mx, app.my, app.click);
     draw_panel_tabs(&app.left_tabs,
-                    (UiRect){PANEL_GAP + 4, TOP + PANEL_GAP, LEFT - 2 * PANEL_GAP - 8, 25},
+                    (UiRect){PANEL_GAP, TOP + PANEL_GAP, LEFT - 2 * PANEL_GAP, TABS - PANEL_GAP},
                     UI_EXPLORER_TAB, "Explorer", "Scene", ICON_FOLDER, ICON_ENTITY);
     draw_panel_tabs(&app.right_tabs,
-                    (UiRect){(float)(app.width - RIGHT + PANEL_GAP + 4), TOP + PANEL_GAP,
-                             RIGHT - 2 * PANEL_GAP - 8, 25},
+                    (UiRect){(float)(app.width - RIGHT + PANEL_GAP), TOP + PANEL_GAP,
+                             RIGHT - 2 * PANEL_GAP, TABS - PANEL_GAP},
                     UI_INSPECTOR_TAB, "Inspector", "Info", ICON_ENTITY, ICON_FILE);
     if (app.left_tabs.selected == UI_SCENE_TAB)
         draw_scene_tree();
@@ -1391,6 +1398,10 @@ static void event(SDL_Event *e) {
             if (inside(app.mx, app.my, app.viewport) && !app.script_tab)
                 pe_camera_zoom(&app.camera, app.mx - app.viewport.x, app.my - app.viewport.y,
                                powf(1.15f, e->wheel.y));
+            else if (app.mx < LEFT && app.my >= TOP && app.my < SIDE_TOP)
+                ui_tabs_scroll(&app.left_tabs, LEFT - 2 * PANEL_GAP, 112, -e->wheel.y * 56);
+            else if (app.mx > app.width - RIGHT && app.my >= TOP && app.my < SIDE_TOP)
+                ui_tabs_scroll(&app.right_tabs, RIGHT - 2 * PANEL_GAP, 112, -e->wheel.y * 56);
             else if (app.mx < LEFT)
                 ui_scroll_by(app.left_tabs.selected == UI_SCENE_TAB ? &app.scene_view
                                                                     : &app.tree_view,
@@ -1618,8 +1629,8 @@ static bool verify_ui_layout(void) {
          !app.script_tab;
     /* Sidebar navigation is independent of workspace tabs and scene history. */
     float side_y = TOP + PANEL_GAP + 12;
-    float scene_tab_x = PANEL_GAP + 4 + (LEFT - 2 * PANEL_GAP - 8) * .75f;
-    float info_tab_x = app.width - RIGHT + PANEL_GAP + 4 + (RIGHT - 2 * PANEL_GAP - 8) * .75f;
+    float scene_tab_x = PANEL_GAP + app.left_tabs.items[0].width + 20;
+    float info_tab_x = app.width - RIGHT + PANEL_GAP + app.right_tabs.items[0].width + 20;
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, scene_tab_x, side_y);
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, scene_tab_x, side_y);
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, info_tab_x, side_y);
@@ -1668,7 +1679,7 @@ static bool verify_ui_layout(void) {
     app.right_width = 280;
     app.layers_open = app.entity_open = app.palette_open = true;
     app.tree_view.offset = app.inspector_view.offset = 0;
-    UiTab tabs[] = {{UI_MAP_TAB, true}, {UI_SCRIPT_TAB, true}};
+    UiTab tabs[] = {{UI_MAP_TAB, true, 0}, {UI_SCRIPT_TAB, true, 0}};
     ui_tabs_init(&app.tabs, tabs, 2, UI_MAP_TAB);
     ui_cancel(&app.ui);
     tab_select(false);
@@ -1724,10 +1735,10 @@ int main(int argc, char **argv) {
     app.left_width = 240;
     app.right_width = 280;
     app.layers_open = app.entity_open = app.palette_open = true;
-    UiTab tabs[] = {{UI_MAP_TAB, true}, {UI_SCRIPT_TAB, true}};
+    UiTab tabs[] = {{UI_MAP_TAB, true, 0}, {UI_SCRIPT_TAB, true, 0}};
     ui_tabs_init(&app.tabs, tabs, 2, UI_MAP_TAB);
-    UiTab left_tabs[] = {{UI_EXPLORER_TAB, true}, {UI_SCENE_TAB, true}};
-    UiTab right_tabs[] = {{UI_INSPECTOR_TAB, true}, {UI_INFO_TAB, true}};
+    UiTab left_tabs[] = {{UI_EXPLORER_TAB, true, 0}, {UI_SCENE_TAB, true, 0}};
+    UiTab right_tabs[] = {{UI_INSPECTOR_TAB, true, 0}, {UI_INFO_TAB, true, 0}};
     ui_tabs_init(&app.left_tabs, left_tabs, 2, UI_EXPLORER_TAB);
     ui_tabs_init(&app.right_tabs, right_tabs, 2, UI_INSPECTOR_TAB);
     app.resize_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE);

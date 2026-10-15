@@ -24,6 +24,7 @@ typedef struct {
 typedef struct {
     UiId id;
     bool enabled;
+    float width; /* Slot width including the 4 px gap; zero uses the fallback width. */
 } UiTab;
 typedef struct {
     UiTab items[UI_MAX_TABS];
@@ -57,6 +58,7 @@ void ui_scroll_by(UiScroll *scroll, float delta);
 UiRect ui_scroll_thumb(const UiScroll *scroll, UiRect track, UiAxis axis);
 bool ui_scrollbar(UiContext *context, UiId id, UiRect track, UiScroll *scroll, UiAxis axis);
 bool ui_tabs_init(UiTabs *tabs, const UiTab *items, int count, UiId selected);
+bool ui_tabs_set_width(UiTabs *tabs, UiId id, float width);
 UiRect ui_tab_rect(const UiTabs *tabs, UiRect bar, float width, int index);
 void ui_tabs_scroll(UiTabs *tabs, float viewport, float tab_width, float delta);
 /* Reorders IDs while dragging; selected ID and the associated content remain stable. */
