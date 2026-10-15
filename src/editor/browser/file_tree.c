@@ -99,19 +99,20 @@ void editor_draw_tree(void) {
         background |= ((channel * 95 + 255 * 5) / 100) << shift;
     }
     /* Keep the refresh toolbar on the panel; only the node area is lifted. */
-    SDL_FRect nodes = {body.x, body.y + 30, body.w, fmaxf(0, body.h - 30)};
+    /* The 25-pixel button starts at +4; leave six pixels below it. */
+    SDL_FRect nodes = {body.x, body.y + 35, body.w, fmaxf(0, body.h - 35)};
     editor_box(nodes, background);
     if (icon_button(body.x + body.w - 36, body.y + 4, 32, ICON_REFRESH, "", "Refresh project files",
                     false, true)) {
         editor_tree_refresh();
     }
     app.tree_view.content = app.tree_count * 23.f;
-    app.tree_view.viewport = fmaxf(0, body.h - 38);
+    app.tree_view.viewport = fmaxf(0, nodes.h - 8);
     ui_scroll_clamp(&app.tree_view);
-    UiRect track = {body.x + body.w - 12, body.y + 34, 8, app.tree_view.viewport};
+    UiRect track = {nodes.x + nodes.w - 12, nodes.y + 4, 8, app.tree_view.viewport};
     ui_scrollbar(&app.ui, UI_TREE_SCROLL, track, &app.tree_view, UI_AXIS_Y);
     app.tree_scroll = (int)(app.tree_view.offset / 23);
-    UiRect tree_clip = {body.x + 4, body.y + 34, fmaxf(0, body.w - 20), app.tree_view.viewport};
+    UiRect tree_clip = {nodes.x + 4, nodes.y + 4, fmaxf(0, nodes.w - 20), app.tree_view.viewport};
     ui_clip_push(&app.ui, tree_clip);
     ui_apply_clip(app.renderer, &app.ui);
     int visible = (int)(app.tree_view.viewport / 23) + 2;
