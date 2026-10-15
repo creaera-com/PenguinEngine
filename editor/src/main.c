@@ -11,8 +11,8 @@
 #define RIGHT ((int)app.right_width)
 #define TOP 50
 #define TABS 32
-#define BOTTOM 48
-#define PANEL_GAP 6
+#define BOTTOM 28
+#define PANEL_GAP 5
 #define GLOBAL_NAV_X 232
 #define SIDE_TOP (TOP + TABS)
 #define TREE_MAX 256
@@ -1277,7 +1277,6 @@ static void draw(void) {
         draw_inspector();
     box((SDL_FRect){0, (float)(app.height - BOTTOM), (float)app.width, BOTTOM}, UI_PANEL);
     box((SDL_FRect){0, (float)(app.height - BOTTOM), (float)app.width, 1}, UI_BORDER);
-    text(14, (float)(app.height - 34), scripts_active() ? app.script.status : app.status, UI_TEXT);
     char details[128];
     if (scripts_active()) {
         int line, column;
@@ -1298,6 +1297,16 @@ static void draw(void) {
          active_dirty ? UI_ACCENT : UI_MUTED);
     text(142, status_y, "|", UI_DISABLED);
     text(158, status_y, details, UI_MUTED);
+    float message_x = 158 + ui_text_width(details) + 16;
+    text(message_x, status_y, "|", UI_DISABLED);
+    message_x += 16;
+    /* Long messages stay in their own portion of the single-line status bar. */
+    ui_clip_push(&app.ui, (UiRect){message_x, (float)(app.height - BOTTOM),
+                                   fmaxf(0, app.width - message_x - 14), BOTTOM});
+    ui_apply_clip(app.renderer, &app.ui);
+    text(message_x, status_y, scripts_active() ? app.script.status : app.status, UI_TEXT);
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
     if (tooltip && !modal) {
         float width = (float)strlen(tooltip) * 8 + 20;
         float tx = fminf(app.mx + 12, app.width - width - 8),
