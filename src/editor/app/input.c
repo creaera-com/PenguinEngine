@@ -102,6 +102,7 @@ void editor_event(SDL_Event *e) {
                     app.ui.active == UI_SPLIT_LEFT || app.ui.active == UI_SPLIT_RIGHT ||
                     app.ui.active == UI_TREE_SCROLL || app.ui.active == UI_INSPECTOR_SCROLL ||
                     app.ui.active == UI_SCENE_SCROLL || app.ui.active == UI_INFO_SCROLL ||
+                    app.ui.active == UI_MAP_SCROLL || app.ui.active == UI_TILES_SCROLL ||
                     app.ui.active == UI_SCRIPT_VSCROLL || app.ui.active == UI_SCRIPT_HSCROLL;
     if (!modal && (e->type == SDL_EVENT_MOUSE_MOTION || e->type == SDL_EVENT_MOUSE_BUTTON_UP) &&
         captured) {
@@ -187,12 +188,14 @@ void editor_event(SDL_Event *e) {
             } else if (app.mx > app.width - RIGHT && app.my >= TOP && app.my < SIDE_TOP) {
                 ui_tabs_scroll(&app.right_tabs, RIGHT - 2 * PANEL_GAP, 112, -e->wheel.y * 56);
             } else if (app.mx < LEFT) {
-                ui_scroll_by(app.left_tabs.selected == UI_SCENE_TAB ? &app.scene_view
-                                                                    : &app.tree_view,
+                ui_scroll_by(app.left_tabs.selected == UI_MAP_TAB     ? &app.map_view
+                             : app.left_tabs.selected == UI_SCENE_TAB ? &app.scene_view
+                                                                      : &app.tree_view,
                              -e->wheel.y * 69);
             } else if (app.mx > app.width - RIGHT) {
-                ui_scroll_by(app.right_tabs.selected == UI_INFO_TAB ? &app.info_view
-                                                                    : &app.inspector_view,
+                ui_scroll_by(app.right_tabs.selected == UI_TILES_TAB  ? &app.tiles_view
+                             : app.right_tabs.selected == UI_INFO_TAB ? &app.info_view
+                                                                      : &app.inspector_view,
                              -e->wheel.y * 60);
             }
         }

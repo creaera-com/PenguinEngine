@@ -52,9 +52,13 @@ void editor_commit(void);
 void editor_draw_info(void);
 
 /**
- * @brief Zeichnet Map-Inspector, Ebenenliste, Entity-Werte und Tile-Palette.
+ * @brief Zeichnet ausschließlich Auswahl und Komponenten der inspizierten Entity.
  */
 void editor_draw_inspector(void);
+/** @brief Zeichnet Karteninformationen und Ebenenverwaltung im Map-Tab. */
+void editor_draw_map_panel(void);
+/** @brief Zeichnet Tileset-Import, Quell-Tilegröße und Tile-Palette im Tiles-Tab. */
+void editor_draw_tiles_panel(void);
 /**
  * @brief Zeichnet Komponenten-Karten der aktuellen Auswahl und liefert die nächste
  * Inhalts-Y-Position.

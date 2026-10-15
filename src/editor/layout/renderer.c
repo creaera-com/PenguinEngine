@@ -15,6 +15,12 @@ static UiId yaml_id(const char *name) {
     if (!strcmp(name, "inspector_tab")) {
         return UI_INSPECTOR_TAB;
     }
+    if (!strcmp(name, "map_tab")) {
+        return UI_MAP_TAB;
+    }
+    if (!strcmp(name, "tiles_tab")) {
+        return UI_TILES_TAB;
+    }
     if (!strcmp(name, "info_tab")) {
         return UI_INFO_TAB;
     }
@@ -540,6 +546,10 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
                 app.panel_top = app.panel_area.y;
             }
             editor_draw_scene_tree();
+        } else if (!strcmp(type, "map_layers")) {
+            editor_draw_map_panel();
+        } else if (!strcmp(type, "tile_palette")) {
+            editor_draw_tiles_panel();
         } else if (!strcmp(type, "inspector")) {
             editor_draw_inspector();
         } else if (!strcmp(type, "scene_info")) {

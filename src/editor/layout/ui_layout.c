@@ -183,9 +183,9 @@ static bool widget(Check *c, const cJSON *v, int depth) {
         return error_at(c, v, "only one interactive canvas per editor is supported");
     }
 
-    const char *specialized[] = {"file_tree",     "entity_tree", "map_canvas",
-                                 "script_editor", "inspector",   "scene_info",
-                                 "script_info",   "terminal",    NULL};
+    const char *specialized[] = {"file_tree",  "entity_tree",  "map_canvas",  "script_editor",
+                                 "inspector",  "scene_info",   "script_info", "terminal",
+                                 "map_layers", "tile_palette", NULL};
     for (int i = 0; specialized[i]; i++) {
         if (!strcmp(type, specialized[i])) {
             unsigned bit = 1u << i;
@@ -213,7 +213,8 @@ static bool widget(Check *c, const cJSON *v, int depth) {
                strcmp(type, "spacer") && strcmp(type, "file_tree") && strcmp(type, "entity_tree") &&
                strcmp(type, "map_canvas") && strcmp(type, "script_editor") &&
                strcmp(type, "inspector") && strcmp(type, "scene_info") &&
-               strcmp(type, "script_info") && strcmp(type, "terminal")) {
+               strcmp(type, "script_info") && strcmp(type, "terminal") &&
+               strcmp(type, "map_layers") && strcmp(type, "tile_palette")) {
         return error_at(c, v, "unknown widget type");
     }
 
@@ -273,14 +274,16 @@ static bool widget(Check *c, const cJSON *v, int depth) {
         return error_at(c, v, "unknown binding");
     }
 
-    const char *required =
-        !strcmp(type, "terminal")                                          ? "terminal.shared"
-        : !strcmp(type, "file_tree")                                       ? "project.files"
-        : !strcmp(type, "entity_tree")                                     ? "scene.entities"
-        : (!strcmp(type, "map_canvas") || !strcmp(type, "scene_info"))     ? "scene.active"
-        : !strcmp(type, "inspector")                                       ? "selection.active"
-        : (!strcmp(type, "script_editor") || !strcmp(type, "script_info")) ? "document.active"
-                                                                           : NULL;
+    const char *required = !strcmp(type, "terminal")      ? "terminal.shared"
+                           : !strcmp(type, "file_tree")   ? "project.files"
+                           : !strcmp(type, "entity_tree") ? "scene.entities"
+                           : (!strcmp(type, "map_canvas") || !strcmp(type, "scene_info") ||
+                              !strcmp(type, "map_layers") || !strcmp(type, "tile_palette"))
+                               ? "scene.active"
+                           : !strcmp(type, "inspector") ? "selection.active"
+                           : (!strcmp(type, "script_editor") || !strcmp(type, "script_info"))
+                               ? "document.active"
+                               : NULL;
     if (!required && pe_ui_get(v, "binding")) {
         return error_at(c, v, "binding property is unavailable on this widget");
     }
@@ -289,7 +292,8 @@ static bool widget(Check *c, const cJSON *v, int depth) {
     }
 
     bool map_only = !strcmp(type, "entity_tree") || !strcmp(type, "map_canvas") ||
-                    !strcmp(type, "scene_info") || !strcmp(type, "inspector");
+                    !strcmp(type, "scene_info") || !strcmp(type, "inspector") ||
+                    !strcmp(type, "map_layers") || !strcmp(type, "tile_palette");
     bool script_only = !strcmp(type, "script_editor") || !strcmp(type, "script_info");
     if ((map_only && (!c->module || strcmp(c->module, "map"))) ||
         (script_only && (!c->module || strcmp(c->module, "scripts")))) {

@@ -25,7 +25,7 @@ Wenn alle Komponenten entfernt sind, bleibt die Entity im Scene-Baum auswählbar
 
 ## Navigation und Verlauf
 
-Auswahl einer Entity im Scene-Baum oder Canvas öffnet deren Inspector. Die globalen Bereiche für Ebenen und Tile-Palette werden dabei zugeklappt, um Platz für die Komponenten zu schaffen; sie lassen sich weiterhin öffnen.
+Auswahl einer Entity im Scene-Baum oder Canvas öffnet deren Inspector. Layer und Tile-Palette liegen in eigenen Tabs: Map links und Tiles rechts. Der Inspector enthält ausschließlich die Entity und ihre Komponenten. Die Entity-Auswahl ändert den Aufklappzustand dieser anderen Panels nicht.
 
 Erstellen/Entfernen von Komponenten und Änderungen ihrer Einstellungen verwenden denselben Undo-/Redo-Verlauf wie die Szene. Automatisch ergänzte Abhängigkeiten sind Teil eines gemeinsamen Schritts. Während Play und laufenden Canvas-Gesten sind Änderungen gesperrt.
 

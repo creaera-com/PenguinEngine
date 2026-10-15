@@ -12,7 +12,6 @@ static const struct {
 void editor_inspect_entity(void) {
     app.right_tabs.selected = UI_INSPECTOR_TAB;
     app.entity_open = true;
-    app.layers_open = app.palette_open = false;
     app.inspector_view.offset = 0;
     app.map->component_add_open = false;
 }

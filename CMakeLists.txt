@@ -176,6 +176,8 @@ if(PENGUIN_BUILD_EDITOR)
   src/editor/editors/map/document.c
   src/editor/editors/map/tools.c
   src/editor/editors/map/panels.c
+  src/editor/editors/map/map_panel.c
+  src/editor/editors/map/tiles_panel.c
   src/editor/editors/map/components.c
   src/editor/editors/map/scene_tree.c
   src/editor/editors/map/canvas.c

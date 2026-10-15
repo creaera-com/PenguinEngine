@@ -81,6 +81,14 @@
 #define UI_SCENE_SCROLL 0x1000eu
 /** @brief Interne Widget-ID UI_INFO_SCROLL. */
 #define UI_INFO_SCROLL 0x1000fu
+/** @brief Stabile ID des linken Map-Tabs. */
+#define UI_MAP_TAB 0x10020u
+/** @brief Stabile ID des rechten Tiles-Tabs. */
+#define UI_TILES_TAB 0x10021u
+/** @brief Scrollbar-ID der Ebenenverwaltung. */
+#define UI_MAP_SCROLL 0x10022u
+/** @brief Scrollbar-ID der Tileset-Verwaltung. */
+#define UI_TILES_SCROLL 0x10023u
 
 /** @brief Serialisierbarer Zustand einer YAML-Tabgruppe oder eines klappbaren Bereichs. */
 typedef struct {
@@ -115,6 +123,8 @@ typedef struct {
     UiTabs left_tabs;            ///< Linke kontextabhängige Tabgruppe.
     UiTabs right_tabs;           ///< Rechte kontextabhängige Tabgruppe.
     UiScroll tree_view;          ///< Scrollzustand des Projektbaums.
+    UiScroll map_view;           ///< Unabhängiger Scrollzustand der Ebenenverwaltung.
+    UiScroll tiles_view;         ///< Unabhängiger Scrollzustand der Tileset-/Tile-Verwaltung.
     UiScroll inspector_view;     ///< Scrollzustand des Inspectors.
     UiScroll scene_view;         ///< Scrollzustand der Entity-Liste.
     UiScroll info_view;          ///< Scrollzustand der Szeneninformationen.

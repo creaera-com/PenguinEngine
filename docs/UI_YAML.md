@@ -158,7 +158,7 @@ Bei wiederholten Datenzeilen, etwa Entities, ergänzt der Widgetrenderer eine st
 
 ## Erste Elemente
 
-Die folgenden Adapter sind implementiert. Spezialisierte Typen (`file_tree`, `entity_tree`, `map_canvas`, `script_editor`, `inspector`, `scene_info`, `script_info`, `terminal`) dürfen in dieser ersten Version jeweils nur einmal pro Editorbeschreibung vorkommen; ihre internen C-Zustände sind noch nicht für mehrere Instanzen ausgelegt. Allgemeine Labels, Buttons und Container können mehrfach mit unterschiedlichen IDs vorkommen. Spezialisierte Widgets verwenden weiterhin die bestehenden C-Eingabe- und Renderfunktionen; YAML ordnet sie an und bindet ihre Datenquelle.
+Die folgenden Adapter sind implementiert. Spezialisierte Typen (`file_tree`, `entity_tree`, `map_canvas`, `script_editor`, `inspector`, `scene_info`, `script_info`, `terminal`, `map_layers`, `tile_palette`) dürfen in dieser ersten Version jeweils nur einmal pro Editorbeschreibung vorkommen; ihre internen C-Zustände sind noch nicht für mehrere Instanzen ausgelegt. Allgemeine Labels, Buttons und Container können mehrfach mit unterschiedlichen IDs vorkommen. Spezialisierte Widgets verwenden weiterhin die bestehenden C-Eingabe- und Renderfunktionen; YAML ordnet sie an und bindet ihre Datenquelle.
 
 | Typ | Zusätzliche Felder / Aufgabe | Grundlage |
 | --- | --- | --- |
@@ -176,7 +176,9 @@ Die folgenden Adapter sind implementiert. Spezialisierte Typen (`file_tree`, `en
 | `entity_tree` | `binding: scene.entities` | Bisherige Scene-Liste |
 | `map_canvas` | `binding: scene.active` | Vorhandener Map-Renderer und seine Eingaben |
 | `script_editor` | `binding: document.active` | Vorhandener Texteditor mit Syntaxprüfung |
-| `inspector` | `binding: selection.active` | Bisheriger Map-/Entity-Inspector |
+| `inspector` | `binding: selection.active` | Entity und Komponenten |
+| `map_layers` | `binding: scene.active` | Karteninformationen und Layerverwaltung |
+| `tile_palette` | `binding: scene.active` | Tileset-Import, Source-Tilegröße und Palette |
 | `scene_info`, `script_info` | Passendes Szenen-/Dokumentbinding | Bisherige Infoansichten |
 
 Tabs belegen die gemessene Text-/Iconbreite mit Innenabstand; ein YAML-Autor muss keine Buchstabenbreiten ausrechnen. Der aktive Tab schließt am Panel an. Umsortierung und Scrollen bleiben Aufgabe des Containers. `tabs` darf nicht leer sein; ohne gespeicherten Zustand wird der erste Tab ausgewählt. `section.open` gilt nur bei der ersten Instanziierung ohne gespeicherten Zustand.
@@ -320,3 +322,27 @@ Wurzel-Erstellen benötigt keine Auswahl. Geschwister, Kind und Löschen benöti
 Der vorhandene spezialisierte Knoten `{type: inspector, id: inspector, binding: selection.active}` zeigt die Komponenten der ausgewählten Entity. Die Inhalte werden aus ihrer ECS-Maske und der C-Komponentenregistrierung erzeugt. Die YAML legt weiterhin fest, in welchem Panel der Inspector liegt; das konkrete Transform-/Sprite-/Body-/Player-Formular wird im Map-Modul gepflegt. Es gibt dafür noch keine beliebigen benutzerdefinierten Komponentenfelder aus YAML.
 
 Jede Komponenten-Karte ist einzeln klappbar, verwendet denselben aufgehellten Theme-Hintergrund wie der Dateibaum und hat einen Entfernen-Button. `Add component` zeigt die fehlenden Komponenten. Abhängigkeiten werden beim Hinzufügen gemeinsam ergänzt; Entfernen ist bei verletzten Abhängigkeiten deaktiviert und hat einen erklärenden Tooltip. Dokumentänderungen nutzen den Undo-Verlauf, die Klappzustände werden als Navigation im Map-Checkpoint gesichert. Siehe [COMPONENTS.md](COMPONENTS.md).
+
+
+## Getrennte Map-, Tiles- und Entity-Panels
+
+Im Map-Editor stehen links Explorer, Scene und Map; rechts Inspector, Info und Tiles. Der Inspector enthält ausschließlich Entity-/Komponentenfunktionen. Die Tabs und Adapter werden in der Map-YAML beschrieben:
+
+```yaml
+# In columns.left.tabs:
+- id: map_tab
+  title: "Map"
+  content: {type: map_layers, id: layers, binding: scene.active}
+
+# In columns.right.tabs:
+- id: tiles_tab
+  title: "Tiles"
+  icon: image
+  content: {type: tile_palette, id: tiles, binding: scene.active}
+```
+
+Beide Adapter sind Map-spezifisch und dürfen wie die anderen spezialisierten Widgets höchstens einmal pro Layout vorkommen. Der linke Tab verwaltet Layerauswahl, Sichtbarkeit, Hinzufügen, Löschen, Umbenennen und Reihenfolge. Rechts liegen der aktuelle Tileset-Pfad, PNG-Import, Source-Tilegröße und die Tile-Auswahl. `map_layers` und `tile_palette` besitzen jeweils eigene Scrollbars und Scrollzustände. Mausrad und Scrollbar-Capture routen zum aktiven Tab. F6 und Editorwechsel erhalten Auswahl, Tabreihenfolge und Scrollpositionen.
+
+Die Entity-Auswahl öffnet den Inspector und lässt den Layer- und Palettenzustand unberührt. Im Script-Editor werden diese Map-spezifischen Tabs nicht geladen. `--map-tools` startet direkt mit Map links und Tiles rechts; `--scripts` hat Vorrang. Die Engine unterstützt weiterhin genau ein Tileset pro Szene; der neue Tab führt noch keine Mehrfach-Tilesets ein.
+
+![Map und Tiles](images/map-tiles.png)

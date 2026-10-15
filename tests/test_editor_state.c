@@ -318,8 +318,30 @@ static void test_scene_tree_tools_schema(void) {
     free(invalid);
 }
 
+static void test_map_panel_widgets_are_typed_and_unique(void) {
+    rejects("schema: penguin.ui/v1\nkind: editor\nid: map\ndocument_provider: scene\ntoolbar: "
+            "[]\ncolumns:\n"
+            "  left: {type: map_layers, id: layers, binding: selection.active}\n"
+            "  center: {type: map_canvas, id: canvas, binding: scene.active}\n"
+            "  right: {type: tile_palette, id: tiles, binding: scene.active}\n",
+            "incompatible");
+    rejects("schema: penguin.ui/v1\nkind: editor\nid: map\ndocument_provider: scene\ntoolbar: "
+            "[]\ncolumns:\n"
+            "  left: {type: tile_palette, id: first, binding: scene.active}\n"
+            "  center: {type: map_canvas, id: canvas, binding: scene.active}\n"
+            "  right: {type: tile_palette, id: second, binding: scene.active}\n",
+            "only once");
+    rejects("schema: penguin.ui/v1\nkind: editor\nid: scripts\ndocument_provider: script\ntoolbar: "
+            "[]\ncolumns:\n"
+            "  left: {type: map_layers, id: layers, binding: scene.active}\n"
+            "  center: {type: script_editor, id: document, binding: document.active}\n"
+            "  right: {type: spacer, id: empty}\n",
+            "unavailable");
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_map_panel_widgets_are_typed_and_unique);
     RUN_TEST(test_scene_tree_tools_schema);
     RUN_TEST(test_split_and_terminal_schema);
     RUN_TEST(test_terminal_binding_and_uniqueness);
