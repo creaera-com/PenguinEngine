@@ -15,7 +15,7 @@ Die erste Basis ist implementiert. Dieses Dokument beschreibt den tatsächlichen
 | `engine/src/scene.c` | Validiertes JSON-Laden, Speichern und Projektmanifest. |
 | `engine/include/penguin/render.h` | SDL-Rendering und Textur-Lebenszyklus. |
 | `engine/src/render.c` | PNG-Laden, Tile-Zeichnung, Entity-Darstellung, Raster und Kollisionsanzeige. |
-| `editor/src/ui.c` / `ui.h` | Dunkelgrau-/Orange-Theme, abgerundete Buttons und gezeichnete Icons. |
+| `ui/src/core.c`, `ui/src/sdl.c` und öffentliche UI-Header | Gemeinsame Widget-Logik, Flat-Rendering, Icons und Themes für Editor und Spiele. |
 | `editor/src/main.c` | Editor-Oberfläche, Eingabe, Dateibaum und Bearbeitungsabläufe. |
 | `examples/topdown/main.c` | Eigenständige Spielruntime ohne Editor. |
 | `tests/test_engine.c` | Unity-Tests der Kernregeln. |
@@ -112,7 +112,7 @@ Weltkoordinaten sind Pixel, X zeigt nach rechts und Y nach unten. Die Kamera spe
 
 Der Renderer zeichnet sichtbare Tile-Ebenen, danach Entity-Rechtecke. Die erste Version hat noch keine frei konfigurierbare Sprite-Sortierung. Die Szene ist auf den mittleren Viewport begrenzt. PNG-Texturen verwenden nearest-neighbor filtering. Subpixel-Zoom ist im Editor erlaubt; eine feste interne Spielauflösung mit ganzzahliger Skalierung ist noch nicht umgesetzt.
 
-Die eigene Editor-GUI verwendet dunkelgraue Panels, orange Akzente, abgerundete Buttons und `SDL_RenderDebugText`. Das Farbschema ist zentral in `editor/src/ui.h` definiert. Die Icons werden mit SDL-Linien und Flächen gezeichnet, benötigen keine Icon-Schrift oder Bilddateien und folgen den Hover-, Auswahl- und Deaktiviert-Zuständen. Werkzeugbuttons zeigen Tooltips mit Namen und Tastenkürzeln. Die kompakte Toolbar enthält keinen App-Titel; EDIT/PLAY und Saved/Modified stehen unten in der Statuszeile zusammen mit Zoom, Tile-Auswahl und Undo-Verlauf. Panel-Positionen richten sich nach der Toolbar-Höhe. Sie benötigt keine zusätzliche GUI-Abhängigkeit. Textfelder akzeptieren SDL-Texteingabe; Backspace entfernt ein UTF-8-Zeichen, aber die Debug-Schrift stellt nicht alle Unicode-Zeichen dar. Der Script-Editor ergänzt Textauswahl und Zwischenablage. Die kleinen Inspector-/Modal-Felder bleiben einfache Eingaben. Docking und frei verschiebbare Panels sind noch nicht vorhanden.
+Die Editor-GUI verwendet die gemeinsame `penguin_ui`-/`penguin_ui_sdl`-Bibliothek: dunklere graue Panels, orange Akzente, gerade Kanten und einfarbige Buttons/Tabs ohne Rundungen. Text nutzt `SDL_RenderDebugText`; Standardfarben und `UiTheme` sind in `ui/include/penguin/ui_sdl.h` definiert. Komponenten, API und Verwendung in Spielen erklärt [UI_BIBLIOTHEK.md](UI_BIBLIOTHEK.md). Die Icons werden mit SDL-Linien und Flächen gezeichnet, benötigen keine Icon-Schrift oder Bilddateien und folgen den Hover-, Auswahl- und Deaktiviert-Zuständen. Werkzeugbuttons zeigen Tooltips mit Namen und Tastenkürzeln. Die kompakte Toolbar enthält keinen App-Titel; EDIT/PLAY und Saved/Modified stehen unten in der Statuszeile zusammen mit Zoom, Tile-Auswahl und Undo-Verlauf. Panel-Positionen richten sich nach der Toolbar-Höhe und den ziehbaren Spaltentrennern. Inspector-Bereiche sind klappbar, Tabs umsortierbar und Scrollbars werden bei überlaufendem Inhalt angezeigt. Sie benötigt keine zusätzliche GUI-Abhängigkeit. Textfelder akzeptieren SDL-Texteingabe; Backspace entfernt ein UTF-8-Zeichen, aber die Debug-Schrift stellt nicht alle Unicode-Zeichen dar. Der Script-Editor ergänzt Textauswahl und Zwischenablage. Die kleinen Inspector-/Modal-Felder bleiben einfache Eingaben. Docking und frei verschiebbare Panels sind noch nicht vorhanden.
 
 ## Play-Modus und Kollision
 
@@ -142,11 +142,11 @@ Für eine spätere umfangreiche Completion wäre eine LSP-Anbindung, etwa an ein
 
 Unity 2.6.1 prüft 33 Engine-Regeln, unter anderem Entity-Lebenszyklen, Kapazität, Rastergrenzen, Füllen, gruppierte Commands, Historienbegrenzung, gespeicherte Revisionen, Kameraanker, Kollision, Dateiformate und abgelehnte Szenendaten.
 
-32 weitere Unity-Tests prüfen Textbearbeitung, UTF-8-Grenzen, Dateioperationen, Parserfehler mit Zeilenangabe, Compile-only-Verhalten, Imports, Highlighting und Vervollständigung. Insgesamt laufen acht CTest-Prüfungen.
+32 weitere Unity-Tests prüfen Textbearbeitung, UTF-8-Grenzen, Dateioperationen, Parserfehler mit Zeilenangabe, Compile-only-Verhalten, Imports, Highlighting und Vervollständigung. 26 zusätzliche Unity-Tests prüfen die SDL-unabhängige UI-Bibliothek. Insgesamt laufen 91 Unity-Tests in drei Suiten und zehn CTest-Prüfungen.
 
 Ein zusätzlicher CMake-Test prüft, dass die Beispielkopie korrekt eingerichtet wird und erneute Builds bearbeitete Dateien nicht überschreiben.
 
-Der Editor-Smoke-Test verwendet dieselben Eingabehandler wie Maus und Tastatur: Malen, Undo, Redo und Play/Stop werden ohne Desktop geprüft. Die Editor-Smoke-Tests prüfen zusätzlich Script-Eingabe, Completion, Undo/Redo, Syntaxfehler, den Schutz ungespeicherter Scripts und die Trennung von Szenenänderungen. Ein Test rendert ausdrücklich den Scripts-Tab. Ein weiterer Smoke-Test startet und rendert das Beispielspiel. SDL-Dummy-Tests ersetzen keine manuelle Desktop-Bedienungsprüfung.
+Der Editor-Smoke-Test verwendet dieselben Eingabehandler wie Maus und Tastatur: Malen, Undo, Redo und Play/Stop werden ohne Desktop geprüft. Die Editor-Smoke-Tests prüfen zusätzlich Spalten-Resize, Tab-Reihenfolge, klappbare Bereiche und Script-Scrollbar-Capture ohne Änderungen an Szene/Text sowie Script-Eingabe, Completion, Undo/Redo, Syntaxfehler, den Schutz ungespeicherter Scripts und die Trennung von Szenenänderungen. Ein Test rendert ausdrücklich den Scripts-Tab. Ein weiterer Smoke-Test startet und rendert das Beispielspiel. SDL-Dummy-Tests ersetzen keine manuelle Desktop-Bedienungsprüfung.
 
 In der lokalen verwalteten Umgebung verhindert die Prozessüberwachung LeakSanitizer (ptrace-Einschränkung). Hier werden AddressSanitizer und UndefinedBehaviorSanitizer mit `ASAN_OPTIONS=detect_leaks=0` ausgeführt; der CI-Job deaktiviert die Leak-Prüfung nicht.
 

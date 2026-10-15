@@ -8,7 +8,9 @@ Eine kleine 2D-Engine in **C17 mit SDL3**, einem einfachen ECS und einem Tilemap
 
 - Entities mit Generationen und Komponentenmasken; feste, geprüfte Kapazitäten.
 - Tilemaps mit bis zu vier Ebenen und separatem Kollisionsraster.
-- Dunkelgrau-/Orange-Editor mit Icon-Buttons und Werkzeug-Tooltips.
+- Wiederverwendbare C-UI-Bibliothek mit dunklem Flat-Design, geraden Kanten und orangefarbenen Akzenten.
+- Ziehbare Spaltentrenner, umsortierbare Tabs, Scrollbars und klappbare Inspector-Bereiche.
+- Icon-Buttons und Werkzeug-Tooltips.
 - Workspace-Tabs **Map** und **Scripts** mit JavaScript-Texteditor, Highlighting, Syntaxprüfung und einfacher Autovervollständigung.
 - Projekt-Dateibaum, PNG-Import per Drag-and-drop oder Dateipfad, Tile-Palette.
 - Pinsel, Radierer, Rechteck, Füllen, Entity-Auswahl und Verschieben.
@@ -76,7 +78,7 @@ Bei älteren Ständen mit `Cannot open example/project.json`: Working directory 
 
 ## Tests ohne SDL oder Fenster
 
-Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Insgesamt 65 Unity-Tests prüfen Engine-Kern, Textbearbeitung und JavaScript-Werkzeuge ohne Download.
+Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Insgesamt 91 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge und UI-Regeln ohne Download.
 
 ```sh
 cmake -S . -B build-core -DPENGUIN_BUILD_EDITOR=OFF
@@ -92,7 +94,7 @@ cmake --build build-asan --parallel
 ctest --test-dir build-asan --output-on-failure
 ```
 
-Die vollständige Testsuite enthält acht CTest-Prüfungen mit den Unity-Suiten sowie Headless-Smoke-Tests mit dem SDL-Dummy-Treiber. In einer Linux-Umgebung ohne X11-/Wayland-Entwicklungsbibliotheken kann ausschließlich für Headless-Prüfungen `-DSDL_UNIX_CONSOLE_BUILD=ON` verwendet werden; dieser Build ersetzt keinen Desktop-Build.
+Die vollständige Testsuite enthält zehn CTest-Prüfungen mit den Unity-Suiten sowie Headless-Smoke-Tests mit dem SDL-Dummy-Treiber. In einer Linux-Umgebung ohne X11-/Wayland-Entwicklungsbibliotheken kann ausschließlich für Headless-Prüfungen `-DSDL_UNIX_CONSOLE_BUILD=ON` verwendet werden; dieser Build ersetzt keinen Desktop-Build.
 
 ## Bedienung
 
@@ -113,6 +115,19 @@ Die vollständige Testsuite enthält acht CTest-Prüfungen mit den Unity-Suiten 
 
 `Collision` schaltet die Werkzeuge auf das separate Kollisionsraster um. Rote Felder blockieren die Figur; sichtbare Wand-Tiles und Kollisionen sind unabhängig. `Select` wählt Entities und erlaubt Ziehen. Ein Pinselstrich oder Ziehen ist ein Undo-Schritt. Escape verwirft eine laufende Bearbeitung.
 
+## Gemeinsame UI-Bibliothek
+
+`penguin_ui` enthält SDL-unabhängige Widget-/Layoutlogik, `penguin_ui_sdl` die Darstellung. Beide Targets sind für Editor und Spiele wiederverwendbar. Das eigenständige Demo benötigt weder ECS noch JavaScript:
+
+```sh
+cmake --build build --target penguin_ui_demo --config Debug
+./build/penguin_ui_demo
+```
+
+In CLion `penguin_ui_demo` starten. Im Editor die vertikalen Spaltentrenner ziehen, Tabs per Drag-and-drop umsortieren und Inspector-Bereiche per Überschrift auf-/zuklappen. Scrollbars erscheinen bei überlaufendem Inhalt. Layoutwerte bleiben zunächst nur während der Sitzung erhalten.
+
+Details und ein C-/CMake-Beispiel stehen in [UI_BIBLIOTHEK.md](docs/UI_BIBLIOTHEK.md).
+
 ## Script-Editor
 
 Über der Arbeitsfläche wechseln **Map** und **Scripts** zwischen Karte und Texteditor. `.js`-Dateien im Dateibaum öffnen den Scripts-Tab; JavaScript-Dateien lassen sich auch ins Fenster ziehen. Das Beispiel enthält `scripts/player.js`.
@@ -130,6 +145,7 @@ QuickJS-ng prüft echte JavaScript-/ES-Modulsyntax, **führt den Code aber nicht
 
 ## Dokumentation
 
+- [UI-Bibliothek, Komponenten und Verwendung in Spielen](docs/UI_BIBLIOTHEK.md)
 - [Bedienung, Architektur und Erweiterungen](docs/IMPLEMENTIERUNG.md)
 - [Ursprüngliches Konzept und Entwicklungsplan](docs/ENGINE_KONZEPT.md)
 - [Manueller Prüfablauf](docs/TESTPLAN.md)

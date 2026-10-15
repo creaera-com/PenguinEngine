@@ -6,6 +6,9 @@
 #define LINE_HEIGHT 18
 #define CHAR_WIDTH 8
 #define GUTTER 54
+#define SCRIPT_VSCROLL 0x10005u
+#define SCRIPT_HSCROLL 0x10006u
+#define SCRIPT_DOCUMENT 0x10007u
 static bool inside(float x, float y, SDL_FRect r) {
     return x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;
 }
@@ -21,7 +24,44 @@ static void text(SDL_Renderer *r, float x, float y, const char *s, Uint32 c) {
     SDL_RenderDebugText(r, x, y, s);
 }
 static void layout(PeScriptEditor *e, SDL_FRect a) {
-    e->body = (SDL_FRect){a.x + GUTTER, a.y + 38, a.w - GUTTER - 12, a.h - 86};
+    e->body = (SDL_FRect){a.x + GUTTER, a.y + 38, a.w - GUTTER - 18, a.h - 98};
+}
+static void extent(PeScriptEditor *e) {
+    if (e->extent_revision != e->document.revision) {
+        int lines = 1, column = 0, max = 0;
+        for (size_t p = 0; p < e->document.length; p = pe_text_next(&e->document, p)) {
+            if (e->document.text[p] == '\n') {
+                if (column > max)
+                    max = column;
+                column = 0;
+                lines++;
+            } else
+                column += e->document.text[p] == '\t' ? 4 - column % 4 : 1;
+        }
+        if (column > max)
+            max = column;
+        e->line_count = lines;
+        e->max_column = max;
+        e->extent_revision = e->document.revision;
+    }
+    e->vertical = (UiScroll){e->top_line * LINE_HEIGHT, (e->line_count + 1) * LINE_HEIGHT,
+                             floorf(e->body.h / LINE_HEIGHT) * LINE_HEIGHT};
+    e->horizontal = (UiScroll){e->left_column * CHAR_WIDTH, (e->max_column + 1) * CHAR_WIDTH,
+                               floorf(e->body.w / CHAR_WIDTH) * CHAR_WIDTH};
+    ui_scroll_clamp(&e->vertical);
+    ui_scroll_clamp(&e->horizontal);
+}
+static UiRect vertical_track(PeScriptEditor *e, SDL_FRect area) {
+    return (UiRect){area.x + area.w - 12, e->body.y, 8, e->body.h};
+}
+static UiRect horizontal_track(PeScriptEditor *e) {
+    return (UiRect){e->body.x, e->body.y + e->body.h + 4, e->body.w, 8};
+}
+bool se_scroll_hit(PeScriptEditor *e, float x, float y, SDL_FRect area) {
+    layout(e, area);
+    extent(e);
+    return (ui_scroll_max(&e->vertical) > 0 && ui_contains(vertical_track(e, area), x, y)) ||
+           (ui_scroll_max(&e->horizontal) > 0 && ui_contains(horizontal_track(e), x, y));
 }
 static void reveal(PeScriptEditor *e, SDL_FRect area) {
     layout(e, area);
@@ -40,6 +80,9 @@ static void reveal(PeScriptEditor *e, SDL_FRect area) {
         e->left_column = col;
     if (col >= e->left_column + columns)
         e->left_column = col - columns + 1;
+    extent(e);
+    e->top_line = (int)(e->vertical.offset / LINE_HEIGHT);
+    e->left_column = (int)(e->horizontal.offset / CHAR_WIDTH);
 }
 void se_check(PeScriptEditor *e) {
     e->diagnostic = pe_js_check(e->document.text, e->path);
@@ -61,6 +104,7 @@ bool se_init(PeScriptEditor *e, const char *root) {
             return false;
         e->exists = true;
     }
+    e->extent_revision = UINT64_MAX;
     e->highlighted_revision = UINT64_MAX;
     e->checked_revision = UINT64_MAX;
     e->goal_column = -1;
@@ -311,19 +355,13 @@ bool se_event(PeScriptEditor *e, SDL_Window *window, const SDL_Event *event, SDL
     }
     if (event->type == SDL_EVENT_MOUSE_WHEEL &&
         inside(event->wheel.mouse_x, event->wheel.mouse_y, area)) {
-        if (SDL_GetModState() & SDL_KMOD_SHIFT) {
-            e->left_column -= (int)event->wheel.y * 4;
-            if (e->left_column < 0)
-                e->left_column = 0;
-        } else {
-            e->top_line -= (int)event->wheel.y * 3;
-            int max_line, col;
-            pe_text_location(d, d->length, &max_line, &col);
-            if (e->top_line < 0)
-                e->top_line = 0;
-            if (e->top_line > max_line)
-                e->top_line = max_line;
-        }
+        extent(e);
+        if (SDL_GetModState() & SDL_KMOD_SHIFT)
+            ui_scroll_by(&e->horizontal, -event->wheel.y * 32);
+        else
+            ui_scroll_by(&e->vertical, -event->wheel.y * 54);
+        e->top_line = (int)(e->vertical.offset / LINE_HEIGHT);
+        e->left_column = (int)(e->horizontal.offset / CHAR_WIDTH);
         e->show_completion = false;
         return true;
     }
@@ -366,8 +404,15 @@ bool se_event(PeScriptEditor *e, SDL_Window *window, const SDL_Event *event, SDL
     }
     return false;
 }
-void se_draw(PeScriptEditor *e, SDL_Renderer *r, SDL_FRect area, float mx, float my, bool click) {
+void se_draw(PeScriptEditor *e, SDL_Renderer *r, UiContext *context, SDL_FRect area, float mx,
+             float my, bool click) {
     layout(e, area);
+    extent(e);
+    UiRect vtrack = vertical_track(e, area), htrack = horizontal_track(e);
+    ui_scrollbar(context, SCRIPT_VSCROLL, vtrack, &e->vertical, UI_AXIS_Y);
+    ui_scrollbar(context, SCRIPT_HSCROLL, htrack, &e->horizontal, UI_AXIS_X);
+    e->top_line = (int)(e->vertical.offset / LINE_HEIGHT);
+    e->left_column = (int)(e->horizontal.offset / CHAR_WIDTH);
     PeText *d = &e->document;
     if (e->highlighted_revision != d->revision) {
         pe_js_highlight(d->text, e->tokens, d->length);
@@ -385,8 +430,12 @@ void se_draw(PeScriptEditor *e, SDL_Renderer *r, SDL_FRect area, float mx, float
     SDL_FRect check = {area.x + area.w - 158, area.y + 3, 146, 24};
     bool hover = inside(mx, my, check);
     ui_draw_button(r, check, ICON_CHECK, "Check (F7)", false, true, hover);
-    if (click && hover)
+    if (ui_button(context, ui_id("script_check"), (UiRect){check.x, check.y, check.w, check.h},
+                  true)) {
         se_check(e);
+        ui_focus(context, SCRIPT_DOCUMENT);
+        se_focus(e, e->window, true);
+    }
     SDL_Rect clip = {(int)area.x, (int)e->body.y, (int)area.w, (int)e->body.h};
     SDL_SetRenderClipRect(r, &clip);
     int caret_line, caret_col;
@@ -444,6 +493,8 @@ void se_draw(PeScriptEditor *e, SDL_Renderer *r, SDL_FRect area, float mx, float
         rect(r, (SDL_FRect){cx, cy + 2, 2, LINE_HEIGHT - 3}, UI_ACCENT);
     }
     SDL_SetRenderClipRect(r, NULL);
+    ui_draw_scrollbar(r, context, SCRIPT_VSCROLL, vtrack, &e->vertical, UI_AXIS_Y);
+    ui_draw_scrollbar(r, context, SCRIPT_HSCROLL, htrack, &e->horizontal, UI_AXIS_X);
     SDL_FRect diagnostic = {area.x, area.y + area.h - 40, area.w, 40};
     rect(r, diagnostic, UI_PANEL);
     ui_icon(r, e->diagnostic.valid ? ICON_CHECK : ICON_COLLISION, area.x + 12, diagnostic.y + 11,
@@ -476,12 +527,12 @@ void se_draw(PeScriptEditor *e, SDL_Renderer *r, SDL_FRect area, float mx, float
         if (y + height > diagnostic.y)
             y = fmaxf(e->body.y, y - height - LINE_HEIGHT);
         e->popup = (SDL_FRect){x, y, 212, height};
-        ui_round_rect(r, e->popup, 5, UI_BORDER);
+        ui_panel(r, e->popup, UI_BORDER);
         for (int i = 0; i < e->completions.count; i++) {
             SDL_FRect item = {x + 1, y + i * 22 + 1, 210, 21};
             rect(r, item, i == e->completion_index ? UI_ACCENT_BG : UI_SURFACE);
             text(r, x + 10, y + i * 22 + 7, e->completions.values[i],
-                 i == e->completion_index ? UI_ACCENT : UI_TEXT);
+                 i == e->completion_index ? UI_CANVAS : UI_TEXT);
         }
     }
 }
