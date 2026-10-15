@@ -152,27 +152,33 @@ static bool send_text(const char *text) {
 
 static void test_real_pty_commands_resize_interrupt_and_exit(void) {
     char error[256];
+    fprintf(stderr, "PTY: starting shell\n");
     process = pe_terminal_process_start(".", "/bin/sh", 8, 80, error, sizeof error);
     TEST_ASSERT_NOT_NULL_MESSAGE(process, error);
     TEST_ASSERT_TRUE(send_text("test -t 0 && printf '__%s__\\n' PTY_READY\n"));
     TEST_ASSERT_TRUE(await_text("__PTY_READY__"));
+    fprintf(stderr, "PTY: shell ready\n");
     TEST_ASSERT_TRUE(send_text("cd /; printf '__%s__\\n' \"$PWD\"\n"));
     TEST_ASSERT_TRUE(await_text("__/__"));
+    fprintf(stderr, "PTY: directory changed\n");
     TEST_ASSERT_TRUE(pe_terminal_process_resize(process, 11, 91));
     TEST_ASSERT_TRUE(send_text("stty size\n"));
     TEST_ASSERT_TRUE(await_text("11 91"));
+    fprintf(stderr, "PTY: resized\n");
     TEST_ASSERT_TRUE(send_text("sleep 30\n"));
     struct timespec delay = {0, 100000000};
     nanosleep(&delay, NULL);
     TEST_ASSERT_TRUE(send_text("\x03"));
     TEST_ASSERT_TRUE(send_text("printf '__%s__\\n' INTERRUPTED\n"));
     TEST_ASSERT_TRUE(await_text("__INTERRUPTED__"));
+    fprintf(stderr, "PTY: interrupt delivered\n");
     TEST_ASSERT_TRUE(send_text("exit\n"));
     for (int i = 0; i < 200 && pe_terminal_process_running(process); i++) {
         struct timespec pause = {0, 5000000};
         nanosleep(&pause, NULL);
     }
     TEST_ASSERT_FALSE(pe_terminal_process_running(process));
+    fprintf(stderr, "PTY: shell exited\n");
 }
 
 static void test_invalid_root_reports_error(void) {
@@ -185,12 +191,15 @@ static void test_invalid_root_reports_error(void) {
 #else
 static void test_unavailable_backend_reports_error(void) {
     char error[256] = {0};
+    fprintf(stderr, "PTY: starting shell\n");
     process = pe_terminal_process_start(".", NULL, 4, 20, error, sizeof error);
     TEST_ASSERT_NULL(process);
     TEST_ASSERT_TRUE(*error != 0);
 }
 #endif
 int main(void) {
+    /* Preserve completed tests in CTest logs even if a backend call hangs. */
+    setvbuf(stdout, NULL, _IONBF, 0);
     UNITY_BEGIN();
     RUN_TEST(test_colors_cursor_and_carriage_return);
     RUN_TEST(test_utf8_and_alternate_screen);
