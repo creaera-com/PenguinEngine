@@ -44,3 +44,8 @@ Die automatisierten Tests wurden in der Entwicklungsumgebung headless ausgeführ
 5. Map-/Scripts-Tabs umsortieren. Der Inhalt bleibt seinem Tab zugeordnet, Wechsel erhält Text und Kamera.
 6. Button drücken und außerhalb loslassen: keine Aktion. Fokusverlust während Drag beendet Capture.
 7. `penguin_ui_demo` starten und dieselben UI-Komponenten ohne Engine-/Editorfunktionen prüfen.
+
+8. Links Explorer/Scene und rechts Inspector/Info wechseln, auch im Scripts-Tab. Die Gruppen schalten unabhängig voneinander; ihre Tabs lassen sich innerhalb der Gruppe umsortieren. Die Inhalte folgen der Tab-ID.
+9. Scene: Entity anklicken. Map und Inspector werden aktiv, die passende Entity ist ausgewählt. Auswahl/Tabwechsel erzeugen keine Undo-Schritte. Löschen/Undo im Inspector aktualisieren die Scene-Liste. Leere Szenen zeigen einen Hinweis.
+10. Viele Entities anlegen und Scene scrollen; dann Explorer öffnen und zurückwechseln. Beide Scrollpositionen bleiben separat erhalten. Info zeigt aktuelle Szenenzahlen. Bei minimalen Spaltenbreiten passen die Tabtitel weiterhin.
+11. Zwischenräume der Spalten prüfen: keine sichtbaren Trennstriche, auch bei Hover. Resize-Cursor und Ziehen funktionieren weiterhin.

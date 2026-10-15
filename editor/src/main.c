@@ -13,6 +13,7 @@
 #define TABS 32
 #define BOTTOM 48
 #define PANEL_GAP 6
+#define SIDE_TOP (TOP + TABS)
 #define TREE_MAX 256
 #define UI_SPLIT_LEFT 0x10001u
 #define UI_SPLIT_RIGHT 0x10002u
@@ -23,6 +24,12 @@
 #define UI_SCRIPT_DOCUMENT 0x10007u
 #define UI_MAP_TAB 0x10008u
 #define UI_SCRIPT_TAB 0x10009u
+#define UI_EXPLORER_TAB 0x1000au
+#define UI_SCENE_TAB 0x1000bu
+#define UI_INSPECTOR_TAB 0x1000cu
+#define UI_INFO_TAB 0x1000du
+#define UI_SCENE_SCROLL 0x1000eu
+#define UI_INFO_SCROLL 0x1000fu
 typedef enum { BRUSH, ERASE, RECTANGLE, FILL, SELECT } Tool;
 typedef enum {
     FIELD_NONE,
@@ -47,8 +54,8 @@ typedef struct {
     SDL_Cursor *resize_cursor;
     UiContext ui;
     UiId widget_scope;
-    UiTabs tabs;
-    UiScroll tree_view, inspector_view;
+    UiTabs tabs, left_tabs, right_tabs;
+    UiScroll tree_view, inspector_view, scene_view, info_view;
     float left_width, right_width;
     bool layers_open, entity_open, palette_open;
     PeScene scene, runtime;
@@ -608,24 +615,114 @@ static void play_toggle(void) {
     } else
         message("Stopped; edited scene preserved");
 }
+static void draw_panel_tabs(UiTabs *tabs, UiRect bar, UiId first, const char *first_label,
+                            const char *second_label, UiIcon first_icon, UiIcon second_icon) {
+    float width = bar.w / 2;
+    ui_tabs_update(&app.ui, tabs, bar, width);
+    ui_clip_push(&app.ui, bar);
+    ui_apply_clip(app.renderer, &app.ui);
+    for (int i = 0; i < tabs->count; i++) {
+        UiRect r = ui_tab_rect(tabs, bar, width, i);
+        bool is_first = tabs->items[i].id == first;
+        ui_draw_tab(app.renderer, (SDL_FRect){r.x, r.y, r.w, r.h},
+                    width < 110 ? ICON_NONE
+                    : is_first  ? first_icon
+                                : second_icon,
+                    is_first ? first_label : second_label, tabs->selected == tabs->items[i].id,
+                    true, ui_hovered(&app.ui, r));
+    }
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
+}
+static void draw_scene_tree(void) {
+    section(14, SIDE_TOP + 18, ICON_ENTITY, "SCENE ENTITIES");
+    int count = 0;
+    for (int i = 0; i < PE_ENTITIES; i++)
+        if (app.scene.objects[i].alive)
+            count++;
+    app.scene_view.content = count ? count * 26.f : 26;
+    app.scene_view.viewport = (float)(app.height - SIDE_TOP - 46 - BOTTOM - PANEL_GAP);
+    ui_scroll_clamp(&app.scene_view);
+    UiRect track = {LEFT - 18, SIDE_TOP + 46, 8, app.scene_view.viewport};
+    ui_scrollbar(&app.ui, UI_SCENE_SCROLL, track, &app.scene_view, UI_AXIS_Y);
+    ui_clip_push(&app.ui, (UiRect){PANEL_GAP, SIDE_TOP + 46, LEFT - 24, app.scene_view.viewport});
+    ui_apply_clip(app.renderer, &app.ui);
+    float y = SIDE_TOP + 46 - app.scene_view.offset;
+    if (!count)
+        text(14, y + 8, "No entities in scene.", UI_MUTED);
+    for (int i = 0; i < PE_ENTITIES; i++) {
+        const PeObject *o = &app.scene.objects[i];
+        if (!o->alive)
+            continue;
+        char label[40];
+        snprintf(label, sizeof label, "%s %u", o->mask & PE_PLAYER ? "Player" : "Entity",
+                 o->stable_id);
+        app.widget_scope = ui_id("scene_entity") ^ o->stable_id;
+        if (icon_button(12, y, LEFT - 38, ICON_ENTITY, label, "Select entity",
+                        app.selected == o->stable_id, !app.playing && !app.history.pending)) {
+            app.selected = o->stable_id;
+            app.tool = SELECT;
+            app.right_tabs.selected = UI_INSPECTOR_TAB;
+            tab_select(false);
+        }
+        y += 26;
+    }
+    app.widget_scope = 0;
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
+    ui_draw_scrollbar(app.renderer, &app.ui, UI_SCENE_SCROLL, track, &app.scene_view, UI_AXIS_Y);
+}
+static void draw_info(void) {
+    float x = (float)(app.width - RIGHT + 12);
+    app.info_view.content = 340;
+    app.info_view.viewport = (float)(app.height - SIDE_TOP - BOTTOM - 16);
+    ui_scroll_clamp(&app.info_view);
+    UiRect track = {(float)(app.width - 18), SIDE_TOP + 8, 8, app.info_view.viewport};
+    ui_scrollbar(&app.ui, UI_INFO_SCROLL, track, &app.info_view, UI_AXIS_Y);
+    ui_clip_push(&app.ui, (UiRect){x - 4, SIDE_TOP + 8, RIGHT - 24, app.info_view.viewport});
+    ui_apply_clip(app.renderer, &app.ui);
+    float y = SIDE_TOP + 18 - app.info_view.offset;
+    section(x, y, ICON_FILE, "SCENE INFO");
+    char label[64];
+    snprintf(label, sizeof label, "Map: %d x %d tiles", app.scene.width, app.scene.height);
+    text(x, y + 32, label, UI_TEXT);
+    snprintf(label, sizeof label, "Tile size: %d px", app.scene.tile_size);
+    text(x, y + 56, label, UI_TEXT);
+    snprintf(label, sizeof label, "Layers: %d", app.scene.layer_count);
+    text(x, y + 80, label, UI_TEXT);
+    int count = 0;
+    for (int i = 0; i < PE_ENTITIES; i++)
+        if (app.scene.objects[i].alive)
+            count++;
+    snprintf(label, sizeof label, "Entities: %d / %d", count, PE_ENTITIES);
+    text(x, y + 104, label, UI_TEXT);
+    section(x, y + 148, ICON_EDIT, "SHORTCUTS");
+    const char *help[] = {"Ctrl+S  Save",    "Ctrl+Z  Undo",     "F5      Play / Stop",
+                          "MMB     Pan map", "Wheel   Zoom map", "B/E/R/F/V  Map tools"};
+    for (int i = 0; i < 6; i++)
+        text(x, y + 180 + i * 24, help[i], UI_MUTED);
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
+    ui_draw_scrollbar(app.renderer, &app.ui, UI_INFO_SCROLL, track, &app.info_view, UI_AXIS_Y);
+}
 static void draw_tree(void) {
-    section(14, TOP + 18, ICON_FOLDER, "PROJECT");
-    if (icon_button(LEFT - 46, TOP + 10, 32, ICON_REFRESH, "", "Refresh project files", false,
+    section(14, SIDE_TOP + 18, ICON_FOLDER, "PROJECT");
+    if (icon_button(LEFT - 46, SIDE_TOP + 10, 32, ICON_REFRESH, "", "Refresh project files", false,
                     true))
         tree_refresh();
     app.tree_view.content = app.tree_count * 23.f;
-    app.tree_view.viewport = (float)(app.height - TOP - 46 - BOTTOM - PANEL_GAP);
+    app.tree_view.viewport = (float)(app.height - SIDE_TOP - 46 - BOTTOM - PANEL_GAP);
     ui_scroll_clamp(&app.tree_view);
-    UiRect track = {LEFT - 18, TOP + 46, 8, app.tree_view.viewport};
+    UiRect track = {LEFT - 18, SIDE_TOP + 46, 8, app.tree_view.viewport};
     ui_scrollbar(&app.ui, UI_TREE_SCROLL, track, &app.tree_view, UI_AXIS_Y);
     app.tree_scroll = (int)(app.tree_view.offset / 23);
-    UiRect tree_clip = {PANEL_GAP, TOP + 46, LEFT - 24, app.tree_view.viewport};
+    UiRect tree_clip = {PANEL_GAP, SIDE_TOP + 46, LEFT - 24, app.tree_view.viewport};
     ui_clip_push(&app.ui, tree_clip);
     ui_apply_clip(app.renderer, &app.ui);
     int visible = (int)(app.tree_view.viewport / 23) + 2;
     for (int i = app.tree_scroll; i < app.tree_count && i < app.tree_scroll + visible; i++) {
         TreeRow row = app.tree[i];
-        float y = TOP + 50 + i * 23 - app.tree_view.offset;
+        float y = SIDE_TOP + 50 + i * 23 - app.tree_view.offset;
         char label[128];
         snprintf(label, sizeof label, "%.20s", row.name);
         SDL_FRect r = {8, y, LEFT - 24, 22};
@@ -676,10 +773,10 @@ static void draw_inspector(void) {
     char label[128], value[64];
     bool enabled = !app.playing;
     float w = RIGHT - 38, half = (w - 8) / 2;
-    UiRect panel = {(float)(app.width - RIGHT + 8), TOP + 8, (float)(RIGHT - 24),
-                    (float)(app.height - TOP - BOTTOM - 16)};
+    UiRect panel = {(float)(app.width - RIGHT + 8), SIDE_TOP + 8, (float)(RIGHT - 24),
+                    (float)(app.height - SIDE_TOP - BOTTOM - 16)};
     ui_scroll_clamp(&app.inspector_view);
-    float y = TOP + 18 - app.inspector_view.offset;
+    float y = SIDE_TOP + 18 - app.inspector_view.offset;
     ui_clip_push(&app.ui, panel);
     ui_apply_clip(app.renderer, &app.ui);
     disclosure(x, y, w, "Tilemap / Layers", &app.layers_open);
@@ -837,20 +934,20 @@ static void draw_inspector(void) {
         }
         y += ((total + columns - 1) / columns) * 37;
     }
-    app.inspector_view.content = y + app.inspector_view.offset - TOP + 8;
-    app.inspector_view.viewport = (float)(app.height - TOP - BOTTOM - 16);
+    app.inspector_view.content = y + app.inspector_view.offset - SIDE_TOP + 8;
+    app.inspector_view.viewport = (float)(app.height - SIDE_TOP - BOTTOM - 16);
     ui_scroll_clamp(&app.inspector_view);
     ui_clip_pop(&app.ui);
     ui_apply_clip(app.renderer, &app.ui);
-    UiRect track = {(float)(app.width - 18), TOP + 8, 8, app.inspector_view.viewport};
+    UiRect track = {(float)(app.width - 18), SIDE_TOP + 8, 8, app.inspector_view.viewport};
     ui_scrollbar(&app.ui, UI_INSPECTOR_SCROLL, track, &app.inspector_view, UI_AXIS_Y);
     ui_draw_scrollbar(app.renderer, &app.ui, UI_INSPECTOR_SCROLL, track, &app.inspector_view,
                       UI_AXIS_Y);
 }
 static void draw_script_inspector(void) {
-    float x = (float)(app.width - RIGHT + 12), y = TOP + 18 - app.inspector_view.offset;
-    UiRect clip = {(float)(app.width - RIGHT + 8), TOP + 8, (float)(RIGHT - 24),
-                   (float)(app.height - TOP - BOTTOM - 16)};
+    float x = (float)(app.width - RIGHT + 12), y = SIDE_TOP + 18 - app.inspector_view.offset;
+    UiRect clip = {(float)(app.width - RIGHT + 8), SIDE_TOP + 8, (float)(RIGHT - 24),
+                   (float)(app.height - SIDE_TOP - BOTTOM - 16)};
     ui_clip_push(&app.ui, clip);
     ui_apply_clip(app.renderer, &app.ui);
     section(x, y, ICON_FILE, "JAVASCRIPT");
@@ -868,11 +965,11 @@ static void draw_script_inspector(void) {
     text(x, y + 394, "document identifiers.", UI_TEXT);
     text(x, y + 426, "Type analysis / LSP later.", UI_MUTED);
     app.inspector_view.content = 460;
-    app.inspector_view.viewport = (float)(app.height - TOP - BOTTOM - 16);
+    app.inspector_view.viewport = (float)(app.height - SIDE_TOP - BOTTOM - 16);
     ui_scroll_clamp(&app.inspector_view);
     ui_clip_pop(&app.ui);
     ui_apply_clip(app.renderer, &app.ui);
-    UiRect track = {(float)(app.width - 18), TOP + 8, 8, app.inspector_view.viewport};
+    UiRect track = {(float)(app.width - 18), SIDE_TOP + 8, 8, app.inspector_view.viewport};
     ui_scrollbar(&app.ui, UI_INSPECTOR_SCROLL, track, &app.inspector_view, UI_AXIS_Y);
     ui_draw_scrollbar(app.renderer, &app.ui, UI_INSPECTOR_SCROLL, track, &app.inspector_view,
                       UI_AXIS_Y);
@@ -926,11 +1023,13 @@ static bool ui_controls_hit(float x, float y) {
         return true;
     if (y >= TOP && y < TOP + TABS && x >= LEFT && x < app.width - RIGHT)
         return true;
-    if (ui_scroll_max(&app.tree_view) > 0 && x >= LEFT - 20 && x < LEFT - PANEL_GAP &&
-        y >= TOP + 46 && y < app.height - BOTTOM)
+    if (ui_scroll_max(app.left_tabs.selected == UI_SCENE_TAB ? &app.scene_view : &app.tree_view) >
+            0 &&
+        x >= LEFT - 20 && x < LEFT - PANEL_GAP && y >= SIDE_TOP + 46 && y < app.height - BOTTOM)
         return true;
-    if (ui_scroll_max(&app.inspector_view) > 0 && x >= app.width - 20 &&
-        x < app.width - PANEL_GAP && y >= TOP && y < app.height - BOTTOM)
+    if (ui_scroll_max(app.right_tabs.selected == UI_INFO_TAB ? &app.info_view
+                                                             : &app.inspector_view) > 0 &&
+        x >= app.width - 20 && x < app.width - PANEL_GAP && y >= TOP && y < app.height - BOTTOM)
         return true;
     if (app.script_tab && se_scroll_hit(&app.script, x, y, app.viewport))
         return true;
@@ -1072,8 +1171,20 @@ static void draw(void) {
         }
     } else
         se_draw(&app.script, app.renderer, &app.ui, app.viewport, app.mx, app.my, app.click);
-    draw_tree();
-    if (app.script_tab)
+    draw_panel_tabs(&app.left_tabs,
+                    (UiRect){PANEL_GAP + 4, TOP + PANEL_GAP, LEFT - 2 * PANEL_GAP - 8, 25},
+                    UI_EXPLORER_TAB, "Explorer", "Scene", ICON_FOLDER, ICON_ENTITY);
+    draw_panel_tabs(&app.right_tabs,
+                    (UiRect){(float)(app.width - RIGHT + PANEL_GAP + 4), TOP + PANEL_GAP,
+                             RIGHT - 2 * PANEL_GAP - 8, 25},
+                    UI_INSPECTOR_TAB, "Inspector", "Info", ICON_ENTITY, ICON_FILE);
+    if (app.left_tabs.selected == UI_SCENE_TAB)
+        draw_scene_tree();
+    else
+        draw_tree();
+    if (app.right_tabs.selected == UI_INFO_TAB)
+        draw_info();
+    else if (app.script_tab)
         draw_script_inspector();
     else
         draw_inspector();
@@ -1116,12 +1227,6 @@ static void draw(void) {
     UiRect ls = left_split(), rs = right_split();
     bool resize = !modal && (ui_hovered(&app.ui, ls) || ui_hovered(&app.ui, rs) ||
                              app.ui.active == UI_SPLIT_LEFT || app.ui.active == UI_SPLIT_RIGHT);
-    box((SDL_FRect){LEFT - 1, TOP, 2, (float)(app.height - TOP - BOTTOM)},
-        resize && (app.ui.active == UI_SPLIT_LEFT || ui_hovered(&app.ui, ls)) ? UI_ACCENT
-                                                                              : UI_BORDER);
-    box((SDL_FRect){(float)(app.width - RIGHT - 1), TOP, 2, (float)(app.height - TOP - BOTTOM)},
-        resize && (app.ui.active == UI_SPLIT_RIGHT || ui_hovered(&app.ui, rs)) ? UI_ACCENT
-                                                                               : UI_BORDER);
     if (app.resize_cursor)
         SDL_SetCursor(resize ? app.resize_cursor : SDL_GetDefaultCursor());
     ui_end_frame(&app.ui);
@@ -1218,6 +1323,7 @@ static void event(SDL_Event *e) {
         ui_pointer(&app.ui, app.mx, app.my, e->type == SDL_EVENT_MOUSE_BUTTON_DOWN);
     bool captured = app.ui.active == UI_SPLIT_LEFT || app.ui.active == UI_SPLIT_RIGHT ||
                     app.ui.active == UI_TREE_SCROLL || app.ui.active == UI_INSPECTOR_SCROLL ||
+                    app.ui.active == UI_SCENE_SCROLL || app.ui.active == UI_INFO_SCROLL ||
                     app.ui.active == UI_SCRIPT_VSCROLL || app.ui.active == UI_SCRIPT_HSCROLL;
     if (!modal && (e->type == SDL_EVENT_MOUSE_MOTION || e->type == SDL_EVENT_MOUSE_BUTTON_UP) &&
         captured)
@@ -1273,9 +1379,13 @@ static void event(SDL_Event *e) {
                 pe_camera_zoom(&app.camera, app.mx - app.viewport.x, app.my - app.viewport.y,
                                powf(1.15f, e->wheel.y));
             else if (app.mx < LEFT)
-                ui_scroll_by(&app.tree_view, -e->wheel.y * 69);
+                ui_scroll_by(app.left_tabs.selected == UI_SCENE_TAB ? &app.scene_view
+                                                                    : &app.tree_view,
+                             -e->wheel.y * 69);
             else if (app.mx > app.width - RIGHT)
-                ui_scroll_by(&app.inspector_view, -e->wheel.y * 60);
+                ui_scroll_by(app.right_tabs.selected == UI_INFO_TAB ? &app.info_view
+                                                                    : &app.inspector_view,
+                             -e->wheel.y * 60);
             else if (app.my >= TOP && app.my < TOP + TABS)
                 ui_tabs_scroll(&app.tabs, (float)(app.width - LEFT - RIGHT - 20), 112,
                                -e->wheel.y * 56);
@@ -1483,7 +1593,7 @@ static bool verify_ui_layout(void) {
     smoke_pointer(SDL_EVENT_MOUSE_MOTION, x - 80, y);
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x - 80, y);
     ok = ok && fabsf(app.right_width - 360) < .01f;
-    float header_x = app.width - app.right_width + 30, header_y = TOP + 20;
+    float header_x = app.width - app.right_width + 30, header_y = SIDE_TOP + 20;
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, header_x, header_y);
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, header_x, header_y);
     ok = ok && !app.layers_open;
@@ -1493,6 +1603,31 @@ static bool verify_ui_layout(void) {
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, tab_x + 130, tab_y);
     ok = ok && app.tabs.items[0].id == UI_SCRIPT_TAB && app.tabs.items[1].id == UI_MAP_TAB &&
          !app.script_tab;
+    /* Sidebar navigation is independent of workspace tabs and scene history. */
+    float side_y = TOP + PANEL_GAP + 12;
+    float scene_tab_x = PANEL_GAP + 4 + (LEFT - 2 * PANEL_GAP - 8) * .75f;
+    float info_tab_x = app.width - RIGHT + PANEL_GAP + 4 + (RIGHT - 2 * PANEL_GAP - 8) * .75f;
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, scene_tab_x, side_y);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, scene_tab_x, side_y);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, info_tab_x, side_y);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, info_tab_x, side_y);
+    ok = ok && app.left_tabs.selected == UI_SCENE_TAB && app.right_tabs.selected == UI_INFO_TAB &&
+         !app.script_tab;
+    uint32_t saved_selected = app.selected;
+    int saved_tool = app.tool;
+    for (int i = 0; i < PE_ENTITIES; i++) {
+        if (!app.scene.objects[i].alive)
+            continue;
+        smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 60, SIDE_TOP + 58);
+        smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, 60, SIDE_TOP + 58);
+        ok = ok && app.selected == app.scene.objects[i].stable_id &&
+             app.right_tabs.selected == UI_INSPECTOR_TAB;
+        break;
+    }
+    app.selected = saved_selected;
+    app.tool = saved_tool;
+    app.left_tabs.selected = UI_EXPLORER_TAB;
+    app.right_tabs.selected = UI_INSPECTOR_TAB;
     PeText saved = app.script.document;
     char lines[4096] = "";
     for (int i = 0; i < 100; i++)
@@ -1578,6 +1713,10 @@ int main(int argc, char **argv) {
     app.layers_open = app.entity_open = app.palette_open = true;
     UiTab tabs[] = {{UI_MAP_TAB, true}, {UI_SCRIPT_TAB, true}};
     ui_tabs_init(&app.tabs, tabs, 2, UI_MAP_TAB);
+    UiTab left_tabs[] = {{UI_EXPLORER_TAB, true}, {UI_SCENE_TAB, true}};
+    UiTab right_tabs[] = {{UI_INSPECTOR_TAB, true}, {UI_INFO_TAB, true}};
+    ui_tabs_init(&app.left_tabs, left_tabs, 2, UI_EXPLORER_TAB);
+    ui_tabs_init(&app.right_tabs, right_tabs, 2, UI_INSPECTOR_TAB);
     app.resize_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE);
     app.width = 1280;
     app.height = 800;
