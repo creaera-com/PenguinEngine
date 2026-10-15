@@ -212,7 +212,7 @@ static void test_tab_scroll_and_duplicates(void) {
     UiTabs t;
     ui_tabs_init(&t, items, 2, 1);
     ui_tabs_scroll(&t, 100, 110, 999);
-    TEST_ASSERT_EQUAL_FLOAT(119, t.scroll);
+    TEST_ASSERT_EQUAL_FLOAT(118, t.scroll);
     ui_tabs_scroll(&t, 100, 110, -999);
     TEST_ASSERT_EQUAL_FLOAT(0, t.scroll);
     items[1].id = 1;
@@ -226,12 +226,12 @@ static void test_variable_tab_geometry_and_scroll(void) {
     UiRect bar = {10, 20, 200, 26};
     UiRect r = ui_tab_rect(&t, bar, 110, 1);
     TEST_ASSERT_EQUAL_FLOAT(74, r.x);
-    TEST_ASSERT_EQUAL_FLOAT(143, r.w);
+    TEST_ASSERT_EQUAL_FLOAT(142, r.w);
     ui_tabs_scroll(&t, 200, 110, 999);
-    TEST_ASSERT_EQUAL_FLOAT(87, t.scroll);
+    TEST_ASSERT_EQUAL_FLOAT(86, t.scroll);
     TEST_ASSERT_TRUE(ui_tabs_set_width(&t, 2, 100));
     ui_tabs_scroll(&t, 200, 110, 0);
-    TEST_ASSERT_EQUAL_FLOAT(43, t.scroll);
+    TEST_ASSERT_EQUAL_FLOAT(42, t.scroll);
     TEST_ASSERT_FALSE(ui_tabs_set_width(&t, 2, NAN));
     TEST_ASSERT_FALSE(ui_tabs_set_width(&t, 2, UI_TAB_GAP));
     TEST_ASSERT_FALSE(ui_tabs_set_width(&t, 99, 100));
