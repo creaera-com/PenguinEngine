@@ -46,7 +46,6 @@ toolbar:
   - {type: editor_switcher, id: editors, labels: false}
 
 window_controls:
-  - {type: button, id: window_collapse, icon: collapse, tooltip: "Wegklappen / Aufklappen", action: window.collapse}
   - {type: button, id: window_minimize, icon: minimize, tooltip: "Minimieren", action: window.minimize}
   - {type: button, id: window_maximize, icon: maximize, tooltip: "Maximieren / Wiederherstellen", action: window.maximize}
   - {type: button, id: window_close, icon: close, tooltip: "Schließen", action: window.close}
