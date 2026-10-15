@@ -57,25 +57,7 @@ static UiRect property_value(float x, float y, float w, const char *name) {
 static void property_field(float x, float y, float w, const char *name, const char *value,
                            const char *input, Field field, bool enabled) {
     UiRect cell = property_value(x, y, w, name);
-    UiId id = ui_id("component_input") ^ app.selected * 31u ^ (UiId)field * 16777619u;
-    if (!id) {
-        id = 1;
-    }
-    editor_register_ui_hit(cell);
-    bool focused = app.field_inline && app.field == field && app.field_entity == app.selected;
-    if (!focused && ui_button(&app.ui, id, cell, enabled)) {
-        editor_field_start_inline(field, input, id, cell);
-        focused = true;
-    }
-    UiTextEdit idle = {0};
-    if (focused) {
-        app.field_seen = true;
-        app.field_rect = cell;
-    }
-    ui_draw_text_input(app.renderer, (SDL_FRect){cell.x, cell.y, cell.w, cell.h},
-                       focused ? app.input : value, focused ? &app.field_edit : &idle, focused,
-                       enabled, focused && app.field_invalid,
-                       (SDL_GetTicks() - app.field_blink) % 1000 < 500);
+    editor_draw_input(field, value, input, cell, enabled);
 }
 
 static void number_field(float x, float y, float w, const char *name, float value, Field field,

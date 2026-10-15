@@ -166,8 +166,96 @@ static void test_settings_roundtrip_and_optional_velocity(void) {
     TEST_ASSERT_FALSE(pe_scene_save(&scene, FILE_NAME, error, sizeof error));
 }
 
+static void test_entity_names_validate_and_keep_identity(void) {
+    PeObject *o = pe_entity_get(&scene, entity);
+    TEST_ASSERT_EQUAL_STRING("Entity 1", o->name);
+    uint32_t id = o->stable_id;
+    TEST_ASSERT_TRUE(pe_entity_set_name(&scene, entity, "T\xc3\xbcr"));
+    TEST_ASSERT_EQUAL_UINT32(id, o->stable_id);
+    TEST_ASSERT_EQUAL_UINT32(0, o->mask);
+    original = scene;
+    char too_long[PE_ENTITY_NAME + 1];
+    memset(too_long, 'a', sizeof too_long - 1);
+    too_long[sizeof too_long - 1] = 0;
+    TEST_ASSERT_FALSE(pe_entity_set_name(&scene, entity, ""));
+    TEST_ASSERT_FALSE(pe_entity_set_name(&scene, entity, "   "));
+    TEST_ASSERT_FALSE(pe_entity_set_name(&scene, entity, "bad\nname"));
+    TEST_ASSERT_FALSE(pe_entity_set_name(&scene, entity, "\xc0\xaf"));
+    TEST_ASSERT_FALSE(pe_entity_set_name(&scene, entity, too_long));
+    TEST_ASSERT_EQUAL_MEMORY(&original, &scene, sizeof scene);
+    PeEntity other = pe_entity_create(&scene, PE_PLAYER);
+    TEST_ASSERT_EQUAL_STRING("Player 2", pe_entity_get(&scene, other)->name);
+    TEST_ASSERT_TRUE(pe_entity_set_name(&scene, other, o->name));
+    TEST_ASSERT_TRUE(pe_entity_destroy(&scene, entity));
+    TEST_ASSERT_FALSE(pe_entity_set_name(&scene, entity, "Stale"));
+}
+
+static void test_entity_name_undo_restores_name_and_identity(void) {
+    PeObject *o = pe_entity_get(&scene, entity);
+    uint32_t id = o->stable_id;
+    TEST_ASSERT_TRUE(pe_history_begin(&history, &scene));
+    TEST_ASSERT_TRUE(pe_entity_set_name(&scene, entity, "Hero"));
+    TEST_ASSERT_TRUE(pe_history_commit(&history, &scene));
+    TEST_ASSERT_TRUE(pe_undo(&history, &scene));
+    TEST_ASSERT_EQUAL_STRING("Entity 1", o->name);
+    TEST_ASSERT_TRUE(pe_redo(&history, &scene));
+    TEST_ASSERT_EQUAL_STRING("Hero", o->name);
+    TEST_ASSERT_EQUAL_UINT32(id, o->stable_id);
+    TEST_ASSERT_FALSE(pe_entity_set_name(&scene, entity, "Hero"));
+}
+
+static void test_entity_name_roundtrip_legacy_and_invalid_json(void) {
+    TEST_ASSERT_TRUE(pe_entity_set_name(&scene, entity, "Hero"));
+    TEST_ASSERT_TRUE(pe_scene_save(&scene, FILE_NAME, error, sizeof error));
+    TEST_ASSERT_TRUE(pe_scene_load(&scene, FILE_NAME, error, sizeof error));
+    TEST_ASSERT_EQUAL_STRING("Hero", pe_entity_get(&scene, entity)->name);
+    FILE *file = fopen(FILE_NAME, "rb");
+    TEST_ASSERT_NOT_NULL(file);
+    fseek(file, 0, SEEK_END);
+    long length = ftell(file);
+    rewind(file);
+    char *text = malloc((size_t)length + 1);
+    TEST_ASSERT_NOT_NULL(text);
+    TEST_ASSERT_EQUAL_UINT(length, fread(text, 1, (size_t)length, file));
+    fclose(file);
+    text[length] = 0;
+    cJSON *json = cJSON_Parse(text);
+    free(text);
+    TEST_ASSERT_NOT_NULL(json);
+    cJSON *object = cJSON_GetArrayItem(cJSON_GetObjectItemCaseSensitive(json, "entities"), 0);
+    for (int variant = 0; variant < 3; variant++) {
+        cJSON_DeleteItemFromObjectCaseSensitive(object, "name");
+        if (variant == 1) {
+            cJSON_AddNumberToObject(object, "name", 123);
+        } else if (variant == 2) {
+            cJSON_AddStringToObject(object, "name", "");
+        }
+        text = cJSON_Print(json);
+        TEST_ASSERT_NOT_NULL(text);
+        file = fopen(FILE_NAME, "wb");
+        TEST_ASSERT_NOT_NULL(file);
+        fputs(text, file);
+        fclose(file);
+        free(text);
+        if (!variant) {
+            TEST_ASSERT_TRUE(pe_scene_load(&scene, FILE_NAME, error, sizeof error));
+            TEST_ASSERT_EQUAL_STRING("Entity 1", pe_entity_get(&scene, entity)->name);
+        } else {
+            original = scene;
+            TEST_ASSERT_FALSE(pe_scene_load(&scene, FILE_NAME, error, sizeof error));
+            TEST_ASSERT_EQUAL_MEMORY(&original, &scene, sizeof scene);
+        }
+    }
+    cJSON_Delete(json);
+    memset(pe_entity_get(&scene, entity)->name, 'a', PE_ENTITY_NAME);
+    TEST_ASSERT_FALSE(pe_scene_save(&scene, FILE_NAME, error, sizeof error));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_entity_names_validate_and_keep_identity);
+    RUN_TEST(test_entity_name_undo_restores_name_and_identity);
+    RUN_TEST(test_entity_name_roundtrip_legacy_and_invalid_json);
     RUN_TEST(test_add_defaults_and_dependencies);
     RUN_TEST(test_invalid_add_and_stale_handles_are_atomic);
     RUN_TEST(test_removal_protects_dependencies_and_hierarchy);

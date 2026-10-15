@@ -70,7 +70,7 @@ Der native Sitzungscache ersetzt keine Backups und ist noch keine Crash-Recovery
 
 ## Fachliche Modultrennung
 
-- Im SDL-Build laufen insgesamt unter Linux 153 Unity-Tests und 15 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
+- Im SDL-Build laufen insgesamt unter Linux 156 Unity-Tests und 15 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
 - `tests/editor_smoke.c` verwendet weiterhin die echten Eingabehandler, Editorwechsel und F6-Reloads. Die Tests liegen außerhalb des produktiven Quellcodes und werden nur bei `BUILD_TESTING=ON` eingebunden.
 - Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die sieben SDL-freien Testgruppen verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
 - Für das Strukturrefactoring zusätzlich die Map-/Scripts-Aufnahmen gegen den vorherigen Stand vergleichen und einen vollständigen ASan-/UBSan-Testlauf ausführen.
@@ -98,7 +98,7 @@ Manuell: `examples/topdown/scenes/hierarchy.json` über den Explorer öffnen, de
 
 ## Komponenten-Inspector
 
-Sechs SDL-freie Unity-Tests (`component_unit_tests`) prüfen Standardwerte und automatisch ergänzte Abhängigkeiten, abgewiesene ungültige/mehrere Bits und veraltete Handles, Schutz bestehender Hierarchien beim Entfernen von Transform, Wiederhinzufügen mit Standardwerten, Undo/Redo sowie Sprite-Farbe und Body-Geschwindigkeiten im Szenenformat. Fehlende Geschwindigkeitsfelder ergeben 0; falsche Feldtypen verändern die aktive Szene nicht. Nicht endliche oder übergroße Geschwindigkeiten werden vor dem Schreiben abgelehnt.
+Neun SDL-freie Unity-Tests (`component_unit_tests`) prüfen Standardwerte und automatisch ergänzte Abhängigkeiten, abgewiesene ungültige/mehrere Bits und veraltete Handles, Schutz bestehender Hierarchien beim Entfernen von Transform, Wiederhinzufügen mit Standardwerten, Undo/Redo sowie Sprite-Farbe und Body-Geschwindigkeiten im Szenenformat. Fehlende Geschwindigkeitsfelder ergeben 0; falsche Feldtypen verändern die aktive Szene nicht. Nicht endliche oder übergroße Geschwindigkeiten werden vor dem Schreiben abgelehnt.
 
 Die Editor-Smokes bedienen das Hinzufügen-Menü und die Entfernen-Buttons, klappen Transform ein/aus, bearbeiten RGBA-Farbe (einschließlich ungültiger Eingabe) und Velocity X, prüfen deaktivierte abhängige Löschaktionen sowie Undo/Redo, F6 und Map → Scripts → Map. Komponentenänderungen während Play werden abgewiesen. Der Dokument-Checkpoint-Test prüft zusätzlich die entitybezogenen Klappzustände.
 
@@ -131,3 +131,5 @@ Komponenten-Eigenschaften: Bezeichnung links, Wert rechts. Klick auf Bezeichnung
 - Während Fokus im Textfeld liegt, dürfen Map-Kürzel und gemeinsame Shell keine Tastatureingabe erhalten. Import-/Layer-Dialoge behalten Apply/Cancel und nutzen ebenfalls Cursor/Auswahl.
 - Fünf zusätzliche Unity-Tests prüfen Einfügen am Cursor, UTF-8-Grenzen, Auswahl, atomare Puffergrenzen und abgewiesene Steuerzeichen/ungültiges UTF-8. Der Editor-Smoke prüft direkte Eingabe, Cursor/Delete, Bestätigen, Abbrechen, Außenklick, Validierung und Undo.
 - Bei `--smoke --screenshot /tmp/editor.bmp` entsteht zusätzlich `/tmp/editor.bmp.input.bmp` mit aktivem Inspector-Feld.
+
+Entity-Namen: im Inspector umbenennen, Scene-Anzeige und unveränderte ID prüfen. Enter/Außenklick, Escape, leere/zu lange Namen, Undo/Redo, Speichern/Laden sowie F6 und Map → Scripts → Map testen. Drei zusätzliche Engine-Tests prüfen Namen, UTF-8/Grenzen, stabile Identität, Undo und alte/ungültige JSON-Dateien.

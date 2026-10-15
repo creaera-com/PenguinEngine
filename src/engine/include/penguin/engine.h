@@ -15,6 +15,8 @@
 
 /** @brief Maximale Entity-Slotanzahl pro Szene. */
 #define PE_ENTITIES 128
+/** @brief Kapazität eines Entity-Namens in UTF-8-Bytes einschließlich Nullabschluss. */
+#define PE_ENTITY_NAME 64
 /** @brief Maximale Anzahl visueller Tileebenen. */
 #define PE_LAYERS 4
 /** @brief Maximale Kartenkante in Tiles; zugleich Zeilenstride der festen Tile-/Kollisionspuffer.
@@ -52,8 +54,9 @@ typedef struct {
     uint32_t stable_id; ///< Im Szenenformat gespeicherte Objekt-ID.
     uint32_t
         parent_id; ///< Stabile ID des Parents; 0 bezeichnet eine Wurzel. Über Parent-API ändern.
-    uint32_t generation; ///< Slotgeneration zur Erkennung veralteter Entity-Kennungen.
-    bool alive;          ///< Ob dieser Entity-Slot belegt ist.
+    char name[PE_ENTITY_NAME]; ///< Anzeigename; unabhängig von stabiler ID und Hierarchie.
+    uint32_t generation;       ///< Slotgeneration zur Erkennung veralteter Entity-Kennungen.
+    bool alive;                ///< Ob dieser Entity-Slot belegt ist.
 } PeObject;
 
 /** @brief Benannte visuelle Tileebene mit festem Zeilenstride PE_MAP_MAX. */
@@ -162,6 +165,18 @@ PeObject *pe_entity_get(PeScene *scene, PeEntity entity);
  * @param stable_id Gespeicherte Objekt-ID, keine Slotnummer.
  */
 PeEntity pe_entity_find(const PeScene *scene, uint32_t stable_id);
+
+/** @brief Prüft einen einzeiligen UTF-8-Namen mit 1 bis 63 Bytes und sichtbarem Inhalt.
+ * @param name Nullterminierter Name; ASCII-Steuerzeichen sind nicht erlaubt.
+ */
+bool pe_entity_name_valid(const char *name);
+/** @brief Ändert den Anzeigenamen atomar; ID, Parent und Komponenten bleiben unverändert.
+ * @param scene Besitzende Szene.
+ * @param entity Gültige Entity-Kennung der Szene.
+ * @param name Neuer UTF-8-Name; wird kopiert. Doppelte Namen sind erlaubt.
+ * @return true bei geändertem Namen, false bei ungültiger oder unveränderter Eingabe.
+ */
+bool pe_entity_set_name(PeScene *scene, PeEntity entity, const char *name);
 
 /**
  * @brief Berechnet die Weltposition aus lokalen Translationen der Elternkette; false bei Fehlern.

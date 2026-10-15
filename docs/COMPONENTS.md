@@ -1,6 +1,6 @@
 # Komponenten im Inspector
 
-Der Inspector beginnt mit der ID der ausgewählten Entity; eine zusätzliche klappbare Entity-Überschrift entfällt. Jede vorhandene Komponente steht in einer eigenen klappbaren Karte. Die Karten verwenden denselben Hintergrund wie die Tree-Fläche: die Theme-Surface mit 5 Prozent Weiß, im aktuellen Theme `#333333`. Zwischen den Karten liegen 6 Pixel Abstand. Eigenschaften stehen in zwei bündigen Spalten: links die Bezeichnung, rechts der Wert. Das Wertefeld wird direkt an Ort und Stelle bearbeitet, mit blinkendem Textcursor, Auswahl und orangefarbenem Fokusrahmen. Enter oder ein Klick außerhalb übernimmt einen gültigen Wert; Escape verwirft den Entwurf. Bei ungültigen Werten bleibt das Feld aktiv und erhält einen roten Rahmen. Transform, Sprite-Farbe und Body-Geschwindigkeit verwenden dieselben Spaltenkanten; Parent und Player-Informationen erscheinen als reine Anzeigewerte.
+Der Inspector beginnt mit einem direkt bearbeitbaren Entity-Namen und der festen ID darunter; eine zusätzliche klappbare Entity-Überschrift entfällt. Jede vorhandene Komponente steht in einer eigenen klappbaren Karte. Die Karten verwenden denselben Hintergrund wie die Tree-Fläche: die Theme-Surface mit 5 Prozent Weiß, im aktuellen Theme `#333333`. Zwischen den Karten liegen 6 Pixel Abstand. Eigenschaften stehen in zwei bündigen Spalten: links die Bezeichnung, rechts der Wert. Das Wertefeld wird direkt an Ort und Stelle bearbeitet, mit blinkendem Textcursor, Auswahl und orangefarbenem Fokusrahmen. Enter oder ein Klick außerhalb übernimmt einen gültigen Wert; Escape verwirft den Entwurf. Bei ungültigen Werten bleibt das Feld aktiv und erhält einen roten Rahmen. Transform, Sprite-Farbe und Body-Geschwindigkeit verwenden dieselben Spaltenkanten; Parent und Player-Informationen erscheinen als reine Anzeigewerte.
 
 ![Komponenten im Inspector](images/components.png)
 
@@ -54,4 +54,12 @@ Jeder Aufruf akzeptiert genau ein bekanntes Komponentenbit. Bei bereits vorhande
 
 Der Inspector ist der bestehende spezialisierte YAML-Knoten mit `binding: selection.active`. Die Komponenten-Karten und ihre Registrierung liegen im Map-Modul `src/editor/editors/map/components.c`. Neue eigene Komponententypen benötigen zunächst eine Erweiterung des C-Datenmodells, der Operationen, des Szenenformats und dieser Registrierung. Ein allgemeines reflektiertes Komponenten-/Formularschema ist noch nicht implementiert.
 
-Sechs Unity-Tests prüfen die Engine-Regeln und Dateikompatibilität. Die Editor-Smokes prüfen Menüs, Karten, Einstellungen, Schutzregeln, Undo/Redo und Editorwechsel. Ein Screenshot aus der Beispielszene `hierarchy.json` dient der visuellen Kontrolle.
+Neun Unity-Tests prüfen die Engine-Regeln und Dateikompatibilität. Die Editor-Smokes prüfen Menüs, Karten, Einstellungen, Schutzregeln, Undo/Redo und Editorwechsel. Ein Screenshot aus der Beispielszene `hierarchy.json` dient der visuellen Kontrolle.
+
+## Entity-Namen
+
+Der Name ist unabhängig von den Komponenten und der Hierarchie. Er wird im Scene-Baum angezeigt und als optionales `name`-Feld im Szenenformat v2 gespeichert. Alte Dateien ohne dieses Feld erhalten aus Typ und ID einen Standardnamen. Namen dürfen 1–63 UTF-8-Bytes enthalten, keine ASCII-Steuerzeichen und nicht nur Leerzeichen; doppelte Namen sind erlaubt. Die stabile ID ist weiterhin die Referenz für Auswahl, Parent und Scripting.
+
+Umbenennen nutzt dasselbe direkte Eingabefeld mit Enter/Außenklick zum Bestätigen und Escape zum Verwerfen. Jede bestätigte Änderung ist ein Undo-Schritt. Name und Verlauf bleiben beim Editorwechsel erhalten. Die Engine-API `pe_entity_set_name` prüft und kopiert Namen atomar.
+
+![Bearbeitbarer Entity-Name](images/entity-name.png)

@@ -12,6 +12,7 @@ option(PENGUIN_SANITIZERS "Enable address and undefined behavior sanitizers" OFF
 add_library(penguin STATIC
  src/engine/scene/scene.c
  src/engine/ecs/entities.c
+ src/engine/ecs/names.c
  src/engine/ecs/components.c
  src/engine/ecs/hierarchy.c
  src/engine/tilemap/tilemap.c

@@ -34,6 +34,29 @@ void editor_field_start_inline(Field field, const char *value, UiId id, UiRect r
     ui_cancel(&app.ui);
 }
 
+void editor_draw_input(Field field, const char *value, const char *input, UiRect cell,
+                       bool enabled) {
+    UiId id = ui_id("component_input") ^ app.selected * 31u ^ (UiId)field * 16777619u;
+    if (!id) {
+        id = 1;
+    }
+    editor_register_ui_hit(cell);
+    bool focused = app.field_inline && app.field == field && app.field_entity == app.selected;
+    if (!focused && ui_button(&app.ui, id, cell, enabled)) {
+        editor_field_start_inline(field, input, id, cell);
+        focused = true;
+    }
+    UiTextEdit idle = {0};
+    if (focused) {
+        app.field_seen = true;
+        app.field_rect = cell;
+    }
+    ui_draw_text_input(app.renderer, (SDL_FRect){cell.x, cell.y, cell.w, cell.h},
+                       focused ? app.input : value, focused ? &app.field_edit : &idle, focused,
+                       enabled, focused && app.field_invalid,
+                       (SDL_GetTicks() - app.field_blink) % 1000 < 500);
+}
+
 static void field_click(float x, bool extend) {
     float column = (x - app.field_rect.x - 7 + app.field_edit.scroll) / UI_FONT_WIDTH;
     ui_text_edit_click(&app.field_edit, app.input, (size_t)fmaxf(0, floorf(column + .5f)), extend);

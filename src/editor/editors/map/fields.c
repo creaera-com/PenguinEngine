@@ -9,6 +9,26 @@ void editor_field_apply(void) {
         return;
     }
     app.field_invalid = true;
+    if (app.field == FIELD_NAME) {
+        PeEntity entity = pe_entity_find(&app.map->scene, app.selected);
+        PeObject *o = pe_entity_get(&app.map->scene, entity);
+        if (!o) {
+            editor_field_stop();
+            return;
+        }
+        if (!pe_entity_name_valid(app.input)) {
+            editor_message("Name: 1-63 UTF-8 bytes, no controls or blank names");
+            return;
+        }
+        if (!strcmp(o->name, app.input)) {
+            editor_field_stop();
+        } else if (editor_begin()) {
+            pe_entity_set_name(&app.map->scene, entity, app.input);
+            editor_commit();
+            editor_field_stop();
+        }
+        return;
+    }
     if (app.field == FIELD_IMPORT) {
         if (editor_import_png(app.input)) {
             editor_field_stop();

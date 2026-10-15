@@ -155,9 +155,7 @@ void editor_draw_scene_tree(void) {
                 expand(o->stable_id);
             }
         }
-        char label[40];
-        snprintf(label, sizeof label, "%s %u", o->mask & PE_PLAYER ? "Player" : "Entity",
-                 o->stable_id);
+        const char *label = o->name;
         if (icon_button(x + 22, y, fmaxf(0, body.w - indent - 42), ICON_ENTITY, label,
                         "Select entity", app.selected == o->stable_id, enabled)) {
             app.selected = o->stable_id;

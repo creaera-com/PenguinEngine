@@ -705,7 +705,7 @@ bool editor_verify_components(void) {
     editor_inspect_entity();
     editor_draw();
     float x = app.width - RIGHT + PANEL_GAP + 9;
-    float top = TOP + TABS + 42.f + 22;
+    float top = TOP + TABS + 67.f + 22;
     float remove_x = x + (RIGHT - 2 * PANEL_GAP - 32) - 18;
     float content_before = app.inspector_view.content;
     smoke_click(x + 90, top + 12);
@@ -830,10 +830,29 @@ bool editor_verify_components(void) {
     editor_draw();
     smoke_click(x + 80, sprite + 12);
     ok = ok && (app.map->component_closed[entity.index] & PE_SPRITE);
+    smoke_click(x + 90, TOP + TABS + 18);
+    ok = ok && app.field == FIELD_NAME && app.field_inline;
+    text.text.text = "Hero";
+    editor_event(&text);
+    key.key.key = SDLK_RETURN;
+    editor_event(&key);
+    ok = ok && !strcmp(o->name, "Hero") && o->stable_id == id;
+    editor_undo_active(false);
+    ok = ok && !strcmp(o->name, "Entity 1");
+    editor_undo_active(true);
+    editor_draw();
+    smoke_click(x + 90, TOP + TABS + 18);
+    text.text.text = "   ";
+    editor_event(&text);
+    editor_field_apply();
+    ok = ok && app.field == FIELD_NAME && app.field_invalid && !strcmp(o->name, "Hero");
+    key.key.key = SDLK_ESCAPE;
+    editor_event(&key);
     ok = ok && editor_reload_layout();
     editor_tab_select(true);
     editor_tab_select(false);
     o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, id));
+    ok = ok && o && !strcmp(o->name, "Hero");
     ok = ok && o && o->mask == 15 && o->color == 0x12345678 && o->vx == 25.5f &&
          (app.map->component_closed[entity.index] & PE_SPRITE);
     editor_play_toggle();
@@ -1063,6 +1082,19 @@ void editor_capture_component_dropdown(void) {
             }
             editor_field_stop();
         }
+        pe_entity_set_name(&app.map->scene, entity, "Hero");
+        editor_draw();
+        smoke_click(app.width - RIGHT + PANEL_GAP + 100, TOP + TABS + 18);
+        SDL_Event end_name = {0};
+        end_name.type = SDL_EVENT_KEY_DOWN;
+        end_name.key.key = SDLK_END;
+        editor_event(&end_name);
+        if (snprintf(path, sizeof path, "%s.name.bmp", original_path) < (int)sizeof path) {
+            editor_screenshot_path = path;
+            editor_draw();
+            editor_screenshot_path = original_path;
+        }
+        editor_field_stop();
         break;
     }
     app.map->scene = scene;

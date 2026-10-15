@@ -1,5 +1,6 @@
 #include "penguin/engine.h"
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -13,6 +14,8 @@ PeEntity pe_entity_create(PeScene *s, uint32_t mask) {
             o->alive = true;
             o->stable_id = s->next_id++;
             o->mask = mask;
+            snprintf(o->name, sizeof o->name, "%s %u", mask & PE_PLAYER ? "Player" : "Entity",
+                     o->stable_id);
             o->w = 12;
             o->h = 12;
             o->color = 0xffcc55ff;
