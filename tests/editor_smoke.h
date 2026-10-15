@@ -34,4 +34,6 @@ bool editor_verify_console(void);
 bool editor_verify_window(void);
 /** @brief Prüft Scene-Baum, Erstellen, Verschieben, Löschen, Verlauf und Editorwechsel. */
 bool editor_verify_scene_graph(void);
+/** @brief Prüft Komponentenmenü, Karten, Einstellungen, Verlauf und Editorwechsel. */
+bool editor_verify_components(void);
 #endif

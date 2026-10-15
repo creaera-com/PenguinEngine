@@ -88,7 +88,7 @@ void editor_scene_add(int relation) {
         app.selected = id;
         app.tool = SELECT;
         app.left_tabs.selected = UI_SCENE_TAB;
-        app.right_tabs.selected = UI_INSPECTOR_TAB;
+        editor_inspect_entity();
         PeEntity ancestor = pe_entity_find(s, parent_id);
         for (int depth = 0; pe_entity_valid(s, ancestor) && depth < PE_ENTITIES; depth++) {
             const PeObject *parent = pe_entity_get(s, ancestor);
@@ -162,7 +162,7 @@ void editor_draw_scene_tree(void) {
                         "Select entity", app.selected == o->stable_id, enabled)) {
             app.selected = o->stable_id;
             app.tool = SELECT;
-            app.right_tabs.selected = UI_INSPECTOR_TAB;
+            editor_inspect_entity();
         }
     }
     app.widget_scope = 0;

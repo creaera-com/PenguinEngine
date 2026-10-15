@@ -1,6 +1,15 @@
 #include "app/editor_internal.h"
 const char *editor_tooltip;
 
+Uint32 editor_widget_background(void) {
+    Uint32 background = UI_SURFACE & 0xffu;
+    for (int shift = 8; shift <= 24; shift += 8) {
+        Uint32 channel = (UI_SURFACE >> shift) & 0xffu;
+        background |= ((channel * 95 + 255 * 5) / 100) << shift;
+    }
+    return background;
+}
+
 bool editor_inside(float x, float y, SDL_FRect r) {
     return x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;
 }

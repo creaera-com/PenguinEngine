@@ -59,6 +59,8 @@ static void test_map_checkpoint_preserves_independent_undo_and_redo(void) {
     TEST_ASSERT_TRUE(pe_entity_set_parent(&map_source->scene, child, parent, false));
     map_source->collapsed[0] = map_source->scene.objects[parent.index].stable_id;
     map_source->collapsed_count = 1;
+    map_source->component_ids[parent.index] = map_source->scene.objects[parent.index].stable_id;
+    map_source->component_closed[parent.index] = PE_TRANSFORM;
     TEST_ASSERT_TRUE(pe_history_begin(&map_source->history, &map_source->scene));
     pe_tile_set(&map_source->scene, 0, 2, 3, 1);
     TEST_ASSERT_TRUE(pe_history_commit(&map_source->history, &map_source->scene));
@@ -71,6 +73,9 @@ static void test_map_checkpoint_preserves_independent_undo_and_redo(void) {
                              error);
     TEST_ASSERT_TRUE_MESSAGE(pe_session_load(CACHE, 1, map_codec, map_target, error, sizeof error),
                              error);
+    TEST_ASSERT_EQUAL_UINT32(map_source->component_ids[parent.index],
+                             map_target->component_ids[parent.index]);
+    TEST_ASSERT_EQUAL_UINT32(PE_TRANSFORM, map_target->component_closed[parent.index]);
     TEST_ASSERT_EQUAL_INT(1, map_target->collapsed_count);
     TEST_ASSERT_EQUAL_UINT32(map_source->collapsed[0], map_target->collapsed[0]);
     float x, y;

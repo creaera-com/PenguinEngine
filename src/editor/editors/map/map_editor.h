@@ -23,7 +23,11 @@ typedef struct {
     PeAssets assets;   ///< Besitzender Tilesetcache der geladenen Map.
     uint32_t
         collapsed[PE_ENTITIES]; ///< Stabile IDs zugeklappter Scene-Knoten; keine Dokumentdaten.
-    int collapsed_count;        ///< Anzahl gültiger Einträge in collapsed.
+    uint32_t
+        component_ids[PE_ENTITIES]; ///< IDs zur Zuordnung der Inspector-Navigation zu Entity-Slots.
+    uint32_t component_closed[PE_ENTITIES]; ///< Bits zugeklappter Komponenten; keine Dokumentdaten.
+    bool component_add_open;                ///< Flüchtiger Zustand der Hinzufügen-Auswahl.
+    int collapsed_count;                    ///< Anzahl gültiger Einträge in collapsed.
 } MapPayload;
 
 /* Map-specific operations, used only within the editor. */
@@ -51,6 +55,22 @@ void editor_draw_info(void);
  * @brief Zeichnet Map-Inspector, Ebenenliste, Entity-Werte und Tile-Palette.
  */
 void editor_draw_inspector(void);
+/**
+ * @brief Zeichnet Komponenten-Karten der aktuellen Auswahl und liefert die nächste
+ * Inhalts-Y-Position.
+ * @param x Linke Position in Fensterpixeln.
+ * @param y Obere Position in Fensterpixeln.
+ * @param width Verfügbare Breite in Fensterpixeln.
+ */
+float editor_draw_components(float x, float y, float width);
+/**
+ * @brief Fügt eine Komponente zur Auswahl hinzu oder entfernt sie als Undo-Schritt.
+ * @param component Genau ein bekanntes Komponentenbit.
+ * @param add true zum Hinzufügen, false zum Entfernen.
+ */
+bool editor_component_change(uint32_t component, bool add);
+/** @brief Öffnet den Entity-Inspector und schafft Platz für seine Komponenten. */
+void editor_inspect_entity(void);
 
 /**
  * @brief Zeichnet Map-Canvas, Auswahlrahmen und Werkzeugvorschau.

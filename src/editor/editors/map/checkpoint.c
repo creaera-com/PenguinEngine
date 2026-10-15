@@ -65,7 +65,17 @@ bool me_checkpoint(MapPayload *map, PeSession *io) {
             }
         }
     }
+    if (!pe_session_block(io, map->component_ids, sizeof map->component_ids) ||
+        !pe_session_block(io, map->component_closed, sizeof map->component_closed)) {
+        return false;
+    }
+    for (int i = 0; i < PE_ENTITIES; i++) {
+        if (map->component_closed[i] & ~15u) {
+            return false;
+        }
+    }
     if (io->reading) {
+        map->component_add_open = false;
         h->count = header.count;
         h->cursor = header.cursor;
         h->revision = header.revision;

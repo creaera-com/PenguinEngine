@@ -70,9 +70,9 @@ Der native Sitzungscache ersetzt keine Backups und ist noch keine Crash-Recovery
 
 ## Fachliche Modultrennung
 
-- Im SDL-Build laufen insgesamt unter Linux 139 Unity-Tests und 14 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
+- Im SDL-Build laufen insgesamt unter Linux 145 Unity-Tests und 15 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
 - `tests/editor_smoke.c` verwendet weiterhin die echten Eingabehandler, Editorwechsel und F6-Reloads. Die Tests liegen außerhalb des produktiven Quellcodes und werden nur bei `BUILD_TESTING=ON` eingebunden.
-- Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die sechs SDL-freien Testgruppen verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
+- Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die sieben SDL-freien Testgruppen verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
 - Für das Strukturrefactoring zusätzlich die Map-/Scripts-Aufnahmen gegen den vorherigen Stand vergleichen und einen vollständigen ASan-/UBSan-Testlauf ausführen.
 
 ## Konsolenpanel und gemeinsame Shell
@@ -94,3 +94,10 @@ Automatisch: sieben Terminaltests unter Linux/POSIX (unter Windows Parser- plus 
 Der Dokument-Checkpoint-Test erhält Parent-Beziehungen und Aufklappzustände zusätzlich zum Undo-Verlauf. Die GUI-Smokes bedienen die YAML-Buttons für Wurzel/Geschwister/Kind, klappen Knoten ein/aus, ziehen einen Parent auf dem Canvas, prüfen die Position des Enkels, löschen den Unterbaum und prüfen Undo/Redo sowie F6 und Map → Scripts → Map.
 
 Manuell: `examples/topdown/scenes/hierarchy.json` über den Explorer öffnen, den Scene-Tab auswählen und den Player ziehen. Seine drei Nachkommen folgen; die zweite Wurzel bleibt stehen. Kinder separat auswählen und ziehen, Local-X/Y im Inspector ändern, Parent löschen und mit Ctrl+Z wiederherstellen, speichern und neu laden. Hierarchie-Physikgruppen sowie Rotation/Skalierung sind noch nicht implementiert.
+
+
+## Komponenten-Inspector
+
+Sechs SDL-freie Unity-Tests (`component_unit_tests`) prüfen Standardwerte und automatisch ergänzte Abhängigkeiten, abgewiesene ungültige/mehrere Bits und veraltete Handles, Schutz bestehender Hierarchien beim Entfernen von Transform, Wiederhinzufügen mit Standardwerten, Undo/Redo sowie Sprite-Farbe und Body-Geschwindigkeiten im Szenenformat. Fehlende Geschwindigkeitsfelder ergeben 0; falsche Feldtypen verändern die aktive Szene nicht. Nicht endliche oder übergroße Geschwindigkeiten werden vor dem Schreiben abgelehnt.
+
+Die Editor-Smokes bedienen das Hinzufügen-Menü und die Entfernen-Buttons, klappen Transform ein/aus, bearbeiten RGBA-Farbe (einschließlich ungültiger Eingabe) und Velocity X, prüfen deaktivierte abhängige Löschaktionen sowie Undo/Redo, F6 und Map → Scripts → Map. Komponentenänderungen während Play werden abgewiesen. Der Dokument-Checkpoint-Test prüft zusätzlich die entitybezogenen Klappzustände.

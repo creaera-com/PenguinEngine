@@ -198,6 +198,33 @@ bool pe_entity_set_parent(PeScene *scene, PeEntity entity, PeEntity parent, bool
 bool pe_scene_hierarchy_valid(const PeScene *scene);
 
 /**
+ * @brief Fügt eine Komponente mit Standardwerten und nötigen Abhängigkeiten hinzu.
+ * @param scene Zu ändernde Szene.
+ * @param entity Gültige Entity.
+ * @param component Genau eines der Bits PE_TRANSFORM, PE_SPRITE, PE_BODY oder PE_PLAYER.
+ * @return false ohne Änderung bei ungültigem Bit, ungültiger Entity oder bereits vorhandener
+ * Komponente.
+ */
+bool pe_entity_add_component(PeScene *scene, PeEntity entity, uint32_t component);
+
+/**
+ * @brief Prüft, ob eine Komponente ohne Verletzung von Abhängigkeiten/Hierarchie entfernbar ist.
+ * @param scene Geliehene Szene.
+ * @param entity Gültige Entity.
+ * @param component Genau ein bekanntes Komponentenbit.
+ */
+bool pe_entity_component_removable(const PeScene *scene, PeEntity entity, uint32_t component);
+
+/**
+ * @brief Entfernt eine Komponente; abhängige Komponenten und Hierarchien bleiben geschützt.
+ * @param scene Zu ändernde Szene.
+ * @param entity Gültige Entity.
+ * @param component Genau ein bekanntes Komponentenbit.
+ * @return false ohne Änderung, wenn pe_entity_component_removable false liefert.
+ */
+bool pe_entity_remove_component(PeScene *scene, PeEntity entity, uint32_t component);
+
+/**
  * @brief Setzt ein Tile auf einer gültigen Ebene und Kartenposition.
  *
  * @param scene Szenenmodell; muss während des Aufrufs gültig sein.

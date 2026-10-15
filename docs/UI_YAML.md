@@ -313,3 +313,10 @@ content:
 ```
 
 Wurzel-Erstellen benötigt keine Auswahl. Geschwister, Kind und Löschen benötigen eine gültige Auswahl; Kind-Erstellen setzt einen Transform voraus. Dokumentänderungen sind während Play oder laufenden Gesten deaktiviert. Pfeile steuern nur die Navigation und ändern das Szenendokument nicht. Aufklappzustände werden mit dem Map-Editor ausgelagert und beim Wechsel/F6 wiederhergestellt. Ohne `tools` wird nur der Baum gezeichnet; dieselben Aktionen lassen sich auch in anderen Map-Toolbars platzieren.
+
+
+## Komponenten im Inspector
+
+Der vorhandene spezialisierte Knoten `{type: inspector, id: inspector, binding: selection.active}` zeigt die Komponenten der ausgewählten Entity. Die Inhalte werden aus ihrer ECS-Maske und der C-Komponentenregistrierung erzeugt. Die YAML legt weiterhin fest, in welchem Panel der Inspector liegt; das konkrete Transform-/Sprite-/Body-/Player-Formular wird im Map-Modul gepflegt. Es gibt dafür noch keine beliebigen benutzerdefinierten Komponentenfelder aus YAML.
+
+Jede Komponenten-Karte ist einzeln klappbar, verwendet denselben aufgehellten Theme-Hintergrund wie der Dateibaum und hat einen Entfernen-Button. `Add component` zeigt die fehlenden Komponenten. Abhängigkeiten werden beim Hinzufügen gemeinsam ergänzt; Entfernen ist bei verletzten Abhängigkeiten deaktiviert und hat einen erklärenden Tooltip. Dokumentänderungen nutzen den Undo-Verlauf, die Klappzustände werden als Navigation im Map-Checkpoint gesichert. Siehe [COMPONENTS.md](COMPONENTS.md).

@@ -17,7 +17,7 @@ Ohne Auswahl sind Geschwister, Kind und Löschen deaktiviert. Pfeile klappen Unt
 
 Im Inspector heißen Kinderpositionen **Local X / Local Y**; zusätzlich wird die Parent-ID angezeigt. Beim Ziehen auf dem Canvas wird die gewünschte Weltposition in eine lokale Position umgerechnet. Verschieben eines Parents bewegt seine Nachkommen, ohne deren lokale Positionen zu ändern. Geschwister außerhalb des Unterbaums bewegen sich nicht mit.
 
-Die Beispieldatei `examples/topdown/scenes/hierarchy.json` enthält zwei Wurzeln, Kinder und einen Enkel. Im laufenden Editor lässt sie sich im Explorer unter `scenes` öffnen. `--scene-tree` startet direkt mit dem Scene-Tab; `--scripts` hat bei gemeinsamer Verwendung Vorrang. Die normale Startszene des Beispielprojekts bleibt `room.json`.
+Die Beispieldatei `examples/topdown/scenes/hierarchy.json` enthält zwei Wurzeln, Kinder und einen Enkel. Im laufenden Editor lässt sie sich im Explorer unter `scenes` öffnen. `--scene-tree` startet direkt mit dem Scene-Tab und wählt die erste Entity für den Inspector; `--scripts` hat bei gemeinsamer Verwendung Vorrang. Die normale Startszene des Beispielprojekts bleibt `room.json`.
 
 ![Beispielhierarchie im Editor](images/scene-graph.png)
 
@@ -81,3 +81,5 @@ Parent-Daten sind Teil sämtlicher Scene-Snapshots. Editorwechsel und F6 sichern
 ## Tests
 
 Zehn SDL-freie Unity-Tests decken Beziehungen, Positionen, Grenzen, Löschung, Undo/Redo, Kollision, Runtime-Reihenfolge und JSON-Kompatibilität ab. Weitere Loader- und Dokumenttests prüfen die YAML-Werkzeuge und das Auslagern der Hierarchie. Die GUI-Smokes bedienen den Baum über echte Editor-Ereignisse einschließlich Canvas-Drag, Reload und Editorwechsel. Sie ersetzen keinen manuellen Bedienungstest mit einem Desktop-Window-Manager.
+
+Der Inspector verwaltet die Komponenten der ausgewählten Entity; siehe [COMPONENTS.md](COMPONENTS.md).

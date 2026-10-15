@@ -184,7 +184,7 @@ Die Sicherung umfasst Dokumente, ungespeicherte Revisionen, sämtliche Undo-/Red
 
 F6 validiert Shell und aktiven Editor vor dem Entladen. Ungültiges YAML lässt die bisherige Oberfläche aktiv. Shell-Fehler beim ersten Start werden auf stderr gemeldet. GUI-Callbacks verschieben Editorwechsel und dokumentübergreifendes Speichern ans Frameende, damit keine Beschreibung während ihrer Traversierung freigegeben wird.
 
-Unter Linux 139 Unity-Tests sowie die Editor-Smokes prüfen Loader, Checkpointfehler, Editorwechsel, Reload und die bisherige Bedienung. Details, Grenzen und Beispiele stehen in [UI_YAML.md](UI_YAML.md).
+Unter Linux 145 Unity-Tests sowie die Editor-Smokes prüfen Loader, Checkpointfehler, Editorwechsel, Reload und die bisherige Bedienung. Details, Grenzen und Beispiele stehen in [UI_YAML.md](UI_YAML.md).
 
 Die gemeinsame [Shell-Konsole](KONSOLE.md) wird vom Editor-Lebenszyklus nicht entladen. YAML-Splitter teilen den mittleren Bereich in Editor und kontextbezogene Tooltabs. libvterm verarbeitet VT-Steuersequenzen; der Shellprozess ist über einen separaten Plattformvertrag angebunden.
 

@@ -84,6 +84,7 @@ void editor_edit_start(float sx, float sy, bool erase) {
                                          &ox, &oy) &&
                 wx >= ox && wy >= oy && wx < ox + o->w && wy < oy + o->h) {
                 app.selected = o->stable_id;
+                editor_inspect_entity();
                 if (editor_begin()) {
                     app.dragging = true;
                     app.drag_x = wx - ox;

@@ -137,8 +137,9 @@ static bool valid_snapshot(const UiSnapshot *s) {
 
 bool editor_checkpoint(PeSession *io, void *opaque) {
     UiId id = *(UiId *)opaque;
-    uint32_t abi[3] = {sizeof(PeScene), sizeof(UiSnapshot), se_checkpoint_header_size()};
-    uint32_t expected[3];
+    uint32_t abi[4] = {sizeof(PeScene), sizeof(UiSnapshot), se_checkpoint_header_size(),
+                       sizeof(MapPayload)};
+    uint32_t expected[4];
     memcpy(expected, abi, sizeof abi);
     if (!pe_session_block(io, abi, sizeof abi) || memcmp(abi, expected, sizeof abi)) {
         return false;

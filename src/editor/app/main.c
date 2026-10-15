@@ -123,7 +123,8 @@ int main(int argc, char **argv) {
     if (app.smoke &&
         (!editor_verify_editor() || !editor_verify_script_editor() || !editor_verify_ui_layout() ||
          !editor_verify_workspace_tools() || !editor_verify_lifecycle() ||
-         !editor_verify_console() || !editor_verify_window() || !editor_verify_scene_graph())) {
+         !editor_verify_console() || !editor_verify_window() || !editor_verify_scene_graph() ||
+         !editor_verify_components())) {
         app.running = false;
         exit_code = 1;
     }
@@ -132,6 +133,13 @@ int main(int argc, char **argv) {
         editor_tab_select(true);
     } else if (start_scene_tree) {
         app.left_tabs.selected = UI_SCENE_TAB;
+        for (int i = 0; i < PE_ENTITIES; i++) {
+            if (app.map->scene.objects[i].alive) {
+                app.selected = app.map->scene.objects[i].stable_id;
+                editor_inspect_entity();
+                break;
+            }
+        }
     }
 
     int frames = 0;

@@ -687,3 +687,95 @@ bool editor_verify_scene_graph(void) {
     }
     return ok;
 }
+
+bool editor_verify_components(void) {
+    PeScene original = app.map->scene;
+    pe_history_free(&app.map->history);
+    pe_scene_init(&app.map->scene, 16, 16, 16);
+    snprintf(app.map->scene.tileset, PE_PATH, "%s", original.tileset);
+    app.map->scene.tileset_tile_size = original.tileset_tile_size;
+    PeEntity entity = pe_entity_create(&app.map->scene, 0);
+    uint32_t id = app.map->scene.objects[entity.index].stable_id;
+    app.selected = id;
+    memset(app.map->component_ids, 0, sizeof app.map->component_ids);
+    memset(app.map->component_closed, 0, sizeof app.map->component_closed);
+    editor_inspect_entity();
+    editor_draw();
+    float x = app.width - RIGHT + PANEL_GAP + 9;
+    float top = TOP + TABS + 140.f;
+    float remove_x = x + (RIGHT - 2 * PANEL_GAP - 32) - 18;
+    smoke_click(x + 90, top + 12);
+    bool ok = app.map->component_add_open;
+    /* Empty entity: the fourth choice is Player, which also adds Transform + Body. */
+    smoke_click(x + 90, top + 33 + 3 * 29 + 12);
+    PeObject *o = pe_entity_get(&app.map->scene, entity);
+    ok = ok && o && o->mask == (PE_TRANSFORM | PE_BODY | PE_PLAYER) && app.map->history.count == 1;
+    smoke_click(x + 90, top + 12);
+    smoke_click(x + 90, top + 33 + 12);
+    ok = ok && o->mask == 15 && !app.map->component_add_open;
+    float transform = top + 33, sprite = transform + 164, body = sprite + 77, player = body + 106;
+    smoke_click(x + 80, transform + 12);
+    ok = ok && (app.map->component_closed[entity.index] & PE_TRANSFORM);
+    smoke_click(x + 80, transform + 12);
+    ok = ok && !(app.map->component_closed[entity.index] & PE_TRANSFORM);
+    uint64_t revision = app.map->history.revision;
+    smoke_click(remove_x, transform + 12);
+    smoke_click(remove_x, body + 12);
+    ok = ok && o->mask == 15 && app.map->history.revision == revision;
+    smoke_click(remove_x, sprite + 12);
+    ok = ok && !(o->mask & PE_SPRITE);
+    editor_undo_active(false);
+    ok = ok && (o->mask & PE_SPRITE);
+    editor_draw();
+    smoke_click(x + 90, sprite + 34 + 12);
+    ok = ok && app.field == FIELD_COLOR;
+    uint32_t color = o->color;
+    strcpy(app.input, "nothex");
+    editor_field_apply();
+    ok = ok && app.field == FIELD_COLOR && o->color == color;
+    strcpy(app.input, "#12345678");
+    editor_field_apply();
+    ok = ok && app.field == FIELD_NONE && o->color == 0x12345678;
+    editor_undo_active(false);
+    ok = ok && o->color == color;
+    editor_undo_active(true);
+    editor_draw();
+    smoke_click(x + 90, body + 34 + 12);
+    ok = ok && app.field == FIELD_VX;
+    strcpy(app.input, "25.5");
+    editor_field_apply();
+    ok = ok && app.field == FIELD_NONE && o->vx == 25.5f;
+    editor_draw();
+    smoke_click(remove_x, player + 12);
+    ok = ok && !(o->mask & PE_PLAYER);
+    smoke_click(remove_x, body + 12);
+    ok = ok && !(o->mask & PE_BODY);
+    editor_undo_active(false);
+    editor_undo_active(false);
+    ok = ok && o->mask == 15 && o->vx == 25.5f;
+    editor_draw();
+    smoke_click(x + 80, sprite + 12);
+    ok = ok && (app.map->component_closed[entity.index] & PE_SPRITE);
+    ok = ok && editor_reload_layout();
+    editor_tab_select(true);
+    editor_tab_select(false);
+    o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, id));
+    ok = ok && o && o->mask == 15 && o->color == 0x12345678 && o->vx == 25.5f &&
+         (app.map->component_closed[entity.index] & PE_SPRITE);
+    editor_play_toggle();
+    ok = ok && !editor_component_change(PE_PLAYER, false);
+    editor_play_toggle();
+    pe_history_free(&app.map->history);
+    app.map->scene = original;
+    memset(app.map->component_ids, 0, sizeof app.map->component_ids);
+    memset(app.map->component_closed, 0, sizeof app.map->component_closed);
+    app.map->component_add_open = false;
+    app.selected = 0;
+    app.layers_open = app.entity_open = app.palette_open = true;
+    app.inspector_view.offset = 0;
+    editor_selection_sync();
+    if (!ok) {
+        fprintf(stderr, "Component inspector smoke failed\n");
+    }
+    return ok;
+}

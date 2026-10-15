@@ -43,7 +43,7 @@ void editor_draw_info(void) {
 void editor_draw_inspector(void) {
     float x = (float)(app.panel_area.x + 9);
     char label[128], value[64];
-    bool enabled = !app.playing;
+    bool enabled = !app.playing && !editor_edit_pending();
     float w = app.panel_area.w - 32, half = (w - 8) / 2;
     UiRect panel = {(float)(app.panel_area.x + 5), app.panel_top + 8,
                     (float)(app.panel_area.w - 18), (float)(app.panel_area.h - 16)};
@@ -141,32 +141,7 @@ void editor_draw_inspector(void) {
             snprintf(label, sizeof label, "Entity #%u", o->stable_id);
             editor_text(x, y, label, UI_TEXT);
             y += 20;
-            float values[] = {o->x, o->y, o->w, o->h};
-            if (o->parent_id) {
-                snprintf(label, sizeof label, "Parent: #%u (local position)", o->parent_id);
-                editor_text(x, y, label, UI_MUTED);
-                y += 22;
-            }
-            const char *names[] = {o->parent_id ? "Local X" : "X", o->parent_id ? "Local Y" : "Y",
-                                   "Width", "Height"};
-            Field fields[] = {FIELD_X, FIELD_Y, FIELD_W, FIELD_H};
-            for (int i = 0; i < 4; i++) {
-                app.widget_scope = ui_id("entity_field") ^ o->stable_id * 31u ^ (UiId)i;
-                snprintf(label, sizeof label, "%s: %.2f", names[i], values[i]);
-                if (button(x, y, w, label, false, enabled)) {
-                    snprintf(value, sizeof value, "%.2f", values[i]);
-                    editor_field_start(fields[i], value);
-                }
-                y += 29;
-            }
-            app.widget_scope = 0;
-            if (button(x, y, w, o->mask & PE_PLAYER ? "Player control: ON" : "Player control: OFF",
-                       false, enabled) &&
-                editor_begin()) {
-                o->mask ^= PE_PLAYER;
-                editor_commit();
-            }
-            y += 35;
+            y = editor_draw_components(x, y + 4, w);
         } else {
             editor_text(x, y, "Select an entity in the view.", UI_MUTED);
             y += 28;

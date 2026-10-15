@@ -20,6 +20,26 @@ void editor_field_apply(void) {
         return;
     }
 
+    if (app.field == FIELD_COLOR) {
+        PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
+        if (!o || !(o->mask & PE_SPRITE)) {
+            editor_field_stop();
+            return;
+        }
+        const char *hex = app.input + (app.input[0] == '#');
+        if (strlen(hex) != 8 || strspn(hex, "0123456789abcdefABCDEF") != 8) {
+            editor_message("Enter 8 hexadecimal RGBA digits, e.g. C28E5CFF");
+            return;
+        }
+        uint32_t color = (uint32_t)strtoul(hex, NULL, 16);
+        if (editor_begin()) {
+            o->color = color;
+            editor_commit();
+            editor_field_stop();
+        }
+        return;
+    }
+
     char *end;
     errno = 0;
     float value = strtof(app.input, &end);
@@ -39,12 +59,13 @@ void editor_field_apply(void) {
     }
 
     PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
-    if (!o) {
+    uint32_t required = (app.field == FIELD_VX || app.field == FIELD_VY) ? PE_BODY : PE_TRANSFORM;
+    if (!o || !(o->mask & required)) {
         editor_field_stop();
         return;
     }
     if (fabsf(value) > 8192 || ((app.field == FIELD_W || app.field == FIELD_H) && value <= 0)) {
-        editor_message("Position: -8192..8192; size: >0..8192");
+        editor_message("Position/velocity: -8192..8192; size: >0..8192");
         return;
     }
     if (editor_begin()) {
@@ -60,6 +81,12 @@ void editor_field_apply(void) {
             break;
         case FIELD_H:
             o->h = value;
+            break;
+        case FIELD_VX:
+            o->vx = value;
+            break;
+        case FIELD_VY:
+            o->vy = value;
             break;
         default:
             break;
