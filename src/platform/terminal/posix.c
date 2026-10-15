@@ -205,6 +205,12 @@ void pe_terminal_process_free(PeTerminalProcess *p) {
     if (child_group) {
         kill(-foreground, SIGHUP);
     }
+    /* Darwin may wait for pending slave output while closing the last slave.
+     * Release the master before waiting so teardown cannot deadlock on that drain. */
+    if (p->master >= 0) {
+        close(p->master);
+        p->master = -1;
+    }
     if (running) {
         for (int i = 0; i < 10 && pe_terminal_process_running(p); i++) {
             struct timespec delay = {0, 10000000};

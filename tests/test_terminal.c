@@ -174,6 +174,10 @@ static void test_real_pty_commands_resize_interrupt_and_exit(void) {
     fprintf(stderr, "PTY: interrupt delivered\n");
     TEST_ASSERT_TRUE(send_text("exit\n"));
     for (int i = 0; i < 200 && pe_terminal_process_running(process); i++) {
+        /* Keep draining output, just as the editor does during normal shell exit.
+         * On Darwin, closing the slave can wait for its pending output to drain. */
+        char pending[4096];
+        pe_terminal_process_read(process, pending, sizeof pending);
         struct timespec pause = {0, 5000000};
         nanosleep(&pause, NULL);
     }
