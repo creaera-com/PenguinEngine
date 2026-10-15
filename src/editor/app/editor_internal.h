@@ -13,6 +13,7 @@
 #include "app/shell.h"
 #include "app/ui_helpers.h"
 #include "browser/file_tree.h"
+#include "console/view.h"
 #include "dialogs/fields.h"
 #include "editors/map/checkpoint.h"
 #include "editors/map/map_editor.h"
@@ -89,31 +90,37 @@ typedef struct {
     int open;                ///< Aufklappzustand eines YAML-Abschnitts.
     int dragging;            ///< Gespeicherter Dragindex der Tabgruppe.
     float scroll;            ///< Horizontaler Tab-Scrolloffset in Pixeln.
+    float extent;            ///< Gespeicherte Größe des zweiten Split-Panels.
+    int kind;                ///< 0 für Tabs/Abschnitte, 1 für Split-Container.
 } WidgetState;
 
 /** @brief Private Anwendungsinstanz; höchstens Map oder Scripts besitzt gleichzeitig ein geladenes
  * Dokument. */
 typedef struct {
-    SDL_Window *window;        ///< Besitzendes Hauptfenster; vor SDL_Quit zerstören.
-    SDL_Renderer *renderer;    ///< Besitzender SDL-Renderer; nach seinen Texturen freigeben.
-    SDL_Cursor *resize_cursor; ///< Besitzender SDL-Cursor für Spaltengrenzen.
-    UiContext ui;              ///< Gemeinsamer Eingabe-, Fokus- und Clipzustand.
-    UiId widget_scope;         ///< ID-Namensraum des aktuell gezeichneten YAML-Knotens.
-    UiTabs workspaces;         ///< Globale Editor-Navigation.
-    UiTabs left_tabs;          ///< Linke kontextabhängige Tabgruppe.
-    UiTabs right_tabs;         ///< Rechte kontextabhängige Tabgruppe.
-    UiScroll tree_view;        ///< Scrollzustand des Projektbaums.
-    UiScroll inspector_view;   ///< Scrollzustand des Inspectors.
-    UiScroll scene_view;       ///< Scrollzustand der Entity-Liste.
-    UiScroll info_view;        ///< Scrollzustand der Szeneninformationen.
-    float left_width;          ///< Breite der linken Spalte in Pixeln.
-    float right_width;         ///< Breite der rechten Spalte in Pixeln.
-    bool layers_open;          ///< Aufklappzustand der Ebenenliste.
-    bool entity_open;          ///< Aufklappzustand der Entity-Eigenschaften.
-    bool palette_open;         ///< Aufklappzustand der Tile-Palette.
-    MapPayload *map;           ///< Besitzende Mapinstanz oder NULL bei entladenem Map-Editor.
-    PeScriptEditor *script;    ///< Besitzende Scriptinstanz oder NULL bei entladenem Script-Editor.
-    UiId loaded_view;          ///< ID der tatsächlich geladenen Editorinstanz.
+    SDL_Window *window;          ///< Besitzendes Hauptfenster; vor SDL_Quit zerstören.
+    SDL_Renderer *renderer;      ///< Besitzender SDL-Renderer; nach seinen Texturen freigeben.
+    SDL_Cursor *vertical_cursor; ///< Besitzender Cursor für vertikale Größenänderung.
+    PeConsole *console;          ///< Gemeinsame Shell; unabhängig vom geladenen Editor.
+    bool layout_resize_x;        ///< Horizontaler YAML-Splitter unter dem Zeiger.
+    bool layout_resize_y;        ///< Vertikaler YAML-Splitter unter dem Zeiger.
+    SDL_Cursor *resize_cursor;   ///< Besitzender SDL-Cursor für Spaltengrenzen.
+    UiContext ui;                ///< Gemeinsamer Eingabe-, Fokus- und Clipzustand.
+    UiId widget_scope;           ///< ID-Namensraum des aktuell gezeichneten YAML-Knotens.
+    UiTabs workspaces;           ///< Globale Editor-Navigation.
+    UiTabs left_tabs;            ///< Linke kontextabhängige Tabgruppe.
+    UiTabs right_tabs;           ///< Rechte kontextabhängige Tabgruppe.
+    UiScroll tree_view;          ///< Scrollzustand des Projektbaums.
+    UiScroll inspector_view;     ///< Scrollzustand des Inspectors.
+    UiScroll scene_view;         ///< Scrollzustand der Entity-Liste.
+    UiScroll info_view;          ///< Scrollzustand der Szeneninformationen.
+    float left_width;            ///< Breite der linken Spalte in Pixeln.
+    float right_width;           ///< Breite der rechten Spalte in Pixeln.
+    bool layers_open;            ///< Aufklappzustand der Ebenenliste.
+    bool entity_open;            ///< Aufklappzustand der Entity-Eigenschaften.
+    bool palette_open;           ///< Aufklappzustand der Tile-Palette.
+    MapPayload *map;             ///< Besitzende Mapinstanz oder NULL bei entladenem Map-Editor.
+    PeScriptEditor *script; ///< Besitzende Scriptinstanz oder NULL bei entladenem Script-Editor.
+    UiId loaded_view;       ///< ID der tatsächlich geladenen Editorinstanz.
     char session_paths[2][1200];  ///< Temporäre Checkpointpfade für Map und Scripts.
     bool session_exists[2];       ///< Ob für den jeweiligen Editor ein Checkpoint vorliegt.
     bool session_dirty[2];        ///< Änderungszustand des jeweils entladenen Editors.

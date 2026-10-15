@@ -37,6 +37,8 @@ bool editor_ui_controls_hit(float x, float y) {
 
 void editor_draw(void) {
     app.needs_layout = false;
+    app.layout_resize_x = app.layout_resize_y = false;
+    pe_console_begin_frame(app.console);
     app.rendering = true;
     SDL_GetWindowSize(app.window, &app.width, &app.height);
     app.hit_count = 0;
@@ -176,7 +178,9 @@ void editor_draw(void) {
     }
     app.ui.blocked = false;
     if (app.resize_cursor) {
-        SDL_SetCursor(resize ? app.resize_cursor : SDL_GetDefaultCursor());
+        SDL_SetCursor(app.layout_resize_y && app.vertical_cursor ? app.vertical_cursor
+                      : (resize || app.layout_resize_x)          ? app.resize_cursor
+                                                                 : SDL_GetDefaultCursor());
     }
     ui_end_frame(&app.ui);
     app.click = false;

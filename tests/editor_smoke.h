@@ -28,4 +28,6 @@ bool editor_verify_ui_layout(void);
  */
 bool editor_verify_workspace_tools(void);
 
+/** @brief Prüft YAML-Splitter, Konsolenfokus und gemeinsame Sitzung über Editorwechsel. */
+bool editor_verify_console(void);
 #endif

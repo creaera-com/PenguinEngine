@@ -312,5 +312,20 @@ void ui_tabs_scroll(UiTabs *tabs, float viewport, float tab_width, float delta);
  * @param tab_width Fallback-Slotbreite einschließlich Abstand in Pixeln.
  */
 bool ui_tabs_update(UiContext *context, UiTabs *tabs, UiRect bar, float tab_width);
+
+/** @brief Geometrie eines teilbaren Bereichs; second_size ist die begrenzte zweite Paneelgröße. */
+typedef struct {
+    UiRect first;      ///< Erstes Panel.
+    UiRect grip;       ///< Ziehbarer Zwischenraum.
+    UiRect second;     ///< Zweites Panel.
+    float second_size; ///< Tatsächliche zweite Panelgröße in Pixeln.
+} UiSplit;
+
+/** @brief Teilt einen Bereich horizontal (X) oder vertikal (Y), auch bei zu kleinen Fenstern.
+ * Mindestgrößen werden bei Platzmangel proportional reduziert; keine negative Geometrie.
+ */
+UiSplit ui_split_rects(UiRect area, UiAxis axis, float second_size, float minimum_first,
+                       float minimum_second, float gap);
+
 /** @} */
 #endif

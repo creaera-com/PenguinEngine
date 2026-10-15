@@ -246,8 +246,48 @@ static void test_selector_must_be_last(void) {
     TEST_ASSERT_NOT_NULL(strstr(error, "last toolbar element"));
 }
 
+static void test_split_and_terminal_schema(void) {
+    const char *valid =
+        "schema: penguin.ui/v1\nkind: editor\nid: map\ndocument_provider: scene\ntoolbar: "
+        "[]\ncolumns:\n"
+        "  left: {type: spacer, id: left}\n  right: {type: spacer, id: right}\n  center:\n"
+        "    type: split\n    id: split\n    axis: vertical\n    initial: 210\n    minimum_first: "
+        "160\n"
+        "    minimum_second: 100\n    gap: 8\n    first: {type: map_canvas, id: map_canvas, "
+        "binding: "
+        "scene.active}\n"
+        "    second: {type: terminal, id: console, binding: terminal.shared}\n";
+    write_file(YAML_FILE, valid);
+    PeUiLayout *layout = pe_ui_layout_load(YAML_FILE, "editor", error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+    pe_ui_layout_free(layout);
+    char *invalid = malloc(strlen(valid) + 1);
+    TEST_ASSERT_NOT_NULL(invalid);
+    strcpy(invalid, valid);
+    char *axis = strstr(invalid, "vertical");
+    memcpy(axis, "diagonal", 8);
+    rejects(invalid, "vertical or horizontal");
+    free(invalid);
+}
+
+static void test_terminal_binding_and_uniqueness(void) {
+    rejects("schema: penguin.ui/v1\nkind: editor\nid: map\ndocument_provider: scene\ntoolbar: "
+            "[]\ncolumns:\n"
+            "  left: {type: terminal, id: first, binding: terminal.shared}\n"
+            "  right: {type: terminal, id: second, binding: terminal.shared}\n"
+            "  center: {type: map_canvas, id: map_canvas, binding: scene.active}\n",
+            "only once");
+    rejects("schema: penguin.ui/v1\nkind: editor\nid: scripts\ndocument_provider: script\ntoolbar: "
+            "[]\ncolumns:\n"
+            "  left: {type: spacer, id: left}\n  right: {type: spacer, id: right}\n"
+            "  center: {type: terminal, id: console, binding: document.active}\n",
+            "incompatible");
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_split_and_terminal_schema);
+    RUN_TEST(test_terminal_binding_and_uniqueness);
     RUN_TEST(test_session_roundtrip);
     RUN_TEST(test_failed_save_keeps_checkpoint);
     RUN_TEST(test_checksum_before_decode);

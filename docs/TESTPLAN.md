@@ -70,7 +70,18 @@ Der native Sitzungscache ersetzt keine Backups und ist noch keine Crash-Recovery
 
 ## Fachliche Modultrennung
 
-- Im SDL-Build laufen insgesamt 116 Unity-Tests und 12 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
+- Im SDL-Build laufen insgesamt unter Linux 128 Unity-Tests und 13 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
 - `tests/editor_smoke.c` verwendet weiterhin die echten Eingabehandler, Editorwechsel und F6-Reloads. Die Tests liegen außerhalb des produktiven Quellcodes und werden nur bei `BUILD_TESTING=ON` eingebunden.
-- Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die vier SDL-freien Tests verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
+- Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die fünf SDL-freien Testgruppen verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
 - Für das Strukturrefactoring zusätzlich die Map-/Scripts-Aufnahmen gegen den vorherigen Stand vergleichen und einen vollständigen ASan-/UBSan-Testlauf ausführen.
+
+## Konsolenpanel und gemeinsame Shell
+
+1. Unter Linux Map und Scripts öffnen: jeweils mittig unten einen Konsole-Tab prüfen. Dreipunktgriff vertikal ziehen und in kleinen Fenstern die Größenbegrenzung prüfen.
+2. `pwd`, `printf` und `cd` ausführen. Zwischen Editoren wechseln und F6 außerhalb der Konsole auslösen: dieselbe Shell, dasselbe Arbeitsverzeichnis und dieselbe Ausgabe bleiben bestehen; die Höhe pro Editor wird wiederhergestellt.
+3. Ein Vordergrundprogramm starten und mit Ctrl+C abbrechen. Bei Konsolenfokus dürfen Ctrl+S/Z und WASD keine Map-/Scriptänderungen oder Spielerbewegung auslösen.
+4. Text markieren und mit Ctrl+Shift+C/V kopieren/einfügen. Mausrad, Scrollbar und Shift+PageUp/PageDown bei längerer Ausgabe testen. Fenster- und Panelgröße ändern; `stty size` muss folgen.
+5. Shell mit `exit` schließen und per Refresh-Symbol neu starten. Editor beenden und prüfen, dass seine Shell und normale Vordergrundprogramme beendet sind.
+6. Unter Windows zunächst die Backend-Meldung prüfen; dort fehlt noch ConPTY. Der macOS-POSIX-Backend benötigt zusätzlich einen echten Desktoptest.
+
+Automatisch: sieben Terminaltests unter Linux/POSIX (unter Windows Parser- plus Fallbacktests), drei Splittertests, zwei zusätzliche YAML-Schematests und GUI-Integration für Fokus, Resize, Reload und gemeinsame Sitzung. In GUI-Smokes werden keine Shellprozesse gestartet; die dedizierten PTY-Tests verwenden `/bin/sh`.

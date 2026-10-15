@@ -80,6 +80,7 @@ int main(int argc, char **argv) {
     UiTab right_tabs[] = {{UI_INSPECTOR_TAB, true, 0}, {UI_INFO_TAB, true, 0}};
     ui_tabs_init(&app.left_tabs, left_tabs, 2, UI_EXPLORER_TAB);
     ui_tabs_init(&app.right_tabs, right_tabs, 2, UI_INSPECTOR_TAB);
+    app.vertical_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NS_RESIZE);
     app.resize_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE);
     app.width = 1280;
     app.height = 800;
@@ -113,9 +114,9 @@ int main(int argc, char **argv) {
 
     int exit_code = 0;
 #ifdef PE_EDITOR_SMOKE_TESTS
-    if (app.smoke &&
-        (!editor_verify_editor() || !editor_verify_script_editor() || !editor_verify_ui_layout() ||
-         !editor_verify_workspace_tools() || !editor_verify_lifecycle())) {
+    if (app.smoke && (!editor_verify_editor() || !editor_verify_script_editor() ||
+                      !editor_verify_ui_layout() || !editor_verify_workspace_tools() ||
+                      !editor_verify_lifecycle() || !editor_verify_console())) {
         app.running = false;
         exit_code = 1;
     }
@@ -136,6 +137,7 @@ int main(int argc, char **argv) {
         if (elapsed > .1) {
             elapsed = .1;
         }
+        pe_console_tick(app.console);
         editor_map_update(elapsed);
         editor_draw();
         if (app.smoke && ++frames >= 3) {
@@ -158,6 +160,8 @@ int main(int argc, char **argv) {
     for (int i = 0; i < 2; i++) {
         remove(app.session_paths[i]);
     }
+    pe_console_free(app.console);
+    SDL_DestroyCursor(app.vertical_cursor);
     SDL_DestroyCursor(app.resize_cursor);
     SDL_DestroyRenderer(app.renderer);
     SDL_DestroyWindow(app.window);

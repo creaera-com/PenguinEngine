@@ -26,16 +26,37 @@ UiIcon editor_yaml_icon(const char *name) {
     static const struct {
         const char *name;
         UiIcon icon;
-    } names[] = {{"menu", ICON_MENU},           {"save", ICON_SAVE},     {"undo", ICON_UNDO},
-                 {"redo", ICON_REDO},           {"play", ICON_PLAY},     {"stop", ICON_STOP},
-                 {"import", ICON_IMPORT},       {"brush", ICON_BRUSH},   {"erase", ICON_ERASE},
-                 {"rectangle", ICON_RECTANGLE}, {"fill", ICON_FILL},     {"select", ICON_SELECT},
-                 {"collision", ICON_COLLISION}, {"grid", ICON_GRID},     {"refresh", ICON_REFRESH},
-                 {"folder", ICON_FOLDER},       {"file", ICON_FILE},     {"image", ICON_IMAGE},
-                 {"layers", ICON_LAYERS},       {"entity", ICON_ENTITY}, {"plus", ICON_PLUS},
-                 {"delete", ICON_DELETE},       {"edit", ICON_EDIT},     {"up", ICON_UP},
-                 {"down", ICON_DOWN},           {"right", ICON_RIGHT},   {"eye", ICON_EYE},
-                 {"eye_off", ICON_EYE_OFF},     {"check", ICON_CHECK},   {"close", ICON_CLOSE}};
+    } names[] = {{"terminal", ICON_TERMINAL},
+                 {"menu", ICON_MENU},
+                 {"save", ICON_SAVE},
+                 {"undo", ICON_UNDO},
+                 {"redo", ICON_REDO},
+                 {"play", ICON_PLAY},
+                 {"stop", ICON_STOP},
+                 {"import", ICON_IMPORT},
+                 {"brush", ICON_BRUSH},
+                 {"erase", ICON_ERASE},
+                 {"rectangle", ICON_RECTANGLE},
+                 {"fill", ICON_FILL},
+                 {"select", ICON_SELECT},
+                 {"collision", ICON_COLLISION},
+                 {"grid", ICON_GRID},
+                 {"refresh", ICON_REFRESH},
+                 {"folder", ICON_FOLDER},
+                 {"file", ICON_FILE},
+                 {"image", ICON_IMAGE},
+                 {"layers", ICON_LAYERS},
+                 {"entity", ICON_ENTITY},
+                 {"plus", ICON_PLUS},
+                 {"delete", ICON_DELETE},
+                 {"edit", ICON_EDIT},
+                 {"up", ICON_UP},
+                 {"down", ICON_DOWN},
+                 {"right", ICON_RIGHT},
+                 {"eye", ICON_EYE},
+                 {"eye_off", ICON_EYE_OFF},
+                 {"check", ICON_CHECK},
+                 {"close", ICON_CLOSE}};
 
     for (size_t i = 0; i < sizeof names / sizeof names[0]; i++) {
         if (!strcmp(names[i].name, name)) {
@@ -269,6 +290,15 @@ static int widget_state(UiId id) {
     return i;
 }
 
+bool editor_layout_captured(void) {
+    for (int i = 0; i < app.widget_count; i++) {
+        if (app.widgets[i].kind == 1 && app.widgets[i].id == app.ui.active) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
     if (!n || area.w <= 0 || area.h <= 0 || !editor_yaml_boolean(pe_ui_get(n, "visible"), true)) {
         return;
@@ -280,11 +310,61 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
     app.ui.blocked = previous_blocked || !editor_yaml_boolean(pe_ui_get(n, "enabled"), true);
     ui_clip_push(&app.ui, (UiRect){area.x, area.y, area.w, area.h});
     ui_apply_clip(app.renderer, &app.ui);
-    if (!strcmp(type, "tabs")) {
+    if (!strcmp(type, "split")) {
         int state = widget_state(id);
         if (state < 0) {
             goto done;
         }
+        WidgetState *stored = &app.widgets[state];
+        if (stored->kind != 1) {
+            stored->extent = (float)pe_ui_get(n, "initial")->valuedouble;
+            stored->kind = 1;
+        }
+        UiAxis axis = !strcmp(pe_ui_string(n, "axis", ""), "vertical") ? UI_AXIS_Y : UI_AXIS_X;
+        float min_first = (float)pe_ui_get(n, "minimum_first")->valuedouble;
+        float min_second = (float)pe_ui_get(n, "minimum_second")->valuedouble;
+        float gap = (float)pe_ui_get(n, "gap")->valuedouble;
+        UiRect rect = {area.x, area.y, area.w, area.h};
+        UiSplit split = ui_split_rects(rect, axis, stored->extent, min_first, min_second, gap);
+        stored->extent = split.second_size;
+        float total = (axis == UI_AXIS_Y ? area.h : area.w) - gap;
+        float effective_min = fminf(min_second, split.second_size);
+        ui_drag_value(
+            &app.ui, id, split.grip, &stored->extent, effective_min,
+            fmaxf(effective_min,
+                  total - fminf(min_first, axis == UI_AXIS_Y ? split.first.h : split.first.w)),
+            axis, -1);
+        split = ui_split_rects(rect, axis, stored->extent, min_first, min_second, gap);
+        stored->extent = split.second_size;
+        editor_register_ui_hit(split.grip);
+        bool highlight = ui_hovered(&app.ui, split.grip) || app.ui.active == id;
+        if (highlight && !app.ui.blocked) {
+            if (axis == UI_AXIS_Y) {
+                app.layout_resize_y = true;
+            } else {
+                app.layout_resize_x = true;
+            }
+        }
+        float cx = split.grip.x + split.grip.w * .5f;
+        float cy = split.grip.y + split.grip.h * .5f;
+        editor_draw_color(highlight ? UI_ACCENT : UI_MUTED);
+        for (int k = -1; k <= 1; k++) {
+            SDL_FRect dot = {floorf(cx + (axis == UI_AXIS_Y ? k * 6 : 0)) - 1,
+                             floorf(cy + (axis == UI_AXIS_X ? k * 6 : 0)) - 1, 2, 2};
+            SDL_RenderFillRect(app.renderer, &dot);
+        }
+        editor_draw_yaml_node(
+            pe_ui_get(n, "first"),
+            (SDL_FRect){split.first.x, split.first.y, split.first.w, split.first.h}, -1);
+        editor_draw_yaml_node(
+            pe_ui_get(n, "second"),
+            (SDL_FRect){split.second.x, split.second.y, split.second.w, split.second.h}, -1);
+    } else if (!strcmp(type, "tabs")) {
+        int state = widget_state(id);
+        if (state < 0) {
+            goto done;
+        }
+        app.widgets[state].kind = 0;
         const cJSON *list = pe_ui_get(n, "tabs");
         int count = cJSON_GetArraySize(list);
         UiTabs temporary = {0};
@@ -445,6 +525,13 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
             editor_draw_inspector();
         } else if (!strcmp(type, "scene_info")) {
             editor_draw_info();
+        } else if (!strcmp(type, "terminal")) {
+            if (!app.console) {
+                app.console = pe_console_new(app.root, !app.smoke);
+            }
+            if (app.console) {
+                pe_console_draw(app.console, app.renderer, &app.ui, area, !app.ui.blocked);
+            }
         } else if (!strcmp(type, "script_info")) {
             editor_draw_script_inspector();
         }

@@ -118,7 +118,8 @@ typedef enum {
     ICON_EYE_OFF,
     ICON_CHECK,
     ICON_CLOSE,
-    ICON_MENU
+    ICON_MENU,
+    ICON_TERMINAL ///< Shell-/Konsolensymbol.
 } UiIcon;
 
 /**

@@ -77,5 +77,8 @@ const char *editor_yaml_text(const cJSON *value, char *buffer, size_t size);
 
 /** @brief Berechnet die benötigte Zeilenzahl der kontextbezogenen Werkzeugleiste. */
 int editor_yaml_toolbar_rows(float width);
+/** @brief Prüft, ob ein YAML-Splitter die Zeigerinteraktion eingefangen hat. */
+bool editor_layout_captured(void);
+
 /** @} */
 #endif

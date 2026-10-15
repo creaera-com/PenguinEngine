@@ -13,16 +13,15 @@ static const char *actions[] = {"document.save",      "document.undo",
                                 "map.toggle_grid",    "map.toggle_collision",
                                 "script.check",       NULL};
 static const char *bindings[] = {
-    "document.can_save",   "document.can_undo", "document.can_redo",
-    "document.save_state", "editor.mode",       "editor.details",
-    "editor.message",      "map.grid_visible",  "map.collision_visible",
-    "project.files",       "scene.entities",    "scene.active",
-    "selection.active",    "document.active",   NULL};
+    "document.can_save",     "document.can_undo", "document.can_redo", "document.save_state",
+    "editor.mode",           "editor.details",    "editor.message",    "map.grid_visible",
+    "map.collision_visible", "project.files",     "scene.entities",    "scene.active",
+    "selection.active",      "document.active",   "terminal.shared",   NULL};
 static const char *icons[] = {
-    "menu",  "save",      "undo",   "redo",    "play",      "stop",   "import",  "brush",
-    "erase", "rectangle", "fill",   "select",  "collision", "grid",   "refresh", "folder",
-    "file",  "image",     "layers", "entity",  "plus",      "delete", "edit",    "up",
-    "down",  "right",     "eye",    "eye_off", "check",     "close",  NULL};
+    "menu",  "save",      "undo",   "redo",    "play",      "stop",   "import",   "brush",
+    "erase", "rectangle", "fill",   "select",  "collision", "grid",   "refresh",  "folder",
+    "file",  "image",     "layers", "entity",  "plus",      "delete", "edit",     "up",
+    "down",  "right",     "eye",    "eye_off", "check",     "close",  "terminal", NULL};
 
 static bool contains(const char *const *names, const char *name) {
     for (int i = 0; names[i]; i++) {
@@ -171,15 +170,17 @@ static bool widget(Check *c, const cJSON *v, int depth) {
     }
 
     const char *type = pe_ui_string(v, "type", "");
-    if ((!strcmp(type, "tabs") || !strcmp(type, "section")) && ++c->stateful > 64) {
+    if ((!strcmp(type, "tabs") || !strcmp(type, "section") || !strcmp(type, "split")) &&
+        ++c->stateful > 64) {
         return error_at(c, v, "maximum 64 stateful containers");
     }
     if ((!strcmp(type, "map_canvas") || !strcmp(type, "script_editor")) && ++c->canvases > 1) {
         return error_at(c, v, "only one interactive canvas per editor is supported");
     }
 
-    const char *specialized[] = {"file_tree", "entity_tree", "map_canvas",  "script_editor",
-                                 "inspector", "scene_info",  "script_info", NULL};
+    const char *specialized[] = {"file_tree",     "entity_tree", "map_canvas",
+                                 "script_editor", "inspector",   "scene_info",
+                                 "script_info",   "terminal",    NULL};
     for (int i = 0; specialized[i]; i++) {
         if (!strcmp(type, specialized[i])) {
             unsigned bit = 1u << i;
@@ -197,13 +198,15 @@ static bool widget(Check *c, const cJSON *v, int depth) {
         extra = "|children||title||open|";
     } else if (!strcmp(type, "row") || !strcmp(type, "column")) {
         extra = "|children||gap|";
+    } else if (!strcmp(type, "split")) {
+        extra = "|axis||initial||minimum_first||minimum_second||gap||first||second|";
     } else if (!strcmp(type, "editor_switcher")) {
         extra = "|labels|";
     } else if (strcmp(type, "button") && strcmp(type, "separator") && strcmp(type, "label") &&
                strcmp(type, "spacer") && strcmp(type, "file_tree") && strcmp(type, "entity_tree") &&
                strcmp(type, "map_canvas") && strcmp(type, "script_editor") &&
                strcmp(type, "inspector") && strcmp(type, "scene_info") &&
-               strcmp(type, "script_info")) {
+               strcmp(type, "script_info") && strcmp(type, "terminal")) {
         return error_at(c, v, "unknown widget type");
     }
 
@@ -252,7 +255,8 @@ static bool widget(Check *c, const cJSON *v, int depth) {
     }
 
     const char *required =
-        !strcmp(type, "file_tree")                                         ? "project.files"
+        !strcmp(type, "terminal")                                          ? "terminal.shared"
+        : !strcmp(type, "file_tree")                                       ? "project.files"
         : !strcmp(type, "entity_tree")                                     ? "scene.entities"
         : (!strcmp(type, "map_canvas") || !strcmp(type, "scene_info"))     ? "scene.active"
         : !strcmp(type, "inspector")                                       ? "selection.active"
@@ -274,6 +278,23 @@ static bool widget(Check *c, const cJSON *v, int depth) {
     }
     if (!strcmp(type, "editor_switcher") && (c->module || !cJSON_IsBool(pe_ui_get(v, "labels")))) {
         return error_at(c, v, "editor_switcher is shell-only and requires labels");
+    }
+    if (!strcmp(type, "terminal") && !c->module) {
+        return error_at(c, v, "terminal is editor-only");
+    }
+    if (!strcmp(type, "split")) {
+        const char *axis = pe_ui_string(v, "axis", "");
+        if (!c->module || (strcmp(axis, "vertical") && strcmp(axis, "horizontal"))) {
+            return error_at(c, v, "split is editor-only and requires vertical or horizontal axis");
+        }
+        if (!number(c, pe_ui_get(v, "initial"), 1, 2000) ||
+            !number(c, pe_ui_get(v, "minimum_first"), 1, 2000) ||
+            !number(c, pe_ui_get(v, "minimum_second"), 1, 2000) ||
+            !number(c, pe_ui_get(v, "gap"), 4, 16) ||
+            !widget(c, pe_ui_get(v, "first"), depth + 1) ||
+            !widget(c, pe_ui_get(v, "second"), depth + 1)) {
+            return false;
+        }
     }
     if (!strcmp(type, "tabs")) {
         const cJSON *tabs = pe_ui_get(v, "tabs");

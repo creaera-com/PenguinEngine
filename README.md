@@ -12,6 +12,7 @@ Eine kleine 2D-Engine in **C17 mit SDL3**, einem einfachen ECS und einem Tilemap
 - Ziehbare Spaltentrenner, umsortierbare Tabs, Scrollbars und klappbare Inspector-Bereiche.
 - Icon-Buttons und Werkzeug-Tooltips.
 - Globale Arbeitsbereichsauswahl **Map / Scripts** mit eigenen Werkzeugleisten direkt über dem Inhalt; Scripts bietet einen JavaScript-Texteditor, Highlighting, Syntaxprüfung und einfache Autovervollständigung.
+- Gemeinsame Shell-Konsole unter Map und Scripts mit Tabs und höhenverstellbarem Panel; derzeit Linux-PTY, macOS-POSIX vorgesehen und Windows-ConPTY noch offen. Details in [KONSOLE.md](docs/KONSOLE.md).
 - Projekt-Dateibaum, PNG-Import per Drag-and-drop oder Dateipfad, Tile-Palette.
 - Pinsel, Radierer, Rechteck, Füllen, Entity-Auswahl und Verschieben.
 - Ebenen hinzufügen, löschen, umbenennen, sortieren und ausblenden.
@@ -92,7 +93,7 @@ Bei älteren Ständen mit `Cannot open example/project.json`: Working directory 
 
 ## Tests ohne SDL oder Fenster
 
-Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Insgesamt 116 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge, UI-Regeln und Editorzustände ohne Download. Die beiden zusätzlichen Dokument-Checkpoint-Tests werden im SDL-Build ausgeführt.
+Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Unter Linux insgesamt 128 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge, UI-Regeln und Editorzustände ohne Download. Die beiden zusätzlichen Dokument-Checkpoint-Tests werden im SDL-Build ausgeführt.
 
 ```sh
 cmake -S . -B build-core -DPENGUIN_BUILD_EDITOR=OFF

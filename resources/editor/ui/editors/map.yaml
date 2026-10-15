@@ -33,9 +33,22 @@ columns:
         icon: entity
         content: {type: entity_tree, id: entities, binding: scene.entities}
   center:
-    type: map_canvas
-    id: canvas
-    binding: scene.active
+    type: split
+    id: center_split
+    axis: vertical
+    initial: 210
+    minimum_first: 160
+    minimum_second: 100
+    gap: 8
+    first: {type: map_canvas, id: canvas, binding: scene.active}
+    second:
+      type: tabs
+      id: bottom_tools
+      tabs:
+        - id: console_tab
+          title: "Konsole"
+          icon: terminal
+          content: {type: terminal, id: console, binding: terminal.shared}
   right:
     type: tabs
     id: properties

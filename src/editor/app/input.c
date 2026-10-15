@@ -88,7 +88,18 @@ void editor_event(SDL_Event *e) {
         ui_pointer(&app.ui, app.mx, app.my, e->type == SDL_EVENT_MOUSE_BUTTON_DOWN);
     }
 
-    bool captured = app.ui.active == UI_SPLIT_LEFT || app.ui.active == UI_SPLIT_RIGHT ||
+    if (pe_console_event(app.console, app.window, e, !modal && !editor_edit_pending())) {
+        if (pe_console_focused(app.console)) {
+            ui_focus(&app.ui, 0x10010u);
+            if (app.script && app.script->focused) {
+                se_focus(app.script, app.window, false);
+                SDL_StartTextInput(app.window);
+            }
+        }
+        return;
+    }
+    bool captured = app.ui.active == PE_CONSOLE_SCROLL_ID || editor_layout_captured() ||
+                    app.ui.active == UI_SPLIT_LEFT || app.ui.active == UI_SPLIT_RIGHT ||
                     app.ui.active == UI_TREE_SCROLL || app.ui.active == UI_INSPECTOR_SCROLL ||
                     app.ui.active == UI_SCENE_SCROLL || app.ui.active == UI_INFO_SCROLL ||
                     app.ui.active == UI_SCRIPT_VSCROLL || app.ui.active == UI_SCRIPT_HSCROLL;

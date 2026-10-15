@@ -474,3 +474,98 @@ bool editor_verify_lifecycle(void) {
 
     return ok;
 }
+
+bool editor_verify_console(void) {
+    editor_tab_select(false);
+    editor_draw();
+    if (!app.console) {
+        return false;
+    }
+    PeConsole *service = app.console;
+    PeTerminal *terminal = pe_console_terminal(service);
+    PeScene baseline = app.map->scene;
+    SDL_FRect body = pe_console_area(service);
+    float old_height = body.h;
+    int state = -1;
+    for (int i = 0; i < app.widget_count; i++) {
+        if (app.widgets[i].kind == 1) {
+            state = i;
+            break;
+        }
+    }
+    if (state < 0) {
+        return false;
+    }
+    float extent = app.widgets[state].extent;
+    float x = app.viewport.x + app.viewport.w * .5f, y = app.viewport.y + app.viewport.h + 4;
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+    editor_draw();
+    smoke_pointer(SDL_EVENT_MOUSE_MOTION, x, y - 32);
+    editor_draw();
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x, y - 32);
+    editor_draw();
+    bool ok =
+        app.widgets[state].extent > extent + 20 && pe_console_area(service).h > old_height + 20;
+    ok = ok && editor_reload_layout();
+    editor_draw();
+    ok = ok && app.console == service && pe_console_terminal(service) == terminal;
+    body = pe_console_area(service);
+    smoke_click(body.x + 10, body.y + 8);
+    editor_draw();
+    ok = ok && pe_console_focused(service);
+    SDL_Event event = {0};
+    event.type = SDL_EVENT_TEXT_INPUT;
+    event.text.text = "echo penguin";
+    editor_event(&event);
+    event.type = SDL_EVENT_KEY_DOWN;
+    event.key.key = SDLK_C;
+    event.key.mod = SDL_KMOD_CTRL;
+    editor_event(&event);
+    size_t length;
+    const char *output = pe_terminal_output(terminal, &length);
+    ok = ok && length == 13 && !memcmp(output, "echo penguin\x03", 13) &&
+         !memcmp(&baseline, &app.map->scene, sizeof baseline);
+    pe_terminal_consume(terminal, length);
+    pe_terminal_feed(terminal, "shared-session", 14);
+    editor_tab_select(true);
+    editor_draw();
+    ok = ok && app.console == service && pe_console_terminal(app.console) == terminal && !app.map &&
+         app.script;
+    char *copy = pe_terminal_copy(terminal, 0, 0, 0, 13);
+    ok = ok && copy && !strcmp(copy, "shared-session");
+    free(copy);
+    size_t script_length = app.script->document.length;
+    body = pe_console_area(service);
+    smoke_click(body.x + 10, body.y + 8);
+    editor_draw();
+    event.type = SDL_EVENT_TEXT_INPUT;
+    event.text.text = "x";
+    editor_event(&event);
+    ok = ok && app.script->document.length == script_length;
+    pe_terminal_output(terminal, &length);
+    pe_terminal_consume(terminal, length);
+    editor_tab_select(false);
+    editor_draw();
+    state = -1;
+    for (int i = 0; i < app.widget_count; i++) {
+        if (app.widgets[i].kind == 1) {
+            state = i;
+            break;
+        }
+    }
+    ok = ok && state >= 0 && app.widgets[state].extent > extent + 20;
+    if (state >= 0) {
+        app.widgets[state].extent = extent;
+    }
+    body = pe_console_area(service);
+    smoke_click(app.viewport.x + 8, TOP + 8);
+    ui_cancel(&app.ui);
+    const char *reset = "\033[2J\033[H";
+    pe_terminal_feed(terminal, reset, strlen(reset));
+    app.mx = app.my = 0;
+    editor_draw();
+    if (!ok) {
+        fprintf(stderr, "Console / split layout / focus / shared session smoke failed\n");
+    }
+    return ok;
+}

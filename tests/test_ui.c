@@ -304,8 +304,42 @@ static void test_hidden_focused_button(void) {
     TEST_ASSERT_FALSE(ui_button(&ui, 1, button, true));
 }
 
+static void test_vertical_split_constraints(void) {
+    UiSplit split = ui_split_rects((UiRect){10, 20, 400, 600}, UI_AXIS_Y, 180, 120, 80, 8);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 412, split.first.h);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 432, split.grip.y);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 440, split.second.y);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 180, split.second.h);
+    split = ui_split_rects((UiRect){0, 0, 400, 600}, UI_AXIS_Y, 999, 120, 80, 8);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 120, split.first.h);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 472, split.second.h);
+}
+
+static void test_split_tiny_and_horizontal(void) {
+    UiSplit split = ui_split_rects((UiRect){0, 0, 20, 30}, UI_AXIS_Y, 180, 120, 80, 8);
+    TEST_ASSERT_TRUE(split.first.h >= 0 && split.second.h >= 0);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 30, split.first.h + split.grip.h + split.second.h);
+    split = ui_split_rects((UiRect){5, 10, 500, 100}, UI_AXIS_X, 150, 100, 80, 8);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 342, split.first.w);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 355, split.second.x);
+}
+
+static void test_split_drag_reduces_lower_panel(void) {
+    float size = 180;
+    UiSplit split = ui_split_rects((UiRect){0, 0, 400, 600}, UI_AXIS_Y, size, 120, 80, 8);
+    ui_pointer(&ui, 200, split.grip.y + 2, true);
+    ui_drag_value(&ui, 99, split.grip, &size, 80, 472, UI_AXIS_Y, -1);
+    ui_end_frame(&ui);
+    ui_pointer(&ui, 200, split.grip.y + 42, true);
+    TEST_ASSERT_TRUE(ui_drag_value(&ui, 99, split.grip, &size, 80, 472, UI_AXIS_Y, -1));
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 140, size);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_vertical_split_constraints);
+    RUN_TEST(test_split_tiny_and_horizontal);
+    RUN_TEST(test_split_drag_reduces_lower_panel);
     RUN_TEST(test_button_release);
     RUN_TEST(test_fast_click);
     RUN_TEST(test_press_origin);
