@@ -67,3 +67,10 @@ Die automatisierten Tests wurden in der Entwicklungsumgebung headless ausgeführ
 6. Die automatisierten Editor-Smokes simulieren außerdem ein nicht beschreibbares Checkpointziel und eine beschädigte Zielsitzung. Im ersten Fall bleibt der Quelleditor stehen, im zweiten wird er aus seiner gerade gesicherten Sitzung wiederhergestellt. Kein Test schreibt dabei die Projektdateien.
 
 Der native Sitzungscache ersetzt keine Backups und ist noch keine Crash-Recovery über Programmstarts hinweg. Eigene Layoutkopien bearbeiten: Ein Build kopiert die Repo-Vorgaben erneut nach `build/ui-layouts`.
+
+## Fachliche Modultrennung
+
+- Im SDL-Build laufen insgesamt 116 Unity-Tests und 12 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
+- `tests/editor_smoke.c` verwendet weiterhin die echten Eingabehandler, Editorwechsel und F6-Reloads. Die Tests liegen außerhalb des produktiven Quellcodes und werden nur bei `BUILD_TESTING=ON` eingebunden.
+- Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die vier SDL-freien Tests verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
+- Für das Strukturrefactoring zusätzlich die Map-/Scripts-Aufnahmen gegen den vorherigen Stand vergleichen und einen vollständigen ASan-/UBSan-Testlauf ausführen.

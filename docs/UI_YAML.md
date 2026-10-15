@@ -247,7 +247,10 @@ Die Positionsangabe ist ein Beispiel. Validiert wird vor Aktivierung einer neuen
 ## Implementierung und Erweiterungsstellen
 
 - `src/editor/layout/ui_layout.c`: YAML → Knotenmodell, Quellpositionen, Schema, Typ-/Aktions-/Binding-Prüfung.
-- `src/editor/app/main.c`: Anwendungshülle, registrierte Adapter, Zustand des aktiven Editors, Layout/Rendern und F6-Reload. Wechsel aus einem UI-Callback werden bis zum Frameende aufgeschoben, damit keine gerade benutzten YAML-Knoten freigegeben werden.
+- `src/editor/app/main.c`: Start und Hauptschleife; `app/shell.c` zeichnet die Anwendungshülle.
+- `src/editor/layout/renderer.c` und `bindings.c`: YAML-Darstellung sowie Bindings und Aktionsverteilung. Map-/Script-Aktionen liegen bei den jeweiligen Editoren.
+- `src/editor/workspace/lifecycle.c`: Editorwechsel, UI-Snapshots und F6-Reload. Wechsel aus einem UI-Callback werden bis zum Frameende aufgeschoben, damit keine gerade benutzten YAML-Knoten freigegeben werden.
+- `src/editor/editors/map/checkpoint.c` und `scripts/checkpoint.c`: Dokument- und Undo-Codecs ohne Abhängigkeit vom globalen Editorzustand.
 - `src/editor/workspace/session.c`: begrenzter Checkpoint-Stream, Prüfsumme und atomarer Austausch. Dokument-/Undo-Codec und UI-Snapshots werden vom Editor bereitgestellt.
 - `src/editor/layout/ui_layout.h` und `src/editor/workspace/session.h`: interne C-Schnittstellen für Loader und Checkpoints, unabhängig von SDL testbar.
 - `src/ui/`: wiederverwendbare Eingabe-/Layoutbausteine und SDL-Darstellung; das Theme kann zur Laufzeit gesetzt werden.

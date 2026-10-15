@@ -7,22 +7,32 @@ PenguinEngine/
 ├── src/
 │   ├── engine/
 │   │   ├── include/penguin/     Öffentliche Engine- und Script-Schnittstellen
-│   │   ├── project/             Projektsuche und Pfadauflösung
-│   │   ├── scene/               Szenenmodell, Bearbeitung und JSON-Serialisierung
+│   │   ├── project/             Projektsuche und JSON-Projektmanifest
+│   │   ├── scene/               Szeneninitialisierung und JSON-Szenendateien
+│   │   ├── ecs/                 Entity-Kennungen und Komponentenmasken
+│   │   ├── tilemap/             Tile-Zugriff, Füllen und Rechteckwerkzeug
+│   │   ├── history/             Szenenänderungen mit Undo/Redo
+│   │   ├── camera/              Welt-/Bildschirmkoordinaten und Zoom
+│   │   ├── collision/           Tile-Kollision und kollisionsgeprüfte Bewegung
+│   │   ├── runtime/             Laufzeitaktualisierung und Spielersteuerung
 │   │   └── scripting/           Textdokumente und JavaScript-Sprachunterstützung
 │   ├── editor/
-│   │   ├── app/                 Programmstart und Anwendungshülle
+│   │   ├── app/                 Start, Hauptschleife, Shell und Eingabeverteilung
+│   │   ├── browser/             Projekt-Dateibaum und Dateityperkennung
+│   │   ├── dialogs/             Modale Rückfragen und Texteingabefelder
 │   │   ├── editors/
-│   │   │   ├── map/             Interne Map-Editor-Datentypen
-│   │   │   └── scripts/         Script-Editor mit Textansicht und Eingaben
-│   │   ├── layout/              YAML-Laden und Schema-Validierung
-│   │   └── workspace/           Temporäre Sitzungs-Checkpoints
+│   │   │   ├── map/             Map-Dokument, Werkzeuge, Eingaben, Panels und Play
+│   │   │   └── scripts/         Textansicht, Script-Aktionen, Infopanel und Checkpoint
+│   │   ├── layout/              YAML-Loader, Darstellung und Binding-/Aktionsadapter
+│   │   └── workspace/           Dokumentaktionen, Editor-Lebenszyklus und Checkpoints
 │   ├── ui/
 │   │   ├── include/penguin/     Öffentliche UI-Schnittstellen
 │   │   ├── core/                Eingabe, Fokus, Layout und Widget-Zustände
 │   │   └── rendering/           SDL-Darstellung, Icons und eingebetteter Font-Atlas
-│   └── platform/
-│       └── sdl/                SDL-Szenenrenderer und öffentliche Render-Schnittstelle
+│   ├── platform/
+│   │   └── sdl/                SDL-Szenenrenderer und öffentliche Render-Schnittstelle
+│   └── shared/
+│       └── json/               Gemeinsames JSON-Einlesen und grundlegende Validierung
 ├── resources/
 │   ├── editor/ui/              Ausgelieferte Shell- und Editor-YAML-Dateien
 │   └── ui/fonts/               Originalschrift und SIL Open Font License
@@ -42,13 +52,25 @@ Interne Header liegen neben der zugehörigen Implementierung. Öffentlich nutzba
 
 Die Engine hängt nicht vom Editor ab. Die UI-Bibliothek ist ebenfalls unabhängig vom Editor und kann in Spielen verwendet werden. Editorinterne Header wie `layout/ui_layout.h` und `workspace/session.h` werden ausschließlich vom Editor und seinen Tests verwendet.
 
-Ein Verzeichnis `src/shared/` ergänzen wir erst, wenn tatsächlich fachlich unabhängige Hilfsfunktionen für mehrere Domänen entstehen. Ein Baustein wird nicht allein deshalb nach Shared verschoben, weil ihn mehrere Aufrufer nutzen: Gemeinsam verwendete Widgets gehören beispielsweise weiterhin zu `src/ui/`.
+`src/shared/json/` enthält die von Szenen- und Projektdateien gemeinsam verwendeten JSON-Helfer: begrenztes Einlesen, Zahlenprüfung, Fehlertexte und sichere relative Pfade. Diese Helfer kennen weder Szenen noch Editoren. Gemeinsam verwendete Widgets bleiben dagegen bei ihrer fachlichen Zuständigkeit unter `src/ui/`.
 
-## Noch zusammenhängende Implementierungen
+## Zusammenspiel der Module
 
-Dieses Refactoring verschiebt vorhandene Module, ohne Funktionen oder Datenformate zu verändern. `src/engine/scene/core.c` enthält weiterhin gemeinsam Szeneninitialisierung, Entities, Tile-Werkzeuge, Undo/Redo, Kamera und einfache Kollisionen. Das spätere Aufteilen dieser Datei in kleinere Module kann separat erfolgen.
+`src/editor/app/main.c` liest Programmargumente, initialisiert die Anwendung und führt die Hauptschleife aus. Die Anwendungshülle zeichnet `app/shell.c`; `app/input.c` verteilt Eingaben an globale Bedienung, Dialoge, Script-Editor und Map-Eingabe. Map-spezifische Tasten, Mausaktionen, Zoom und Play-Aktualisierung liegen unter `editors/map/`.
 
-Auch `src/editor/app/main.c` enthält noch einen großen Teil der Map-Bedienung, der Anwendungshülle und des Editor-Lebenszyklus. Die Map-Datentypen liegen bereits in `src/editor/editors/map/map_editor.h`; der Script-Editor besitzt schon ein eigenes Implementierungsmodul. Das schrittweise Herauslösen der Map-Funktionen ist ein weiterer Refactoring-Schritt. Die Ordnerstruktur allein führt noch keine vollständige Modultrennung ein.
+Der Map-Editor ist in `document.c` (Dateioperationen, Tileset und Bearbeitungstransaktionen), `tools.c` (Pinsel, Füllen und Auswahl), `input.c`, `actions.c`, `fields.c` (Inspector-Werte), `panels.c`, `canvas.c`, `runtime.c` und `checkpoint.c` aufgeteilt. Der Script-Editor besitzt seine Textansicht sowie eigene Aktions-, Panel- und Checkpoint-Module.
+
+`workspace/documents.c` koordiniert globale Befehle wie Speichern, Undo/Redo und Öffnen. `workspace/lifecycle.c` sichert den aktuellen UI-Zustand, entlädt den bisherigen Editor und aktiviert den nächsten. Die tatsächlichen Dokumentdaten serialisieren die jeweiligen `checkpoint.c`-Module. Diese erhalten Dokument und Kontext als Argumente und benötigen weder den globalen Editorzustand noch ein geöffnetes Fenster. Ihre eigenständigen Unity-Tests verifizieren auch nach dem Wiederherstellen unabhängiges Undo/Redo.
+
+Die interne Anwendungsschnittstelle `app/editor_internal.h` führt die privaten Modulverträge zusammen und beschreibt den gemeinsamen Editorzustand. Die UI-Adapter greifen weiterhin auf diese eine Anwendungsinstanz zu. Das ist eine Aufteilung in fachliche C-Module, noch keine vollständige Entkopplung aller UI-Adapter oder Unterstützung mehrerer Editorfenster. Engine und wiederverwendbare UI-Bibliothek kennen diesen Zustand nicht. Änderungen daran bleiben auf den Editor beschränkt.
+
+Die öffentlichen Engine-Funktionen aus `penguin/engine.h` sind unverändert. Ihre Implementierungen liegen nun in der jeweiligen Domäne statt in einem gemeinsamen `scene/core.c`. Projektmanifeste werden unter `engine/project/` verarbeitet; Szenenserialisierung bleibt unter `engine/scene/`.
+
+## Tests und Produktionsbuild
+
+Die bisherigen GUI-Smoke-Prüfungen liegen unter `tests/editor_smoke.c`. Sie werden nur bei `BUILD_TESTING=ON` in den Editor eingebunden. `--smoke` führt dann dieselben Eingabe- und Editorwechselprüfungen wie bisher aus und beendet sich nach wenigen Frames.
+
+Mit `-DBUILD_TESTING=OFF` enthält der Editor diese Testfunktionen nicht. `--smoke` bleibt als kurzer Start-/Rendercheck verfügbar. Der Produktionsbuild und die normalen Programme verwenden ansonsten dieselben Module.
 
 ## Build und Ressourcen
 

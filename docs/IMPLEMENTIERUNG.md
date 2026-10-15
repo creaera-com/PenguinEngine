@@ -9,17 +9,24 @@ Die [Projektstruktur](PROJEKTSTRUKTUR.md) erklärt die Domänen unter `src/` und
 | Datei | Aufgabe |
 | --- | --- |
 | `src/engine/include/penguin/engine.h` | Öffentliche, von SDL unabhängige C-Datentypen und Funktionen. |
-| `src/engine/scene/core.c` | Entities, Tile-Werkzeuge, Undo/Redo, Kamera und Bewegung/Kollision. |
+| `src/engine/scene/scene.c` | Initialisierung des Szenenmodells. |
+| `src/engine/ecs/`, `tilemap/`, `history/`, `camera/`, `collision/`, `runtime/` | Getrennte Implementierungen für Entities, Tile-Werkzeuge, Undo/Redo, Kamera, Bewegung/Kollision und Laufzeitaktualisierung. |
+| `src/engine/project/manifest.c` | Validiertes Laden des Projektmanifests. |
+| `src/shared/json/` | Gemeinsame JSON-Datei- und Validierungshelfer. |
 | `src/engine/scripting/text.c` | UTF-8-Textpuffer, Auswahl, Undo/Redo und sichere Script-Dateioperationen. |
 | `src/engine/scripting/javascript.c` | QuickJS-ng-Syntaxprüfung, lexikalisches Highlighting und einfache Vervollständigung. |
 | `src/editor/editors/scripts/script_editor.c` | Textansicht, Eingaben, Zeilennummern, Vorschläge und Fehleranzeige. |
 | `src/engine/project/project.c` | Projektsuche relativ zur Programmdatei und explizite Projektpfade. |
-| `src/engine/scene/serialization.c` | Validiertes JSON-Laden, Speichern und Projektmanifest. |
+| `src/engine/scene/serialization.c` | Validiertes JSON-Laden und Speichern von Szenen. |
 | `src/platform/sdl/include/penguin/render.h` | SDL-Rendering und Textur-Lebenszyklus. |
 | `src/platform/sdl/scene_renderer.c` | PNG-Laden, Tile-Zeichnung, Entity-Darstellung, Raster und Kollisionsanzeige. |
 | `src/ui/core/core.c`, `src/ui/rendering/sdl.c` und öffentliche UI-Header | Gemeinsame Widget-Logik, Flat-Rendering, Icons und Themes für Editor und Spiele. |
-| `src/editor/editors/map/map_editor.h` | Interne Map-Datentypen; die Bedienlogik liegt vorerst noch in der Anwendungshülle. |
-| `src/editor/app/main.c` | Editor-Oberfläche, Eingabe, Dateibaum und Bearbeitungsabläufe. |
+| `src/editor/editors/map/map_editor.h` | Interne Map-Datentypen und Verträge für die Map-Module im selben Verzeichnis. |
+| `src/editor/app/main.c` | Programmargumente, Initialisierung und Hauptschleife. |
+| `src/editor/app/shell.c`, `input.c` | Anwendungshülle und Eingabeverteilung. |
+| `src/editor/editors/map/` | Map-Bearbeitung, Dokumentoperationen, Eingaben, Panels, Canvas, Play und Dokument-Checkpoint. |
+| `src/editor/browser/`, `dialogs/`, `layout/`, `workspace/` | Dateibaum, modale Eingaben, YAML-UI sowie Dokumentaktionen und Editorwechsel. |
+| `tests/editor_smoke.c`, `test_editor_documents.c` | Editor-Integrationstests und eigenständige Dokument-Checkpoint-Tests. |
 | `examples/topdown/main.c` | Eigenständige Spielruntime ohne Editor. |
 | `tests/test_engine.c` | Unity-Tests der Kernregeln. |
 
@@ -177,4 +184,4 @@ Die Sicherung umfasst Dokumente, ungespeicherte Revisionen, sämtliche Undo-/Red
 
 F6 validiert Shell und aktiven Editor vor dem Entladen. Ungültiges YAML lässt die bisherige Oberfläche aktiv. Shell-Fehler beim ersten Start werden auf stderr gemeldet. GUI-Callbacks verschieben Editorwechsel und dokumentübergreifendes Speichern ans Frameende, damit keine Beschreibung während ihrer Traversierung freigegeben wird.
 
-114 Unity-Tests sowie die Editor-Smokes prüfen Loader, Checkpointfehler, Editorwechsel, Reload und die bisherige Bedienung. Details, Grenzen und Beispiele stehen in [UI_YAML.md](UI_YAML.md).
+116 Unity-Tests sowie die Editor-Smokes prüfen Loader, Checkpointfehler, Editorwechsel, Reload und die bisherige Bedienung. Details, Grenzen und Beispiele stehen in [UI_YAML.md](UI_YAML.md).
