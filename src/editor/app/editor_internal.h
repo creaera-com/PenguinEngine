@@ -131,7 +131,6 @@ typedef struct {
     float left_width;            ///< Breite der linken Spalte in Pixeln.
     float right_width;           ///< Breite der rechten Spalte in Pixeln.
     bool layers_open;            ///< Aufklappzustand der Ebenenliste.
-    bool entity_open;            ///< Aufklappzustand der Entity-Eigenschaften.
     bool palette_open;           ///< Aufklappzustand der Tile-Palette.
     MapPayload *map;             ///< Besitzende Mapinstanz oder NULL bei entladenem Map-Editor.
     PeScriptEditor *script; ///< Besitzende Scriptinstanz oder NULL bei entladenem Script-Editor.

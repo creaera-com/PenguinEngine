@@ -5,6 +5,12 @@ void editor_draw_map_panel(void) {
     char label[128];
     bool enabled = !app.playing && !editor_edit_pending();
     float w = app.panel_area.w - 32, half = (w - 8) / 2;
+    float add_width = fminf(half, ui_tab_content_width(ICON_PLUS, "Add"));
+    float delete_width = fminf(half, ui_tab_content_width(ICON_DELETE, "Delete"));
+    float rename_width = fminf(half, ui_tab_content_width(ICON_EDIT, "Rename"));
+    float arrow_width = fminf(32, (w - rename_width - 16) / 2);
+    float actions_x = x + w - add_width - 8 - delete_width;
+    float order_x = x + w - rename_width - 16 - 2 * arrow_width;
     UiRect panel = {app.panel_area.x + 5, app.panel_top + 8, app.panel_area.w - 18,
                     fmaxf(0, app.panel_area.h - 16)};
     editor_box((SDL_FRect){panel.x, panel.y, panel.w, panel.h}, editor_widget_background());
@@ -35,7 +41,7 @@ void editor_draw_map_panel(void) {
             y += 30;
         }
         app.widget_scope = 0;
-        if (icon_button(x, y, half, ICON_PLUS, half >= 80 ? "Add" : "", "Add layer", false,
+        if (icon_button(actions_x, y, add_width, ICON_PLUS, "Add", "Add layer", false,
                         enabled && app.map->scene.layer_count < PE_LAYERS) &&
             editor_begin()) {
             app.layer = app.map->scene.layer_count++;
@@ -44,7 +50,8 @@ void editor_draw_map_panel(void) {
             app.map->scene.layers[app.layer].visible = true;
             editor_commit();
         }
-        if (icon_button(x + half + 8, y, half, ICON_DELETE, half >= 96 ? "Delete" : "",
+        if (icon_button(x + w - delete_width, y, delete_width, ICON_DELETE,
+                        delete_width >= ui_tab_content_width(ICON_DELETE, "Delete") ? "Delete" : "",
                         "Delete layer", false, enabled && app.map->scene.layer_count > 1) &&
             editor_begin()) {
             memmove(&app.map->scene.layers[app.layer], &app.map->scene.layers[app.layer + 1],
@@ -57,21 +64,21 @@ void editor_draw_map_panel(void) {
             editor_commit();
         }
         y += 32;
-        if (icon_button(x, y, half, ICON_EDIT, half >= 96 ? "Rename" : "", "Rename layer", false,
-                        enabled)) {
+        if (icon_button(order_x, y, rename_width, ICON_EDIT,
+                        rename_width >= ui_tab_content_width(ICON_EDIT, "Rename") ? "Rename" : "",
+                        "Rename layer", false, enabled)) {
             editor_field_start(FIELD_LAYER, app.map->scene.layers[app.layer].name);
         }
-        if (icon_button(x + half + 8, y, (half - 8) / 2, ICON_UP, "", "Move layer up", false,
-                        enabled && app.layer > 0) &&
+        if (icon_button(x + w - 2 * arrow_width - 8, y, arrow_width, ICON_UP, "", "Move layer up",
+                        false, enabled && app.layer > 0) &&
             editor_begin()) {
             PeLayer temp = app.map->scene.layers[app.layer];
             app.map->scene.layers[app.layer] = app.map->scene.layers[app.layer - 1];
             app.map->scene.layers[--app.layer] = temp;
             editor_commit();
         }
-        if (icon_button(x + half + 8 + (half + 8) / 2, y, (half - 8) / 2, ICON_DOWN, "",
-                        "Move layer down", false,
-                        enabled && app.layer + 1 < app.map->scene.layer_count) &&
+        if (icon_button(x + w - arrow_width, y, arrow_width, ICON_DOWN, "", "Move layer down",
+                        false, enabled && app.layer + 1 < app.map->scene.layer_count) &&
             editor_begin()) {
             PeLayer temp = app.map->scene.layers[app.layer];
             app.map->scene.layers[app.layer] = app.map->scene.layers[app.layer + 1];

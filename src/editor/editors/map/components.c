@@ -11,7 +11,6 @@ static const struct {
 
 void editor_inspect_entity(void) {
     app.right_tabs.selected = UI_INSPECTOR_TAB;
-    app.entity_open = true;
     app.inspector_view.offset = 0;
     app.map->component_add_open = false;
     app.map->reveal_selected = true;
@@ -131,9 +130,11 @@ float editor_draw_components(float x, float y, float width) {
         app.map->component_add_open = false;
     }
     bool enabled = !app.playing && !editor_edit_pending();
-    app.map->component_anchor = (SDL_FRect){x, y, width, 25};
+    float button_width = fminf(width, ui_tab_content_width(ICON_PLUS, "Add component") + 20);
+    float button_x = x + width - button_width;
+    app.map->component_anchor = (SDL_FRect){button_x, y, button_width, 25};
     app.map->component_anchor_seen = true;
-    if (icon_button(x, y, width, ICON_PLUS, "Add component", "Choose a component",
+    if (icon_button(button_x, y, button_width, ICON_PLUS, "Add component", "Choose a component",
                     app.map->component_add_open, enabled)) {
         app.map->component_add_open = !app.map->component_add_open;
         app.map->component_owner = o->stable_id;

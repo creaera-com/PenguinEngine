@@ -300,7 +300,7 @@ Die Fensterlogik liegt in `src/editor/app/window.c`; die UI-Lib stellt die Icons
 
 ## Werkzeuge des Scene-Graphs
 
-Der spezialisierte Map-Knoten `entity_tree` rendert den aufklappbaren Entity-Baum. Seine optionale `tools`-Liste enthält bis zu vier Buttons. Sie werden oberhalb des Baums gezeichnet und bei langen Labels oder schmalen Panels umgebrochen. IDs müssen wie alle Widget-IDs eindeutig bleiben.
+Der spezialisierte Map-Knoten `entity_tree` rendert den aufklappbaren Entity-Baum. Seine optionale `tools`-Liste enthält bis zu vier Buttons. Sie werden oberhalb des Baums rechtsbündig gezeichnet und bei langen Labels oder schmalen Panels umgebrochen. Jede Zeile bleibt dabei rechtsbündig; die Toolbar des mittleren Editors bleibt linksbündig. IDs müssen wie alle Widget-IDs eindeutig bleiben.
 
 ```yaml
 content:
@@ -321,7 +321,7 @@ Wurzel-Erstellen benötigt keine Auswahl. Geschwister, Kind und Löschen benöti
 
 Der vorhandene spezialisierte Knoten `{type: inspector, id: inspector, binding: selection.active}` zeigt die Komponenten der ausgewählten Entity. Die Inhalte werden aus ihrer ECS-Maske und der C-Komponentenregistrierung erzeugt. Die YAML legt weiterhin fest, in welchem Panel der Inspector liegt; das konkrete Transform-/Sprite-/Body-/Player-Formular wird im Map-Modul gepflegt. Es gibt dafür noch keine beliebigen benutzerdefinierten Komponentenfelder aus YAML.
 
-Jede Komponenten-Karte ist einzeln klappbar, verwendet denselben aufgehellten Theme-Hintergrund wie der Dateibaum und hat einen Entfernen-Button. `Add component` öffnet ein überlagerndes Dropdown mit allen registrierten Komponenten; bereits vorhandene Einträge sind abgehakt und deaktiviert. Das Menü unterstützt Maus, Pfeiltasten, Enter und Escape. Entity-Erstellen und -Löschen liegen im Scene-Tab. Abhängigkeiten werden beim Hinzufügen gemeinsam ergänzt; Entfernen ist bei verletzten Abhängigkeiten deaktiviert und hat einen erklärenden Tooltip. Dokumentänderungen nutzen den Undo-Verlauf, die Klappzustände werden als Navigation im Map-Checkpoint gesichert. Siehe [COMPONENTS.md](COMPONENTS.md).
+Der Inspector beginnt direkt mit der Entity-ID, ohne zusätzliche Entity-Überschrift oder äußeren Klappbereich. Der Button `Add component` ist in Inhaltsbreite rechtsbündig. Jede Komponenten-Karte ist einzeln klappbar, verwendet denselben aufgehellten Theme-Hintergrund wie der Dateibaum und hat einen Entfernen-Button. `Add component` öffnet ein überlagerndes Dropdown mit allen registrierten Komponenten; bereits vorhandene Einträge sind abgehakt und deaktiviert. Das Menü unterstützt Maus, Pfeiltasten, Enter und Escape. Entity-Erstellen und -Löschen liegen im Scene-Tab. Abhängigkeiten werden beim Hinzufügen gemeinsam ergänzt; Entfernen ist bei verletzten Abhängigkeiten deaktiviert und hat einen erklärenden Tooltip. Dokumentänderungen nutzen den Undo-Verlauf, die Klappzustände werden als Navigation im Map-Checkpoint gesichert. Siehe [COMPONENTS.md](COMPONENTS.md).
 
 
 ## Getrennte Map-, Tiles- und Entity-Panels

@@ -227,7 +227,7 @@ bool editor_verify_ui_layout(void) {
     ok = ok && !memcmp(&original, &app.map->scene, sizeof original);
     app.left_width = 240;
     app.right_width = 280;
-    app.layers_open = app.entity_open = app.palette_open = true;
+    app.layers_open = app.palette_open = true;
     app.tree_view.offset = app.inspector_view.offset = 0;
     UiTab tabs[UI_MAX_TABS];
     for (int i = 0; i < editor_view_count; i++) {
@@ -614,21 +614,22 @@ bool editor_verify_scene_graph(void) {
     editor_draw();
     bool ok = !editor_yaml_action_enabled("scene.add_child");
     float tools_y = TOP + TABS + 18.f;
-    smoke_click(PANEL_GAP + 24, tools_y);
+    float tools_x = LEFT - PANEL_GAP - 8 - (4 * 32 + 3 * 6);
+    smoke_click(tools_x + 16, tools_y);
     uint32_t root = app.selected;
     ok = ok && root != 0 && app.map->history.count == 1;
-    smoke_click(PANEL_GAP + 100, tools_y);
+    smoke_click(tools_x + 92, tools_y);
     uint32_t child = app.selected;
     PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, child));
     ok = ok && o && o->parent_id == root;
-    smoke_click(PANEL_GAP + 62, tools_y);
+    smoke_click(tools_x + 54, tools_y);
     uint32_t sibling = app.selected;
     o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, sibling));
     ok = ok && o && o->parent_id == root;
     float first_y = TOP + TABS + 48.f;
     smoke_click(80, first_y + 36);
     ok = ok && app.selected == child;
-    smoke_click(PANEL_GAP + 100, tools_y);
+    smoke_click(tools_x + 92, tools_y);
     uint32_t leaf = app.selected;
     o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, leaf));
     ok = ok && o && o->parent_id == child;
@@ -659,7 +660,7 @@ bool editor_verify_scene_graph(void) {
          pe_entity_world_position(&app.map->scene, pe_entity_find(&app.map->scene, leaf), &x, &y);
     ok = ok && fabsf(x - before_x) < .01f;
     editor_undo_active(true);
-    smoke_click(PANEL_GAP + 138, tools_y);
+    smoke_click(tools_x + 130, tools_y);
     ok = ok && !pe_entity_valid(&app.map->scene, pe_entity_find(&app.map->scene, leaf));
     editor_undo_active(false);
     ok = ok && pe_entity_valid(&app.map->scene, pe_entity_find(&app.map->scene, leaf));
@@ -704,7 +705,7 @@ bool editor_verify_components(void) {
     editor_inspect_entity();
     editor_draw();
     float x = app.width - RIGHT + PANEL_GAP + 9;
-    float top = TOP + TABS + 74.f + 22;
+    float top = TOP + TABS + 42.f + 22;
     float remove_x = x + (RIGHT - 2 * PANEL_GAP - 32) - 18;
     float content_before = app.inspector_view.content;
     smoke_click(x + 90, top + 12);
@@ -802,7 +803,7 @@ bool editor_verify_components(void) {
     memset(app.map->component_closed, 0, sizeof app.map->component_closed);
     app.map->component_add_open = false;
     app.selected = 0;
-    app.layers_open = app.entity_open = app.palette_open = true;
+    app.layers_open = app.palette_open = true;
     app.inspector_view.offset = 0;
     editor_selection_sync();
     if (!ok) {
@@ -835,10 +836,15 @@ bool editor_verify_map_panels(void) {
     float right_x = app.width - RIGHT + PANEL_GAP + 9;
     float first = TOP + TABS + 72.f;
     int before = app.map->scene.layer_count;
-    smoke_click(x + 40, first + before * 30 + 12);
+    float half = (w - 8) / 2;
+    float add_width = fminf(half, ui_tab_content_width(ICON_PLUS, "Add"));
+    float delete_width = fminf(half, ui_tab_content_width(ICON_DELETE, "Delete"));
+    float rename_width = fminf(half, ui_tab_content_width(ICON_EDIT, "Rename"));
+    float arrow_width = fminf(32, (w - rename_width - 16) / 2);
+    smoke_click(x + w - delete_width - 8 - add_width / 2, first + before * 30 + 12);
     ok = ok && app.map->scene.layer_count == before + 1;
     float actions = first + app.map->scene.layer_count * 30;
-    smoke_click(x + 40, actions + 32 + 12);
+    smoke_click(x + w - 16 - 2 * arrow_width - rename_width / 2, actions + 32 + 12);
     ok = ok && app.field == FIELD_LAYER;
     strcpy(app.input, "Decoration");
     editor_field_apply();
@@ -852,20 +858,19 @@ bool editor_verify_map_panels(void) {
     editor_undo_active(false);
     ok = ok && app.map->scene.layers[app.layer].visible;
     editor_draw();
-    float half = (w - 8) / 2;
-    smoke_click(x + half + 8 + (half - 8) / 4, actions + 44);
+    smoke_click(x + w - 8 - 1.5f * arrow_width, actions + 44);
     ok = ok && app.layer == before - 1 &&
          !strcmp(app.map->scene.layers[app.layer].name, "Decoration");
     editor_undo_active(false);
     app.layer = before;
     editor_draw();
-    smoke_click(x + half + 8 + half / 2, actions + 12);
+    smoke_click(x + w - delete_width / 2, actions + 12);
     ok = ok && app.map->scene.layer_count == before;
     editor_undo_active(false);
     app.layer = before;
     editor_draw();
     /* Import and source size belong to Tiles, independently of the selected entity. */
-    smoke_click(right_x + 70, TOP + TABS + 82);
+    smoke_click(app.width - PANEL_GAP - 48, TOP + TABS + 82);
     ok = ok && app.field == FIELD_IMPORT;
     editor_field_stop();
     editor_draw();

@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
     editor_apply_shell_layout();
     app.left_width = 240;
     app.right_width = 280;
-    app.layers_open = app.entity_open = app.palette_open = true;
+    app.layers_open = app.palette_open = true;
     editor_apply_shell_layout();
     UiTab left_tabs[] = {
         {UI_EXPLORER_TAB, true, 0}, {UI_SCENE_TAB, true, 0}, {UI_MAP_TAB, true, 0}};

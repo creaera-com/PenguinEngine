@@ -117,3 +117,5 @@ Der neue Panel-Smoke wählt Map und Tiles per Tab-Klick, erstellt/benennt/sortie
 - Auswahl ziehen: keine Kamerabewegung während der Geste. Entfernte Position im Inspector eingeben: Auswahl wird wieder sichtbar. Ohne Transform wird der Hinweis angezeigt.
 
 Diese Abläufe werden zusätzlich im Editor-Smoke geprüft. Bei `--smoke --screenshot /tmp/editor.bmp` entsteht neben dem normalen Bild `/tmp/editor.bmp.dropdown.bmp` mit geöffnetem Komponenten-Dropdown.
+
+Panel-Aktionen: Scene-Werkzeuge und Layer-Aktionsgruppen sitzen rechts; Add component und Import PNG verwenden Inhaltsbreite rechts. Spalten verbreitern/verkleinern und bei langen YAML-Labels den mehrzeiligen Umbruch prüfen. Inspector zeigt Entity-ID und Karten direkt, ohne äußere Entity-Klappüberschrift.

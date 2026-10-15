@@ -1,12 +1,12 @@
 # Komponenten im Inspector
 
-Eine ausgewählte Entity zeigt im Inspector jede vorhandene Komponente in einer eigenen klappbaren Karte. Die Karten verwenden denselben Hintergrund wie die Tree-Fläche: die Theme-Surface mit 5 Prozent Weiß, im aktuellen Theme `#333333`. Zwischen den Karten liegen 6 Pixel Abstand.
+Der Inspector beginnt mit der ID der ausgewählten Entity; eine zusätzliche klappbare Entity-Überschrift entfällt. Jede vorhandene Komponente steht in einer eigenen klappbaren Karte. Die Karten verwenden denselben Hintergrund wie die Tree-Fläche: die Theme-Surface mit 5 Prozent Weiß, im aktuellen Theme `#333333`. Zwischen den Karten liegen 6 Pixel Abstand.
 
 ![Komponenten im Inspector](images/components.png)
 
 ## Hinzufügen und Entfernen
 
-**Add component** öffnet ein Dropdown mit allen Komponententypen. Vorhandene Komponenten sind abgehakt und deaktiviert. Die Auswahl funktioniert per Maus oder Pfeiltasten und Enter; Escape oder ein Klick außerhalb schließen das Menü. Der Klick außerhalb wird abgefangen, ohne darunterliegende Elemente zu betätigen. Das Menü liegt über den Karten und verschiebt sie nicht. Eine Komponente kann nur einmal pro Entity vorhanden sein. Neue Komponenten erhalten Standardwerte; notwendige Abhängigkeiten werden in demselben Undo-Schritt ergänzt. Bestehende Komponenten und ihre Werte bleiben dabei unverändert.
+Der Button **Add component** sitzt rechtsbündig und öffnet ein Dropdown mit allen Komponententypen. Vorhandene Komponenten sind abgehakt und deaktiviert. Die Auswahl funktioniert per Maus oder Pfeiltasten und Enter; Escape oder ein Klick außerhalb schließen das Menü. Der Klick außerhalb wird abgefangen, ohne darunterliegende Elemente zu betätigen. Das Menü liegt über den Karten und verschiebt sie nicht. Eine Komponente kann nur einmal pro Entity vorhanden sein. Neue Komponenten erhalten Standardwerte; notwendige Abhängigkeiten werden in demselben Undo-Schritt ergänzt. Bestehende Komponenten und ihre Werte bleiben dabei unverändert.
 
 Das **X** rechts in der Kartenüberschrift entfernt die Komponente. Die Entity selbst und andere Komponenten bleiben erhalten. Nach Entfernen und erneutem Hinzufügen erhält die Komponente wieder Standardwerte. Undo stellt dagegen die entfernte Komponente mit ihren vorherigen Werten wieder her.
 
