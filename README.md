@@ -25,9 +25,13 @@ Eine kleine 2D-Engine in **C17 mit SDL3**, einem einfachen ECS und einem Tilemap
 
 ## Deklarative UI mit YAML
 
-Die [YAML-Anleitung](docs/UI_YAML.md) beschreibt die verwendbaren Elemente, Aktionen und Bindings. [editor/ui/shell.yaml](editor/ui/shell.yaml) definiert die globale Oberfläche; Map und Scripts besitzen eigene Layouts für alle drei Spalten. Mit `--ui /pfad/shell.yaml` eigene Beschreibungen laden, mit **F6** erneut einlesen.
+Die [YAML-Anleitung](docs/UI_YAML.md) beschreibt die verwendbaren Elemente, Aktionen und Bindings. [resources/editor/ui/shell.yaml](resources/editor/ui/shell.yaml) definiert die globale Oberfläche; Map und Scripts besitzen eigene Layouts für alle drei Spalten. Mit `--ui /pfad/shell.yaml` eigene Beschreibungen laden, mit **F6** erneut einlesen.
 
 Beim Bereichswechsel wird der bisherige Editor vollständig entladen. Ungespeicherte Dokumente, Undo/Redo und UI-Zustand werden vorher separat auf Datenträger gesichert. Das ist kein automatisches Speichern der Projektdateien. Die Checkpoints gelten für den laufenden Programmstart; automatische Crash-Recovery ist noch nicht enthalten.
+
+## Projektstruktur
+
+Produktiver C-Code liegt unter `src/`, geordnet nach Engine, Editor, UI und Plattform. Map und Scripts gehören zu `src/editor/editors/`. YAML-Layouts und Schriftdateien liegen unter `resources/`; Beispiele, Tests und Fremdbibliotheken bleiben getrennt. Die [Strukturanleitung](docs/PROJEKTSTRUKTUR.md) erklärt die Ordner, Schnittstellen und Abhängigkeiten.
 
 ## Bauen und starten
 
@@ -84,7 +88,7 @@ Bei älteren Ständen mit `Cannot open example/project.json`: Working directory 
 
 ## Tests ohne SDL oder Fenster
 
-Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Insgesamt 114 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge und UI-Regeln ohne Download.
+Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Insgesamt 116 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge, UI-Regeln und Editorzustände ohne Download. Die beiden zusätzlichen Dokument-Checkpoint-Tests werden im SDL-Build ausgeführt.
 
 ```sh
 cmake -S . -B build-core -DPENGUIN_BUILD_EDITOR=OFF

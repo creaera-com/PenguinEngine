@@ -9,8 +9,20 @@ set(CMAKE_C_EXTENSIONS OFF)
 option(PENGUIN_BUILD_EDITOR "Build SDL3 editor and game" ON)
 option(PENGUIN_FETCH_SDL "Download pinned SDL3 if not installed" ON)
 option(PENGUIN_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
-add_library(penguin STATIC engine/src/core.c engine/src/scene.c engine/src/project.c third_party/cjson/cJSON.c)
-target_include_directories(penguin PUBLIC engine/include PRIVATE third_party/cjson)
+add_library(penguin STATIC
+ src/engine/scene/scene.c
+ src/engine/ecs/entities.c
+ src/engine/tilemap/tilemap.c
+ src/engine/history/history.c
+ src/engine/camera/camera.c
+ src/engine/collision/collision.c
+ src/engine/runtime/update.c
+ src/engine/scene/serialization.c
+ src/engine/project/project.c
+ src/engine/project/manifest.c
+ src/shared/json/json_io.c
+ third_party/cjson/cJSON.c)
+target_include_directories(penguin PUBLIC src/engine/include PRIVATE src third_party/cjson)
 if(NOT MSVC)
  target_compile_options(penguin PRIVATE -Wall -Wextra -Wpedantic)
  target_link_libraries(penguin PUBLIC m)
@@ -37,8 +49,8 @@ else()
  target_link_libraries(penguin_js_parser PUBLIC m)
  target_compile_options(penguin_js_parser PRIVATE -funsigned-char)
 endif()
-add_library(penguin_script STATIC engine/src/text.c engine/src/javascript.c)
-target_include_directories(penguin_script PUBLIC engine/include)
+add_library(penguin_script STATIC src/engine/scripting/text.c src/engine/scripting/javascript.c)
+target_include_directories(penguin_script PUBLIC src/engine/include)
 target_link_libraries(penguin_script PRIVATE penguin_js_parser)
 if(NOT MSVC)
  target_compile_options(penguin_script PRIVATE -Wall -Wextra -Wpedantic)
@@ -54,18 +66,18 @@ if(MSVC)
 else()
  target_compile_definitions(penguin_yaml PRIVATE _POSIX_C_SOURCE=200809L)
 endif()
-add_library(penguin_ui_layout STATIC editor/src/ui_layout.c)
-target_include_directories(penguin_ui_layout PUBLIC editor/include third_party/cjson)
+add_library(penguin_ui_layout STATIC src/editor/layout/ui_layout.c)
+target_include_directories(penguin_ui_layout PUBLIC src/editor third_party/cjson)
 target_link_libraries(penguin_ui_layout PUBLIC penguin PRIVATE penguin_yaml)
 if(NOT MSVC)
  target_compile_options(penguin_ui_layout PRIVATE -Wall -Wextra -Wpedantic)
 endif()
-add_library(penguin_editor_session STATIC editor/src/session.c)
-target_include_directories(penguin_editor_session PUBLIC editor/include)
+add_library(penguin_editor_session STATIC src/editor/workspace/session.c)
+target_include_directories(penguin_editor_session PUBLIC src/editor)
 if(NOT MSVC)
  target_compile_options(penguin_editor_session PRIVATE -Wall -Wextra -Wpedantic)
 endif()
-add_subdirectory(ui)
+add_subdirectory(src/ui)
 include(CTest)
 if(BUILD_TESTING)
  add_library(unity STATIC third_party/unity/unity.c)
@@ -100,16 +112,49 @@ if(PENGUIN_BUILD_EDITOR)
   FetchContent_MakeAvailable(SDL3)
  endif()
  penguin_ui_add_sdl()
- add_library(penguin_sdl STATIC engine/src/render.c)
- target_include_directories(penguin_sdl PUBLIC engine/include PRIVATE third_party/stb)
+ add_library(penguin_sdl STATIC src/platform/sdl/scene_renderer.c)
+ target_include_directories(penguin_sdl PUBLIC src/platform/sdl/include PRIVATE third_party/stb)
  target_link_libraries(penguin_sdl PUBLIC penguin SDL3::SDL3)
- add_executable(penguin_editor editor/src/main.c editor/src/script_editor.c)
- target_link_libraries(penguin_editor PRIVATE penguin_sdl penguin_script penguin_ui_sdl penguin_editor_session penguin_ui_layout)
+ add_library(penguin_editor_documents STATIC
+  src/editor/editors/map/checkpoint.c
+  src/editor/editors/scripts/checkpoint.c)
+ target_include_directories(penguin_editor_documents PUBLIC src/editor)
+ target_link_libraries(penguin_editor_documents PUBLIC penguin_editor_session penguin_sdl penguin_script penguin_ui)
+ add_executable(penguin_editor
+  src/editor/app/main.c
+  src/editor/app/state.c
+  src/editor/app/input.c
+  src/editor/app/shell.c
+  src/editor/app/ui_helpers.c
+  src/editor/browser/file_tree.c
+  src/editor/dialogs/fields.c
+  src/editor/layout/bindings.c
+  src/editor/layout/renderer.c
+  src/editor/workspace/documents.c
+  src/editor/workspace/lifecycle.c
+  src/editor/editors/map/actions.c
+  src/editor/editors/map/fields.c
+  src/editor/editors/map/runtime.c
+  src/editor/editors/map/input.c
+  src/editor/editors/map/document.c
+  src/editor/editors/map/tools.c
+  src/editor/editors/map/panels.c
+  src/editor/editors/map/canvas.c
+  src/editor/editors/scripts/script_editor.c
+  src/editor/editors/scripts/actions.c
+  src/editor/editors/scripts/panels.c)
+ if(BUILD_TESTING)
+  target_sources(penguin_editor PRIVATE tests/editor_smoke.c)
+  target_include_directories(penguin_editor PRIVATE tests)
+  target_compile_definitions(penguin_editor PRIVATE PE_EDITOR_SMOKE_TESTS=1)
+ endif()
+ target_include_directories(penguin_editor PRIVATE src/editor)
+ target_link_libraries(penguin_editor PRIVATE penguin_editor_documents penguin_sdl penguin_script penguin_ui_sdl penguin_editor_session penguin_ui_layout)
  add_executable(penguin_ui_demo examples/ui/main.c)
  target_link_libraries(penguin_ui_demo PRIVATE penguin_ui_sdl)
  add_executable(penguin_game examples/topdown/main.c)
  target_link_libraries(penguin_game PRIVATE penguin_sdl)
- foreach(target penguin_sdl penguin_editor penguin_game)
+ foreach(target penguin_sdl penguin_editor_documents penguin_editor penguin_game)
   if(NOT MSVC)
    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
   endif()
@@ -120,12 +165,15 @@ if(PENGUIN_BUILD_EDITOR)
   VERBATIM
  )
  add_custom_target(copy_editor_ui ALL
-  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/editor/ui ${CMAKE_BINARY_DIR}/ui-layouts
+  COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/resources/editor/ui ${CMAKE_BINARY_DIR}/ui-layouts
   VERBATIM)
  add_dependencies(penguin_editor copy_editor_ui)
  add_dependencies(penguin_editor copy_example)
  add_dependencies(penguin_game copy_example)
  if(BUILD_TESTING)
+  add_executable(penguin_editor_document_tests tests/test_editor_documents.c)
+  target_link_libraries(penguin_editor_document_tests PRIVATE penguin_editor_documents unity)
+  add_test(NAME editor_document_unit_tests COMMAND penguin_editor_document_tests)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/unrelated-working-directory)
   add_test(NAME editor_default_project COMMAND penguin_editor --smoke)
   add_test(NAME game_default_project COMMAND penguin_game --smoke)

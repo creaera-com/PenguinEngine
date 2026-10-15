@@ -6,8 +6,8 @@ Penguin UI ist eine kleine eigene UI-Bibliothek für Editor und SDL3-Spiele. Sie
 
 | CMake-Target | Dateien | Aufgabe / Abhängigkeiten |
 | --- | --- | --- |
-| `penguin_ui` | `ui/include/penguin/ui.h`, `ui/src/core.c` | Eingabe, Fokus, Capture, Layout und Widget-Zustände; C17, keine SDL-Abhängigkeit. |
-| `penguin_ui_sdl` | `ui/include/penguin/ui_sdl.h`, `ui/src/sdl.c` | Flat-Rendering, Icons und Themes; nutzt `penguin_ui` und SDL3. |
+| `penguin_ui` | `src/ui/include/penguin/ui.h`, `src/ui/core/core.c` | Eingabe, Fokus, Capture, Layout und Widget-Zustände; C17, keine SDL-Abhängigkeit. |
+| `penguin_ui_sdl` | `src/ui/include/penguin/ui_sdl.h`, `src/ui/rendering/sdl.c` | Flat-Rendering, Icons und Themes; nutzt `penguin_ui` und SDL3. |
 | `penguin_ui_demo` | `examples/ui/main.c` | Eigenständiges Beispiel ohne Engine-/Editor-/Script-Bibliotheken. |
 | `penguin_ui_tests` | `tests/test_ui.c` | 28 Unity-Tests der UI-Regeln ohne Fenster. |
 
@@ -45,7 +45,7 @@ Das Standardtheme verwendet unter anderem:
 
 Die Icons bleiben SDL-Linien und Flächen. Text nutzt `ui_text(renderer, x, y, utf8, rgba)` mit eingebetteter **JetBrains Mono Regular 2.304** (13 px, Zeichenraster 8 × 16). Die Textur wird pro Renderer einmal angelegt und von SDL mit dem Renderer freigegeben. Es gibt keine installierte Schrift, Dateipfad- oder SDL_ttf-Abhängigkeit. UTF-8 wird decodiert; druckbare ASCII- und Latin-1-Zeichen einschließlich äöüÄÖÜß werden dargestellt. Weitere Zeichen erscheinen als `?`; der Dokumentinhalt bleibt erhalten. Ligaturen, komplexe Schriftformung und DPI-abhängige Neurasterung sind noch nicht implementiert.
 
-Originalschrift und SIL Open Font License liegen in `ui/assets/`. Bei Weitergabe die Lizenz beilegen. `tools/bake_font.py` erzeugt mit Pillow den eingecheckten Alpha-Atlas `ui/src/font_atlas.h` neu. Reguläre CMake-Builds benötigen dafür weder Python noch Pillow.
+Originalschrift und SIL Open Font License liegen in `resources/ui/fonts/`. Bei Weitergabe die Lizenz beilegen. `tools/bake_font.py` erzeugt mit Pillow den eingecheckten Alpha-Atlas `src/ui/rendering/font_atlas.h` neu. Reguläre CMake-Builds benötigen dafür weder Python noch Pillow.
 
 ## Zustände und Frame-Ablauf
 
@@ -145,7 +145,7 @@ Die obere Toolbar enthält Hamburger-Menü (zunächst ohne Funktion), Speichern,
 | Scripts-Werkzeugleiste | JavaScript-Syntaxprüfung |
 | Seitenpanels | Explorer/Scene und Inspector/Info, unabhängig von der globalen Auswahl |
 
-`editor_views` in `editor/src/main.c` ist die zentrale Liste der Arbeitsbereiche. Ein `EditorView` enthält stabile ID, Namen, Icon, Aktionsanzahl und zwei Callbacks: `draw_tools(area)` und `draw_content()`. Aus der Liste entstehen die Navigationsbuttons. `select_workspace(id)` verwaltet Auswahl und Textfokus; `map_active()`/`scripts_active()` leiten den Zustand aus der ausgewählten ID ab, ohne zweite Zustandsvariable. Beim Wechsel bleiben die vorhandenen Editor-Daten einschließlich Kamera, Auswahl, Text und Undo erhalten.
+`editor_views` in `src/editor/app/state.c` ist die zentrale Liste der Arbeitsbereiche. Ein `EditorView` enthält stabile ID, Namen, Icon, Aktionsanzahl und die Callbacks `draw_tools(area)` und `draw_content()`. Die Shell baut daraus zusammen mit YAML die Navigation. `editor_select_workspace(id)` in `workspace/documents.c` koordiniert Auswahl und Textfokus. `editor_map_active()` und `editor_scripts_active()` leiten den aktiven Bereich aus `loaded_view` ab. Beim Wechsel sichert `workspace/lifecycle.c` Dokument und UI-Zustand, entlädt die aktive Instanz und stellt den Zielbereich wieder her. Map-/Script-Darstellung liegt unter `editors/map/` und `editors/scripts/`.
 
 Für einen weiteren Bereich eine neue stabile ID, eigenen Datenzustand, Toolbar-/Inhaltsrenderer und einen Eintrag in der Liste ergänzen. Passende Eingaben, Kurzbefehle, Speichern und Inspector-Inhalte müssen für den neuen Editor ebenfalls ergänzt werden. Dies ist eine interne C-Erweiterungsstelle, noch keine dynamische Plugin-API. Es gibt keine leeren Platzhalter für künftige Tools.
 
@@ -155,6 +155,6 @@ Die Statusleiste ist 28 px hoch und zeigt EDIT/PLAY, Saved/Modified, Dokumentdet
 
 ## YAML-Aufbau und Editorwechsel
 
-Die [YAML-Anleitung](UI_YAML.md) beschreibt die implementierte Shell, drei kontextbezogene Spalten, Komponenten-/Aktionsregistrierung und Editor-Lebenszyklus mit Sitzungssicherung auf Datenträger. Ausgelieferte Dateien stehen unter `editor/ui`; `--ui` wählt eine eigene Shell, F6 lädt sie erneut. Inaktive Editorinstanzen und ihre Ressourcen werden freigegeben. Die globale UI und ihre Schrifttextur bleiben bestehen.
+Die [YAML-Anleitung](UI_YAML.md) beschreibt die implementierte Shell, drei kontextbezogene Spalten, Komponenten-/Aktionsregistrierung und Editor-Lebenszyklus mit Sitzungssicherung auf Datenträger. Ausgelieferte Dateien stehen unter `resources/editor/ui`; `--ui` wählt eine eigene Shell, F6 lädt sie erneut. Inaktive Editorinstanzen und ihre Ressourcen werden freigegeben. Die globale UI und ihre Schrifttextur bleiben bestehen.
 
 `UiTheme ui_theme` liefert die aktuellen Farben; `ui_set_theme` setzt sie, `ui_dark_theme` liefert weiterhin das Ausgangstheme. Die `UI_*`-Farbrollen sind damit Laufzeitwerte, keine Konstanten für statische Initialisierer. `UiTabs.gap` legt den Abstand einer konkreten Tabgruppe fest (Standard `UI_TAB_GAP`); die Slotbreite umfasst diesen Abstand.

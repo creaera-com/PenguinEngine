@@ -2,21 +2,31 @@
 
 Die erste Basis ist implementiert. Dieses Dokument beschreibt den tatsächlichen Stand; `ENGINE_KONZEPT.md` bleibt der ursprüngliche Plan.
 
+Die [Projektstruktur](PROJEKTSTRUKTUR.md) erklärt die Domänen unter `src/` und die getrennten Ressourcen.
+
 ## Module und Zuständigkeiten
 
 | Datei | Aufgabe |
 | --- | --- |
-| `engine/include/penguin/engine.h` | Öffentliche, von SDL unabhängige C-Datentypen und Funktionen. |
-| `engine/src/core.c` | Entities, Tile-Werkzeuge, Undo/Redo, Kamera und Bewegung/Kollision. |
-| `engine/src/text.c` | UTF-8-Textpuffer, Auswahl, Undo/Redo und sichere Script-Dateioperationen. |
-| `engine/src/javascript.c` | QuickJS-ng-Syntaxprüfung, lexikalisches Highlighting und einfache Vervollständigung. |
-| `editor/src/script_editor.c` | Textansicht, Eingaben, Zeilennummern, Vorschläge und Fehleranzeige. |
-| `engine/src/project.c` | Projektsuche relativ zur Programmdatei und explizite Projektpfade. |
-| `engine/src/scene.c` | Validiertes JSON-Laden, Speichern und Projektmanifest. |
-| `engine/include/penguin/render.h` | SDL-Rendering und Textur-Lebenszyklus. |
-| `engine/src/render.c` | PNG-Laden, Tile-Zeichnung, Entity-Darstellung, Raster und Kollisionsanzeige. |
-| `ui/src/core.c`, `ui/src/sdl.c` und öffentliche UI-Header | Gemeinsame Widget-Logik, Flat-Rendering, Icons und Themes für Editor und Spiele. |
-| `editor/src/main.c` | Editor-Oberfläche, Eingabe, Dateibaum und Bearbeitungsabläufe. |
+| `src/engine/include/penguin/engine.h` | Öffentliche, von SDL unabhängige C-Datentypen und Funktionen. |
+| `src/engine/scene/scene.c` | Initialisierung des Szenenmodells. |
+| `src/engine/ecs/`, `tilemap/`, `history/`, `camera/`, `collision/`, `runtime/` | Getrennte Implementierungen für Entities, Tile-Werkzeuge, Undo/Redo, Kamera, Bewegung/Kollision und Laufzeitaktualisierung. |
+| `src/engine/project/manifest.c` | Validiertes Laden des Projektmanifests. |
+| `src/shared/json/` | Gemeinsame JSON-Datei- und Validierungshelfer. |
+| `src/engine/scripting/text.c` | UTF-8-Textpuffer, Auswahl, Undo/Redo und sichere Script-Dateioperationen. |
+| `src/engine/scripting/javascript.c` | QuickJS-ng-Syntaxprüfung, lexikalisches Highlighting und einfache Vervollständigung. |
+| `src/editor/editors/scripts/script_editor.c` | Textansicht, Eingaben, Zeilennummern, Vorschläge und Fehleranzeige. |
+| `src/engine/project/project.c` | Projektsuche relativ zur Programmdatei und explizite Projektpfade. |
+| `src/engine/scene/serialization.c` | Validiertes JSON-Laden und Speichern von Szenen. |
+| `src/platform/sdl/include/penguin/render.h` | SDL-Rendering und Textur-Lebenszyklus. |
+| `src/platform/sdl/scene_renderer.c` | PNG-Laden, Tile-Zeichnung, Entity-Darstellung, Raster und Kollisionsanzeige. |
+| `src/ui/core/core.c`, `src/ui/rendering/sdl.c` und öffentliche UI-Header | Gemeinsame Widget-Logik, Flat-Rendering, Icons und Themes für Editor und Spiele. |
+| `src/editor/editors/map/map_editor.h` | Interne Map-Datentypen und Verträge für die Map-Module im selben Verzeichnis. |
+| `src/editor/app/main.c` | Programmargumente, Initialisierung und Hauptschleife. |
+| `src/editor/app/shell.c`, `input.c` | Anwendungshülle und Eingabeverteilung. |
+| `src/editor/editors/map/` | Map-Bearbeitung, Dokumentoperationen, Eingaben, Panels, Canvas, Play und Dokument-Checkpoint. |
+| `src/editor/browser/`, `dialogs/`, `layout/`, `workspace/` | Dateibaum, modale Eingaben, YAML-UI sowie Dokumentaktionen und Editorwechsel. |
+| `tests/editor_smoke.c`, `test_editor_documents.c` | Editor-Integrationstests und eigenständige Dokument-Checkpoint-Tests. |
 | `examples/topdown/main.c` | Eigenständige Spielruntime ohne Editor. |
 | `tests/test_engine.c` | Unity-Tests der Kernregeln. |
 
@@ -112,7 +122,7 @@ Weltkoordinaten sind Pixel, X zeigt nach rechts und Y nach unten. Die Kamera spe
 
 Der Renderer zeichnet sichtbare Tile-Ebenen, danach Entity-Rechtecke. Die erste Version hat noch keine frei konfigurierbare Sprite-Sortierung. Die Szene ist auf den mittleren Viewport begrenzt. PNG-Texturen verwenden nearest-neighbor filtering. Subpixel-Zoom ist im Editor erlaubt; eine feste interne Spielauflösung mit ganzzahliger Skalierung ist noch nicht umgesetzt.
 
-Die Editor-GUI verwendet die gemeinsame `penguin_ui`-/`penguin_ui_sdl`-Bibliothek: dunklere graue Panels, orange Akzente, gerade Kanten und einfarbige Buttons/Tabs ohne Rundungen. Text nutzt eingebettete JetBrains Mono über `ui_text`; Standardfarben und `UiTheme` sind in `ui/include/penguin/ui_sdl.h` definiert. Komponenten, API und Verwendung in Spielen erklärt [UI_BIBLIOTHEK.md](UI_BIBLIOTHEK.md). Die Icons werden mit SDL-Linien und Flächen gezeichnet, benötigen keine Icon-Schrift oder Bilddateien und folgen den Hover-, Auswahl- und Deaktiviert-Zuständen. Werkzeugbuttons zeigen Tooltips mit Namen und Tastenkürzeln. Die kompakte globale Toolbar enthält Menü-Platzhalter, Speichern, Undo/Redo und Map-/Scripts-Icons ohne App-Titel; EDIT/PLAY und Saved/Modified stehen unten in der Statuszeile zusammen mit Zoom, Tile-Auswahl und Undo-Verlauf. Panel-Positionen richten sich nach der Toolbar-Höhe und den ziehbaren Spaltentrennern. Inspector-Bereiche sind klappbar, Tabs umsortierbar und Scrollbars werden bei überlaufendem Inhalt angezeigt. Die Seitenpanels bieten eigene Tabgruppen (Explorer/Scene und Inspector/Info). Scene ermöglicht die Entity-Auswahl; Info zeigt Szenenstatistik und Tastenkürzel. Die verstellbaren Spalten nutzen durch drei mittige Punkte markierte Griffe im Zwischenraum ohne gezeichnete Trennlinie. Sie benötigt keine zusätzliche GUI-Abhängigkeit. Textfelder akzeptieren SDL-Texteingabe; Backspace entfernt ein UTF-8-Zeichen, aber die Schrift stellt ASCII und Latin-1 dar, weitere Unicode-Zeichen erscheinen als Platzhalter. Der Script-Editor ergänzt Textauswahl und Zwischenablage. Die kleinen Inspector-/Modal-Felder bleiben einfache Eingaben. Docking und frei verschiebbare Panels sind noch nicht vorhanden.
+Die Editor-GUI verwendet die gemeinsame `penguin_ui`-/`penguin_ui_sdl`-Bibliothek: dunklere graue Panels, orange Akzente, gerade Kanten und einfarbige Buttons/Tabs ohne Rundungen. Text nutzt eingebettete JetBrains Mono über `ui_text`; Standardfarben und `UiTheme` sind in `src/ui/include/penguin/ui_sdl.h` definiert. Komponenten, API und Verwendung in Spielen erklärt [UI_BIBLIOTHEK.md](UI_BIBLIOTHEK.md). Die Icons werden mit SDL-Linien und Flächen gezeichnet, benötigen keine Icon-Schrift oder Bilddateien und folgen den Hover-, Auswahl- und Deaktiviert-Zuständen. Werkzeugbuttons zeigen Tooltips mit Namen und Tastenkürzeln. Die kompakte globale Toolbar enthält Menü-Platzhalter, Speichern, Undo/Redo und Map-/Scripts-Icons ohne App-Titel; EDIT/PLAY und Saved/Modified stehen unten in der Statuszeile zusammen mit Zoom, Tile-Auswahl und Undo-Verlauf. Panel-Positionen richten sich nach der Toolbar-Höhe und den ziehbaren Spaltentrennern. Inspector-Bereiche sind klappbar, Tabs umsortierbar und Scrollbars werden bei überlaufendem Inhalt angezeigt. Die Seitenpanels bieten eigene Tabgruppen (Explorer/Scene und Inspector/Info). Scene ermöglicht die Entity-Auswahl; Info zeigt Szenenstatistik und Tastenkürzel. Die verstellbaren Spalten nutzen durch drei mittige Punkte markierte Griffe im Zwischenraum ohne gezeichnete Trennlinie. Sie benötigt keine zusätzliche GUI-Abhängigkeit. Textfelder akzeptieren SDL-Texteingabe; Backspace entfernt ein UTF-8-Zeichen, aber die Schrift stellt ASCII und Latin-1 dar, weitere Unicode-Zeichen erscheinen als Platzhalter. Der Script-Editor ergänzt Textauswahl und Zwischenablage. Die kleinen Inspector-/Modal-Felder bleiben einfache Eingaben. Docking und frei verschiebbare Panels sind noch nicht vorhanden.
 
 ## Play-Modus und Kollision
 
@@ -174,4 +184,4 @@ Die Sicherung umfasst Dokumente, ungespeicherte Revisionen, sämtliche Undo-/Red
 
 F6 validiert Shell und aktiven Editor vor dem Entladen. Ungültiges YAML lässt die bisherige Oberfläche aktiv. Shell-Fehler beim ersten Start werden auf stderr gemeldet. GUI-Callbacks verschieben Editorwechsel und dokumentübergreifendes Speichern ans Frameende, damit keine Beschreibung während ihrer Traversierung freigegeben wird.
 
-114 Unity-Tests sowie die Editor-Smokes prüfen Loader, Checkpointfehler, Editorwechsel, Reload und die bisherige Bedienung. Details, Grenzen und Beispiele stehen in [UI_YAML.md](UI_YAML.md).
+116 Unity-Tests sowie die Editor-Smokes prüfen Loader, Checkpointfehler, Editorwechsel, Reload und die bisherige Bedienung. Details, Grenzen und Beispiele stehen in [UI_YAML.md](UI_YAML.md).
