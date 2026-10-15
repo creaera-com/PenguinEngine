@@ -244,6 +244,19 @@ static void test_selector_must_be_last(void) {
     pe_ui_layout_free(shell);
     TEST_ASSERT_NULL(pe_ui_layout_load(YAML_FILE, "shell", error, sizeof error));
     TEST_ASSERT_NOT_NULL(strstr(error, "last toolbar element"));
+    shell = pe_ui_layout_load(PE_SOURCE_DIR "/resources/editor/ui/shell.yaml", "shell", error,
+                              sizeof error);
+    TEST_ASSERT_NOT_NULL(shell);
+    cJSON *control = cJSON_GetArrayItem(pe_ui_get(shell->root, "window_controls"), 0);
+    TEST_ASSERT_NOT_NULL(control);
+    cJSON_ReplaceItemInObjectCaseSensitive(control, "action", cJSON_CreateString("document.save"));
+    text = cJSON_PrintUnformatted(shell->root);
+    TEST_ASSERT_NOT_NULL(text);
+    write_file(YAML_FILE, text);
+    free(text);
+    pe_ui_layout_free(shell);
+    TEST_ASSERT_NULL(pe_ui_layout_load(YAML_FILE, "shell", error, sizeof error));
+    TEST_ASSERT_NOT_NULL(strstr(error, "window action buttons"));
 }
 
 static void test_split_and_terminal_schema(void) {

@@ -109,6 +109,19 @@ static void lines(SDL_Renderer *r, float x, float y, float size, const Line *v, 
 void ui_icon(SDL_Renderer *r, UiIcon icon, float x, float y, float s, Uint32 c) {
     color(r, c);
     switch (icon) {
+    case ICON_MINIMIZE:
+        DRAW({3, 12, 13, 12});
+        break;
+    case ICON_MAXIMIZE:
+        DRAW({3, 3, 13, 3}, {13, 3, 13, 13}, {13, 13, 3, 13}, {3, 13, 3, 3});
+        break;
+    case ICON_RESTORE:
+        DRAW({5, 2, 14, 2}, {14, 2, 14, 11}, {14, 11, 11, 11}, {2, 5, 11, 5}, {11, 5, 11, 14},
+             {11, 14, 2, 14}, {2, 14, 2, 5});
+        break;
+    case ICON_COLLAPSE:
+        DRAW({2, 3, 14, 3}, {5, 11, 8, 8}, {8, 8, 11, 11});
+        break;
     case ICON_TERMINAL:
         SDL_RenderLine(r, x + s * .15f, y + s * .25f, x + s * .45f, y + s * .5f);
         SDL_RenderLine(r, x + s * .45f, y + s * .5f, x + s * .15f, y + s * .75f);

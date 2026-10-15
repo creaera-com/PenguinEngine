@@ -276,3 +276,22 @@ Noch offen sind automatische Dateibeobachtung statt F6, allgemeines Zweiwege-Bin
 - Ein gültiger Reload erhält Dokument-/Undo-Daten; neue IDs erhalten Anfangszustände, fehlende UI-IDs beeinträchtigen keine Dokumentwiederherstellung.
 - Doppelte IDs/Schlüssel, unbekannte Typen/Aktionen/Bindings, Typfehler und Loadergrenzen werden gezielt getestet.
 - Editor-spezifische Texteingabe und Tastenkürzel sind nach dem Entladen abgemeldet. Beispieldateien werden durch die Loader-Tests geprüft.
+
+
+## Eigener Fensterrahmen
+
+`window_controls` steht in der Shell neben `toolbar`. Die Liste enthält höchstens vier Buttons und wird rechtsbündig in der oberen Leiste gezeichnet. Die Editor-Navigation lässt diesen Platz frei. Ohne diese Liste bleibt der native Rahmen erhalten. Wenn SDL auf der Plattform keinen Fenster-Hit-Test unterstützt, bleibt der native Rahmen ebenfalls als Rückfall erhalten.
+
+```yaml
+window_controls:
+  - {type: button, id: window_collapse, icon: collapse, tooltip: "Wegklappen / Aufklappen", action: window.collapse}
+  - {type: button, id: window_minimize, icon: minimize, tooltip: "Minimieren", action: window.minimize}
+  - {type: button, id: window_maximize, icon: maximize, tooltip: "Maximieren / Wiederherstellen", action: window.maximize}
+  - {type: button, id: window_close, icon: close, tooltip: "Schließen", action: window.close}
+```
+
+Freie Flächen der oberen Leiste verschieben das Fenster über den Betriebssystem-Hit-Test. Ein fünf Pixel breiter Rand erlaubt Größenänderungen, einschließlich der Ecken. Maximierte Fenster haben keine Resize-Zonen. Toolbuttons und Editor-Tabs bleiben anklickbar.
+
+Wegklappen reduziert die Fensterhöhe auf die 50 Pixel hohe Leiste. Aufklappen stellt Größe und gegebenenfalls Maximierung wieder her. Dokumente und die gemeinsame Shell bleiben währenddessen geladen; ausgeblendete Editoren erhalten keine Pointer- oder Tastatureingaben. Schließen klappt das Fenster bei Bedarf auf und durchläuft denselben Ablauf für ungespeicherte Dokumente wie das native Schließen. Minimieren verwendet die Betriebssystemfunktion und kann über die Taskleiste bzw. das Dock rückgängig gemacht werden.
+
+Die Fensterlogik liegt in `src/editor/app/window.c`; die UI-Lib stellt die Icons bereit. Die SDL-Dummy-Smokes prüfen Button-Klicks, die Hit-Test-Zonen und Weg-/Aufklappen samt Größenwiederherstellung. Fensterbewegung, Snap-Verhalten und Darstellung mit einem echten Window-Manager müssen zusätzlich manuell auf der Zielplattform geprüft werden.

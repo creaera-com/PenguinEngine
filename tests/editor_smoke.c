@@ -569,3 +569,33 @@ bool editor_verify_console(void) {
     }
     return ok;
 }
+
+bool editor_verify_window(void) {
+    editor_draw();
+    int width = app.width, height = app.height;
+    float controls = editor_window_controls_left();
+    bool ok = cJSON_GetArraySize(pe_ui_get(app.shell_layout->root, "window_controls")) == 4;
+    ok = ok && editor_window_hit_test(width - 1, height - 1) == SDL_HITTEST_RESIZE_BOTTOMRIGHT;
+    ok = ok && editor_window_hit_test((int)controls - 20, 20) == SDL_HITTEST_DRAGGABLE;
+    ok = ok && editor_window_hit_test((int)controls + 16, 20) == SDL_HITTEST_NORMAL;
+    ok = ok && editor_window_hit_test(20, 20) == SDL_HITTEST_NORMAL;
+    smoke_click(controls + 16, 24);
+    editor_draw();
+    SDL_SyncWindow(app.window);
+    int collapsed_width, collapsed_height;
+    SDL_GetWindowSize(app.window, &collapsed_width, &collapsed_height);
+    ok = ok && app.window_collapsed && collapsed_height == TOP;
+    ok = ok && editor_window_hit_test(collapsed_width / 2, TOP - 1) == SDL_HITTEST_DRAGGABLE;
+    smoke_click(editor_window_controls_left() + 16, 24);
+    editor_draw();
+    SDL_SyncWindow(app.window);
+    int restored_width, restored_height;
+    SDL_GetWindowSize(app.window, &restored_width, &restored_height);
+    ok = ok && !app.window_collapsed && restored_width == width && restored_height == height;
+    ok = ok && !editor_window_action("window.unknown");
+    smoke_pointer(SDL_EVENT_MOUSE_MOTION, 500, 400);
+    if (!ok) {
+        fprintf(stderr, "Window chrome smoke failed\n");
+    }
+    return ok;
+}

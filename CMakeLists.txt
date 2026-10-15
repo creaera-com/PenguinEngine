@@ -151,6 +151,7 @@ if(PENGUIN_BUILD_EDITOR)
   src/editor/app/state.c
   src/editor/app/input.c
   src/editor/app/shell.c
+  src/editor/app/window.c
   src/editor/app/ui_helpers.c
   src/editor/browser/file_tree.c
   src/editor/dialogs/fields.c

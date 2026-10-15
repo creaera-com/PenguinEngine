@@ -344,6 +344,7 @@ bool editor_reload_layout(void) {
         pe_ui_layout_free(old_layout);
         pe_ui_layout_free(old_shell);
         editor_apply_shell_layout();
+        editor_window_init();
         editor_message("UI reloaded (F6)");
         return true;
     }
