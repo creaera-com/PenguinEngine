@@ -95,7 +95,7 @@ static float component_card(PeEntity entity, int index, float x, float y, float 
     const char *hint = removable        ? "Remove component"
                        : bit == PE_BODY ? "Remove Player first"
                                         : "Required by components or hierarchy";
-    UiRect remove = {x + w - 18, y + 10.25f, 14, 12.5f};
+    UiRect remove = {x + w - 18, y + 4, 14, 12.5f};
     bool can_remove = enabled && removable;
     bool hover = ui_hovered(&app.ui, remove);
     editor_register_ui_hit(remove);
