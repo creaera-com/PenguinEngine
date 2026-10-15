@@ -4,6 +4,7 @@
 #include <stdint.h>
 #define UI_MAX_CLIPS 16
 #define UI_MAX_TABS 16
+#define UI_TAB_GAP 1
 typedef uint32_t UiId;
 typedef struct {
     float x, y, w, h;
@@ -24,7 +25,7 @@ typedef struct {
 typedef struct {
     UiId id;
     bool enabled;
-    float width; /* Slot width including the 4 px gap; zero uses the fallback width. */
+    float width; /* Slot width including the 1 px gap; zero uses the fallback width. */
 } UiTab;
 typedef struct {
     UiTab items[UI_MAX_TABS];

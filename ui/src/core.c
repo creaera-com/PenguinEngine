@@ -221,7 +221,7 @@ bool ui_tabs_init(UiTabs *t, const UiTab *items, int count, UiId selected) {
     bool found = false;
     for (int i = 0; i < count; i++) {
         if (!items[i].id || !isfinite(items[i].width) || items[i].width < 0 ||
-            (items[i].width > 0 && items[i].width <= 4))
+            (items[i].width > 0 && items[i].width <= UI_TAB_GAP))
             return false;
         for (int k = 0; k < i; k++)
             if (items[i].id == items[k].id)
@@ -238,7 +238,7 @@ bool ui_tabs_init(UiTabs *t, const UiTab *items, int count, UiId selected) {
     return true;
 }
 bool ui_tabs_set_width(UiTabs *t, UiId id, float width) {
-    if (!isfinite(width) || width < 0 || (width > 0 && width <= 4))
+    if (!isfinite(width) || width < 0 || (width > 0 && width <= UI_TAB_GAP))
         return false;
     for (int i = 0; i < t->count; i++) {
         if (t->items[i].id == id) {
@@ -257,14 +257,14 @@ UiRect ui_tab_rect(const UiTabs *t, UiRect bar, float width, int index) {
     float x = bar.x - t->scroll;
     for (int i = 0; i < index; i++)
         x += tab_width(t, width, i);
-    return (UiRect){x, bar.y, tab_width(t, width, index) - 4, bar.h};
+    return (UiRect){x, bar.y, tab_width(t, width, index) - UI_TAB_GAP, bar.h};
 }
 void ui_tabs_scroll(UiTabs *t, float viewport, float width, float delta) {
     float content = 0;
     for (int i = 0; i < t->count; i++)
         content += tab_width(t, width, i);
     if (t->count)
-        content -= 4;
+        content -= UI_TAB_GAP;
     UiScroll s = {t->scroll, content, viewport};
     ui_scroll_by(&s, delta);
     t->scroll = s.offset;

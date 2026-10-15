@@ -663,7 +663,7 @@ static void draw_panel_tabs(UiTabs *tabs, UiRect bar, UiId first, const char *fi
         ui_tabs_set_width(tabs, tabs->items[i].id,
                           ui_tab_content_width(is_first ? first_icon : second_icon,
                                                is_first ? first_label : second_label) +
-                              4);
+                              UI_TAB_GAP);
     }
     ui_tabs_update(&app.ui, tabs, bar, width);
     ui_clip_push(&app.ui, bar);
@@ -1223,7 +1223,7 @@ static void draw(void) {
     UiRect nav = {GLOBAL_NAV_X, 12, (float)(app.width - GLOBAL_NAV_X - 14), 25};
     for (int i = 0; i < app.workspaces.count; i++) {
         const EditorView *item = editor_view(app.workspaces.items[i].id);
-        ui_tabs_set_width(&app.workspaces, item->id, 36);
+        ui_tabs_set_width(&app.workspaces, item->id, 32 + UI_TAB_GAP);
         app.workspaces.items[i].enabled =
             !app.history.pending && (item->id == UI_MAP_VIEW || !app.playing);
     }
