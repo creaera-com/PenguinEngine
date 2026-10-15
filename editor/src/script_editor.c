@@ -440,8 +440,7 @@ void se_draw(PeScriptEditor *e, SDL_Renderer *r, UiContext *context, SDL_FRect a
            selected_end = d->cursor > d->anchor ? d->cursor : d->anchor;
     size_t p = pe_text_offset(d, e->top_line, 0);
     int rows = (int)e->body.h / LINE_HEIGHT + 1, line = e->top_line;
-    static const Uint32 palette[] = {UI_TEXT,    0xffa650ff, 0xc5c98aff,
-                                     0x7d8876ff, 0xd9ad86ff, 0xcab0d8ff};
+    const Uint32 palette[] = {UI_TEXT, 0xffa650ff, 0xc5c98aff, 0x7d8876ff, 0xd9ad86ff, 0xcab0d8ff};
     for (int row = 0; row < rows; row++, line++) {
         float y = e->body.y + row * LINE_HEIGHT;
         char number[16];

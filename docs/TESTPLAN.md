@@ -55,3 +55,15 @@ Die automatisierten Tests wurden in der Entwicklungsumgebung headless ausgeführ
 13. Globale Toolbar: Menü, Trennstrich, Save, Trennstrich, Undo/Redo, Trennstrich, Map-/Scripts-Icons. Hamburger anklicken: noch keine Aktion. Tooltips benennen die Arbeitsbereiche. Save/Undo/Redo gehören zum aktiven Dokument. Zwischen den Bereichen wechseln; Werkzeuge wechseln passend zum Inhalt. Im Scripts-Bereich fehlen Play, Import und Kartenwerkzeuge. Die Syntaxprüfung erscheint ausschließlich in seiner Werkzeugleiste, nicht nochmals im Dokumentkopf.
 14. Map-Spalte stark verengen. Werkzeugleiste bricht um; auch Raster und Kollision bleiben erreichbar. Klicks in beiden Toolbar-Zeilen verändern keine Tiles, Textauswahl oder Zoom. Bei breiterer Spalte entsteht wieder eine Zeile.
 15. Scripts wählen, F5 drücken: kein Play. Map wählen, Play starten: Wechsel zu Scripts gesperrt; Stop stellt die bearbeitete Szene wieder her. Tooltips, Ctrl+S, Ctrl+Z und Ctrl+Shift+Z gelten für das aktive Dokument, auch nach Fokus auf einen Toolbar-Button.
+
+
+## YAML, Entladen und Sitzungssicherung
+
+1. Eine eigene Kopie von `editor/ui` mit `--ui /absoluter/pfad/shell.yaml` öffnen. Texte, Iconreihenfolge und Panelinhalte ändern, F6 drücken. Alle drei Spalten folgen dem jeweiligen Editor. Layouts, die noch nicht registrierte Typen verwenden, werden mit Quellposition abgelehnt.
+2. Map ändern, Kamera/Zoom/Auswahl verstellen und zwischen Map/Scripts wechseln. Undo/Redo, Dirty-Anzeige und Ansicht bleiben erhalten. Im Script Text ändern, Undo ausführen, wechseln und zurückkehren: auch die Redo-Stufe bleibt erhalten.
+3. F6 mit geänderter Farbe oder Abstand testen. Danach einen YAML-Syntaxfehler bzw. unbekannte Aktion einbauen und erneut F6: bisherige UI und ungespeichertes Dokument bleiben bedienbar. Fehler korrigieren und erneut laden.
+4. Bei beiden Editoren ungespeicherte Änderungen anlegen und schließen: Speichern berücksichtigt auch den inaktiven Editor. Verwerfen verändert keine Quelldatei; Abbrechen behält die Sitzung. Play verhindert einen Wechsel.
+5. Speicherprüfung: Nach einem Wechsel existiert nur die aktive Payload/Layoutinstanz; die andere Payload und ihre Historien/Texturen sind freigegeben. Ein gleicher Heap-Adresswert nach erneuter Allokation oder ein nicht sofort fallender RSS-Wert beweist keinen Fehler.
+6. Die automatisierten Editor-Smokes simulieren außerdem ein nicht beschreibbares Checkpointziel und eine beschädigte Zielsitzung. Im ersten Fall bleibt der Quelleditor stehen, im zweiten wird er aus seiner gerade gesicherten Sitzung wiederhergestellt. Kein Test schreibt dabei die Projektdateien.
+
+Der native Sitzungscache ersetzt keine Backups und ist noch keine Crash-Recovery über Programmstarts hinweg. Eigene Layoutkopien bearbeiten: Ein Build kopiert die Repo-Vorgaben erneut nach `build/ui-layouts`.

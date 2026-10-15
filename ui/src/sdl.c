@@ -208,9 +208,14 @@ void ui_icon(SDL_Renderer *r, UiIcon icon, float x, float y, float s, Uint32 c) 
         break;
     }
 }
+UiTheme ui_theme = {0x101010ffu, 0x202020ffu, 0x292929ffu, 0x393939ffu, 0xc28e5cffu,
+                    0xe9e9e9ffu, 0xa2a2a2ffu, 0x686868ffu, 0x303030ffu};
+void ui_set_theme(const UiTheme *theme) {
+    ui_theme = *theme;
+}
 UiTheme ui_dark_theme(void) {
-    return (UiTheme){UI_CANVAS, UI_PANEL, UI_SURFACE,  UI_HOVER, UI_ACCENT,
-                     UI_TEXT,   UI_MUTED, UI_DISABLED, UI_BORDER};
+    return (UiTheme){0x101010ffu, 0x202020ffu, 0x292929ffu, 0x393939ffu, 0xc28e5cffu,
+                     0xe9e9e9ffu, 0xa2a2a2ffu, 0x686868ffu, 0x303030ffu};
 }
 void ui_draw_button_themed(SDL_Renderer *r, const UiTheme *theme, SDL_FRect rect, UiIcon icon,
                            const char *label, bool active, bool enabled, bool hover) {
@@ -232,7 +237,7 @@ void ui_draw_button_themed(SDL_Renderer *r, const UiTheme *theme, SDL_FRect rect
 }
 void ui_draw_button(SDL_Renderer *r, SDL_FRect rect, UiIcon icon, const char *label, bool active,
                     bool enabled, bool hover) {
-    UiTheme theme = ui_dark_theme();
+    UiTheme theme = ui_theme;
     ui_draw_button_themed(r, &theme, rect, icon, label, active, enabled, hover);
 }
 float ui_text_width(const char *text) {

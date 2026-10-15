@@ -1,0 +1,50 @@
+schema: penguin.ui/v1
+kind: editor
+id: map
+document_provider: scene
+
+toolbar:
+  - {type: button, id: play, icon: play, tooltip: "Play / Stop (F5)", action: scene.toggle_play}
+  - {type: button, id: import, icon: import, tooltip: "PNG importieren", action: map.import_tileset}
+  - {type: button, id: brush, icon: brush, tooltip: "Pinsel (B)", action: map.select_brush}
+  - {type: button, id: erase, icon: erase, tooltip: "Radierer (E)", action: map.select_eraser}
+  - {type: button, id: rectangle, icon: rectangle, tooltip: "Rechteck (R)", action: map.select_rectangle}
+  - {type: button, id: fill, icon: fill, tooltip: "Füllen (F)", action: map.select_fill}
+  - {type: button, id: select, icon: select, tooltip: "Auswahl (V)", action: map.select_entity}
+  - {type: button, id: collision, icon: collision, tooltip: "Kollision", action: map.toggle_collision, active: {binding: map.collision_visible}}
+  - type: button
+    id: grid
+    icon: grid
+    tooltip: "Raster anzeigen"
+    action: map.toggle_grid
+    active: {binding: map.grid_visible}
+
+columns:
+  left:
+    type: tabs
+    id: navigation
+    tabs:
+      - id: explorer_tab
+        title: "Explorer"
+        icon: folder
+        content: {type: file_tree, id: files, binding: project.files}
+      - id: scene_tab
+        title: "Scene"
+        icon: entity
+        content: {type: entity_tree, id: entities, binding: scene.entities}
+  center:
+    type: map_canvas
+    id: canvas
+    binding: scene.active
+  right:
+    type: tabs
+    id: properties
+    tabs:
+      - id: inspector_tab
+        title: "Inspector"
+        icon: entity
+        content: {type: inspector, id: inspector, binding: selection.active}
+      - id: info_tab
+        title: "Info"
+        icon: file
+        content: {type: scene_info, id: scene_info, binding: scene.active}

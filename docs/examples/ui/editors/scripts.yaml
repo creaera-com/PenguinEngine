@@ -1,4 +1,4 @@
-# Entwurf. Der Dokumentzustand wird außerhalb der Widgetinstanzen gesichert.
+# Kleines lauffähiges Beispiel für penguin.ui/v1.
 schema: penguin.ui/v1
 kind: editor
 id: scripts

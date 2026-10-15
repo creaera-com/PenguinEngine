@@ -1,8 +1,19 @@
 # Deklarative Editoroberflächen mit YAML
 
-**Status: Entwurf für den nächsten Ausbau.** Die aktuelle Engine erstellt ihre UI in C. Sie liest diese YAML-Dateien noch nicht ein und entlädt beim Wechsel noch nicht den vollständigen Editor. Dieses Dokument beschreibt den vereinbarten Zielaufbau; die folgenden Bezeichner sind ein Schemaentwurf, keine bereits verfügbare C-API. Die tatsächliche Implementierung steht in [IMPLEMENTIERUNG.md](IMPLEMENTIERUNG.md), die vorhandenen UI-Bausteine in [UI_BIBLIOTHEK.md](UI_BIBLIOTHEK.md).
+**Status: erste Implementierung von `penguin.ui/v1`.** Der Editor liest Shell- und Editor-Layouts aus YAML. Alle drei Spalten sind kontextabhängig; beim Wechsel wird die bisherige Editorinstanz vollständig entladen. Aktionen, Bindings und die vorhandenen Map-/Script-Komponenten bleiben in C. Die Umsetzung steht in [IMPLEMENTIERUNG.md](IMPLEMENTIERUNG.md), die UI-Bausteine in [UI_BIBLIOTHEK.md](UI_BIBLIOTHEK.md).
 
-YAML soll den Aufbau beschreiben: Panels, Tabs, Widgets, Toolbars, Gestaltung und Verknüpfungen. C stellt Widgets, Daten und Aktionen bereit. So lassen sich vorhandene Elemente selbst neu zusammenstellen; ein neues Zeichenwerkzeug oder ein völlig neues Widget benötigt weiterhin eine C-Implementierung. Der Ansatz entspricht der Trennung zwischen Layoutdatei und Controller etwa bei JavaFX/FXML.
+## Sofort ausprobieren
+
+Die verwendeten Dateien sind [editor/ui/shell.yaml](../editor/ui/shell.yaml), [map.yaml](../editor/ui/editors/map.yaml) und [scripts.yaml](../editor/ui/editors/scripts.yaml). Der Build kopiert sie nach `build/ui-layouts`. Ohne Argument sucht der Editor diese Kopie neben der Programmdatei beziehungsweise eine Ebene darüber (Debug/Release-Konfigurationen).
+
+```sh
+cmake --build build --parallel
+build/penguin_editor --ui editor/ui/shell.yaml
+```
+
+Mit `--ui` kann eine eigene Shell-Datei gewählt werden; Editor-Dateipfade sind relativ zu dieser Datei. In CLion einen absoluten `--ui`-Pfad als Programmargument setzen, wenn die Arbeitsverzeichnisse variieren. **F6** lädt die Shell und den aktiven Editor erneut. Für dauerhafte eigene Änderungen einen eigenen Layoutordner oder direkt die Quelldateien unter `editor/ui` verwenden: Ein weiterer Build überschreibt die Kopien unter `build/ui-layouts` mit den Repo-Vorgaben. Ein fehlerhafter Erststart meldet den Fehler auf stderr und beendet sich; ein fehlerhafter Reload lässt die laufende Oberfläche bestehen.
+
+YAML beschreibt den Aufbau: Panels, Tabs, Widgets, Toolbars, Gestaltung und Verknüpfungen. C stellt Widgets, Daten und Aktionen bereit. So lassen sich vorhandene Elemente selbst neu zusammenstellen; ein neues Zeichenwerkzeug oder ein völlig neues Widget benötigt weiterhin eine C-Implementierung. Der Ansatz entspricht der Trennung zwischen Layoutdatei und Controller etwa bei JavaFX/FXML.
 
 ## Drei getrennte Verantwortlichkeiten
 
@@ -47,15 +58,15 @@ Ein UI-Reload verwendet denselben Ablauf. Die neue YAML-Beschreibung wird vorab 
 | UI | Tab-Reihenfolge/-Auswahl, Scrollpositionen, offene Abschnitte und Spaltenbreiten |
 | Flüchtige Ressourcen | Nicht speichern: neu aus Dokument/Assets erzeugen, z. B. Texturen oder Syntax-Token |
 
-Sitzungsdaten enthalten keine C-Zeiger, SDL-Handles oder laufenden Threads. Sie benötigen ein eigenes versioniertes Speicherformat; YAML beschreibt das Layout und ist **nicht** das Format für große Dokumente und Undo-Verläufe. Die konkrete Serialisierung wird vor der Lebenszyklus-Implementierung festgelegt.
+Sitzungsdaten enthalten keine C-Zeiger, SDL-Handles oder laufenden Threads. Sie werden im privaten binären Sitzungsformat Version 1 mit Längenbegrenzung, Typkennung, Größen-/ABI-Prüfung und Prüfsumme gespeichert. Die Prüfsumme wird vor dem Decodieren geprüft. Es ist ein nativer Cache für den aktuellen Build und die aktuelle Plattform, kein portables Projektformat. YAML beschreibt das Layout und ist **nicht** das Format für große Dokumente und Undo-Verläufe.
 
 **Sitzungssicherung ist kein Speichern des Projekts.** Ctrl+S schreibt weiterhin bewusst die Quelldatei. Ein Editorwechsel darf ungespeicherte Änderungen nicht verwerfen, den Dirty-Status nicht zurücksetzen und keine Projektdatei automatisch überschreiben. Ist eine Wiederherstellung nicht möglich, muss das sichtbar gemeldet werden; kein stiller Rückfall auf einen älteren Dateistand.
 
-Die Speicherung liegt in einem beschreibbaren, projektbezogenen Benutzer-Sitzungsverzeichnis, nicht zwingend im Git-Repository. Große Sicherungen werden nur zum Laden oder Schreiben in den RAM geholt. Editorübergreifende Dienste dürfen keine versteckten Kopien der inaktiven Dokumente/Undo-Historien behalten. Crash-Recovery, Versionsmigrationen und Bereinigung alter Sitzungen benötigen eigene Tests; dieses Dokument verspricht dafür noch keine fertige Implementierung.
+Die Speicherung liegt im SDL-Benutzerverzeichnis `PenguinEngine/editor-sessions`, mit projekt- und laufbezogenen Dateinamen. Headless-Smoke-Tests verwenden dafür das Build-Verzeichnis. Große Sicherungen werden nur zum Laden oder Schreiben in den RAM geholt. Editorübergreifende Dienste dürfen keine versteckten Kopien der inaktiven Dokumente/Undo-Historien behalten. Beim regulären Beenden werden nach Speichern oder bewusstem Verwerfen die Dateien dieses Laufs entfernt. Nach einem Absturz eventuell verbleibende Dateien werden beim nächsten Start nicht automatisch geladen. Crash-Recovery, Versionsmigrationen und Bereinigung solcher Altdateien sind noch nicht implementiert. Atomarer Dateiaustausch schützt den bisherigen Checkpoint bei einem fehlgeschlagenen Schreibvorgang; eine Stromausfall-Dauerhaftigkeit wird nicht zugesichert.
 
 ## Dateien und erster Aufbau
 
-Die vollständigen Beispielbeschreibungen liegen unter [examples/ui/shell.yaml](examples/ui/shell.yaml), [editors/map.yaml](examples/ui/editors/map.yaml) und [editors/scripts.yaml](examples/ui/editors/scripts.yaml). Es sind kleine Startbeispiele, keine vollständige Beschreibung aller heutigen Kartenwerkzeuge. Sie sind noch nicht an den Build oder Editorstart angeschlossen.
+Die vollständigen Beispielbeschreibungen liegen unter [examples/ui/shell.yaml](examples/ui/shell.yaml), [editors/map.yaml](examples/ui/editors/map.yaml) und [editors/scripts.yaml](examples/ui/editors/scripts.yaml). Es sind bewusst kleinere Startbeispiele, keine vollständige Beschreibung aller heutigen Kartenwerkzeuge. Sie können mit `--ui docs/examples/ui/shell.yaml` geladen werden. Die tatsächlich ausgelieferten Layouts liegen unter `editor/ui`. Beide Beispielgruppen werden durch die C-Loader-Tests geprüft.
 
 ```text
 ui/
@@ -65,7 +76,7 @@ ui/
     scripts.yaml
 ```
 
-`file`-Pfade in der Shell sind relativ zur Shell-Datei. Die Modulnamen `map` und `scripts` bezeichnen registrierte, eingebaute C-Editoren. Ein Modul besitzt Aufbau, Eingabebehandlung, Aktionen, Dokumentanbieter, Sitzungssicherung und Zerstörung; YAML enthält keinen Pfad zu ausführbarem Code.
+`file`-Pfade in der Shell sind relativ zur Shell-Datei. Die Modulnamen `map` und `scripts` bezeichnen registrierte, eingebaute C-Editoren. Die beiden registrierten Module `map` und `scripts` besitzen Aufbau, Eingabebehandlung, Aktionen, Dokumentanbieter, Sitzungssicherung und Zerstörung; YAML enthält keinen Pfad zu ausführbarem Code.
 
 Jede Datei beginnt mit `schema: penguin.ui/v1`, `kind: shell` beziehungsweise `kind: editor` und einer stabilen `id`. Die Editor-ID muss zum Eintrag in der Shell passen. Nicht aufgeführte Editoren erscheinen nicht in der Auswahl und werden nicht instanziiert.
 
@@ -119,11 +130,11 @@ columns:
 
 `toolbar` liegt direkt über dem mittleren Inhalt. Ihre Buttons brechen bei Platzmangel um. `columns` enthält exakt `left`, `center`, `right`; jede Spalte enthält einen Widgetknoten. Für eine absichtlich leere Spalte dient `type: spacer`. Der Editor darf keine Spalte unbemerkt vom zuvor aktiven Editor übernehmen.
 
-`document_provider` ist ein registrierter Anbieter wie `scene` oder `script`. Er bindet globale Aktionen und Statuswerte an das aktuelle Dokument. Ein späterer Editor ohne Dokument kann den Schlüssel weglassen; Speichern/Undo/Redo sind dann deaktiviert. Ein unbekannter Anbieter ist dagegen ein Validierungsfehler.
+`document_provider` ist ein registrierter Anbieter wie `scene` oder `script`. Er bindet globale Aktionen und Statuswerte an das aktuelle Dokument. In dieser Version ist der Anbieter verpflichtend: `scene` für Map und `script` für Scripts. Andere Module oder Anbieter müssen zuerst in C ergänzt werden und werden sonst als Validierungsfehler abgelehnt.
 
 ## Gemeinsame Widgeteigenschaften
 
-| Eigenschaft | Regel im Entwurf |
+| Eigenschaft | Regel |
 | --- | --- |
 | `type` | Registrierter Widgettyp, verpflichtend |
 | `id` | Stabile, sprechende ID, verpflichtend |
@@ -145,7 +156,7 @@ Bei wiederholten Datenzeilen, etwa Entities, ergänzt der Widgetrenderer eine st
 
 ## Erste Elemente
 
-Alle folgenden YAML-Adapter sind geplant. Ein vorhandener C-Baustein bedeutet noch nicht, dass der entsprechende YAML-Typ bereits benutzt werden kann.
+Die folgenden Adapter sind implementiert. Spezialisierte Typen (`file_tree`, `entity_tree`, `map_canvas`, `script_editor`, `inspector`, `scene_info`, `script_info`) dürfen in dieser ersten Version jeweils nur einmal pro Editorbeschreibung vorkommen; ihre internen C-Zustände sind noch nicht für mehrere Instanzen ausgelegt. Allgemeine Labels, Buttons und Container können mehrfach mit unterschiedlichen IDs vorkommen. Spezialisierte Widgets verwenden weiterhin die bestehenden C-Eingabe- und Renderfunktionen; YAML ordnet sie an und bindet ihre Datenquelle.
 
 | Typ | Zusätzliche Felder / Aufgabe | Grundlage |
 | --- | --- | --- |
@@ -153,10 +164,10 @@ Alle folgenden YAML-Adapter sind geplant. Ein vorhandener C-Baustein bedeutet no
 | `separator` | Schmaler Trennstrich mit Innenabstand in Toolbar/Zeile | Vorhandene Toolbar-Darstellung |
 | `editor_switcher` | Nur Shell; `labels: false` zeigt Icons mit Titel als Tooltip | Vorhandene Bereichsauswahl |
 | `tabs` | `tabs`-Liste mit `id`, `title`, optional `icon`, genau einem `content`-Knoten | Vorhandenes Tabmodell |
-| `section` | `title`, `open` als anfänglicher Boolean, `children` | Klappbare Bereiche; generischer Adapter folgt |
-| `row`, `column` | `children`, optional nichtnegativer `gap` | Allgemeine Container noch zu ergänzen |
+| `section` | `title`, `open` als anfänglicher Boolean, `children` | Klappbarer Container |
+| `row`, `column` | `children`, optional nichtnegativer `gap` | Kinder werden gleichmäßig in verfügbare Breite/Höhe aufgeteilt |
 | `label` | `label` als statischer Text oder `{binding: ...}` | Vorhandene Textdarstellung |
-| `spacer` | Leerer Container, keine Eingabe | Einfacher neuer Baustein |
+| `spacer` | Leerer Container, keine Eingabe | Leerer Platzhalter |
 | `file_tree` | `binding: project.files` | Bisheriger Projektbaum |
 | `entity_tree` | `binding: scene.entities` | Bisherige Scene-Liste |
 | `map_canvas` | `binding: scene.active` | Vorhandener Map-Renderer und seine Eingaben |
@@ -172,7 +183,7 @@ Die Shell liefert das Theme. Ein neuer Typ mit eigenen Eigenschaften bekommt sp�
 
 YAML referenziert **registrierte Namen**, keine C-Funktionszeiger, Dateipfade zu Programmen oder frei auswertbaren Ausdrücke.
 
-| Geplanter Aktionsname | Wirkung |
+| Aktionsname | Wirkung |
 | --- | --- |
 | `document.save` | Aktuelles Dokument bewusst in seine Quelldatei speichern |
 | `document.undo`, `document.redo` | Verlauf des aktiven Dokumentanbieters bedienen |
@@ -181,7 +192,7 @@ YAML referenziert **registrierte Namen**, keine C-Funktionszeiger, Dateipfade zu
 | `map.select_brush`, `map.toggle_grid` | Kartenwerkzeug wählen beziehungsweise Raster umschalten |
 | `script.check` | JavaScript des aktuellen Scripts nur auf Syntax prüfen |
 
-Weitere heutige Werkzeuge bekommen bei Bedarf eigene registrierte Namen. Aktionen prüfen ihren Kontext auch beim Aufruf; ein optisch deaktivierter Button ist nicht die einzige Sperre. Dokumentändernde Aktionen laufen über die bestehende Command-/Undo-Schicht. UI-Layout und Editorwechsel werden nicht zu Szenen-Undo-Schritten.
+Weitere vorhandene Aktionen sind `map.select_eraser`, `map.select_rectangle`, `map.select_fill`, `map.select_entity` und `map.toggle_collision`. Der Boolean-Zustand dazu ist `map.collision_visible`. Aktionen prüfen ihren Kontext auch beim Aufruf; ein optisch deaktivierter Button ist nicht die einzige Sperre. Dokumentändernde Aktionen laufen über die bestehende Command-/Undo-Schicht. UI-Layout und Editorwechsel werden nicht zu Szenen-Undo-Schritten.
 
 | Binding | Datentyp |
 | --- | --- |
@@ -192,13 +203,13 @@ Weitere heutige Werkzeuge bekommen bei Bedarf eigene registrierte Namen. Aktione
 | `scene.entities` | Entity-Liste mit stabilen IDs |
 | `scene.active`, `selection.active`, `document.active` | Typgeprüfte Modellreferenz, ggf. leer |
 
-Ein Widget darf nur passende Datentypen anbinden. Eine leere Auswahl zeigt einen leeren Inspector; ein unbekanntes Binding ist ein Fehler. Bindings lesen zunächst Zustand. Änderungen erfolgen über Aktionen oder über die dokumentierte Eingabelogik spezialisierter Widgets. Eine allgemeine zweiseitige Property-Bindung ist kein Bestandteil dieses ersten Entwurfs.
+Ein Widget darf nur passende Datentypen anbinden. Eine leere Auswahl zeigt einen leeren Inspector; ein unbekanntes Binding ist ein Fehler. Bindings lesen zunächst Zustand. Änderungen erfolgen über Aktionen oder über die dokumentierte Eingabelogik spezialisierter Widgets. Eine allgemeine zweiseitige Property-Bindung ist kein Bestandteil dieser ersten Version.
 
 `enabled: {binding: document.can_undo}` ist zulässig. Ein Ausdruck wie `enabled: "scene.count > 0"` ist kein Boolean-Binding und wird abgelehnt. Tastenkürzel bleiben zunächst im C-Aktionssystem, nicht zusätzlich frei in YAML vergeben. Ein Tooltip wie „F7“ allein registriert keinen Shortcut.
 
 ## Selbst Änderungen vornehmen
 
-1. Beispielstruktur in einen Layoutordner kopieren, sobald der Loader implementiert ist. Die Shell ist der Einstiegspunkt; ein CLI-Schalter dafür ist noch nicht festgelegt.
+1. Beispielstruktur in einen eigenen Layoutordner kopieren und mit `--ui /pfad/zur/shell.yaml` öffnen. Die Shell ist der Einstiegspunkt.
 2. Titel, Icons oder Reihenfolge vorhandener Tabs/Buttons ändern. IDs für bestehende Elemente beibehalten.
 3. Einen weiteren Tab mit neuer ID und einem bereits registrierten Inhaltswidget ergänzen. Widgets benötigen weiterhin ihre passende Datenquelle und ein Modul, das sie bereitstellt.
 4. Änderungen erneut laden. Nur validierte Beschreibungen dürfen aktiv werden; ein Reload sichert und entlädt den aktuellen Editor wie ein Editorwechsel.
@@ -210,20 +221,20 @@ Beispiel für einen weiteren Informationstab im Map-Panel:
   title: "Szenendaten"
   icon: file
   content:
-    type: scene_info
+    type: label
     id: extra_scene_info
-    binding: scene.active
+    label: {binding: editor.details}
 ```
 
 Diesen Eintrag unter `columns.right.tabs` in `map.yaml` ergänzen. Das erzeugt eine weitere Darstellung vorhandener Daten, keinen neuen Editor und keine zweite dauerhaft geladene Szene.
 
 ## Parser, Validierung und Fehlermeldungen
 
-Als Parser ist **libyaml** in C vorgesehen. Der Parser liefert YAML-Knoten und Quellpositionen; unsere eigene Validierung prüft erst danach das UI-Schema, registrierte Namen und Bindingtypen. Der Parser allein kennt weder Buttons noch Engine-Aktionen. Es ist noch keine neue Bibliotheksabhängigkeit eingebaut.
+Der Parser ist **libyaml 0.2.5**, im Repository mit MIT-Lizenz mitgeliefert. Der Parser liefert YAML-Knoten und Quellpositionen; unsere eigene Validierung prüft erst danach das UI-Schema, registrierte Namen und Bindingtypen. Der Parser allein kennt weder Buttons noch Engine-Aktionen. Zum Bauen ist kein zusätzliches Systempaket und kein Download des Parsers erforderlich.
 
 Version 1 verwendet ein begrenztes YAML-Subset: UTF-8, Mappings, Listen, Zeichenfolgen, Booleans und Zahlen. Farben und mehrdeutige Titel als Strings in Anführungszeichen schreiben; Booleans als `true`/`false`. Doppelte Schlüssel, unbekannte Felder, unbekannte Schemaversionen sowie YAML-Tags, Anchors, Aliases und Merge-Keys werden abgelehnt. Es gibt zunächst keine Templates, Includes, Vererbung oder eingebettete Scripts. Der Bezug von Shell auf Editor-Dateien ist ein eigener, ausdrücklich definierter Mechanismus.
 
-Dateigröße, Knotenzahl und Verschachtelungstiefe erhalten feste Loadergrenzen. Die konkreten Werte werden beim Loader festgelegt und anschließend dokumentiert. Das bestehende Tablimit von 16 ist zu beachten; Überschreitung liefert eine Fehlermeldung statt stiller Kürzung.
+Die Grenzen betragen 256 KiB pro Datei, 2048 YAML-Knotenereignisse einschließlich Schlüssel und 32 Verschachtelungsebenen. Pro Editor sind höchstens 64 zustandsbehaftete `tabs`-/`section`-Container und ein interaktiver `map_canvas` oder `script_editor` erlaubt. `layout.gap` ist eine ganze Zahl von 0 bis 12, `tab_gap` von 0 bis 16. Container ohne eigene Scrollbar beschneiden überlaufende Inhalte; sie sind noch kein Flexbox-/Docking-System. Das bestehende Tablimit von 16 ist zu beachten; Überschreitung liefert eine Fehlermeldung statt stiller Kürzung.
 
 Fehlermeldungen nennen Datei, Zeile/Spalte, betroffenen Schlüssel und Ursache, zum Beispiel:
 
@@ -231,18 +242,23 @@ Fehlermeldungen nennen Datei, Zeile/Spalte, betroffenen Schlüssel und Ursache, 
 editors/map.yaml:18:5: columns.left.type: unbekannter Widgettyp 'filetree'; erwartet 'file_tree'
 ```
 
-Die Positionsangabe ist ein Beispiel. Validiert wird vor Aktivierung einer neuen Beschreibung. Bei Fehlern des ersten Starts muss die Anwendungshülle eine verständliche Fehlermeldung zeigen; bei Reload bleibt der alte Aufbau bedienbar.
+Die Positionsangabe ist ein Beispiel. Validiert wird vor Aktivierung einer neuen Beschreibung. Bei Fehlern des ersten Starts erscheint eine verständliche Meldung auf stderr; bei Reload bleibt der alte Aufbau bedienbar. Schemafehler nennen Datei und Position sowie die Ursache bzw. das unbekannte Feld; vollständige JSON-Pfade werden derzeit nicht für jeden Fehler ausgegeben.
 
-## Umsetzung in kleinen Schritten
+## Implementierung und Erweiterungsstellen
 
-1. **Editorlebenszyklus:** Kontext aller drei Spalten, versionierte Sitzungssicherung einschließlich Undo, vollständige Freigabe und Wiederherstellung. Noch mit C-beschriebenen Layouts.
-2. **YAML-Grundlage:** Parser und Validator, Knotenmodell, Registries für Komponenten/Aktionen/Bindings und die beschriebenen Shell-/Editor-Dateien.
-3. **Erste Adapter:** Buttons, Toolbar, Tabs sowie die heutigen spezialisierten Map-/Script-/Explorer-/Inspector-Komponenten.
-4. **Reload und weitere Elemente:** Transaktionaler Reload, zusätzliche Container und neue Widgets nach konkretem Bedarf.
+- `editor/src/ui_layout.c`: YAML → Knotenmodell, Quellpositionen, Schema, Typ-/Aktions-/Binding-Prüfung.
+- `editor/src/main.c`: Anwendungshülle, registrierte Adapter, Zustand des aktiven Editors, Layout/Rendern und F6-Reload. Wechsel aus einem UI-Callback werden bis zum Frameende aufgeschoben, damit keine gerade benutzten YAML-Knoten freigegeben werden.
+- `editor/src/session.c`: begrenzter Checkpoint-Stream, Prüfsumme und atomarer Austausch. Dokument-/Undo-Codec und UI-Snapshots werden vom Editor bereitgestellt.
+- `editor/include/penguin/ui_layout.h` und `session.h`: interne C-Schnittstellen für Loader und Checkpoints, unabhängig von SDL testbar.
+- `ui/`: wiederverwendbare Eingabe-/Layoutbausteine und SDL-Darstellung; das Theme kann zur Laufzeit gesetzt werden.
 
-Damit benutzt YAML denselben Renderer und denselben Lebenszyklus wie die C-Beschreibung. Die UI-Bibliothek bleibt in C; die Engine bekommt dadurch keine Python-/JavaScript-Pflicht für ihren Editoraufbau.
+Ein neuer Widgettyp benötigt zunächst Validatorvertrag und C-Adapter, ein neuer Editor zusätzlich Modul-/Dokument-Lebenszyklus und Eingaben. Die Engine bleibt in C und benötigt für den UI-Aufbau weder Python noch JavaScript. Die Parsernamen sind eine begrenzte interne Registry; dynamische DLL-Plugins sind noch nicht vorgesehen.
 
-## Abnahme für die spätere Implementierung
+Die globale Toolbar enthält in v1 genau einen `editor_switcher` als letztes Element. `labels: false` zeigt nur Icons, `true` zusätzlich Titel. Andere Elemente davor lassen sich umordnen. Spezifische Werkzeuge bleiben im Editor-`toolbar`-Abschnitt. Die beiden heutigen Editoren sind registriert; ein unbekannter Modulname wird nicht als Platzhalter geladen.
+
+Noch offen sind automatische Dateibeobachtung statt F6, allgemeines Zweiwege-Binding, feinere Containergrößen, zusätzliche Widgettypen, neue Editormodule und Crash-Recovery über Programmstarts hinweg. Die Sitzungssicherung speichert vollständige Undo-Snapshots; dadurch kann ein Wechsel je nach Verlauf spürbar Datenträger-I/O verursachen.
+
+## Abnahme und Tests
 
 - Map → Scripts → Map erhält Dokumentinhalt, Dirty-Status, Undo/Redo, Auswahl und Kamera; alle drei Spalten entsprechen dem Ziel-Editor.
 - Speichern/Undo/Redo lösen ausschließlich Aktionen des aktiven Dokumentanbieters aus.
@@ -251,4 +267,4 @@ Damit benutzt YAML denselben Renderer und denselben Lebenszyklus wie die C-Besch
 - Fehlerhafte YAML-Dateien überschreiben weder Layout noch Dokumente; Meldungen enthalten die Quellposition.
 - Ein gültiger Reload erhält Dokument-/Undo-Daten; neue IDs erhalten Anfangszustände, fehlende UI-IDs beeinträchtigen keine Dokumentwiederherstellung.
 - Doppelte IDs/Schlüssel, unbekannte Typen/Aktionen/Bindings, Typfehler und Loadergrenzen werden gezielt getestet.
-- Editor-spezifische Texteingabe und Tastenkürzel sind nach dem Entladen abgemeldet. Beispieldateien werden durch Loader-Integrationstests geprüft, sobald der Loader existiert.
+- Editor-spezifische Texteingabe und Tastenkürzel sind nach dem Entladen abgemeldet. Beispieldateien werden durch die Loader-Tests geprüft.

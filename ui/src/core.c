@@ -234,6 +234,7 @@ bool ui_tabs_init(UiTabs *t, const UiTab *items, int count, UiId selected) {
     memset(t, 0, sizeof *t);
     memcpy(t->items, items, (size_t)count * sizeof *items);
     t->count = count;
+    t->gap = UI_TAB_GAP;
     t->selected = selected;
     return true;
 }
@@ -257,14 +258,14 @@ UiRect ui_tab_rect(const UiTabs *t, UiRect bar, float width, int index) {
     float x = bar.x - t->scroll;
     for (int i = 0; i < index; i++)
         x += tab_width(t, width, i);
-    return (UiRect){x, bar.y, tab_width(t, width, index) - UI_TAB_GAP, bar.h};
+    return (UiRect){x, bar.y, tab_width(t, width, index) - t->gap, bar.h};
 }
 void ui_tabs_scroll(UiTabs *t, float viewport, float width, float delta) {
     float content = 0;
     for (int i = 0; i < t->count; i++)
         content += tab_width(t, width, i);
     if (t->count)
-        content -= UI_TAB_GAP;
+        content -= t->gap;
     UiScroll s = {t->scroll, content, viewport};
     ui_scroll_by(&s, delta);
     t->scroll = s.offset;

@@ -26,6 +26,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cmake -S . -B build-asan -DPENGUIN_BUILD_EDITOR=OFF -DPENGUIN_SANITIZERS=ON -DCMAKE_BUILD_TYPE=Debug
+      - run: cmake -S . -B build-asan -DPENGUIN_BUILD_EDITOR=ON -DSDL_UNIX_CONSOLE_BUILD=ON -DPENGUIN_SANITIZERS=ON -DCMAKE_BUILD_TYPE=Debug
       - run: cmake --build build-asan --parallel 4
       - run: ctest --test-dir build-asan --output-on-failure

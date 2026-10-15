@@ -1,4 +1,4 @@
-# Entwurf. Widgets, Aktionen und Bindings werden später in C registriert.
+# Kleines lauffähiges Beispiel für penguin.ui/v1.
 schema: penguin.ui/v1
 kind: editor
 id: map

@@ -1,4 +1,4 @@
-# Entwurf für penguin.ui/v1. Wird vom aktuellen Editor noch nicht eingelesen.
+# Kleines lauffähiges Beispiel für penguin.ui/v1.
 schema: penguin.ui/v1
 kind: shell
 id: penguin
