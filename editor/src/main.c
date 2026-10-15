@@ -1,18 +1,35 @@
 #include "penguin/render.h"
+#include "penguin/ui_sdl.h"
 #include "script_editor.h"
-#include "ui.h"
 #include <SDL3/SDL_main.h>
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define LEFT 240
-#define RIGHT 280
+#define LEFT ((int)app.left_width)
+#define RIGHT ((int)app.right_width)
 #define TOP 64
 #define TABS 32
 #define BOTTOM 48
+#define PANEL_GAP 6
+#define SIDE_TOP (TOP + TABS)
 #define TREE_MAX 256
+#define UI_SPLIT_LEFT 0x10001u
+#define UI_SPLIT_RIGHT 0x10002u
+#define UI_TREE_SCROLL 0x10003u
+#define UI_INSPECTOR_SCROLL 0x10004u
+#define UI_SCRIPT_VSCROLL 0x10005u
+#define UI_SCRIPT_HSCROLL 0x10006u
+#define UI_SCRIPT_DOCUMENT 0x10007u
+#define UI_MAP_TAB 0x10008u
+#define UI_SCRIPT_TAB 0x10009u
+#define UI_EXPLORER_TAB 0x1000au
+#define UI_SCENE_TAB 0x1000bu
+#define UI_INSPECTOR_TAB 0x1000cu
+#define UI_INFO_TAB 0x1000du
+#define UI_SCENE_SCROLL 0x1000eu
+#define UI_INFO_SCROLL 0x1000fu
 typedef enum { BRUSH, ERASE, RECTANGLE, FILL, SELECT } Tool;
 typedef enum {
     FIELD_NONE,
@@ -34,6 +51,13 @@ typedef struct {
 typedef struct {
     SDL_Window *window;
     SDL_Renderer *renderer;
+    SDL_Cursor *resize_cursor;
+    UiContext ui;
+    UiId widget_scope;
+    UiTabs tabs, left_tabs, right_tabs;
+    UiScroll tree_view, inspector_view, scene_view, info_view;
+    float left_width, right_width;
+    bool layers_open, entity_open, palette_open;
     PeScene scene, runtime;
     PeScriptEditor script;
     bool script_tab;
@@ -74,23 +98,38 @@ static void box(SDL_FRect r, uint32_t c) {
     draw_color(c);
     SDL_RenderFillRect(app.renderer, &r);
 }
+static void draw_split_grip(UiRect area, bool highlighted) {
+    float x = floorf(area.x + area.w * .5f), y = floorf(area.y + area.h * .5f);
+    draw_color(highlighted ? UI_ACCENT : UI_MUTED);
+    for (int i = -1; i <= 1; i++) {
+        float cy = y + i * 6;
+        SDL_RenderPoint(app.renderer, x, cy - 1);
+        SDL_RenderLine(app.renderer, x - 1, cy, x + 1, cy);
+        SDL_RenderPoint(app.renderer, x, cy + 1);
+    }
+}
 static void text(float x, float y, const char *label, uint32_t color) {
     draw_color(color);
-    SDL_RenderDebugText(app.renderer, x, y, label);
+    ui_text(app.renderer, x, y - 4, label, color);
 }
 static const char *tooltip;
-static bool icon_button(float x, float y, float w, UiIcon icon, const char *label, const char *hint,
-                        bool active, bool enabled) {
+static bool icon_button_impl(UiId callsite, float x, float y, float w, UiIcon icon,
+                             const char *label, const char *hint, bool active, bool enabled) {
     SDL_FRect r = {x, y, w, 25};
-    bool hover = inside(app.mx, app.my, r);
+    UiRect hit = {x, y, w, 25};
+    bool hover = ui_hovered(&app.ui, hit);
     ui_draw_button(app.renderer, r, icon, label, active, enabled, hover);
     if (hover && hint)
         tooltip = hint;
-    return enabled && app.click && hover;
+    UiId id = ui_id("editor_button") ^ (callsite * 16777619u) ^ app.widget_scope;
+    return ui_button(&app.ui, id ? id : 1, hit, enabled);
 }
-static bool button(float x, float y, float w, const char *label, bool active, bool enabled) {
-    return icon_button(x, y, w, ICON_NONE, label, NULL, active, enabled);
+#define icon_button(...) icon_button_impl((UiId)__LINE__, __VA_ARGS__)
+static bool button_impl(UiId callsite, float x, float y, float w, const char *label, bool active,
+                        bool enabled) {
+    return icon_button_impl(callsite, x, y, w, ICON_NONE, label, NULL, active, enabled);
 }
+#define button(...) button_impl((UiId)__LINE__, __VA_ARGS__)
 static void section(float x, float y, UiIcon icon, const char *title) {
     ui_icon(app.renderer, icon, x, y - 4, 16, UI_ACCENT);
     text(x + 24, y, title, UI_MUTED);
@@ -143,6 +182,8 @@ static void tab_select(bool scripts) {
     if (app.history.pending)
         return;
     app.script_tab = scripts;
+    app.tabs.selected = scripts ? UI_SCRIPT_TAB : UI_MAP_TAB;
+    ui_focus(&app.ui, scripts ? UI_SCRIPT_DOCUMENT : 0);
     se_focus(&app.script, app.window, scripts && !app.playing);
 }
 static bool request_dirty(Request r) {
@@ -371,11 +412,13 @@ static bool import_png(const char *source) {
 }
 static void field_start(Field f, const char *value) {
     app.field = f;
+    ui_focus(&app.ui, ui_id("modal_text"));
     snprintf(app.input, sizeof app.input, "%s", value);
     SDL_StartTextInput(app.window);
 }
 static void field_stop(void) {
     app.field = FIELD_NONE;
+    ui_focus(&app.ui, app.script_tab && app.script.focused ? UI_SCRIPT_DOCUMENT : 0);
     if (app.script_tab && app.script.focused)
         SDL_StartTextInput(app.window);
     else
@@ -582,20 +625,118 @@ static void play_toggle(void) {
     } else
         message("Stopped; edited scene preserved");
 }
+static void draw_panel_tabs(UiTabs *tabs, UiRect bar, UiId first, const char *first_label,
+                            const char *second_label, UiIcon first_icon, UiIcon second_icon) {
+    float width = bar.w / 2;
+    ui_tabs_update(&app.ui, tabs, bar, width);
+    ui_clip_push(&app.ui, bar);
+    ui_apply_clip(app.renderer, &app.ui);
+    for (int i = 0; i < tabs->count; i++) {
+        UiRect r = ui_tab_rect(tabs, bar, width, i);
+        bool is_first = tabs->items[i].id == first;
+        ui_draw_tab(app.renderer, (SDL_FRect){r.x, r.y, r.w, r.h},
+                    width < 110 ? ICON_NONE
+                    : is_first  ? first_icon
+                                : second_icon,
+                    is_first ? first_label : second_label, tabs->selected == tabs->items[i].id,
+                    true, ui_hovered(&app.ui, r));
+    }
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
+}
+static void draw_scene_tree(void) {
+    section(14, SIDE_TOP + 18, ICON_ENTITY, "SCENE ENTITIES");
+    int count = 0;
+    for (int i = 0; i < PE_ENTITIES; i++)
+        if (app.scene.objects[i].alive)
+            count++;
+    app.scene_view.content = count ? count * 26.f : 26;
+    app.scene_view.viewport = (float)(app.height - SIDE_TOP - 46 - BOTTOM - PANEL_GAP);
+    ui_scroll_clamp(&app.scene_view);
+    UiRect track = {LEFT - 18, SIDE_TOP + 46, 8, app.scene_view.viewport};
+    ui_scrollbar(&app.ui, UI_SCENE_SCROLL, track, &app.scene_view, UI_AXIS_Y);
+    ui_clip_push(&app.ui, (UiRect){PANEL_GAP, SIDE_TOP + 46, LEFT - 24, app.scene_view.viewport});
+    ui_apply_clip(app.renderer, &app.ui);
+    float y = SIDE_TOP + 46 - app.scene_view.offset;
+    if (!count)
+        text(14, y + 8, "No entities in scene.", UI_MUTED);
+    for (int i = 0; i < PE_ENTITIES; i++) {
+        const PeObject *o = &app.scene.objects[i];
+        if (!o->alive)
+            continue;
+        char label[40];
+        snprintf(label, sizeof label, "%s %u", o->mask & PE_PLAYER ? "Player" : "Entity",
+                 o->stable_id);
+        app.widget_scope = ui_id("scene_entity") ^ o->stable_id;
+        if (icon_button(12, y, LEFT - 38, ICON_ENTITY, label, "Select entity",
+                        app.selected == o->stable_id, !app.playing && !app.history.pending)) {
+            app.selected = o->stable_id;
+            app.tool = SELECT;
+            app.right_tabs.selected = UI_INSPECTOR_TAB;
+            tab_select(false);
+        }
+        y += 26;
+    }
+    app.widget_scope = 0;
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
+    ui_draw_scrollbar(app.renderer, &app.ui, UI_SCENE_SCROLL, track, &app.scene_view, UI_AXIS_Y);
+}
+static void draw_info(void) {
+    float x = (float)(app.width - RIGHT + 12);
+    app.info_view.content = 340;
+    app.info_view.viewport = (float)(app.height - SIDE_TOP - BOTTOM - 16);
+    ui_scroll_clamp(&app.info_view);
+    UiRect track = {(float)(app.width - 18), SIDE_TOP + 8, 8, app.info_view.viewport};
+    ui_scrollbar(&app.ui, UI_INFO_SCROLL, track, &app.info_view, UI_AXIS_Y);
+    ui_clip_push(&app.ui, (UiRect){x - 4, SIDE_TOP + 8, RIGHT - 24, app.info_view.viewport});
+    ui_apply_clip(app.renderer, &app.ui);
+    float y = SIDE_TOP + 18 - app.info_view.offset;
+    section(x, y, ICON_FILE, "SCENE INFO");
+    char label[64];
+    snprintf(label, sizeof label, "Map: %d x %d tiles", app.scene.width, app.scene.height);
+    text(x, y + 32, label, UI_TEXT);
+    snprintf(label, sizeof label, "Tile size: %d px", app.scene.tile_size);
+    text(x, y + 56, label, UI_TEXT);
+    snprintf(label, sizeof label, "Layers: %d", app.scene.layer_count);
+    text(x, y + 80, label, UI_TEXT);
+    int count = 0;
+    for (int i = 0; i < PE_ENTITIES; i++)
+        if (app.scene.objects[i].alive)
+            count++;
+    snprintf(label, sizeof label, "Entities: %d / %d", count, PE_ENTITIES);
+    text(x, y + 104, label, UI_TEXT);
+    section(x, y + 148, ICON_EDIT, "SHORTCUTS");
+    const char *help[] = {"Ctrl+S  Save",    "Ctrl+Z  Undo",     "F5      Play / Stop",
+                          "MMB     Pan map", "Wheel   Zoom map", "B/E/R/F/V  Map tools"};
+    for (int i = 0; i < 6; i++)
+        text(x, y + 180 + i * 24, help[i], UI_MUTED);
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
+    ui_draw_scrollbar(app.renderer, &app.ui, UI_INFO_SCROLL, track, &app.info_view, UI_AXIS_Y);
+}
 static void draw_tree(void) {
-    section(14, TOP + 18, ICON_FOLDER, "PROJECT");
-    if (icon_button(190, TOP + 10, 32, ICON_REFRESH, "", "Refresh project files", false, true))
+    section(14, SIDE_TOP + 18, ICON_FOLDER, "PROJECT");
+    if (icon_button(LEFT - 46, SIDE_TOP + 10, 32, ICON_REFRESH, "", "Refresh project files", false,
+                    true))
         tree_refresh();
-    SDL_Rect clip = {0, TOP + 46, LEFT, app.height - TOP - 46 - BOTTOM};
-    SDL_SetRenderClipRect(app.renderer, &clip);
-    int visible = (app.height - TOP - 46 - BOTTOM) / 23;
+    app.tree_view.content = app.tree_count * 23.f;
+    app.tree_view.viewport = (float)(app.height - SIDE_TOP - 46 - BOTTOM - PANEL_GAP);
+    ui_scroll_clamp(&app.tree_view);
+    UiRect track = {LEFT - 18, SIDE_TOP + 46, 8, app.tree_view.viewport};
+    ui_scrollbar(&app.ui, UI_TREE_SCROLL, track, &app.tree_view, UI_AXIS_Y);
+    app.tree_scroll = (int)(app.tree_view.offset / 23);
+    UiRect tree_clip = {PANEL_GAP, SIDE_TOP + 46, LEFT - 24, app.tree_view.viewport};
+    ui_clip_push(&app.ui, tree_clip);
+    ui_apply_clip(app.renderer, &app.ui);
+    int visible = (int)(app.tree_view.viewport / 23) + 2;
     for (int i = app.tree_scroll; i < app.tree_count && i < app.tree_scroll + visible; i++) {
         TreeRow row = app.tree[i];
-        float y = TOP + 50 + (i - app.tree_scroll) * 23;
+        float y = SIDE_TOP + 50 + i * 23 - app.tree_view.offset;
         char label[128];
         snprintf(label, sizeof label, "%.20s", row.name);
-        SDL_FRect r = {8, y, LEFT - 16, 22};
-        bool hover = inside(app.mx, app.my, r);
+        SDL_FRect r = {8, y, LEFT - 24, 22};
+        bool hover = ui_hovered(&app.ui, (UiRect){r.x, r.y, r.w, r.h});
         if (hover)
             box(r, UI_HOVER);
         float row_x = 12 + row.depth * 12;
@@ -627,155 +768,198 @@ static void draw_tree(void) {
             }
         }
     }
-    SDL_SetRenderClipRect(app.renderer, NULL);
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
+    ui_draw_scrollbar(app.renderer, &app.ui, UI_TREE_SCROLL, track, &app.tree_view, UI_AXIS_Y);
+}
+static void disclosure(float x, float y, float w, const char *title, bool *open) {
+    UiRect rect = {x, y - 6, w, 26};
+    ui_disclosure(&app.ui, ui_id(title), rect, open, true);
+    ui_draw_button(app.renderer, (SDL_FRect){rect.x, rect.y, rect.w, rect.h},
+                   *open ? ICON_DOWN : ICON_RIGHT, title, false, true, ui_hovered(&app.ui, rect));
 }
 static void draw_inspector(void) {
     float x = (float)(app.width - RIGHT + 12);
     char label[128], value[64];
     bool enabled = !app.playing;
-    float y = TOP + 18;
-    section(x, y, ICON_LAYERS, "TILEMAP / LAYERS");
-    y += 22;
-    snprintf(label, sizeof label, "Map: %dx%d  tile: %d", app.scene.width, app.scene.height,
-             app.scene.tile_size);
-    text(x, y, label, UI_TEXT);
-    y += 22;
-    snprintf(label, sizeof label, "PNG tile: %d (change)", app.scene.tileset_tile_size);
-    if (button(x, y, 228, label, false, enabled)) {
-        snprintf(value, sizeof value, "%d", app.scene.tileset_tile_size);
-        field_start(FIELD_TILESIZE, value);
-    }
+    float w = RIGHT - 38, half = (w - 8) / 2;
+    UiRect panel = {(float)(app.width - RIGHT + 8), SIDE_TOP + 8, (float)(RIGHT - 24),
+                    (float)(app.height - SIDE_TOP - BOTTOM - 16)};
+    ui_scroll_clamp(&app.inspector_view);
+    float y = SIDE_TOP + 18 - app.inspector_view.offset;
+    ui_clip_push(&app.ui, panel);
+    ui_apply_clip(app.renderer, &app.ui);
+    disclosure(x, y, w, "Tilemap / Layers", &app.layers_open);
     y += 32;
-    for (int l = 0; l < app.scene.layer_count; l++) {
-        snprintf(label, sizeof label, "%d %.20s", l + 1, app.scene.layers[l].name);
-        if (button(x, y, 178, label, l == app.layer, enabled))
-            app.layer = l;
-        if (icon_button(x + 184, y, 44, app.scene.layers[l].visible ? ICON_EYE : ICON_EYE_OFF, "",
-                        "Toggle layer visibility", false, enabled) &&
-            begin()) {
-            app.scene.layers[l].visible = !app.scene.layers[l].visible;
-            commit();
-        }
-        y += 30;
-    }
-    if (icon_button(x, y, 108, ICON_PLUS, "Add layer", NULL, false,
-                    enabled && app.scene.layer_count < PE_LAYERS) &&
-        begin()) {
-        app.layer = app.scene.layer_count++;
-        memset(&app.scene.layers[app.layer], 0, sizeof(PeLayer));
-        snprintf(app.scene.layers[app.layer].name, 32, "Layer %d", app.layer + 1);
-        app.scene.layers[app.layer].visible = true;
-        commit();
-    }
-    if (icon_button(x + 116, y, 112, ICON_DELETE, "Delete", "Delete layer", false,
-                    enabled && app.scene.layer_count > 1) &&
-        begin()) {
-        memmove(&app.scene.layers[app.layer], &app.scene.layers[app.layer + 1],
-                (size_t)(app.scene.layer_count - app.layer - 1) * sizeof(PeLayer));
-        app.scene.layer_count--;
-        memset(&app.scene.layers[app.scene.layer_count], 0, sizeof(PeLayer));
-        if (app.layer >= app.scene.layer_count)
-            app.layer--;
-        commit();
-    }
-    y += 32;
-    if (icon_button(x, y, 108, ICON_EDIT, "Rename", NULL, false, enabled))
-        field_start(FIELD_LAYER, app.scene.layers[app.layer].name);
-    if (icon_button(x + 116, y, 52, ICON_UP, "", "Move layer up", false,
-                    enabled && app.layer > 0) &&
-        begin()) {
-        PeLayer temp = app.scene.layers[app.layer];
-        app.scene.layers[app.layer] = app.scene.layers[app.layer - 1];
-        app.scene.layers[--app.layer] = temp;
-        commit();
-    }
-    if (icon_button(x + 176, y, 52, ICON_DOWN, "", "Move layer down", false,
-                    enabled && app.layer + 1 < app.scene.layer_count) &&
-        begin()) {
-        PeLayer temp = app.scene.layers[app.layer];
-        app.scene.layers[app.layer] = app.scene.layers[app.layer + 1];
-        app.scene.layers[++app.layer] = temp;
-        commit();
-    }
-    y += 40;
-    section(x, y, ICON_ENTITY, "ENTITY INSPECTOR");
-    y += 22;
-    if (icon_button(x, y, 108, ICON_PLUS, "New", "Create entity", false, enabled) && begin()) {
-        PeEntity e = pe_entity_create(&app.scene, PE_TRANSFORM | PE_SPRITE | PE_BODY);
-        PeObject *o = pe_entity_get(&app.scene, e);
-        if (o) {
-            o->x = 64;
-            o->y = 64;
-            app.selected = o->stable_id;
-            app.tool = SELECT;
-        } else
-            message("Entity limit reached");
-        commit();
-    }
-    PeObject *o = pe_entity_get(&app.scene, pe_entity_find(&app.scene, app.selected));
-    if (icon_button(x + 116, y, 112, ICON_DELETE, "Delete", "Delete entity", false, enabled && o) &&
-        begin()) {
-        pe_entity_destroy(&app.scene, pe_entity_find(&app.scene, app.selected));
-        app.selected = 0;
-        commit();
-        o = NULL;
-    }
-    y += 34;
-    if (o) {
-        snprintf(label, sizeof label, "Entity #%u", o->stable_id);
+    if (app.layers_open) {
+        snprintf(label, sizeof label, "Map: %dx%d  tile: %d", app.scene.width, app.scene.height,
+                 app.scene.tile_size);
         text(x, y, label, UI_TEXT);
-        y += 20;
-        float values[] = {o->x, o->y, o->w, o->h};
-        const char *names[] = {"X", "Y", "Width", "Height"};
-        Field fields[] = {FIELD_X, FIELD_Y, FIELD_W, FIELD_H};
-        for (int i = 0; i < 4; i++) {
-            snprintf(label, sizeof label, "%s: %.2f", names[i], values[i]);
-            if (button(x, y, 228, label, false, enabled)) {
-                snprintf(value, sizeof value, "%.2f", values[i]);
-                field_start(fields[i], value);
-            }
-            y += 29;
+        y += 22;
+        snprintf(label, sizeof label, "PNG tile: %d (change)", app.scene.tileset_tile_size);
+        if (button(x, y, w, label, false, enabled)) {
+            snprintf(value, sizeof value, "%d", app.scene.tileset_tile_size);
+            field_start(FIELD_TILESIZE, value);
         }
-        if (button(x, y, 228, o->mask & PE_PLAYER ? "Player control: ON" : "Player control: OFF",
-                   false, enabled) &&
+        y += 32;
+        for (int l = 0; l < app.scene.layer_count; l++) {
+            app.widget_scope = ui_id("layer_row") ^ (UiId)(l + 1);
+            snprintf(label, sizeof label, "%d %.20s", l + 1, app.scene.layers[l].name);
+            if (button(x, y, w - 50, label, l == app.layer, enabled))
+                app.layer = l;
+            if (icon_button(x + w - 44, y, 44,
+                            app.scene.layers[l].visible ? ICON_EYE : ICON_EYE_OFF, "",
+                            "Toggle layer visibility", false, enabled) &&
+                begin()) {
+                app.scene.layers[l].visible = !app.scene.layers[l].visible;
+                commit();
+            }
+            y += 30;
+        }
+        app.widget_scope = 0;
+        if (icon_button(x, y, half, ICON_PLUS, "Add layer", NULL, false,
+                        enabled && app.scene.layer_count < PE_LAYERS) &&
             begin()) {
-            o->mask ^= PE_PLAYER;
+            app.layer = app.scene.layer_count++;
+            memset(&app.scene.layers[app.layer], 0, sizeof(PeLayer));
+            snprintf(app.scene.layers[app.layer].name, 32, "Layer %d", app.layer + 1);
+            app.scene.layers[app.layer].visible = true;
             commit();
         }
-        y += 35;
-    } else {
-        text(x, y, "Select an entity in the view.", UI_MUTED);
-        y += 28;
-    }
-    section(x, y, ICON_GRID, "TILE PALETTE");
-    y += 22;
-    int total = app.assets.tileset ? (app.assets.width / app.assets.source_tile) *
-                                         (app.assets.height / app.assets.source_tile)
-                                   : 0,
-        columns = 6;
-    for (int i = app.palette_scroll; i < total; i++) {
-        int row = (i - app.palette_scroll) / columns, col = (i - app.palette_scroll) % columns;
-        SDL_FRect dst = {x + col * 37, y + row * 37, 32, 32};
-        if (dst.y + dst.h > app.height - BOTTOM - 4)
-            break;
-        int source_columns = app.assets.width / app.assets.source_tile;
-        SDL_FRect src = {(float)(i % source_columns * app.assets.source_tile),
-                         (float)(i / source_columns * app.assets.source_tile),
-                         (float)app.assets.source_tile, (float)app.assets.source_tile};
-        SDL_RenderTexture(app.renderer, app.assets.tileset, &src, &dst);
-        if (app.tile == i + 1) {
-            draw_color(UI_ACCENT);
-            SDL_RenderRect(app.renderer, &dst);
+        if (icon_button(x + half + 8, y, half, ICON_DELETE, "Delete", "Delete layer", false,
+                        enabled && app.scene.layer_count > 1) &&
+            begin()) {
+            memmove(&app.scene.layers[app.layer], &app.scene.layers[app.layer + 1],
+                    (size_t)(app.scene.layer_count - app.layer - 1) * sizeof(PeLayer));
+            app.scene.layer_count--;
+            memset(&app.scene.layers[app.scene.layer_count], 0, sizeof(PeLayer));
+            if (app.layer >= app.scene.layer_count)
+                app.layer--;
+            commit();
         }
-        if (enabled && app.click && inside(app.mx, app.my, dst)) {
-            app.tile = i + 1;
-            if (app.tool == SELECT || app.tool == ERASE)
-                app.tool = BRUSH;
+        y += 32;
+        if (icon_button(x, y, half, ICON_EDIT, "Rename", NULL, false, enabled))
+            field_start(FIELD_LAYER, app.scene.layers[app.layer].name);
+        if (icon_button(x + half + 8, y, (half - 8) / 2, ICON_UP, "", "Move layer up", false,
+                        enabled && app.layer > 0) &&
+            begin()) {
+            PeLayer temp = app.scene.layers[app.layer];
+            app.scene.layers[app.layer] = app.scene.layers[app.layer - 1];
+            app.scene.layers[--app.layer] = temp;
+            commit();
+        }
+        if (icon_button(x + half + 8 + (half + 8) / 2, y, (half - 8) / 2, ICON_DOWN, "",
+                        "Move layer down", false,
+                        enabled && app.layer + 1 < app.scene.layer_count) &&
+            begin()) {
+            PeLayer temp = app.scene.layers[app.layer];
+            app.scene.layers[app.layer] = app.scene.layers[app.layer + 1];
+            app.scene.layers[++app.layer] = temp;
+            commit();
+        }
+        y += 40;
+    }
+    disclosure(x, y, w, "Entity", &app.entity_open);
+    y += 32;
+    if (app.entity_open) {
+        if (icon_button(x, y, half, ICON_PLUS, "New", "Create entity", false, enabled) && begin()) {
+            PeEntity e = pe_entity_create(&app.scene, PE_TRANSFORM | PE_SPRITE | PE_BODY);
+            PeObject *o = pe_entity_get(&app.scene, e);
+            if (o) {
+                o->x = 64;
+                o->y = 64;
+                app.selected = o->stable_id;
+                app.tool = SELECT;
+            } else
+                message("Entity limit reached");
+            commit();
+        }
+        PeObject *o = pe_entity_get(&app.scene, pe_entity_find(&app.scene, app.selected));
+        if (icon_button(x + half + 8, y, half, ICON_DELETE, "Delete", "Delete entity", false,
+                        enabled && o) &&
+            begin()) {
+            pe_entity_destroy(&app.scene, pe_entity_find(&app.scene, app.selected));
+            app.selected = 0;
+            commit();
+            o = NULL;
+        }
+        y += 34;
+        if (o) {
+            snprintf(label, sizeof label, "Entity #%u", o->stable_id);
+            text(x, y, label, UI_TEXT);
+            y += 20;
+            float values[] = {o->x, o->y, o->w, o->h};
+            const char *names[] = {"X", "Y", "Width", "Height"};
+            Field fields[] = {FIELD_X, FIELD_Y, FIELD_W, FIELD_H};
+            for (int i = 0; i < 4; i++) {
+                app.widget_scope = ui_id("entity_field") ^ o->stable_id * 31u ^ (UiId)i;
+                snprintf(label, sizeof label, "%s: %.2f", names[i], values[i]);
+                if (button(x, y, w, label, false, enabled)) {
+                    snprintf(value, sizeof value, "%.2f", values[i]);
+                    field_start(fields[i], value);
+                }
+                y += 29;
+            }
+            app.widget_scope = 0;
+            if (button(x, y, w, o->mask & PE_PLAYER ? "Player control: ON" : "Player control: OFF",
+                       false, enabled) &&
+                begin()) {
+                o->mask ^= PE_PLAYER;
+                commit();
+            }
+            y += 35;
+        } else {
+            text(x, y, "Select an entity in the view.", UI_MUTED);
+            y += 28;
         }
     }
+    disclosure(x, y, w, "Tile palette", &app.palette_open);
+    y += 32;
+    if (app.palette_open) {
+        int total = app.assets.tileset ? (app.assets.width / app.assets.source_tile) *
+                                             (app.assets.height / app.assets.source_tile)
+                                       : 0,
+            columns = (int)(w / 37);
+        if (columns < 1)
+            columns = 1;
+        for (int i = 0; i < total; i++) {
+            int row = i / columns, col = i % columns;
+            SDL_FRect dst = {x + col * 37, y + row * 37, 32, 32};
+            if (dst.y + dst.h < panel.y || dst.y > panel.y + panel.h)
+                continue;
+            int source_columns = app.assets.width / app.assets.source_tile;
+            SDL_FRect src = {(float)(i % source_columns * app.assets.source_tile),
+                             (float)(i / source_columns * app.assets.source_tile),
+                             (float)app.assets.source_tile, (float)app.assets.source_tile};
+            SDL_RenderTexture(app.renderer, app.assets.tileset, &src, &dst);
+            if (app.tile == i + 1) {
+                draw_color(UI_ACCENT);
+                SDL_RenderRect(app.renderer, &dst);
+            }
+            if (enabled && app.click && ui_hovered(&app.ui, (UiRect){dst.x, dst.y, dst.w, dst.h})) {
+                app.tile = i + 1;
+                if (app.tool == SELECT || app.tool == ERASE)
+                    app.tool = BRUSH;
+            }
+        }
+        y += ((total + columns - 1) / columns) * 37;
+    }
+    app.inspector_view.content = y + app.inspector_view.offset - SIDE_TOP + 8;
+    app.inspector_view.viewport = (float)(app.height - SIDE_TOP - BOTTOM - 16);
+    ui_scroll_clamp(&app.inspector_view);
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
+    UiRect track = {(float)(app.width - 18), SIDE_TOP + 8, 8, app.inspector_view.viewport};
+    ui_scrollbar(&app.ui, UI_INSPECTOR_SCROLL, track, &app.inspector_view, UI_AXIS_Y);
+    ui_draw_scrollbar(app.renderer, &app.ui, UI_INSPECTOR_SCROLL, track, &app.inspector_view,
+                      UI_AXIS_Y);
 }
 static void draw_script_inspector(void) {
-    float x = (float)(app.width - RIGHT + 12), y = TOP + 18;
+    float x = (float)(app.width - RIGHT + 12), y = SIDE_TOP + 18 - app.inspector_view.offset;
+    UiRect clip = {(float)(app.width - RIGHT + 8), SIDE_TOP + 8, (float)(RIGHT - 24),
+                   (float)(app.height - SIDE_TOP - BOTTOM - 16)};
+    ui_clip_push(&app.ui, clip);
+    ui_apply_clip(app.renderer, &app.ui);
     section(x, y, ICON_FILE, "JAVASCRIPT");
     text(x, y + 28, "Parser: QuickJS-ng", UI_TEXT);
     text(x, y + 48, "Compile only / no execution", UI_MUTED);
@@ -790,15 +974,22 @@ static void draw_script_inspector(void) {
     text(x, y + 374, "standard JS objects and", UI_TEXT);
     text(x, y + 394, "document identifiers.", UI_TEXT);
     text(x, y + 426, "Type analysis / LSP later.", UI_MUTED);
+    app.inspector_view.content = 460;
+    app.inspector_view.viewport = (float)(app.height - SIDE_TOP - BOTTOM - 16);
+    ui_scroll_clamp(&app.inspector_view);
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
+    UiRect track = {(float)(app.width - 18), SIDE_TOP + 8, 8, app.inspector_view.viewport};
+    ui_scrollbar(&app.ui, UI_INSPECTOR_SCROLL, track, &app.inspector_view, UI_AXIS_Y);
+    ui_draw_scrollbar(app.renderer, &app.ui, UI_INSPECTOR_SCROLL, track, &app.inspector_view,
+                      UI_AXIS_Y);
 }
 static void draw_modal(void) {
     SDL_SetRenderDrawBlendMode(app.renderer, SDL_BLENDMODE_BLEND);
     box((SDL_FRect){0, 0, (float)app.width, (float)app.height}, 0x000000a0);
     SDL_SetRenderDrawBlendMode(app.renderer, SDL_BLENDMODE_NONE);
     float x = app.width / 2.f - 310, y = app.height / 2.f - 95;
-    ui_round_rect(app.renderer, (SDL_FRect){x + 5, y + 8, 620, 190}, 10, 0x111111ff);
-    ui_round_rect(app.renderer, (SDL_FRect){x, y, 620, 190}, 10, UI_BORDER);
-    ui_round_rect(app.renderer, (SDL_FRect){x + 1, y + 1, 618, 188}, 9, UI_SURFACE);
+    ui_panel(app.renderer, (SDL_FRect){x, y, 620, 190}, UI_SURFACE);
     if (app.request != REQUEST_NONE) {
         text(x + 20, y + 24, "Unsaved changes", UI_ACCENT);
         text(x + 20, y + 54, "Save before opening another scene or closing?", UI_TEXT);
@@ -824,74 +1015,139 @@ static void draw_modal(void) {
     }
     text(x + 20, y + 164, app.status, UI_ACCENT);
 }
+static UiRect left_split(void) {
+    return (UiRect){LEFT - 3, TOP, 6, (float)(app.height - TOP - BOTTOM)};
+}
+static UiRect right_split(void) {
+    return (UiRect){(float)(app.width - RIGHT - 3), TOP, 6, (float)(app.height - TOP - BOTTOM)};
+}
+static void layout_columns(void) {
+    ui_columns_fit((float)app.width, &app.left_width, &app.right_width, 192, 264, 320);
+    ui_drag_value(&app.ui, UI_SPLIT_LEFT, left_split(), &app.left_width, 192,
+                  app.width - app.right_width - 320, UI_AXIS_X, 1);
+    ui_drag_value(&app.ui, UI_SPLIT_RIGHT, right_split(), &app.right_width, 264,
+                  app.width - app.left_width - 320, UI_AXIS_X, -1);
+}
+static bool ui_controls_hit(float x, float y) {
+    if (ui_contains(left_split(), x, y) || ui_contains(right_split(), x, y))
+        return true;
+    if (y >= TOP && y < TOP + TABS && x >= LEFT && x < app.width - RIGHT)
+        return true;
+    if (ui_scroll_max(app.left_tabs.selected == UI_SCENE_TAB ? &app.scene_view : &app.tree_view) >
+            0 &&
+        x >= LEFT - 20 && x < LEFT - PANEL_GAP && y >= SIDE_TOP + 46 && y < app.height - BOTTOM)
+        return true;
+    if (ui_scroll_max(app.right_tabs.selected == UI_INFO_TAB ? &app.info_view
+                                                             : &app.inspector_view) > 0 &&
+        x >= app.width - 20 && x < app.width - PANEL_GAP && y >= TOP && y < app.height - BOTTOM)
+        return true;
+    if (app.script_tab && se_scroll_hit(&app.script, x, y, app.viewport))
+        return true;
+    return false;
+}
 static void draw(void) {
     SDL_GetWindowSize(app.window, &app.width, &app.height);
-    app.viewport = (SDL_FRect){LEFT, TOP + TABS, (float)(app.width - LEFT - RIGHT),
-                               (float)(app.height - TOP - TABS - BOTTOM)};
+    app.ui.blocked = app.field != FIELD_NONE || app.request != REQUEST_NONE;
+    layout_columns();
+    app.viewport = (SDL_FRect){LEFT + PANEL_GAP, TOP + TABS + PANEL_GAP,
+                               (float)(app.width - LEFT - RIGHT - 2 * PANEL_GAP),
+                               (float)(app.height - TOP - TABS - BOTTOM - 2 * PANEL_GAP)};
     draw_color(UI_CANVAS);
     SDL_RenderClear(app.renderer);
-    box((SDL_FRect){0, 0, (float)app.width, TOP}, UI_PANEL);
-    box((SDL_FRect){0, TOP, LEFT, (float)app.height}, UI_PANEL);
-    box((SDL_FRect){LEFT - 1, TOP, 1, (float)app.height}, UI_BORDER);
-    box((SDL_FRect){(float)(app.width - RIGHT), TOP, 1, (float)app.height}, UI_BORDER);
-    box((SDL_FRect){0, TOP - 1, (float)app.width, 1}, UI_BORDER);
-    box((SDL_FRect){(float)(app.width - RIGHT), TOP, RIGHT, (float)app.height}, UI_PANEL);
+    /* Inset panels expose the dark application background as narrow gutters. */
+    box((SDL_FRect){PANEL_GAP, PANEL_GAP, (float)(app.width - 2 * PANEL_GAP), TOP - 2 * PANEL_GAP},
+        UI_PANEL);
+    box((SDL_FRect){PANEL_GAP, TOP + PANEL_GAP, LEFT - 2 * PANEL_GAP,
+                    (float)(app.height - TOP - BOTTOM - 2 * PANEL_GAP)},
+        UI_PANEL);
+    box((SDL_FRect){(float)(app.width - RIGHT + PANEL_GAP), TOP + PANEL_GAP, RIGHT - 2 * PANEL_GAP,
+                    (float)(app.height - TOP - BOTTOM - 2 * PANEL_GAP)},
+        UI_PANEL);
     bool modal = app.field != FIELD_NONE || app.request != REQUEST_NONE;
     bool saved_click = app.click;
     if (modal)
         app.click = false;
+    app.ui.blocked = modal;
     tooltip = NULL;
     bool map_active = !app.script_tab;
-    if (icon_button(14, 12, 88, ICON_SAVE, "Save",
+    if (icon_button(14, 12, 38, ICON_SAVE, "",
                     app.script_tab ? "Save script (Ctrl+S)" : "Save scene (Ctrl+S)", false,
                     !app.playing && !app.history.pending))
         save();
     if (icon_button(
-            110, 12, 38, ICON_UNDO, "", "Undo (Ctrl+Z)", false,
+            60, 12, 38, ICON_UNDO, "", "Undo (Ctrl+Z)", false,
             !app.playing &&
                 (app.script_tab ? app.script.document.position > 0 : app.history.cursor > 0) &&
                 !app.history.pending)) {
         undo_active(false);
     }
-    if (icon_button(156, 12, 38, ICON_REDO, "", "Redo (Ctrl+Shift+Z)", false,
+    if (icon_button(106, 12, 38, ICON_REDO, "", "Redo (Ctrl+Shift+Z)", false,
                     !app.playing &&
                         (app.script_tab ? app.script.document.position < app.script.document.count
                                         : app.history.cursor < app.history.count) &&
                         !app.history.pending)) {
         undo_active(true);
     }
-    if (icon_button(214, 12, 88, app.playing ? ICON_STOP : ICON_PLAY, app.playing ? "Stop" : "Play",
-                    "Play / Stop (F5)", app.playing, !app.history.pending && map_active))
+    if (icon_button(164, 12, 38, app.playing ? ICON_STOP : ICON_PLAY, "", "Play / Stop (F5)",
+                    app.playing, !app.history.pending && map_active))
         play_toggle();
-    if (icon_button(310, 12, 122, ICON_IMPORT, "Import PNG", "Import a tileset image", false,
+    if (icon_button(210, 12, 122, ICON_IMPORT, "Import PNG", "Import a tileset image", false,
                     !app.playing && map_active))
         field_start(FIELD_IMPORT, "");
     const UiIcon tool_icons[] = {ICON_BRUSH, ICON_ERASE, ICON_RECTANGLE, ICON_FILL, ICON_SELECT};
     const char *tool_hints[] = {"Brush (B)", "Eraser (E)", "Rectangle (R)", "Fill (F)",
                                 "Select entity (V)"};
-    for (int i = 0; i < 5; i++)
-        if (icon_button(458 + i * 48, 12, 40, tool_icons[i], "", tool_hints[i], app.tool == i,
+    for (int i = 0; i < 5; i++) {
+        app.widget_scope = ui_id("tile_tool") ^ (UiId)i;
+        if (icon_button(358 + i * 48, 12, 40, tool_icons[i], "", tool_hints[i], app.tool == i,
                         !app.playing && !app.history.pending && map_active))
             app.tool = i;
-    if (icon_button(714, 12, 108, ICON_COLLISION, "Collision", "Edit collision grid", app.collision,
+    }
+    app.widget_scope = 0;
+    if (icon_button(614, 12, 108, ICON_COLLISION, "Collision", "Edit collision grid", app.collision,
                     !app.playing && map_active))
         app.collision = !app.collision;
-    if (icon_button(830, 12, 80, ICON_GRID, "Grid", "Show tile grid", app.grid, map_active))
+    if (icon_button(730, 12, 80, ICON_GRID, "Grid", "Show tile grid", app.grid, map_active))
         app.grid = !app.grid;
-    text(14, 49,
+    text(14, 45,
          app.script_tab
              ? "JavaScript | Ctrl+Space suggestions | F7 syntax | Ctrl+S save | Ctrl+Z undo"
              : "Drop PNG to import | B/E/R/F/V tools | Ctrl+S save | Ctrl+Z undo | F5 play | MMB "
                "pan | wheel zoom",
          UI_MUTED);
-    box((SDL_FRect){LEFT, TOP, (float)(app.width - LEFT - RIGHT), TABS}, UI_PANEL);
-    if (icon_button(LEFT + 10, TOP + 3, 92, ICON_GRID, "Map", NULL, !app.script_tab,
-                    !app.history.pending))
-        tab_select(false);
-    if (icon_button(LEFT + 110, TOP + 3, 108, ICON_FILE, "Scripts", NULL, app.script_tab,
-                    !app.history.pending && !app.playing))
-        tab_select(true);
+    box((SDL_FRect){LEFT + PANEL_GAP, TOP + PANEL_GAP,
+                    (float)(app.width - LEFT - RIGHT - 2 * PANEL_GAP), TABS - PANEL_GAP},
+        UI_PANEL);
+    UiRect tab_bar = {LEFT + 10, TOP + PANEL_GAP, (float)(app.width - LEFT - RIGHT - 20), 25};
+    for (int i = 0; i < app.tabs.count; i++)
+        app.tabs.items[i].enabled =
+            !app.history.pending && (app.tabs.items[i].id == UI_MAP_TAB || !app.playing);
+    if (ui_tabs_update(&app.ui, &app.tabs, tab_bar, 112))
+        tab_select(app.tabs.selected == UI_SCRIPT_TAB);
+    ui_clip_push(&app.ui, tab_bar);
+    ui_apply_clip(app.renderer, &app.ui);
+    for (int i = 0; i < app.tabs.count; i++) {
+        UiRect r = ui_tab_rect(&app.tabs, tab_bar, 112, i);
+        bool scripts = app.tabs.items[i].id == UI_SCRIPT_TAB;
+        ui_draw_tab(app.renderer, (SDL_FRect){r.x, r.y, r.w, r.h}, scripts ? ICON_FILE : ICON_GRID,
+                    scripts ? "Scripts" : "Map", app.tabs.selected == app.tabs.items[i].id,
+                    app.tabs.items[i].enabled, ui_hovered(&app.ui, r));
+    }
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
     if (!app.script_tab) {
+        /* Distinguish the workspace from empty/transparent tiles inside the map. */
+        box(app.viewport, 0x383838ffu);
+        SDL_Rect map_clip = {(int)app.viewport.x, (int)app.viewport.y, (int)app.viewport.w,
+                             (int)app.viewport.h};
+        SDL_SetRenderClipRect(app.renderer, &map_clip);
+        const PeScene *visible_scene = app.playing ? &app.runtime : &app.scene;
+        box((SDL_FRect){app.viewport.x - app.camera.x * app.camera.zoom,
+                        app.viewport.y - app.camera.y * app.camera.zoom,
+                        visible_scene->width * visible_scene->tile_size * app.camera.zoom,
+                        visible_scene->height * visible_scene->tile_size * app.camera.zoom},
+            UI_CANVAS);
+        SDL_SetRenderClipRect(app.renderer, NULL);
         pe_render_scene(app.renderer, app.playing ? &app.runtime : &app.scene, &app.assets,
                         &app.camera, app.viewport, app.grid && !app.playing,
                         app.collision && !app.playing);
@@ -924,9 +1180,21 @@ static void draw(void) {
             }
         }
     } else
-        se_draw(&app.script, app.renderer, app.viewport, app.mx, app.my, app.click);
-    draw_tree();
-    if (app.script_tab)
+        se_draw(&app.script, app.renderer, &app.ui, app.viewport, app.mx, app.my, app.click);
+    draw_panel_tabs(&app.left_tabs,
+                    (UiRect){PANEL_GAP + 4, TOP + PANEL_GAP, LEFT - 2 * PANEL_GAP - 8, 25},
+                    UI_EXPLORER_TAB, "Explorer", "Scene", ICON_FOLDER, ICON_ENTITY);
+    draw_panel_tabs(&app.right_tabs,
+                    (UiRect){(float)(app.width - RIGHT + PANEL_GAP + 4), TOP + PANEL_GAP,
+                             RIGHT - 2 * PANEL_GAP - 8, 25},
+                    UI_INSPECTOR_TAB, "Inspector", "Info", ICON_ENTITY, ICON_FILE);
+    if (app.left_tabs.selected == UI_SCENE_TAB)
+        draw_scene_tree();
+    else
+        draw_tree();
+    if (app.right_tabs.selected == UI_INFO_TAB)
+        draw_info();
+    else if (app.script_tab)
         draw_script_inspector();
     else
         draw_inspector();
@@ -957,14 +1225,24 @@ static void draw(void) {
         float width = (float)strlen(tooltip) * 8 + 20;
         float tx = fminf(app.mx + 12, app.width - width - 8),
               ty = fminf(app.my + 30, app.height - 28.f);
-        ui_round_rect(app.renderer, (SDL_FRect){tx + 2, ty + 2, width, 24}, 5, 0x101010ff);
-        ui_round_rect(app.renderer, (SDL_FRect){tx, ty, width, 24}, 5, UI_BORDER);
+        ui_panel(app.renderer, (SDL_FRect){tx, ty, width, 24}, UI_BORDER);
         text(tx + 10, ty + 8, tooltip, UI_TEXT);
     }
+    UiRect ls = left_split(), rs = right_split();
+    bool left_highlight = !modal && (ui_hovered(&app.ui, ls) || app.ui.active == UI_SPLIT_LEFT);
+    bool right_highlight = !modal && (ui_hovered(&app.ui, rs) || app.ui.active == UI_SPLIT_RIGHT);
+    draw_split_grip(ls, left_highlight);
+    draw_split_grip(rs, right_highlight);
+    bool resize = left_highlight || right_highlight;
     if (modal) {
+        app.ui.blocked = false;
         app.click = saved_click;
         draw_modal();
     }
+    app.ui.blocked = false;
+    if (app.resize_cursor)
+        SDL_SetCursor(resize ? app.resize_cursor : SDL_GetDefaultCursor());
+    ui_end_frame(&app.ui);
     app.click = false;
     if (screenshot_path) {
         SDL_Surface *capture = SDL_RenderReadPixels(app.renderer, NULL);
@@ -1051,8 +1329,30 @@ static void event(SDL_Event *e) {
         app.mx = e->button.x;
         app.my = e->button.y;
     }
-    if (app.script_tab && !modal && se_event(&app.script, app.window, e, app.viewport))
+    if (e->type == SDL_EVENT_MOUSE_MOTION)
+        ui_pointer(&app.ui, app.mx, app.my, app.ui.down);
+    if ((e->type == SDL_EVENT_MOUSE_BUTTON_DOWN || e->type == SDL_EVENT_MOUSE_BUTTON_UP) &&
+        e->button.button == SDL_BUTTON_LEFT)
+        ui_pointer(&app.ui, app.mx, app.my, e->type == SDL_EVENT_MOUSE_BUTTON_DOWN);
+    bool captured = app.ui.active == UI_SPLIT_LEFT || app.ui.active == UI_SPLIT_RIGHT ||
+                    app.ui.active == UI_TREE_SCROLL || app.ui.active == UI_INSPECTOR_SCROLL ||
+                    app.ui.active == UI_SCENE_SCROLL || app.ui.active == UI_INFO_SCROLL ||
+                    app.ui.active == UI_SCRIPT_VSCROLL || app.ui.active == UI_SCRIPT_HSCROLL;
+    if (!modal && (e->type == SDL_EVENT_MOUSE_MOTION || e->type == SDL_EVENT_MOUSE_BUTTON_UP) &&
+        captured)
         return;
+    if (!modal && e->type == SDL_EVENT_MOUSE_BUTTON_DOWN && e->button.button == SDL_BUTTON_LEFT &&
+        ui_controls_hit(app.mx, app.my))
+        return;
+    if (e->type == SDL_EVENT_KEY_DOWN && !e->key.repeat &&
+        (e->key.key == SDLK_RETURN || e->key.key == SDLK_SPACE) && app.field == FIELD_NONE &&
+        !(app.script_tab && app.script.focused))
+        ui_activate(&app.ui);
+    if (app.script_tab && !modal && se_event(&app.script, app.window, e, app.viewport)) {
+        if (e->type == SDL_EVENT_MOUSE_BUTTON_DOWN && app.script.focused)
+            ui_focus(&app.ui, UI_SCRIPT_DOCUMENT);
+        return;
+    }
     switch (e->type) {
     case SDL_EVENT_QUIT:
         if (app.playing)
@@ -1079,6 +1379,7 @@ static void event(SDL_Event *e) {
         }
         break;
     case SDL_EVENT_WINDOW_FOCUS_LOST:
+        ui_cancel(&app.ui);
         if (app.history.pending) {
             pe_history_cancel(&app.history, &app.scene);
             app.painting = app.dragging = false;
@@ -1090,22 +1391,17 @@ static void event(SDL_Event *e) {
             if (inside(app.mx, app.my, app.viewport) && !app.script_tab)
                 pe_camera_zoom(&app.camera, app.mx - app.viewport.x, app.my - app.viewport.y,
                                powf(1.15f, e->wheel.y));
-            else if (app.mx < LEFT) {
-                app.tree_scroll -= (int)e->wheel.y * 3;
-                if (app.tree_scroll < 0)
-                    app.tree_scroll = 0;
-                if (app.tree_scroll >= app.tree_count)
-                    app.tree_scroll = app.tree_count ? app.tree_count - 1 : 0;
-            } else if (app.mx > app.width - RIGHT) {
-                app.palette_scroll -= (int)e->wheel.y * 6;
-                int count = app.assets.tileset ? (app.assets.width / app.assets.source_tile) *
-                                                     (app.assets.height / app.assets.source_tile)
-                                               : 0;
-                if (app.palette_scroll < 0)
-                    app.palette_scroll = 0;
-                if (app.palette_scroll >= count)
-                    app.palette_scroll = count > 6 ? ((count - 1) / 6) * 6 : 0;
-            }
+            else if (app.mx < LEFT)
+                ui_scroll_by(app.left_tabs.selected == UI_SCENE_TAB ? &app.scene_view
+                                                                    : &app.tree_view,
+                             -e->wheel.y * 69);
+            else if (app.mx > app.width - RIGHT)
+                ui_scroll_by(app.right_tabs.selected == UI_INFO_TAB ? &app.info_view
+                                                                    : &app.inspector_view,
+                             -e->wheel.y * 60);
+            else if (app.my >= TOP && app.my < TOP + TABS)
+                ui_tabs_scroll(&app.tabs, (float)(app.width - LEFT - RIGHT - 20), 112,
+                               -e->wheel.y * 56);
         }
         break;
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
@@ -1252,6 +1548,8 @@ static bool verify_script_editor(void) {
     e.button.y = app.script.popup.y + 8;
     event(&e);
     ok = ok && !strcmp(app.script.document.text, "const");
+    e.type = SDL_EVENT_MOUSE_BUTTON_UP;
+    event(&e);
     memset(&e, 0, sizeof e);
     e.type = SDL_EVENT_TEXT_INPUT;
     e.text.text = " value = ;\n";
@@ -1275,6 +1573,108 @@ static bool verify_script_editor(void) {
     tab_select(false);
     if (!ok)
         fprintf(stderr, "Script editor interaction smoke test failed\n");
+    return ok;
+}
+
+static void smoke_pointer(Uint32 type, float x, float y) {
+    SDL_Event e = {0};
+    e.type = type;
+    if (type == SDL_EVENT_MOUSE_MOTION) {
+        e.motion.x = x;
+        e.motion.y = y;
+        e.motion.state = SDL_BUTTON_LMASK;
+    } else {
+        e.button.button = SDL_BUTTON_LEFT;
+        e.button.x = x;
+        e.button.y = y;
+    }
+    event(&e);
+    draw();
+}
+static bool verify_ui_layout(void) {
+    PeScene original = app.scene;
+    tab_select(false);
+    ui_cancel(&app.ui);
+    draw();
+    float x = app.left_width, y = TOP + TABS + 90;
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+    smoke_pointer(SDL_EVENT_MOUSE_MOTION, x + 100, y);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 100, y);
+    bool ok = fabsf(app.left_width - 340) < .01f && app.viewport.x == 340 + PANEL_GAP;
+    x = app.width - app.right_width;
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+    smoke_pointer(SDL_EVENT_MOUSE_MOTION, x - 80, y);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x - 80, y);
+    ok = ok && fabsf(app.right_width - 360) < .01f;
+    float header_x = app.width - app.right_width + 30, header_y = SIDE_TOP + 20;
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, header_x, header_y);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, header_x, header_y);
+    ok = ok && !app.layers_open;
+    float tab_x = app.left_width + 30, tab_y = TOP + 12;
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, tab_x, tab_y);
+    smoke_pointer(SDL_EVENT_MOUSE_MOTION, tab_x + 130, tab_y);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, tab_x + 130, tab_y);
+    ok = ok && app.tabs.items[0].id == UI_SCRIPT_TAB && app.tabs.items[1].id == UI_MAP_TAB &&
+         !app.script_tab;
+    /* Sidebar navigation is independent of workspace tabs and scene history. */
+    float side_y = TOP + PANEL_GAP + 12;
+    float scene_tab_x = PANEL_GAP + 4 + (LEFT - 2 * PANEL_GAP - 8) * .75f;
+    float info_tab_x = app.width - RIGHT + PANEL_GAP + 4 + (RIGHT - 2 * PANEL_GAP - 8) * .75f;
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, scene_tab_x, side_y);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, scene_tab_x, side_y);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, info_tab_x, side_y);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, info_tab_x, side_y);
+    ok = ok && app.left_tabs.selected == UI_SCENE_TAB && app.right_tabs.selected == UI_INFO_TAB &&
+         !app.script_tab;
+    uint32_t saved_selected = app.selected;
+    int saved_tool = app.tool;
+    for (int i = 0; i < PE_ENTITIES; i++) {
+        if (!app.scene.objects[i].alive)
+            continue;
+        smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 60, SIDE_TOP + 58);
+        smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, 60, SIDE_TOP + 58);
+        ok = ok && app.selected == app.scene.objects[i].stable_id &&
+             app.right_tabs.selected == UI_INSPECTOR_TAB;
+        break;
+    }
+    app.selected = saved_selected;
+    app.tool = saved_tool;
+    app.left_tabs.selected = UI_EXPLORER_TAB;
+    app.right_tabs.selected = UI_INSPECTOR_TAB;
+    PeText saved = app.script.document;
+    char lines[4096] = "";
+    for (int i = 0; i < 100; i++)
+        strcat(lines, "// scrollable line\n");
+    pe_text_init(&app.script.document, lines);
+    app.script.extent_revision = app.script.highlighted_revision = app.script.checked_revision =
+        UINT64_MAX;
+    app.script.top_line = 0;
+    tab_select(true);
+    draw();
+    float scroll_x = app.viewport.x + app.viewport.w - 8, scroll_y = app.script.body.y + 8;
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, scroll_x, scroll_y);
+    smoke_pointer(SDL_EVENT_MOUSE_MOTION, scroll_x, scroll_y + 120);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, scroll_x, scroll_y + 120);
+    ok = ok && app.script.top_line > 0 && !strcmp(app.script.document.text, lines) &&
+         app.script.document.count == 0;
+    se_free(&app.script);
+    app.script.document = saved;
+    app.script.extent_revision = app.script.highlighted_revision = app.script.checked_revision =
+        UINT64_MAX;
+    app.script.top_line = app.script.left_column = 0;
+    se_check(&app.script);
+    ok = ok && !memcmp(&original, &app.scene, sizeof original);
+    app.left_width = 240;
+    app.right_width = 280;
+    app.layers_open = app.entity_open = app.palette_open = true;
+    app.tree_view.offset = app.inspector_view.offset = 0;
+    UiTab tabs[] = {{UI_MAP_TAB, true}, {UI_SCRIPT_TAB, true}};
+    ui_tabs_init(&app.tabs, tabs, 2, UI_MAP_TAB);
+    ui_cancel(&app.ui);
+    tab_select(false);
+    draw();
+    if (!ok)
+        fprintf(stderr, "Shared UI layout / capture smoke test failed\n");
     return ok;
 }
 int main(int argc, char **argv) {
@@ -1320,12 +1720,24 @@ int main(int argc, char **argv) {
     }
     SDL_SetWindowMinimumSize(app.window, 1100, 740);
     SDL_SetRenderVSync(app.renderer, 1);
+    ui_init(&app.ui);
+    app.left_width = 240;
+    app.right_width = 280;
+    app.layers_open = app.entity_open = app.palette_open = true;
+    UiTab tabs[] = {{UI_MAP_TAB, true}, {UI_SCRIPT_TAB, true}};
+    ui_tabs_init(&app.tabs, tabs, 2, UI_MAP_TAB);
+    UiTab left_tabs[] = {{UI_EXPLORER_TAB, true}, {UI_SCENE_TAB, true}};
+    UiTab right_tabs[] = {{UI_INSPECTOR_TAB, true}, {UI_INFO_TAB, true}};
+    ui_tabs_init(&app.left_tabs, left_tabs, 2, UI_EXPLORER_TAB);
+    ui_tabs_init(&app.right_tabs, right_tabs, 2, UI_INSPECTOR_TAB);
+    app.resize_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE);
     app.width = 1280;
     app.height = 800;
     app.viewport = (SDL_FRect){LEFT, TOP + TABS, 1280 - LEFT - RIGHT, 800 - TOP - TABS - BOTTOM};
     if (!se_init(&app.script, root)) {
         fprintf(stderr, "%s\n", app.script.status);
         se_free(&app.script);
+        SDL_DestroyCursor(app.resize_cursor);
         SDL_DestroyRenderer(app.renderer);
         SDL_DestroyWindow(app.window);
         SDL_Quit();
@@ -1345,7 +1757,7 @@ int main(int argc, char **argv) {
     message("Welcome! Select a tile, paint a map, and press F5 to play.");
     assets_sync();
     int exit_code = 0;
-    if (app.smoke && (!verify_editor() || !verify_script_editor())) {
+    if (app.smoke && (!verify_editor() || !verify_script_editor() || !verify_ui_layout())) {
         app.running = false;
         exit_code = 1;
     }
@@ -1381,6 +1793,7 @@ int main(int argc, char **argv) {
     se_free(&app.script);
     pe_history_free(&app.history);
     pe_assets_free(&app.assets);
+    SDL_DestroyCursor(app.resize_cursor);
     SDL_DestroyRenderer(app.renderer);
     SDL_DestroyWindow(app.window);
     SDL_Quit();

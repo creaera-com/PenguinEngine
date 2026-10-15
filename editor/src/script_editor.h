@@ -1,9 +1,12 @@
 #ifndef PENGUIN_SCRIPT_EDITOR_H
 #define PENGUIN_SCRIPT_EDITOR_H
 #include "penguin/script.h"
-#include "ui.h"
+#include "penguin/ui_sdl.h"
 typedef struct {
     SDL_Window *window;
+    UiScroll vertical, horizontal;
+    int line_count, max_column;
+    uint64_t extent_revision;
     PeText document;
     PeJsToken tokens[PE_TEXT_MAX];
     PeJsDiagnostic diagnostic;
@@ -25,6 +28,7 @@ void se_check(PeScriptEditor *editor);
 void se_changed(PeScriptEditor *editor, SDL_FRect area, bool completion);
 /* Returns true when input belongs to script editor rather than scene tools. */
 bool se_event(PeScriptEditor *editor, SDL_Window *window, const SDL_Event *event, SDL_FRect area);
-void se_draw(PeScriptEditor *editor, SDL_Renderer *renderer, SDL_FRect area, float mx, float my,
-             bool click);
+bool se_scroll_hit(PeScriptEditor *editor, float x, float y, SDL_FRect area);
+void se_draw(PeScriptEditor *editor, SDL_Renderer *renderer, UiContext *context, SDL_FRect area,
+             float mx, float my, bool click);
 #endif

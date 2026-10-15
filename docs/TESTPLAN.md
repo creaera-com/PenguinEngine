@@ -34,3 +34,18 @@ Die automatisierten Tests wurden in der Entwicklungsumgebung headless ausgeführ
 8. Script ändern und eine andere `.js` öffnen oder beenden: Speichern/Verwerfen/Abbrechen testen. Ungültige UTF-8- oder zu große Dateien dürfen den Text nicht ersetzen.
 9. Ctrl+S im Scripts-Tab speichert nur das Script; im Map-Tab nur die Szene. Ungespeicherte Änderungen beider Dokumente werden beim Beenden berücksichtigt.
 10. Play im Map-Tab testen: Scripts werden noch nicht ausgeführt.
+
+## Gemeinsame UI und Flat-Layout
+
+1. Panel-Abstände prüfen: Toolbar, Dateibaum und Inspector heben sich mit hellerem Grau und 6 px dunklem Zwischenraum ab; beim Spaltenziehen/Fensterresize bleiben die Abstände erhalten. Map-Pinsel, Zoom und Skript-Auswahl treffen nach dem Einrücken weiterhin korrekt. Buttons/Tabs prüfen: gerade Kanten, flächige Farben, aktives Orange und gut lesbare Beschriftung. Save und Play/Stop zeigen nur Icons; Tooltips und Ctrl+S/F5 funktionieren weiterhin. Außerhalb der Karte ist die Arbeitsfläche heller grau; beim Zoomen/Verschieben bleiben leere und transparente Tiles innerhalb der Karte dunkel.
+2. Beide Spaltentrenner ziehen, auch über ihren ursprünglichen Bereich hinaus. Mindestbreiten erhalten die mittlere Arbeitsfläche. Keine Tiles oder Texte dürfen dabei verändert werden.
+3. Rechts Inspector-Bereiche ein-/ausklappen und die Tile-Palette bei geänderter Spaltenbreite prüfen. Rename und Sortieraktionen bleiben erreichbar.
+4. Mit vielen Dateien, vier Ebenen/ausgewählter Entity und langen Scripts Scrollbars prüfen: Mausrad, Thumb-Ziehen und Track-Klicks. Ausgeblendete Controls dürfen nicht anklickbar sein.
+5. Map-/Scripts-Tabs umsortieren. Der Inhalt bleibt seinem Tab zugeordnet, Wechsel erhält Text und Kamera.
+6. Button drücken und außerhalb loslassen: keine Aktion. Fokusverlust während Drag beendet Capture.
+7. `penguin_ui_demo` starten und dieselben UI-Komponenten ohne Engine-/Editorfunktionen prüfen.
+
+8. Links Explorer/Scene und rechts Inspector/Info wechseln, auch im Scripts-Tab. Die Gruppen schalten unabhängig voneinander; ihre Tabs lassen sich innerhalb der Gruppe umsortieren. Die Inhalte folgen der Tab-ID.
+9. Scene: Entity anklicken. Map und Inspector werden aktiv, die passende Entity ist ausgewählt. Auswahl/Tabwechsel erzeugen keine Undo-Schritte. Löschen/Undo im Inspector aktualisieren die Scene-Liste. Leere Szenen zeigen einen Hinweis.
+10. Viele Entities anlegen und Scene scrollen; dann Explorer öffnen und zurückwechseln. Beide Scrollpositionen bleiben separat erhalten. Info zeigt aktuelle Szenenzahlen. Bei minimalen Spaltenbreiten passen die Tabtitel weiterhin.
+11. Zwischenräume der Spalten prüfen: keine sichtbaren Trennstriche, auch bei Hover. Jeweils drei senkrecht angeordnete Punkte sitzen mittig, folgen beim Resize und werden bei Hover/Ziehen orange. Resize-Cursor und Ziehen funktionieren weiterhin.
