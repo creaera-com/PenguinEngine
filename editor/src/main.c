@@ -12,7 +12,7 @@
 #define TOP 50
 #define TABS 32
 #define BOTTOM 28
-#define PANEL_GAP 5
+#define PANEL_GAP 3
 #define GLOBAL_NAV_X 232
 #define SIDE_TOP (TOP + TABS)
 #define TREE_MAX 256
@@ -1817,8 +1817,10 @@ static bool verify_workspace_tools(void) {
     app.right_width = app.width - app.left_width - 320;
     draw();
     ok = ok && app.viewport.y == TOP + 2 * PANEL_GAP + 70;
-    /* Seven actions fit in row one; Grid is the second action in row two. */
-    smoke_click(LEFT + PANEL_GAP + 8 + 38 + 16, action_y + 32);
+    int columns = (int)((app.viewport.w - 10) / 38);
+    int grid_index = editor_view(UI_MAP_VIEW)->action_count - 1;
+    smoke_click(LEFT + PANEL_GAP + 8 + (grid_index % columns) * 38 + 16,
+                action_y + (grid_index / columns) * 32);
     ok = ok && app.grid != grid && !memcmp(&original, &app.scene, sizeof original) &&
          app.history.cursor == history_cursor && app.script.document.revision == revision &&
          !memcmp(&camera, &app.camera, sizeof camera);
