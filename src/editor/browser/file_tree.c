@@ -90,34 +90,35 @@ bool editor_suffix(const char *p, const char *s) {
 }
 
 void editor_draw_tree(void) {
-    editor_section(app.panel_area.x + 11, app.panel_top + 18, ICON_FOLDER, "PROJECT");
-    if (icon_button(app.panel_area.x + app.panel_area.w - 43, app.panel_top + 10, 32, ICON_REFRESH,
-                    "", "Refresh project files", false, true)) {
+    /* Match inactive tabs while keeping a small panel-colored outer gutter. */
+    SDL_FRect body = {app.panel_area.x + 6, app.panel_area.y + 6, fmaxf(0, app.panel_area.w - 12),
+                      fmaxf(0, app.panel_area.h - 12)};
+    editor_box(body, UI_SURFACE);
+    if (icon_button(body.x + body.w - 36, body.y + 4, 32, ICON_REFRESH, "", "Refresh project files",
+                    false, true)) {
         editor_tree_refresh();
     }
     app.tree_view.content = app.tree_count * 23.f;
-    app.tree_view.viewport = (float)(app.panel_area.h - 46);
+    app.tree_view.viewport = fmaxf(0, body.h - 38);
     ui_scroll_clamp(&app.tree_view);
-    UiRect track = {app.panel_area.x + app.panel_area.w - 15, app.panel_top + 46, 8,
-                    app.tree_view.viewport};
+    UiRect track = {body.x + body.w - 12, body.y + 34, 8, app.tree_view.viewport};
     ui_scrollbar(&app.ui, UI_TREE_SCROLL, track, &app.tree_view, UI_AXIS_Y);
     app.tree_scroll = (int)(app.tree_view.offset / 23);
-    UiRect tree_clip = {app.panel_area.x, app.panel_top + 46, app.panel_area.w - 18,
-                        app.tree_view.viewport};
+    UiRect tree_clip = {body.x + 4, body.y + 34, fmaxf(0, body.w - 20), app.tree_view.viewport};
     ui_clip_push(&app.ui, tree_clip);
     ui_apply_clip(app.renderer, &app.ui);
     int visible = (int)(app.tree_view.viewport / 23) + 2;
     for (int i = app.tree_scroll; i < app.tree_count && i < app.tree_scroll + visible; i++) {
         TreeRow row = app.tree[i];
-        float y = app.panel_top + 50 + i * 23 - app.tree_view.offset;
+        float y = tree_clip.y + i * 23 - app.tree_view.offset;
         char label[128];
         snprintf(label, sizeof label, "%.20s", row.name);
-        SDL_FRect r = {app.panel_area.x + 5, y, app.panel_area.w - 18, 22};
+        SDL_FRect r = {tree_clip.x, y, tree_clip.w, 22};
         bool hover = ui_hovered(&app.ui, (UiRect){r.x, r.y, r.w, r.h});
         if (hover) {
             editor_box(r, UI_HOVER);
         }
-        float row_x = app.panel_area.x + 9 + row.depth * 12;
+        float row_x = tree_clip.x + 2 + row.depth * 12;
         if (row.directory) {
             ui_icon(app.renderer, row.expanded ? ICON_DOWN : ICON_RIGHT, row_x, y + 5, 12,
                     UI_MUTED);
