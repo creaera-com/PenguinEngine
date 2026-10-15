@@ -90,10 +90,15 @@ bool editor_suffix(const char *p, const char *s) {
 }
 
 void editor_draw_tree(void) {
-    /* Match inactive tabs while keeping a small panel-colored outer gutter. */
+    /* Lift the theme surface slightly while keeping a panel-colored outer gutter. */
     SDL_FRect body = {app.panel_area.x + 6, app.panel_area.y + 6, fmaxf(0, app.panel_area.w - 12),
                       fmaxf(0, app.panel_area.h - 12)};
-    editor_box(body, UI_SURFACE);
+    Uint32 background = UI_SURFACE & 0xffu;
+    for (int shift = 8; shift <= 24; shift += 8) {
+        Uint32 channel = (UI_SURFACE >> shift) & 0xffu;
+        background |= ((channel * 95 + 255 * 5) / 100) << shift;
+    }
+    editor_box(body, background);
     if (icon_button(body.x + body.w - 36, body.y + 4, 32, ICON_REFRESH, "", "Refresh project files",
                     false, true)) {
         editor_tree_refresh();
