@@ -98,6 +98,16 @@ static void box(SDL_FRect r, uint32_t c) {
     draw_color(c);
     SDL_RenderFillRect(app.renderer, &r);
 }
+static void draw_split_grip(UiRect area, bool highlighted) {
+    float x = floorf(area.x + area.w * .5f), y = floorf(area.y + area.h * .5f);
+    draw_color(highlighted ? UI_ACCENT : UI_MUTED);
+    for (int i = -1; i <= 1; i++) {
+        float cy = y + i * 6;
+        SDL_RenderPoint(app.renderer, x, cy - 1);
+        SDL_RenderLine(app.renderer, x - 1, cy, x + 1, cy);
+        SDL_RenderPoint(app.renderer, x, cy + 1);
+    }
+}
 static void text(float x, float y, const char *label, uint32_t color) {
     draw_color(color);
     ui_text(app.renderer, x, y - 4, label, color);
@@ -1218,15 +1228,18 @@ static void draw(void) {
         ui_panel(app.renderer, (SDL_FRect){tx, ty, width, 24}, UI_BORDER);
         text(tx + 10, ty + 8, tooltip, UI_TEXT);
     }
+    UiRect ls = left_split(), rs = right_split();
+    bool left_highlight = !modal && (ui_hovered(&app.ui, ls) || app.ui.active == UI_SPLIT_LEFT);
+    bool right_highlight = !modal && (ui_hovered(&app.ui, rs) || app.ui.active == UI_SPLIT_RIGHT);
+    draw_split_grip(ls, left_highlight);
+    draw_split_grip(rs, right_highlight);
+    bool resize = left_highlight || right_highlight;
     if (modal) {
         app.ui.blocked = false;
         app.click = saved_click;
         draw_modal();
     }
     app.ui.blocked = false;
-    UiRect ls = left_split(), rs = right_split();
-    bool resize = !modal && (ui_hovered(&app.ui, ls) || ui_hovered(&app.ui, rs) ||
-                             app.ui.active == UI_SPLIT_LEFT || app.ui.active == UI_SPLIT_RIGHT);
     if (app.resize_cursor)
         SDL_SetCursor(resize ? app.resize_cursor : SDL_GetDefaultCursor());
     ui_end_frame(&app.ui);
