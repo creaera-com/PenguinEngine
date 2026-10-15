@@ -5,11 +5,13 @@
 static bool has_manifest(const char *root) {
     char path[1024];
     int n = snprintf(path, sizeof path, "%s/project.json", root);
-    if (n < 0 || n >= (int)sizeof path)
+    if (n < 0 || n >= (int)sizeof path) {
         return false;
+    }
     FILE *file = fopen(path, "rb");
-    if (!file)
+    if (!file) {
         return false;
+    }
     fclose(file);
     return true;
 }
@@ -30,6 +32,7 @@ bool pe_project_resolve(const char *explicit_root, const char *executable_direct
         memcpy(root, explicit_root, strlen(explicit_root) + 1);
         return true;
     }
+
     const char *relative[] = {"example", "../example"};
     char candidate[1024];
     if (executable_directory && *executable_directory) {
@@ -43,6 +46,7 @@ bool pe_project_resolve(const char *explicit_root, const char *executable_direct
             }
         }
     }
+
     const char *fallback[] = {"example", "examples/topdown", "."};
     for (int i = 0; i < 3; i++) {
         if (strlen(fallback[i]) < size && has_manifest(fallback[i])) {

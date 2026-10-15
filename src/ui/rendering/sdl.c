@@ -7,11 +7,14 @@
 static SDL_Texture *font_texture(SDL_Renderer *r) {
     SDL_PropertiesID props = SDL_GetRendererProperties(r);
     SDL_Texture *texture = SDL_GetPointerProperty(props, "penguin.ui.font", NULL);
-    if (texture)
+    if (texture) {
         return texture;
+    }
+
     SDL_Surface *surface = SDL_CreateSurface(128, 256, SDL_PIXELFORMAT_RGBA32);
-    if (!surface)
+    if (!surface) {
         return NULL;
+    }
     size_t pixel = 0;
     for (size_t i = 0; i < sizeof ui_font_runs; i += 2) {
         for (unsigned n = 0; n < ui_font_runs[i]; n++, pixel++) {
@@ -23,23 +26,28 @@ static SDL_Texture *font_texture(SDL_Renderer *r) {
     }
     texture = SDL_CreateTextureFromSurface(r, surface);
     SDL_DestroySurface(surface);
-    if (!texture)
+    if (!texture) {
         return NULL;
+    }
     SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
     SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
     if (!SDL_SetPointerProperty(props, "penguin.ui.font", texture)) {
         SDL_DestroyTexture(texture);
         return NULL;
     }
+
     return texture;
 }
 
 bool ui_text(SDL_Renderer *r, float x, float y, const char *text, Uint32 rgba) {
-    if (!r || !text)
+    if (!r || !text) {
         return false;
+    }
+
     SDL_Texture *texture = font_texture(r);
-    if (!texture)
+    if (!texture) {
         return false;
+    }
     SDL_SetTextureColorMod(texture, (Uint8)(rgba >> 24), (Uint8)(rgba >> 16), (Uint8)(rgba >> 8));
     SDL_SetTextureAlphaMod(texture, (Uint8)rgba);
     const float origin = x;
@@ -50,47 +58,62 @@ bool ui_text(SDL_Renderer *r, float x, float y, const char *text, Uint32 rgba) {
             y += UI_FONT_HEIGHT;
             continue;
         }
-        if (code == '\r')
+        if (code == '\r') {
             continue;
+        }
         if (code == '\t') {
             x += UI_FONT_WIDTH * 4;
             continue;
         }
-        if (code < 32 || (code >= 127 && code < 160) || code > 255)
+        if (code < 32 || (code >= 127 && code < 160) || code > 255) {
             code = '?';
+        }
         SDL_FRect src = {(float)(code % 16 * UI_FONT_WIDTH), (float)(code / 16 * UI_FONT_HEIGHT),
                          UI_FONT_WIDTH, UI_FONT_HEIGHT};
         SDL_FRect dst = {x, y, UI_FONT_WIDTH, UI_FONT_HEIGHT};
-        if (!SDL_RenderTexture(r, texture, &src, &dst))
+        if (!SDL_RenderTexture(r, texture, &src, &dst)) {
             return false;
+        }
         x += UI_FONT_WIDTH;
     }
+
     return true;
 }
 
 static void color(SDL_Renderer *r, Uint32 c) {
     SDL_SetRenderDrawColor(r, (Uint8)(c >> 24), (Uint8)(c >> 16), (Uint8)(c >> 8), (Uint8)c);
 }
+
 void ui_panel(SDL_Renderer *r, SDL_FRect rect, Uint32 c) {
     color(r, c);
     SDL_RenderFillRect(r, &rect);
 }
+
 typedef struct {
     float x1, y1, x2, y2;
 } Line;
+
 static void lines(SDL_Renderer *r, float x, float y, float size, const Line *v, int n) {
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < n; i++) {
         SDL_RenderLine(r, x + v[i].x1 * size / 16, y + v[i].y1 * size / 16, x + v[i].x2 * size / 16,
                        y + v[i].y2 * size / 16);
+    }
 }
+
 #define DRAW(...)                                                                                  \
     do {                                                                                           \
         const Line v[] = {__VA_ARGS__};                                                            \
         lines(r, x, y, s, v, (int)(sizeof v / sizeof v[0]));                                       \
     } while (0)
+
 void ui_icon(SDL_Renderer *r, UiIcon icon, float x, float y, float s, Uint32 c) {
     color(r, c);
     switch (icon) {
+    case ICON_TERMINAL:
+        SDL_RenderLine(r, x + s * .15f, y + s * .25f, x + s * .45f, y + s * .5f);
+        SDL_RenderLine(r, x + s * .45f, y + s * .5f, x + s * .15f, y + s * .75f);
+        SDL_RenderLine(r, x + s * .55f, y + s * .75f, x + s * .85f, y + s * .75f);
+        break;
     case ICON_MENU:
         DRAW({2, 4, 14, 4}, {2, 8, 14, 8}, {2, 12, 14, 12});
         break;
@@ -106,9 +129,10 @@ void ui_icon(SDL_Renderer *r, UiIcon icon, float x, float y, float s, Uint32 c) 
         DRAW({10, 3, 14, 7}, {14, 7, 10, 11}, {14, 7, 6, 7}, {6, 7, 3, 9}, {3, 9, 3, 13});
         break;
     case ICON_PLAY:
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 10; i++) {
             SDL_RenderLine(r, x + 4 * s / 16 + i * s / 16, y + (2 + i * .6f) * s / 16,
                            x + 4 * s / 16 + i * s / 16, y + (14 - i * .6f) * s / 16);
+        }
         break;
     case ICON_STOP: {
         SDL_FRect rect = {x + 3 * s / 16, y + 3 * s / 16, 10 * s / 16, 10 * s / 16};
@@ -195,8 +219,9 @@ void ui_icon(SDL_Renderer *r, UiIcon icon, float x, float y, float s, Uint32 c) 
     case ICON_EYE_OFF:
         DRAW({1, 8, 5, 4}, {5, 4, 11, 4}, {11, 4, 15, 8}, {15, 8, 11, 12}, {11, 12, 5, 12},
              {5, 12, 1, 8}, {7, 7, 9, 7}, {9, 7, 9, 9}, {9, 9, 7, 9}, {7, 9, 7, 7});
-        if (icon == ICON_EYE_OFF)
+        if (icon == ICON_EYE_OFF) {
             DRAW({2, 1, 14, 15});
+        }
         break;
     case ICON_CHECK:
         DRAW({2, 8, 6, 12}, {6, 12, 14, 3});
@@ -208,15 +233,19 @@ void ui_icon(SDL_Renderer *r, UiIcon icon, float x, float y, float s, Uint32 c) 
         break;
     }
 }
+
 UiTheme ui_theme = {0x101010ffu, 0x202020ffu, 0x292929ffu, 0x393939ffu, 0xc28e5cffu,
                     0xe9e9e9ffu, 0xa2a2a2ffu, 0x686868ffu, 0x303030ffu};
+
 void ui_set_theme(const UiTheme *theme) {
     ui_theme = *theme;
 }
+
 UiTheme ui_dark_theme(void) {
     return (UiTheme){0x101010ffu, 0x202020ffu, 0x292929ffu, 0x393939ffu, 0xc28e5cffu,
                      0xe9e9e9ffu, 0xa2a2a2ffu, 0x686868ffu, 0x303030ffu};
 }
+
 void ui_draw_button_themed(SDL_Renderer *r, const UiTheme *theme, SDL_FRect rect, UiIcon icon,
                            const char *label, bool active, bool enabled, bool hover) {
     ui_panel(r, rect,
@@ -226,52 +255,64 @@ void ui_draw_button_themed(SDL_Renderer *r, const UiTheme *theme, SDL_FRect rect
                       : theme->surface);
     Uint32 foreground = !enabled ? theme->disabled : active ? theme->canvas : theme->text;
     bool label_present = label && *label;
-    if (icon != ICON_NONE)
+    if (icon != ICON_NONE) {
         ui_icon(r, icon, label_present ? rect.x + 9 : rect.x + (rect.w - 16) * .5f,
                 rect.y + (rect.h - 16) * .5f, 16, foreground);
+    }
     if (label_present) {
         color(r, foreground);
         ui_text(r, rect.x + (icon == ICON_NONE ? 9 : 31), rect.y + (rect.h - UI_FONT_HEIGHT) * .5f,
                 label, foreground);
     }
 }
+
 void ui_draw_button(SDL_Renderer *r, SDL_FRect rect, UiIcon icon, const char *label, bool active,
                     bool enabled, bool hover) {
     UiTheme theme = ui_theme;
     ui_draw_button_themed(r, &theme, rect, icon, label, active, enabled, hover);
 }
+
 float ui_text_width(const char *text) {
     float width = 0, longest = 0;
-    if (!text)
+    if (!text) {
         return 0;
+    }
     while (*text) {
         Uint32 code = SDL_StepUTF8(&text, NULL);
         if (code == '\n') {
             longest = fmaxf(longest, width);
             width = 0;
-        } else if (code != '\r')
+        } else if (code != '\r') {
             width += UI_FONT_WIDTH * (code == '\t' ? 4 : 1);
+        }
     }
+
     return fmaxf(longest, width);
 }
+
 float ui_tab_content_width(UiIcon icon, const char *label) {
     return ui_text_width(label) + (icon == ICON_NONE ? 18 : 40);
 }
+
 void ui_draw_tab(SDL_Renderer *r, SDL_FRect rect, UiIcon icon, const char *label, bool active,
                  bool enabled, bool hover) {
     ui_panel(r, rect, active ? UI_PANEL : hover ? UI_HOVER : UI_SURFACE);
     Uint32 foreground = enabled ? UI_TEXT : UI_DISABLED;
-    if (active)
+    if (active) {
         ui_panel(r, (SDL_FRect){rect.x, rect.y, rect.w, 2}, enabled ? UI_ACCENT : UI_DISABLED);
-    if (icon != ICON_NONE)
+    }
+    if (icon != ICON_NONE) {
         ui_icon(r, icon, rect.x + 9, rect.y + (rect.h - 16) * .5f, 16, foreground);
+    }
     ui_text(r, rect.x + (icon == ICON_NONE ? 9 : 31), rect.y + (rect.h - UI_FONT_HEIGHT) * .5f,
             label, foreground);
 }
+
 void ui_draw_scrollbar(SDL_Renderer *r, const UiContext *c, UiId id, UiRect track,
                        const UiScroll *s, UiAxis axis) {
-    if (ui_scroll_max(s) <= 0)
+    if (ui_scroll_max(s) <= 0) {
         return;
+    }
     ui_panel(r, (SDL_FRect){track.x, track.y, track.w, track.h}, UI_CANVAS);
     UiRect thumb = ui_scroll_thumb(s, track, axis);
     ui_panel(r, (SDL_FRect){thumb.x, thumb.y, thumb.w, thumb.h},
@@ -279,11 +320,13 @@ void ui_draw_scrollbar(SDL_Renderer *r, const UiContext *c, UiId id, UiRect trac
              : ui_hovered(c, thumb) ? UI_HOVER
                                     : UI_BORDER);
 }
+
 void ui_apply_clip(SDL_Renderer *r, const UiContext *c) {
     if (c->clip_depth) {
         UiRect p = c->clips[c->clip_depth - 1];
         SDL_Rect clip = {(int)p.x, (int)p.y, (int)p.w, (int)p.h};
         SDL_SetRenderClipRect(r, &clip);
-    } else
+    } else {
         SDL_SetRenderClipRect(r, NULL);
+    }
 }

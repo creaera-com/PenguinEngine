@@ -1,15 +1,17 @@
 #include "app/editor_internal.h"
 
 void editor_play_toggle(void) {
-    if (editor_edit_pending())
+    if (editor_edit_pending()) {
         return;
+    }
     app.playing = !app.playing;
     if (app.playing) {
         app.map->runtime = app.map->scene;
         app.accumulator = 0;
         editor_message("Play: WASD / arrows. Stop restores edited scene.");
-    } else
+    } else {
         editor_message("Stopped; edited scene preserved");
+    }
 }
 
 void editor_map_update(double elapsed) {
@@ -20,6 +22,9 @@ void editor_map_update(double elapsed) {
                   (keys[SDL_SCANCODE_A] || keys[SDL_SCANCODE_LEFT]),
               y = (keys[SDL_SCANCODE_S] || keys[SDL_SCANCODE_DOWN]) -
                   (keys[SDL_SCANCODE_W] || keys[SDL_SCANCODE_UP]);
+        if (pe_console_focused(app.console)) {
+            x = y = 0;
+        }
         while (app.accumulator >= 1.0 / 60) {
             pe_update(&app.map->runtime, x, y, 1.f / 60);
             app.accumulator -= 1.0 / 60;

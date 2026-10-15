@@ -13,6 +13,7 @@ void pe_scene_init(PeScene *s, int w, int h, int tile) {
     s->next_id = 1;
     strcpy(s->layers[0].name, "Ground");
     s->layers[0].visible = true;
-    for (int i = 0; i < PE_ENTITIES; i++)
+    for (int i = 0; i < PE_ENTITIES; i++) {
         s->objects[i].generation = 1;
+    }
 }

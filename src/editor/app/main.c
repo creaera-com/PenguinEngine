@@ -8,22 +8,23 @@ static bool start_scripts;
 int main(int argc, char **argv) {
     const char *root = NULL;
     for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "--project") && i + 1 < argc)
+        if (!strcmp(argv[i], "--project") && i + 1 < argc) {
             root = argv[++i];
-        else if (!strcmp(argv[i], "--screenshot") && i + 1 < argc)
+        } else if (!strcmp(argv[i], "--screenshot") && i + 1 < argc) {
             editor_screenshot_path = argv[++i];
-        else if (!strcmp(argv[i], "--ui") && i + 1 < argc)
+        } else if (!strcmp(argv[i], "--ui") && i + 1 < argc) {
             snprintf(app.ui_path, sizeof app.ui_path, "%s", argv[++i]);
-        else if (!strcmp(argv[i], "--scripts"))
+        } else if (!strcmp(argv[i], "--scripts")) {
             start_scripts = true;
-        else if (!strcmp(argv[i], "--smoke"))
+        } else if (!strcmp(argv[i], "--smoke")) {
             app.smoke = true;
-        else {
+        } else {
             fprintf(stderr, "Usage: penguin_editor [--project path] [--smoke] [--scripts] "
                             "[--ui shell.yaml] [--screenshot file.bmp]\n");
             return 1;
         }
     }
+
     char error[256];
     if (!pe_project_resolve(root, SDL_GetBasePath(), app.root, sizeof app.root, error,
                             sizeof error)) {
@@ -53,11 +54,12 @@ int main(int argc, char **argv) {
     if (!*app.ui_path) {
         snprintf(app.ui_path, sizeof app.ui_path, "%sui-layouts/shell.yaml", SDL_GetBasePath());
         FILE *check = fopen(app.ui_path, "rb");
-        if (check)
+        if (check) {
             fclose(check);
-        else
+        } else {
             snprintf(app.ui_path, sizeof app.ui_path, "%s../ui-layouts/shell.yaml",
                      SDL_GetBasePath());
+        }
     }
     app.shell_layout = pe_ui_layout_load(app.ui_path, "shell", error, sizeof error);
     if (!app.shell_layout) {
@@ -78,6 +80,7 @@ int main(int argc, char **argv) {
     UiTab right_tabs[] = {{UI_INSPECTOR_TAB, true, 0}, {UI_INFO_TAB, true, 0}};
     ui_tabs_init(&app.left_tabs, left_tabs, 2, UI_EXPLORER_TAB);
     ui_tabs_init(&app.right_tabs, right_tabs, 2, UI_INSPECTOR_TAB);
+    app.vertical_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NS_RESIZE);
     app.resize_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE);
     app.width = 1280;
     app.height = 800;
@@ -88,9 +91,10 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Cannot create session directory: %s\n", SDL_GetError());
         return 1;
     }
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 2; i++) {
         snprintf(app.session_paths[i], sizeof app.session_paths[i], "%s%08x-%llx-%d.session", pref,
                  ui_id(app.root), (unsigned long long)SDL_GetPerformanceCounter(), i);
+    }
     SDL_free(pref);
     app.camera = (PeCamera){-16, -16, 1.4f};
     app.grid = true;
@@ -107,31 +111,38 @@ int main(int argc, char **argv) {
         fprintf(stderr, "%s\n", error);
         return 1;
     }
+
     int exit_code = 0;
 #ifdef PE_EDITOR_SMOKE_TESTS
-    if (app.smoke &&
-        (!editor_verify_editor() || !editor_verify_script_editor() || !editor_verify_ui_layout() ||
-         !editor_verify_workspace_tools() || !editor_verify_lifecycle())) {
+    if (app.smoke && (!editor_verify_editor() || !editor_verify_script_editor() ||
+                      !editor_verify_ui_layout() || !editor_verify_workspace_tools() ||
+                      !editor_verify_lifecycle() || !editor_verify_console())) {
         app.running = false;
         exit_code = 1;
     }
 #endif
-    if (start_scripts)
+    if (start_scripts) {
         editor_tab_select(true);
+    }
+
     int frames = 0;
     while (app.running) {
         SDL_Event e;
-        while (SDL_PollEvent(&e))
+        while (SDL_PollEvent(&e)) {
             editor_event(&e);
+        }
         Uint64 now = SDL_GetTicksNS();
         double elapsed = (now - app.last_time) / 1e9;
         app.last_time = now;
-        if (elapsed > .1)
+        if (elapsed > .1) {
             elapsed = .1;
+        }
+        pe_console_tick(app.console);
         editor_map_update(elapsed);
         editor_draw();
-        if (app.smoke && ++frames >= 3)
+        if (app.smoke && ++frames >= 3) {
             app.running = false;
+        }
         SDL_Delay(1);
     }
     pe_ui_layout_free(app.active_layout);
@@ -146,8 +157,11 @@ int main(int argc, char **argv) {
         pe_assets_free(&app.map->assets);
         free(app.map);
     }
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 2; i++) {
         remove(app.session_paths[i]);
+    }
+    pe_console_free(app.console);
+    SDL_DestroyCursor(app.vertical_cursor);
     SDL_DestroyCursor(app.resize_cursor);
     SDL_DestroyRenderer(app.renderer);
     SDL_DestroyWindow(app.window);

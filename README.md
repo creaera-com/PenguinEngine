@@ -12,6 +12,7 @@ Eine kleine 2D-Engine in **C17 mit SDL3**, einem einfachen ECS und einem Tilemap
 - Ziehbare Spaltentrenner, umsortierbare Tabs, Scrollbars und klappbare Inspector-Bereiche.
 - Icon-Buttons und Werkzeug-Tooltips.
 - Globale Arbeitsbereichsauswahl **Map / Scripts** mit eigenen Werkzeugleisten direkt über dem Inhalt; Scripts bietet einen JavaScript-Texteditor, Highlighting, Syntaxprüfung und einfache Autovervollständigung.
+- Gemeinsame Shell-Konsole unter Map und Scripts mit Tabs und höhenverstellbarem Panel; derzeit Linux-PTY, macOS-POSIX vorgesehen und Windows-ConPTY noch offen. Details in [KONSOLE.md](docs/KONSOLE.md).
 - Projekt-Dateibaum, PNG-Import per Drag-and-drop oder Dateipfad, Tile-Palette.
 - Pinsel, Radierer, Rechteck, Füllen, Entity-Auswahl und Verschieben.
 - Ebenen hinzufügen, löschen, umbenennen, sortieren und ausblenden.
@@ -32,6 +33,10 @@ Beim Bereichswechsel wird der bisherige Editor vollständig entladen. Ungespeich
 ## Projektstruktur
 
 Produktiver C-Code liegt unter `src/`, geordnet nach Engine, Editor, UI und Plattform. Map und Scripts gehören zu `src/editor/editors/`. YAML-Layouts und Schriftdateien liegen unter `resources/`; Beispiele, Tests und Fremdbibliotheken bleiben getrennt. Die [Strukturanleitung](docs/PROJEKTSTRUKTUR.md) erklärt die Ordner, Schnittstellen und Abhängigkeiten.
+
+## Codestil und API-Dokumentation
+
+Die Header sind mit Doxygen dokumentiert. Bei installiertem Doxygen erzeugt `cmake --build build --target api_docs` die HTML-Dokumentation unter `build/docs/html/index.html`. [Codestil und API-Doku](docs/CODESTIL_UND_API_DOKU.md) erklärt Kommentare, Formatierung und die Prüfungen. `python tools/format_code.py` formatiert den eigenen C-Code; `--check` prüft ihn ohne Änderungen.
 
 ## Bauen und starten
 
@@ -88,7 +93,7 @@ Bei älteren Ständen mit `Cannot open example/project.json`: Working directory 
 
 ## Tests ohne SDL oder Fenster
 
-Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Insgesamt 116 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge, UI-Regeln und Editorzustände ohne Download. Die beiden zusätzlichen Dokument-Checkpoint-Tests werden im SDL-Build ausgeführt.
+Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Unter Linux insgesamt 128 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge, UI-Regeln und Editorzustände ohne Download. Die beiden zusätzlichen Dokument-Checkpoint-Tests werden im SDL-Build ausgeführt.
 
 ```sh
 cmake -S . -B build-core -DPENGUIN_BUILD_EDITOR=OFF

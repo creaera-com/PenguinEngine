@@ -7,6 +7,7 @@ void pe_screen_to_world(const PeCamera *c, float sx, float sy, float *wx, float 
     *wx = c->x + sx / c->zoom;
     *wy = c->y + sy / c->zoom;
 }
+
 void pe_camera_zoom(PeCamera *c, float sx, float sy, float factor) {
     float wx, wy;
     pe_screen_to_world(c, sx, sy, &wx, &wy);

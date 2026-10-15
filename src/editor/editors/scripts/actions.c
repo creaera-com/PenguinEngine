@@ -9,5 +9,6 @@ bool editor_script_action(const char *name) {
         }
         return true;
     }
+
     return false;
 }

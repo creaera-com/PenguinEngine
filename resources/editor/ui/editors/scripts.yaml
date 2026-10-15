@@ -20,9 +20,22 @@ columns:
         icon: folder
         content: {type: file_tree, id: files, binding: project.files}
   center:
-    type: script_editor
-    id: document
-    binding: document.active
+    type: split
+    id: center_split
+    axis: vertical
+    initial: 210
+    minimum_first: 160
+    minimum_second: 100
+    gap: 8
+    first: {type: script_editor, id: document, binding: document.active}
+    second:
+      type: tabs
+      id: bottom_tools
+      tabs:
+        - id: console_tab
+          title: "Konsole"
+          icon: terminal
+          content: {type: terminal, id: console, binding: terminal.shared}
   right:
     type: script_info
     id: script_info

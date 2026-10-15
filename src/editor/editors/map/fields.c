@@ -2,8 +2,9 @@
 
 void editor_field_apply(void) {
     if (app.field == FIELD_IMPORT) {
-        if (editor_import_png(app.input))
+        if (editor_import_png(app.input)) {
             editor_field_stop();
+        }
         return;
     }
     if (app.field == FIELD_LAYER) {
@@ -18,6 +19,7 @@ void editor_field_apply(void) {
         }
         return;
     }
+
     char *end;
     errno = 0;
     float value = strtof(app.input, &end);
@@ -30,10 +32,12 @@ void editor_field_apply(void) {
             editor_message("Source tile size must be an integer from 1 to 128");
             return;
         }
-        if (editor_set_tileset(app.map->scene.tileset, (int)value))
+        if (editor_set_tileset(app.map->scene.tileset, (int)value)) {
             editor_field_stop();
+        }
         return;
     }
+
     PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
     if (!o) {
         editor_field_stop();

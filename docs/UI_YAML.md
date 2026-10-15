@@ -31,7 +31,7 @@ Auch ein gemeinsam aussehender Explorer wird pro Editor instanziiert und wieder 
 
 Es gibt immer höchstens eine aktive Editorinstanz. Inaktive Editoren behalten keine versteckten Widgetbäume, Parser-Instanzen, Dokumentpuffer, Undo-Snapshots, Hintergrundjobs oder exklusiv gehaltenen Texturen im RAM. Ihre Zustände werden vor dem Entladen auf Datenträger gesichert. Ein Betriebssystem muss dadurch frei gewordenen Heap-Speicher nicht sofort als niedrigeren Prozessverbrauch anzeigen; entscheidend sind freigegebene Ressourcen und keine weiterlebenden Editorinstanzen.
 
-Die Anwendungshülle, ihre Schrifttextur und tatsächlich gemeinsam benötigte Projektdienste bleiben bestehen. Das vollständige Entladen einer Editorinstanz ist kein Entladen des SDL-Fensters oder des C-Programmcodes. Dynamische Bibliotheken/DLL-Plugins sind für diesen Schritt nicht vorgesehen.
+Die Anwendungshülle, ihre Schrifttextur und tatsächlich gemeinsam benötigte Projektdienste bleiben bestehen. Dazu gehört ausdrücklich die gemeinsame Shellkonsole: Sie ist nicht Teil einer Editorinstanz und läuft mit ihrem begrenzten Ausgabepuffer beim Editorwechsel weiter (siehe [KONSOLE.md](KONSOLE.md)). Das vollständige Entladen einer Editorinstanz ist kein Entladen des SDL-Fensters oder des C-Programmcodes. Dynamische Bibliotheken/DLL-Plugins sind für diesen Schritt nicht vorgesehen.
 
 ### Wechselablauf
 
@@ -132,6 +132,8 @@ columns:
 
 `document_provider` ist ein registrierter Anbieter wie `scene` oder `script`. Er bindet globale Aktionen und Statuswerte an das aktuelle Dokument. In dieser Version ist der Anbieter verpflichtend: `scene` für Map und `script` für Scripts. Andere Module oder Anbieter müssen zuerst in C ergänzt werden und werden sonst als Validierungsfehler abgelehnt.
 
+Der vertikale Splitter und das untere Konsolen-Tabpanel sind ebenfalls vollständig in YAML beschrieben. Aufbau, Größenregeln, Bindings und Plattformgrenzen erklärt [KONSOLE.md](KONSOLE.md).
+
 ## Gemeinsame Widgeteigenschaften
 
 | Eigenschaft | Regel |
@@ -156,7 +158,7 @@ Bei wiederholten Datenzeilen, etwa Entities, ergänzt der Widgetrenderer eine st
 
 ## Erste Elemente
 
-Die folgenden Adapter sind implementiert. Spezialisierte Typen (`file_tree`, `entity_tree`, `map_canvas`, `script_editor`, `inspector`, `scene_info`, `script_info`) dürfen in dieser ersten Version jeweils nur einmal pro Editorbeschreibung vorkommen; ihre internen C-Zustände sind noch nicht für mehrere Instanzen ausgelegt. Allgemeine Labels, Buttons und Container können mehrfach mit unterschiedlichen IDs vorkommen. Spezialisierte Widgets verwenden weiterhin die bestehenden C-Eingabe- und Renderfunktionen; YAML ordnet sie an und bindet ihre Datenquelle.
+Die folgenden Adapter sind implementiert. Spezialisierte Typen (`file_tree`, `entity_tree`, `map_canvas`, `script_editor`, `inspector`, `scene_info`, `script_info`, `terminal`) dürfen in dieser ersten Version jeweils nur einmal pro Editorbeschreibung vorkommen; ihre internen C-Zustände sind noch nicht für mehrere Instanzen ausgelegt. Allgemeine Labels, Buttons und Container können mehrfach mit unterschiedlichen IDs vorkommen. Spezialisierte Widgets verwenden weiterhin die bestehenden C-Eingabe- und Renderfunktionen; YAML ordnet sie an und bindet ihre Datenquelle.
 
 | Typ | Zusätzliche Felder / Aufgabe | Grundlage |
 | --- | --- | --- |
@@ -165,6 +167,8 @@ Die folgenden Adapter sind implementiert. Spezialisierte Typen (`file_tree`, `en
 | `editor_switcher` | Nur Shell; `labels: false` zeigt Icons mit Titel als Tooltip | Vorhandene Bereichsauswahl |
 | `tabs` | `tabs`-Liste mit `id`, `title`, optional `icon`, genau einem `content`-Knoten | Vorhandenes Tabmodell |
 | `section` | `title`, `open` als anfänglicher Boolean, `children` | Klappbarer Container |
+| `split` | `axis`, `initial`, `minimum_first`, `minimum_second`, `gap`, `first`, `second` | Zwei verstellbare Bereiche; Details in [KONSOLE.md](KONSOLE.md) |
+| `terminal` | `binding: terminal.shared` | Gemeinsame Shell der Anwendungshülle |
 | `row`, `column` | `children`, optional nichtnegativer `gap` | Kinder werden gleichmäßig in verfügbare Breite/Höhe aufgeteilt |
 | `label` | `label` als statischer Text oder `{binding: ...}` | Vorhandene Textdarstellung |
 | `spacer` | Leerer Container, keine Eingabe | Leerer Platzhalter |
@@ -201,6 +205,7 @@ Weitere vorhandene Aktionen sind `map.select_eraser`, `map.select_rectangle`, `m
 | `map.grid_visible` | Boolean |
 | `project.files` | Dateibaum-Modell |
 | `scene.entities` | Entity-Liste mit stabilen IDs |
+| `terminal.shared` | Gemeinsamer Shellservice; unabhängig vom geladenen Editor |
 | `scene.active`, `selection.active`, `document.active` | Typgeprüfte Modellreferenz, ggf. leer |
 
 Ein Widget darf nur passende Datentypen anbinden. Eine leere Auswahl zeigt einen leeren Inspector; ein unbekanntes Binding ist ein Fehler. Bindings lesen zunächst Zustand. Änderungen erfolgen über Aktionen oder über die dokumentierte Eingabelogik spezialisierter Widgets. Eine allgemeine zweiseitige Property-Bindung ist kein Bestandteil dieser ersten Version.
@@ -259,7 +264,7 @@ Ein neuer Widgettyp benötigt zunächst Validatorvertrag und C-Adapter, ein neue
 
 Die globale Toolbar enthält in v1 genau einen `editor_switcher` als letztes Element. `labels: false` zeigt nur Icons, `true` zusätzlich Titel. Andere Elemente davor lassen sich umordnen. Spezifische Werkzeuge bleiben im Editor-`toolbar`-Abschnitt. Die beiden heutigen Editoren sind registriert; ein unbekannter Modulname wird nicht als Platzhalter geladen.
 
-Noch offen sind automatische Dateibeobachtung statt F6, allgemeines Zweiwege-Binding, feinere Containergrößen, zusätzliche Widgettypen, neue Editormodule und Crash-Recovery über Programmstarts hinweg. Die Sitzungssicherung speichert vollständige Undo-Snapshots; dadurch kann ein Wechsel je nach Verlauf spürbar Datenträger-I/O verursachen.
+Noch offen sind automatische Dateibeobachtung statt F6, allgemeines Zweiwege-Binding, Gewichte für beliebige Row-/Column-Kinder, zusätzliche Widgettypen, neue Editormodule und Crash-Recovery über Programmstarts hinweg. Die Sitzungssicherung speichert vollständige Undo-Snapshots; dadurch kann ein Wechsel je nach Verlauf spürbar Datenträger-I/O verursachen.
 
 ## Abnahme und Tests
 

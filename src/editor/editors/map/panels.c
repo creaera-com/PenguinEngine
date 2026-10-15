@@ -3,9 +3,11 @@
 void editor_draw_scene_tree(void) {
     editor_section(app.panel_area.x + 11, app.panel_top + 18, ICON_ENTITY, "SCENE ENTITIES");
     int count = 0;
-    for (int i = 0; i < PE_ENTITIES; i++)
-        if (app.map->scene.objects[i].alive)
+    for (int i = 0; i < PE_ENTITIES; i++) {
+        if (app.map->scene.objects[i].alive) {
             count++;
+        }
+    }
     app.scene_view.content = count ? count * 26.f : 26;
     app.scene_view.viewport = (float)(app.panel_area.h - 46);
     ui_scroll_clamp(&app.scene_view);
@@ -16,12 +18,14 @@ void editor_draw_scene_tree(void) {
                                    app.scene_view.viewport});
     ui_apply_clip(app.renderer, &app.ui);
     float y = app.panel_top + 46 - app.scene_view.offset;
-    if (!count)
+    if (!count) {
         editor_text(app.panel_area.x + 11, y + 8, "No entities in scene.", UI_MUTED);
+    }
     for (int i = 0; i < PE_ENTITIES; i++) {
         const PeObject *o = &app.map->scene.objects[i];
-        if (!o->alive)
+        if (!o->alive) {
             continue;
+        }
         char label[40];
         snprintf(label, sizeof label, "%s %u", o->mask & PE_PLAYER ? "Player" : "Entity",
                  o->stable_id);
@@ -64,16 +68,19 @@ void editor_draw_info(void) {
     snprintf(label, sizeof label, "Layers: %d", app.map->scene.layer_count);
     editor_text(x, y + 80, label, UI_TEXT);
     int count = 0;
-    for (int i = 0; i < PE_ENTITIES; i++)
-        if (app.map->scene.objects[i].alive)
+    for (int i = 0; i < PE_ENTITIES; i++) {
+        if (app.map->scene.objects[i].alive) {
             count++;
+        }
+    }
     snprintf(label, sizeof label, "Entities: %d / %d", count, PE_ENTITIES);
     editor_text(x, y + 104, label, UI_TEXT);
     editor_section(x, y + 148, ICON_EDIT, "SHORTCUTS");
     const char *help[] = {"Ctrl+S  Save",    "Ctrl+Z  Undo",     "F5      Play / Stop",
                           "MMB     Pan map", "Wheel   Zoom map", "B/E/R/F/V  Map tools"};
-    for (int i = 0; i < 6; i++)
+    for (int i = 0; i < 6; i++) {
         editor_text(x, y + 180 + i * 24, help[i], UI_MUTED);
+    }
     ui_clip_pop(&app.ui);
     ui_apply_clip(app.renderer, &app.ui);
     ui_draw_scrollbar(app.renderer, &app.ui, UI_INFO_SCROLL, track, &app.info_view, UI_AXIS_Y);
@@ -106,8 +113,9 @@ void editor_draw_inspector(void) {
         for (int l = 0; l < app.map->scene.layer_count; l++) {
             app.widget_scope = ui_id("layer_row") ^ (UiId)(l + 1);
             snprintf(label, sizeof label, "%d %.20s", l + 1, app.map->scene.layers[l].name);
-            if (button(x, y, w - 50, label, l == app.layer, enabled))
+            if (button(x, y, w - 50, label, l == app.layer, enabled)) {
                 app.layer = l;
+            }
             if (icon_button(x + w - 44, y, 44,
                             app.map->scene.layers[l].visible ? ICON_EYE : ICON_EYE_OFF, "",
                             "Toggle layer visibility", false, enabled) &&
@@ -134,13 +142,15 @@ void editor_draw_inspector(void) {
                     (size_t)(app.map->scene.layer_count - app.layer - 1) * sizeof(PeLayer));
             app.map->scene.layer_count--;
             memset(&app.map->scene.layers[app.map->scene.layer_count], 0, sizeof(PeLayer));
-            if (app.layer >= app.map->scene.layer_count)
+            if (app.layer >= app.map->scene.layer_count) {
                 app.layer--;
+            }
             editor_commit();
         }
         y += 32;
-        if (icon_button(x, y, half, ICON_EDIT, "Rename", NULL, false, enabled))
+        if (icon_button(x, y, half, ICON_EDIT, "Rename", NULL, false, enabled)) {
             editor_field_start(FIELD_LAYER, app.map->scene.layers[app.layer].name);
+        }
         if (icon_button(x + half + 8, y, (half - 8) / 2, ICON_UP, "", "Move layer up", false,
                         enabled && app.layer > 0) &&
             editor_begin()) {
@@ -172,8 +182,9 @@ void editor_draw_inspector(void) {
                 o->y = 64;
                 app.selected = o->stable_id;
                 app.tool = SELECT;
-            } else
+            } else {
                 editor_message("Entity limit reached");
+            }
             editor_commit();
         }
         PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
@@ -223,13 +234,15 @@ void editor_draw_inspector(void) {
                               (app.map->assets.height / app.map->assets.source_tile)
                         : 0,
             columns = (int)(w / 37);
-        if (columns < 1)
+        if (columns < 1) {
             columns = 1;
+        }
         for (int i = 0; i < total; i++) {
             int row = i / columns, col = i % columns;
             SDL_FRect dst = {x + col * 37, y + row * 37, 32, 32};
-            if (dst.y + dst.h < panel.y || dst.y > panel.y + panel.h)
+            if (dst.y + dst.h < panel.y || dst.y > panel.y + panel.h) {
                 continue;
+            }
             int source_columns = app.map->assets.width / app.map->assets.source_tile;
             SDL_FRect src = {(float)(i % source_columns * app.map->assets.source_tile),
                              (float)(i / source_columns * app.map->assets.source_tile),
@@ -242,8 +255,9 @@ void editor_draw_inspector(void) {
             }
             if (enabled && app.click && ui_hovered(&app.ui, (UiRect){dst.x, dst.y, dst.w, dst.h})) {
                 app.tile = i + 1;
-                if (app.tool == SELECT || app.tool == ERASE)
+                if (app.tool == SELECT || app.tool == ERASE) {
                     app.tool = BRUSH;
+                }
             }
         }
         y += ((total + columns - 1) / columns) * 37;

@@ -9,21 +9,25 @@
 #endif
 
 static bool number(const cJSON *j, float *value) {
-    if (!cJSON_IsNumber(j) || !isfinite(j->valuedouble) || fabs(j->valuedouble) > 1000000)
+    if (!cJSON_IsNumber(j) || !isfinite(j->valuedouble) || fabs(j->valuedouble) > 1000000) {
         return false;
+    }
     *value = (float)j->valuedouble;
     return true;
 }
 
 bool pe_scene_load(PeScene *scene, const char *path, char *error, size_t size) {
     cJSON *j = pe_json_read(path, error, size);
-    if (!j)
+    if (!j) {
         return false;
+    }
+
     PeScene *s = malloc(sizeof *s);
     if (!s) {
         cJSON_Delete(j);
         return pe_json_fail(error, size, "Out of memory");
     }
+
     int version, w, h, tile, source_size;
     bool ok = pe_json_integer(cJSON_GetObjectItemCaseSensitive(j, "version"), 1, 1, &version) &&
               pe_json_integer(cJSON_GetObjectItemCaseSensitive(j, "width"), 1, PE_MAP_MAX, &w) &&
@@ -31,8 +35,9 @@ bool pe_scene_load(PeScene *scene, const char *path, char *error, size_t size) {
               pe_json_integer(cJSON_GetObjectItemCaseSensitive(j, "tile_size"), 1, 128, &tile) &&
               pe_json_integer(cJSON_GetObjectItemCaseSensitive(j, "tileset_tile_size"), 1, 128,
                               &source_size);
-    if (!ok)
+    if (!ok) {
         goto done;
+    }
     pe_scene_init(s, w, h, tile);
     s->tileset_tile_size = source_size;
     cJSON *asset = cJSON_GetObjectItemCaseSensitive(j, "tileset");
@@ -61,7 +66,7 @@ bool pe_scene_load(PeScene *scene, const char *path, char *error, size_t size) {
         strcpy(s->layers[l].name, name->valuestring);
         s->layers[l].visible = cJSON_IsTrue(visible);
         cJSON *entry = tiles->child;
-        for (int y = 0; y < h; y++)
+        for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
                 int value;
                 if (!pe_json_integer(entry, 0, 65535, &value)) {
@@ -71,6 +76,7 @@ bool pe_scene_load(PeScene *scene, const char *path, char *error, size_t size) {
                 s->layers[l].tiles[y * PE_MAP_MAX + x] = (uint16_t)value;
                 entry = entry->next;
             }
+        }
     }
     cJSON *solid = cJSON_GetObjectItemCaseSensitive(j, "collision");
     if (!cJSON_IsArray(solid) || cJSON_GetArraySize(solid) != w * h) {
@@ -78,7 +84,7 @@ bool pe_scene_load(PeScene *scene, const char *path, char *error, size_t size) {
         goto done;
     }
     cJSON *entry = solid->child;
-    for (int y = 0; y < h; y++)
+    for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++) {
             int value;
             if (!pe_json_integer(entry, 0, 1, &value)) {
@@ -88,6 +94,7 @@ bool pe_scene_load(PeScene *scene, const char *path, char *error, size_t size) {
             s->solid[y * PE_MAP_MAX + x] = (uint8_t)value;
             entry = entry->next;
         }
+    }
     cJSON *objects = cJSON_GetObjectItemCaseSensitive(j, "entities");
     count = cJSON_GetArraySize(objects);
     if (!cJSON_IsArray(objects) || count > PE_ENTITIES) {
@@ -122,8 +129,9 @@ bool pe_scene_load(PeScene *scene, const char *path, char *error, size_t size) {
         o->w = ow;
         o->h = oh;
         o->color = (uint32_t)color->valuedouble;
-        if (s->next_id <= (uint32_t)id)
+        if (s->next_id <= (uint32_t)id) {
             s->next_id = (uint32_t)id + 1;
+        }
     }
     *scene = *s;
 done:
@@ -132,10 +140,12 @@ done:
     return ok ? true
               : pe_json_fail(error, size, "Invalid scene schema or unsupported version: %s", path);
 }
+
 bool pe_scene_save(const PeScene *s, const char *path, char *error, size_t size) {
     cJSON *j = cJSON_CreateObject();
-    if (!j)
+    if (!j) {
         return pe_json_fail(error, size, "Out of memory");
+    }
     cJSON_AddNumberToObject(j, "version", 1);
     cJSON_AddNumberToObject(j, "width", s->width);
     cJSON_AddNumberToObject(j, "height", s->height);
@@ -149,19 +159,24 @@ bool pe_scene_save(const PeScene *s, const char *path, char *error, size_t size)
         cJSON_AddStringToObject(layer, "name", s->layers[l].name);
         cJSON_AddBoolToObject(layer, "visible", s->layers[l].visible);
         cJSON *tiles = cJSON_AddArrayToObject(layer, "tiles");
-        for (int y = 0; y < s->height; y++)
-            for (int x = 0; x < s->width; x++)
+        for (int y = 0; y < s->height; y++) {
+            for (int x = 0; x < s->width; x++) {
                 cJSON_AddItemToArray(tiles, cJSON_CreateNumber(pe_tile_get(s, l, x, y)));
+            }
+        }
     }
     cJSON *solid = cJSON_AddArrayToObject(j, "collision");
-    for (int y = 0; y < s->height; y++)
-        for (int x = 0; x < s->width; x++)
+    for (int y = 0; y < s->height; y++) {
+        for (int x = 0; x < s->width; x++) {
             cJSON_AddItemToArray(solid, cJSON_CreateNumber(s->solid[y * PE_MAP_MAX + x]));
+        }
+    }
     cJSON *objects = cJSON_AddArrayToObject(j, "entities");
     for (int i = 0; i < PE_ENTITIES; i++) {
         const PeObject *o = &s->objects[i];
-        if (!o->alive)
+        if (!o->alive) {
             continue;
+        }
         cJSON *obj = cJSON_CreateObject();
         cJSON_AddItemToArray(objects, obj);
         cJSON_AddNumberToObject(obj, "id", o->stable_id);
@@ -172,10 +187,13 @@ bool pe_scene_save(const PeScene *s, const char *path, char *error, size_t size)
         cJSON_AddNumberToObject(obj, "h", o->h);
         cJSON_AddNumberToObject(obj, "color", o->color);
     }
+
     char *text = cJSON_Print(j);
     cJSON_Delete(j);
-    if (!text)
+    if (!text) {
         return pe_json_fail(error, size, "Out of memory");
+    }
+
     char temp[1024];
     if (snprintf(temp, sizeof temp, "%s.tmp", path) >= (int)sizeof temp) {
         free(text);
@@ -186,10 +204,12 @@ bool pe_scene_save(const PeScene *s, const char *path, char *error, size_t size)
         free(text);
         return pe_json_fail(error, size, "Cannot write %s", temp);
     }
+
     bool ok = fwrite(text, 1, strlen(text), f) == strlen(text);
     free(text);
-    if (fclose(f))
+    if (fclose(f)) {
         ok = false;
+    }
     if (ok) {
 #ifdef _WIN32
         ok = MoveFileExA(temp, path, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
@@ -201,5 +221,6 @@ bool pe_scene_save(const PeScene *s, const char *path, char *error, size_t size)
         remove(temp);
         return pe_json_fail(error, size, "Save failed; original file retained");
     }
+
     return true;
 }

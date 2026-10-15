@@ -9,30 +9,37 @@ typedef struct {
 } HistoryHeader;
 
 static bool session_scene(PeSession *io, PeScene *scene) {
-    if (!pe_session_block(io, scene, sizeof *scene))
+    if (!pe_session_block(io, scene, sizeof *scene)) {
         return false;
-    if (!io->reading)
+    }
+    if (!io->reading) {
         return true;
+    }
     if (scene->width < 1 || scene->width > PE_MAP_MAX || scene->height < 1 ||
         scene->height > PE_MAP_MAX || scene->layer_count < 1 || scene->layer_count > PE_LAYERS ||
-        scene->tile_size < 1 || !memchr(scene->tileset, 0, sizeof scene->tileset))
+        scene->tile_size < 1 || !memchr(scene->tileset, 0, sizeof scene->tileset)) {
         return false;
+    }
     for (int i = 0; i < PE_LAYERS; i++) {
         unsigned char b;
         memcpy(&b, &scene->layers[i].visible, 1);
-        if (b > 1 || !memchr(scene->layers[i].name, 0, sizeof scene->layers[i].name))
+        if (b > 1 || !memchr(scene->layers[i].name, 0, sizeof scene->layers[i].name)) {
             return false;
+        }
     }
     for (int i = 0; i < PE_ENTITIES; i++) {
         unsigned char b;
         memcpy(&b, &scene->objects[i].alive, 1);
-        if (b > 1)
+        if (b > 1) {
             return false;
+        }
         const PeObject *o = &scene->objects[i];
         if (!isfinite(o->x) || !isfinite(o->y) || !isfinite(o->w) || !isfinite(o->h) ||
-            !isfinite(o->vx) || !isfinite(o->vy))
+            !isfinite(o->vx) || !isfinite(o->vy)) {
             return false;
+        }
     }
+
     return true;
 }
 
@@ -41,8 +48,9 @@ bool me_checkpoint(MapPayload *map, PeSession *io) {
     HistoryHeader header = {h->revision, h->next_revision, h->saved_revision, h->count, h->cursor};
     if (!session_scene(io, &map->scene) || !pe_session_block(io, &header, sizeof header) ||
         header.count < 0 || header.count > PE_HISTORY || header.cursor < 0 ||
-        header.cursor > header.count || header.next <= header.revision)
+        header.cursor > header.count || header.next <= header.revision) {
         return false;
+    }
     if (io->reading) {
         h->count = header.count;
         h->cursor = header.cursor;
@@ -59,8 +67,10 @@ bool me_checkpoint(MapPayload *map, PeSession *io) {
         if (!c->before || !c->after ||
             !pe_session_block(io, &c->before_revision, sizeof(uint64_t)) ||
             !pe_session_block(io, &c->after_revision, sizeof(uint64_t)) ||
-            !session_scene(io, c->before) || !session_scene(io, c->after))
+            !session_scene(io, c->before) || !session_scene(io, c->after)) {
             return false;
+        }
     }
+
     return true;
 }

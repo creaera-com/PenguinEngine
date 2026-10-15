@@ -5,26 +5,31 @@ bool editor_begin(void) {
         editor_message("Cannot begin edit (pending edit or out of memory)");
         return false;
     }
+
     return true;
 }
 
 void editor_commit(void) {
-    if (!pe_history_commit(&app.map->history, &app.map->scene))
+    if (!pe_history_commit(&app.map->history, &app.map->scene)) {
         editor_message("Out of memory: edit reverted");
+    }
 }
 
 void editor_assets_sync(void) {
     char error[256];
     if (!pe_assets_load(&app.map->assets, app.renderer, app.root, &app.map->scene, error,
-                        sizeof error))
+                        sizeof error)) {
         editor_message(error);
+    }
 }
 
 void editor_selection_sync(void) {
-    if (app.layer >= app.map->scene.layer_count)
+    if (app.layer >= app.map->scene.layer_count) {
         app.layer = app.map->scene.layer_count - 1;
-    if (!pe_entity_valid(&app.map->scene, pe_entity_find(&app.map->scene, app.selected)))
+    }
+    if (!pe_entity_valid(&app.map->scene, pe_entity_find(&app.map->scene, app.selected))) {
         app.selected = 0;
+    }
     editor_assets_sync();
 }
 
@@ -92,18 +97,21 @@ bool editor_import_png(const char *source) {
         editor_message("Import requires a PNG file; stop play mode first");
         return false;
     }
+
     SDL_PathInfo info;
     if (!SDL_GetPathInfo(source, &info) || info.type != SDL_PATHTYPE_FILE ||
         info.size > 64 * 1024 * 1024) {
         editor_message("Cannot import file (max 64 MiB)");
         return false;
     }
+
     char folder[1024];
     snprintf(folder, sizeof folder, "%s/assets", app.root);
     if (!SDL_CreateDirectory(folder)) {
         editor_message(SDL_GetError());
         return false;
     }
+
     char relative[PE_PATH], destination[1024];
     int counter = 0;
     do {

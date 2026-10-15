@@ -77,9 +77,34 @@ target_include_directories(penguin_editor_session PUBLIC src/editor)
 if(NOT MSVC)
  target_compile_options(penguin_editor_session PRIVATE -Wall -Wextra -Wpedantic)
 endif()
+add_library(penguin_vterm STATIC
+ third_party/libvterm/src/encoding.c third_party/libvterm/src/keyboard.c
+ third_party/libvterm/src/mouse.c third_party/libvterm/src/parser.c
+ third_party/libvterm/src/pen.c third_party/libvterm/src/screen.c
+ third_party/libvterm/src/state.c third_party/libvterm/src/unicode.c third_party/libvterm/src/vterm.c)
+target_include_directories(penguin_vterm PUBLIC third_party/libvterm/include)
+add_library(penguin_terminal STATIC src/editor/console/terminal.c)
+target_include_directories(penguin_terminal PUBLIC src/editor)
+target_link_libraries(penguin_terminal PRIVATE penguin_vterm)
+if(UNIX)
+ target_sources(penguin_terminal PRIVATE src/platform/terminal/posix.c)
+else()
+ target_sources(penguin_terminal PRIVATE src/platform/terminal/unavailable.c)
+endif()
+target_include_directories(penguin_terminal PUBLIC src)
+if(NOT MSVC)
+ target_compile_options(penguin_terminal PRIVATE -Wall -Wextra -Wpedantic)
+endif()
 add_subdirectory(src/ui)
 include(CTest)
 if(BUILD_TESTING)
+ add_executable(penguin_terminal_tests tests/test_terminal.c)
+ target_link_libraries(penguin_terminal_tests PRIVATE penguin_terminal unity)
+ if(UNIX)
+  target_compile_definitions(penguin_terminal_tests PRIVATE _POSIX_C_SOURCE=200809L)
+ endif()
+ add_test(NAME terminal_unit_tests COMMAND penguin_terminal_tests)
+ set_tests_properties(terminal_unit_tests PROPERTIES TIMEOUT 15)
  add_library(unity STATIC third_party/unity/unity.c)
  target_include_directories(unity PUBLIC third_party/unity)
  add_executable(penguin_tests tests/test_engine.c)
@@ -121,6 +146,7 @@ if(PENGUIN_BUILD_EDITOR)
  target_include_directories(penguin_editor_documents PUBLIC src/editor)
  target_link_libraries(penguin_editor_documents PUBLIC penguin_editor_session penguin_sdl penguin_script penguin_ui)
  add_executable(penguin_editor
+  src/editor/console/view.c
   src/editor/app/main.c
   src/editor/app/state.c
   src/editor/app/input.c
@@ -149,7 +175,7 @@ if(PENGUIN_BUILD_EDITOR)
   target_compile_definitions(penguin_editor PRIVATE PE_EDITOR_SMOKE_TESTS=1)
  endif()
  target_include_directories(penguin_editor PRIVATE src/editor)
- target_link_libraries(penguin_editor PRIVATE penguin_editor_documents penguin_sdl penguin_script penguin_ui_sdl penguin_editor_session penguin_ui_layout)
+ target_link_libraries(penguin_editor PRIVATE penguin_terminal penguin_editor_documents penguin_sdl penguin_script penguin_ui_sdl penguin_editor_session penguin_ui_layout)
  add_executable(penguin_ui_demo examples/ui/main.c)
  target_link_libraries(penguin_ui_demo PRIVATE penguin_ui_sdl)
  add_executable(penguin_game examples/topdown/main.c)
@@ -191,4 +217,15 @@ if(PENGUIN_BUILD_EDITOR)
   add_test(NAME game_smoke COMMAND penguin_game --project ${CMAKE_BINARY_DIR}/example --smoke)
   set_tests_properties(editor_smoke game_smoke PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy" TIMEOUT 20)
  endif()
+endif()
+
+# API documentation is optional; normal builds never require Doxygen.
+find_package(Doxygen QUIET)
+if(DOXYGEN_FOUND)
+ configure_file(docs/doxygen/Doxyfile.in ${CMAKE_BINARY_DIR}/Doxyfile @ONLY)
+ add_custom_target(api_docs
+  COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_BINARY_DIR}/Doxyfile
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  COMMENT "Generating PenguinEngine API documentation"
+  VERBATIM)
 endif()

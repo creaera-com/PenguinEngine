@@ -18,6 +18,7 @@ PenguinEngine/
 │   │   └── scripting/           Textdokumente und JavaScript-Sprachunterstützung
 │   ├── editor/
 │   │   ├── app/                 Start, Hauptschleife, Shell und Eingabeverteilung
+│   │   ├── console/             Gemeinsamer Shellservice und Terminalansicht
 │   │   ├── browser/             Projekt-Dateibaum und Dateityperkennung
 │   │   ├── dialogs/             Modale Rückfragen und Texteingabefelder
 │   │   ├── editors/
@@ -30,7 +31,8 @@ PenguinEngine/
 │   │   ├── core/                Eingabe, Fokus, Layout und Widget-Zustände
 │   │   └── rendering/           SDL-Darstellung, Icons und eingebetteter Font-Atlas
 │   ├── platform/
-│   │   └── sdl/                SDL-Szenenrenderer und öffentliche Render-Schnittstelle
+│   │   ├── sdl/                SDL-Szenenrenderer und öffentliche Render-Schnittstelle
+│   │   └── terminal/           PTY-Prozessadapter und zukünftiger ConPTY-Port
 │   └── shared/
 │       └── json/               Gemeinsames JSON-Einlesen und grundlegende Validierung
 ├── resources/
@@ -62,7 +64,7 @@ Der Map-Editor ist in `document.c` (Dateioperationen, Tileset und Bearbeitungstr
 
 `workspace/documents.c` koordiniert globale Befehle wie Speichern, Undo/Redo und Öffnen. `workspace/lifecycle.c` sichert den aktuellen UI-Zustand, entlädt den bisherigen Editor und aktiviert den nächsten. Die tatsächlichen Dokumentdaten serialisieren die jeweiligen `checkpoint.c`-Module. Diese erhalten Dokument und Kontext als Argumente und benötigen weder den globalen Editorzustand noch ein geöffnetes Fenster. Ihre eigenständigen Unity-Tests verifizieren auch nach dem Wiederherstellen unabhängiges Undo/Redo.
 
-Die interne Anwendungsschnittstelle `app/editor_internal.h` führt die privaten Modulverträge zusammen und beschreibt den gemeinsamen Editorzustand. Die UI-Adapter greifen weiterhin auf diese eine Anwendungsinstanz zu. Das ist eine Aufteilung in fachliche C-Module, noch keine vollständige Entkopplung aller UI-Adapter oder Unterstützung mehrerer Editorfenster. Engine und wiederverwendbare UI-Bibliothek kennen diesen Zustand nicht. Änderungen daran bleiben auf den Editor beschränkt.
+Die interne Anwendungsschnittstelle `app/editor_internal.h` führt die privaten Modulverträge zusammen und beschreibt den gemeinsamen Editorzustand. Die UI-Adapter greifen weiterhin auf diese eine Anwendungsinstanz zu. Die [gemeinsame Shellkonsole](KONSOLE.md) bleibt dabei unabhängig von den geladenen Editoren bestehen; nur ihre Panels und Splitterzustände sind editorbezogen. Das ist eine Aufteilung in fachliche C-Module, noch keine vollständige Entkopplung aller UI-Adapter oder Unterstützung mehrerer Editorfenster. Engine und wiederverwendbare UI-Bibliothek kennen diesen Zustand nicht. Änderungen daran bleiben auf den Editor beschränkt.
 
 Die öffentlichen Engine-Funktionen aus `penguin/engine.h` sind unverändert. Ihre Implementierungen liegen nun in der jeweiligen Domäne statt in einem gemeinsamen `scene/core.c`. Projektmanifeste werden unter `engine/project/` verarbeitet; Szenenserialisierung bleibt unter `engine/scene/`.
 
