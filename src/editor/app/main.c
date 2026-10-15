@@ -1,8 +1,9 @@
+#include "editors/map/map_editor.h"
+#include "editors/scripts/script_editor.h"
+#include "layout/ui_layout.h"
 #include "penguin/render.h"
-#include "penguin/session.h"
-#include "penguin/ui_layout.h"
 #include "penguin/ui_sdl.h"
-#include "script_editor.h"
+#include "workspace/session.h"
 #include <SDL3/SDL_main.h>
 #include <errno.h>
 #include <math.h>
@@ -33,7 +34,6 @@
 #define UI_INFO_TAB 0x1000du
 #define UI_SCENE_SCROLL 0x1000eu
 #define UI_INFO_SCROLL 0x1000fu
-typedef enum { BRUSH, ERASE, RECTANGLE, FILL, SELECT } Tool;
 typedef enum {
     FIELD_NONE,
     FIELD_IMPORT,
@@ -62,11 +62,6 @@ typedef struct {
     int count, open, dragging;
     float scroll;
 } WidgetState;
-typedef struct {
-    PeScene scene, runtime;
-    PeHistory history;
-    PeAssets assets;
-} MapPayload;
 typedef struct {
     SDL_Window *window;
     SDL_Renderer *renderer;

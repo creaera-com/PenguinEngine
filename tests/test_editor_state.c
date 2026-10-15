@@ -1,6 +1,6 @@
-#include "penguin/session.h"
-#include "penguin/ui_layout.h"
+#include "layout/ui_layout.h"
 #include "unity.h"
+#include "workspace/session.h"
 #include <stdlib.h>
 #include <string.h>
 #define CACHE "editor-state-test.session"
@@ -107,9 +107,9 @@ static void test_minimal_layout(void) {
     pe_ui_layout_free(layout);
 }
 static void test_runtime_layouts(void) {
-    const char *files[] = {PE_SOURCE_DIR "/editor/ui/shell.yaml",
-                           PE_SOURCE_DIR "/editor/ui/editors/map.yaml",
-                           PE_SOURCE_DIR "/editor/ui/editors/scripts.yaml",
+    const char *files[] = {PE_SOURCE_DIR "/resources/editor/ui/shell.yaml",
+                           PE_SOURCE_DIR "/resources/editor/ui/editors/map.yaml",
+                           PE_SOURCE_DIR "/resources/editor/ui/editors/scripts.yaml",
                            PE_SOURCE_DIR "/docs/examples/ui/shell.yaml",
                            PE_SOURCE_DIR "/docs/examples/ui/editors/map.yaml",
                            PE_SOURCE_DIR "/docs/examples/ui/editors/scripts.yaml"};
@@ -198,8 +198,8 @@ static void test_duplicate_specialized_widgets(void) {
             "only once");
 }
 static void test_selector_must_be_last(void) {
-    PeUiLayout *shell =
-        pe_ui_layout_load(PE_SOURCE_DIR "/editor/ui/shell.yaml", "shell", error, sizeof error);
+    PeUiLayout *shell = pe_ui_layout_load(PE_SOURCE_DIR "/resources/editor/ui/shell.yaml", "shell",
+                                          error, sizeof error);
     TEST_ASSERT_NOT_NULL(shell);
     cJSON *button = cJSON_CreateObject();
     cJSON_AddStringToObject(button, "type", "button");

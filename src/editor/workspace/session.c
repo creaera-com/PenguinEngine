@@ -1,4 +1,4 @@
-#include "penguin/session.h"
+#include "workspace/session.h"
 #include <stdlib.h>
 #include <string.h>
 #ifdef _WIN32

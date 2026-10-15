@@ -4,14 +4,14 @@
 
 ## Sofort ausprobieren
 
-Die verwendeten Dateien sind [editor/ui/shell.yaml](../editor/ui/shell.yaml), [map.yaml](../editor/ui/editors/map.yaml) und [scripts.yaml](../editor/ui/editors/scripts.yaml). Der Build kopiert sie nach `build/ui-layouts`. Ohne Argument sucht der Editor diese Kopie neben der Programmdatei beziehungsweise eine Ebene darüber (Debug/Release-Konfigurationen).
+Die verwendeten Dateien sind [resources/editor/ui/shell.yaml](../resources/editor/ui/shell.yaml), [map.yaml](../resources/editor/ui/editors/map.yaml) und [scripts.yaml](../resources/editor/ui/editors/scripts.yaml). Der Build kopiert sie nach `build/ui-layouts`. Ohne Argument sucht der Editor diese Kopie neben der Programmdatei beziehungsweise eine Ebene darüber (Debug/Release-Konfigurationen).
 
 ```sh
 cmake --build build --parallel
-build/penguin_editor --ui editor/ui/shell.yaml
+build/penguin_editor --ui resources/editor/ui/shell.yaml
 ```
 
-Mit `--ui` kann eine eigene Shell-Datei gewählt werden; Editor-Dateipfade sind relativ zu dieser Datei. In CLion einen absoluten `--ui`-Pfad als Programmargument setzen, wenn die Arbeitsverzeichnisse variieren. **F6** lädt die Shell und den aktiven Editor erneut. Für dauerhafte eigene Änderungen einen eigenen Layoutordner oder direkt die Quelldateien unter `editor/ui` verwenden: Ein weiterer Build überschreibt die Kopien unter `build/ui-layouts` mit den Repo-Vorgaben. Ein fehlerhafter Erststart meldet den Fehler auf stderr und beendet sich; ein fehlerhafter Reload lässt die laufende Oberfläche bestehen.
+Mit `--ui` kann eine eigene Shell-Datei gewählt werden; Editor-Dateipfade sind relativ zu dieser Datei. In CLion einen absoluten `--ui`-Pfad als Programmargument setzen, wenn die Arbeitsverzeichnisse variieren. **F6** lädt die Shell und den aktiven Editor erneut. Für dauerhafte eigene Änderungen einen eigenen Layoutordner oder direkt die Quelldateien unter `resources/editor/ui` verwenden: Ein weiterer Build überschreibt die Kopien unter `build/ui-layouts` mit den Repo-Vorgaben. Ein fehlerhafter Erststart meldet den Fehler auf stderr und beendet sich; ein fehlerhafter Reload lässt die laufende Oberfläche bestehen.
 
 YAML beschreibt den Aufbau: Panels, Tabs, Widgets, Toolbars, Gestaltung und Verknüpfungen. C stellt Widgets, Daten und Aktionen bereit. So lassen sich vorhandene Elemente selbst neu zusammenstellen; ein neues Zeichenwerkzeug oder ein völlig neues Widget benötigt weiterhin eine C-Implementierung. Der Ansatz entspricht der Trennung zwischen Layoutdatei und Controller etwa bei JavaFX/FXML.
 
@@ -66,7 +66,7 @@ Die Speicherung liegt im SDL-Benutzerverzeichnis `PenguinEngine/editor-sessions`
 
 ## Dateien und erster Aufbau
 
-Die vollständigen Beispielbeschreibungen liegen unter [examples/ui/shell.yaml](examples/ui/shell.yaml), [editors/map.yaml](examples/ui/editors/map.yaml) und [editors/scripts.yaml](examples/ui/editors/scripts.yaml). Es sind bewusst kleinere Startbeispiele, keine vollständige Beschreibung aller heutigen Kartenwerkzeuge. Sie können mit `--ui docs/examples/ui/shell.yaml` geladen werden. Die tatsächlich ausgelieferten Layouts liegen unter `editor/ui`. Beide Beispielgruppen werden durch die C-Loader-Tests geprüft.
+Die vollständigen Beispielbeschreibungen liegen unter [examples/ui/shell.yaml](examples/ui/shell.yaml), [editors/map.yaml](examples/ui/editors/map.yaml) und [editors/scripts.yaml](examples/ui/editors/scripts.yaml). Es sind bewusst kleinere Startbeispiele, keine vollständige Beschreibung aller heutigen Kartenwerkzeuge. Sie können mit `--ui docs/examples/ui/shell.yaml` geladen werden. Die tatsächlich ausgelieferten Layouts liegen unter `resources/editor/ui`. Beide Beispielgruppen werden durch die C-Loader-Tests geprüft.
 
 ```text
 ui/
@@ -246,11 +246,11 @@ Die Positionsangabe ist ein Beispiel. Validiert wird vor Aktivierung einer neuen
 
 ## Implementierung und Erweiterungsstellen
 
-- `editor/src/ui_layout.c`: YAML → Knotenmodell, Quellpositionen, Schema, Typ-/Aktions-/Binding-Prüfung.
-- `editor/src/main.c`: Anwendungshülle, registrierte Adapter, Zustand des aktiven Editors, Layout/Rendern und F6-Reload. Wechsel aus einem UI-Callback werden bis zum Frameende aufgeschoben, damit keine gerade benutzten YAML-Knoten freigegeben werden.
-- `editor/src/session.c`: begrenzter Checkpoint-Stream, Prüfsumme und atomarer Austausch. Dokument-/Undo-Codec und UI-Snapshots werden vom Editor bereitgestellt.
-- `editor/include/penguin/ui_layout.h` und `session.h`: interne C-Schnittstellen für Loader und Checkpoints, unabhängig von SDL testbar.
-- `ui/`: wiederverwendbare Eingabe-/Layoutbausteine und SDL-Darstellung; das Theme kann zur Laufzeit gesetzt werden.
+- `src/editor/layout/ui_layout.c`: YAML → Knotenmodell, Quellpositionen, Schema, Typ-/Aktions-/Binding-Prüfung.
+- `src/editor/app/main.c`: Anwendungshülle, registrierte Adapter, Zustand des aktiven Editors, Layout/Rendern und F6-Reload. Wechsel aus einem UI-Callback werden bis zum Frameende aufgeschoben, damit keine gerade benutzten YAML-Knoten freigegeben werden.
+- `src/editor/workspace/session.c`: begrenzter Checkpoint-Stream, Prüfsumme und atomarer Austausch. Dokument-/Undo-Codec und UI-Snapshots werden vom Editor bereitgestellt.
+- `src/editor/layout/ui_layout.h` und `src/editor/workspace/session.h`: interne C-Schnittstellen für Loader und Checkpoints, unabhängig von SDL testbar.
+- `src/ui/`: wiederverwendbare Eingabe-/Layoutbausteine und SDL-Darstellung; das Theme kann zur Laufzeit gesetzt werden.
 
 Ein neuer Widgettyp benötigt zunächst Validatorvertrag und C-Adapter, ein neuer Editor zusätzlich Modul-/Dokument-Lebenszyklus und Eingaben. Die Engine bleibt in C und benötigt für den UI-Aufbau weder Python noch JavaScript. Die Parsernamen sind eine begrenzte interne Registry; dynamische DLL-Plugins sind noch nicht vorgesehen.
 

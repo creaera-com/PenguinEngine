@@ -59,7 +59,7 @@ Die automatisierten Tests wurden in der Entwicklungsumgebung headless ausgeführ
 
 ## YAML, Entladen und Sitzungssicherung
 
-1. Eine eigene Kopie von `editor/ui` mit `--ui /absoluter/pfad/shell.yaml` öffnen. Texte, Iconreihenfolge und Panelinhalte ändern, F6 drücken. Alle drei Spalten folgen dem jeweiligen Editor. Layouts, die noch nicht registrierte Typen verwenden, werden mit Quellposition abgelehnt.
+1. Eine eigene Kopie von `resources/editor/ui` mit `--ui /absoluter/pfad/shell.yaml` öffnen. Texte, Iconreihenfolge und Panelinhalte ändern, F6 drücken. Alle drei Spalten folgen dem jeweiligen Editor. Layouts, die noch nicht registrierte Typen verwenden, werden mit Quellposition abgelehnt.
 2. Map ändern, Kamera/Zoom/Auswahl verstellen und zwischen Map/Scripts wechseln. Undo/Redo, Dirty-Anzeige und Ansicht bleiben erhalten. Im Script Text ändern, Undo ausführen, wechseln und zurückkehren: auch die Redo-Stufe bleibt erhalten.
 3. F6 mit geänderter Farbe oder Abstand testen. Danach einen YAML-Syntaxfehler bzw. unbekannte Aktion einbauen und erneut F6: bisherige UI und ungespeichertes Dokument bleiben bedienbar. Fehler korrigieren und erneut laden.
 4. Bei beiden Editoren ungespeicherte Änderungen anlegen und schließen: Speichern berücksichtigt auch den inaktiven Editor. Verwerfen verändert keine Quelldatei; Abbrechen behält die Sitzung. Play verhindert einen Wechsel.

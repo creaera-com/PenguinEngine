@@ -51,7 +51,9 @@ Spiel  ──> Engine
 
 Die Engine kennt keine Editor-Fenster oder Editor-Werkzeuge. Editor-Code darf Engine-Funktionen aufrufen; Engine-Code darf keine Editor-Funktionen voraussetzen.
 
-## 4. Vorgeschlagene Repository-Struktur
+## 4. Ursprünglich vorgeschlagene Repository-Struktur
+
+Die aktuelle Struktur unter `src/` und `resources/` beschreibt [PROJEKTSTRUKTUR.md](PROJEKTSTRUKTUR.md). Der folgende Baum dokumentiert die ursprüngliche Planung.
 
 ```text
 repository/
