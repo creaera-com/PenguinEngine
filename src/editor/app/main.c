@@ -4,6 +4,7 @@
 #include "editor_smoke.h"
 #endif
 static bool start_scripts;
+static bool start_scene_tree;
 
 int main(int argc, char **argv) {
     const char *root = NULL;
@@ -16,11 +17,13 @@ int main(int argc, char **argv) {
             snprintf(app.ui_path, sizeof app.ui_path, "%s", argv[++i]);
         } else if (!strcmp(argv[i], "--scripts")) {
             start_scripts = true;
+        } else if (!strcmp(argv[i], "--scene-tree")) {
+            start_scene_tree = true;
         } else if (!strcmp(argv[i], "--smoke")) {
             app.smoke = true;
         } else {
             fprintf(stderr, "Usage: penguin_editor [--project path] [--smoke] [--scripts] "
-                            "[--ui shell.yaml] [--screenshot file.bmp]\n");
+                            "[--scene-tree] [--ui shell.yaml] [--screenshot file.bmp]\n");
             return 1;
         }
     }
@@ -120,13 +123,15 @@ int main(int argc, char **argv) {
     if (app.smoke &&
         (!editor_verify_editor() || !editor_verify_script_editor() || !editor_verify_ui_layout() ||
          !editor_verify_workspace_tools() || !editor_verify_lifecycle() ||
-         !editor_verify_console() || !editor_verify_window())) {
+         !editor_verify_console() || !editor_verify_window() || !editor_verify_scene_graph())) {
         app.running = false;
         exit_code = 1;
     }
 #endif
     if (start_scripts) {
         editor_tab_select(true);
+    } else if (start_scene_tree) {
+        app.left_tabs.selected = UI_SCENE_TAB;
     }
 
     int frames = 0;

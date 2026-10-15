@@ -211,10 +211,13 @@ static void yaml_button(const cJSON *n, SDL_FRect area) {
 }
 
 int editor_yaml_toolbar_rows(float width) {
-    const cJSON *list = pe_ui_get(app.active_layout->root, "toolbar");
+    return editor_yaml_tool_rows(pe_ui_get(app.active_layout->root, "toolbar"), width);
+}
+
+int editor_yaml_tool_rows(const cJSON *list, float width) {
     float x = 8;
     int rows = 1;
-    for (const cJSON *n = list->child; n; n = n->next) {
+    for (const cJSON *n = list ? list->child : NULL; n; n = n->next) {
         if (!editor_yaml_boolean(pe_ui_get(n, "visible"), true)) {
             continue;
         }
@@ -233,8 +236,12 @@ int editor_yaml_toolbar_rows(float width) {
 
 void editor_draw_yaml_toolbar(SDL_FRect area) {
     const cJSON *list = pe_ui_get(app.active_layout->root, "toolbar");
+    editor_draw_yaml_tool_list(list, area);
+}
+
+void editor_draw_yaml_tool_list(const cJSON *list, SDL_FRect area) {
     float x = area.x + 8, y = area.y + 6;
-    for (const cJSON *n = list->child; n; n = n->next) {
+    for (const cJSON *n = list ? list->child : NULL; n; n = n->next) {
         if (!editor_yaml_boolean(pe_ui_get(n, "visible"), true)) {
             continue;
         }
@@ -524,6 +531,14 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
         } else if (!strcmp(type, "file_tree")) {
             editor_draw_tree();
         } else if (!strcmp(type, "entity_tree")) {
+            const cJSON *tools = pe_ui_get(n, "tools");
+            if (tools) {
+                editor_draw_yaml_tool_list(tools, area);
+                float height = editor_yaml_tool_rows(tools, area.w) * 32.f + 6;
+                app.panel_area.y += height;
+                app.panel_area.h = fmaxf(0, app.panel_area.h - height);
+                app.panel_top = app.panel_area.y;
+            }
             editor_draw_scene_tree();
         } else if (!strcmp(type, "inspector")) {
             editor_draw_inspector();

@@ -40,16 +40,30 @@ static bool session_scene(PeSession *io, PeScene *scene) {
         }
     }
 
-    return true;
+    return pe_scene_hierarchy_valid(scene);
 }
 
 bool me_checkpoint(MapPayload *map, PeSession *io) {
     PeHistory *h = &map->history;
     HistoryHeader header = {h->revision, h->next_revision, h->saved_revision, h->count, h->cursor};
-    if (!session_scene(io, &map->scene) || !pe_session_block(io, &header, sizeof header) ||
-        header.count < 0 || header.count > PE_HISTORY || header.cursor < 0 ||
-        header.cursor > header.count || header.next <= header.revision) {
+    if (!session_scene(io, &map->scene) ||
+        !pe_session_block(io, &map->collapsed_count, sizeof map->collapsed_count) ||
+        map->collapsed_count < 0 || map->collapsed_count > PE_ENTITIES ||
+        !pe_session_block(io, map->collapsed, (size_t)map->collapsed_count * sizeof(uint32_t)) ||
+        !pe_session_block(io, &header, sizeof header) || header.count < 0 ||
+        header.count > PE_HISTORY || header.cursor < 0 || header.cursor > header.count ||
+        header.next <= header.revision) {
         return false;
+    }
+    for (int i = 0; i < map->collapsed_count; i++) {
+        if (!map->collapsed[i]) {
+            return false;
+        }
+        for (int j = 0; j < i; j++) {
+            if (map->collapsed[i] == map->collapsed[j]) {
+                return false;
+            }
+        }
     }
     if (io->reading) {
         h->count = header.count;

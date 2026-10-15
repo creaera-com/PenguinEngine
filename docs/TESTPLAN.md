@@ -70,9 +70,9 @@ Der native Sitzungscache ersetzt keine Backups und ist noch keine Crash-Recovery
 
 ## Fachliche Modultrennung
 
-- Im SDL-Build laufen insgesamt unter Linux 128 Unity-Tests und 13 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
+- Im SDL-Build laufen insgesamt unter Linux 139 Unity-Tests und 14 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
 - `tests/editor_smoke.c` verwendet weiterhin die echten Eingabehandler, Editorwechsel und F6-Reloads. Die Tests liegen außerhalb des produktiven Quellcodes und werden nur bei `BUILD_TESTING=ON` eingebunden.
-- Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die fünf SDL-freien Testgruppen verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
+- Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die sechs SDL-freien Testgruppen verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
 - Für das Strukturrefactoring zusätzlich die Map-/Scripts-Aufnahmen gegen den vorherigen Stand vergleichen und einen vollständigen ASan-/UBSan-Testlauf ausführen.
 
 ## Konsolenpanel und gemeinsame Shell
@@ -85,3 +85,12 @@ Der native Sitzungscache ersetzt keine Backups und ist noch keine Crash-Recovery
 6. Unter Windows zunächst die Backend-Meldung prüfen; dort fehlt noch ConPTY. Der macOS-POSIX-Backend benötigt zusätzlich einen echten Desktoptest.
 
 Automatisch: sieben Terminaltests unter Linux/POSIX (unter Windows Parser- plus Fallbacktests), drei Splittertests, zwei zusätzliche YAML-Schematests und GUI-Integration für Fokus, Resize, Reload und gemeinsame Sitzung. In GUI-Smokes werden keine Shellprozesse gestartet; die dedizierten PTY-Tests verwenden `/bin/sh`.
+
+
+## Scene-Graph
+
+`hierarchy_unit_tests` enthält zehn SDL-freie Unity-Tests für lokale und globale Positionen, Reparenting mit/ohne Erhalt der Weltposition, ungültige oder veraltete Parents, Selbstreferenzen und Zyklen, Tiefe bis 128 Entities, Unterbaum-Löschen mit Slot-Wiederverwendung, Undo/Redo, Tilekollision in Weltkoordinaten, parentabhängige Runtime-Reihenfolge sowie Szene-v2-Roundtrip und v1-Kompatibilität. Fehlende/falsche Parent-Felder, gebrochene Referenzen und Zyklen dürfen das vorhandene Dokument beim Laden nicht verändern.
+
+Der Dokument-Checkpoint-Test erhält Parent-Beziehungen und Aufklappzustände zusätzlich zum Undo-Verlauf. Die GUI-Smokes bedienen die YAML-Buttons für Wurzel/Geschwister/Kind, klappen Knoten ein/aus, ziehen einen Parent auf dem Canvas, prüfen die Position des Enkels, löschen den Unterbaum und prüfen Undo/Redo sowie F6 und Map → Scripts → Map.
+
+Manuell: `examples/topdown/scenes/hierarchy.json` über den Explorer öffnen, den Scene-Tab auswählen und den Player ziehen. Seine drei Nachkommen folgen; die zweite Wurzel bleibt stehen. Kinder separat auswählen und ziehen, Local-X/Y im Inspector ändern, Parent löschen und mit Ctrl+Z wiederherstellen, speichern und neu laden. Hierarchie-Physikgruppen sowie Rotation/Skalierung sind noch nicht implementiert.

@@ -62,6 +62,7 @@ void editor_load_scene(const char *path) {
     pe_history_free(&app.map->history);
     app.layer = 0;
     app.selected = 0;
+    app.map->collapsed_count = 0;
     app.camera = (PeCamera){-16, -16, 2};
     editor_assets_sync();
     editor_tab_select(false);

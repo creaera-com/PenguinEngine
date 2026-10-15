@@ -27,7 +27,15 @@ columns:
       - id: scene_tab
         title: "Scene"
         icon: entity
-        content: {type: entity_tree, id: entities, binding: scene.entities}
+        content:
+          type: entity_tree
+          id: entities
+          binding: scene.entities
+          tools:
+            - {type: button, id: entity_root, icon: entity, tooltip: "Neue Wurzel", action: scene.add_root}
+            - {type: button, id: entity_sibling, icon: plus, tooltip: "Geschwister hinzufügen", action: scene.add_sibling}
+            - {type: button, id: entity_child, icon: layers, tooltip: "Kind hinzufügen", action: scene.add_child}
+            - {type: button, id: entity_delete, icon: delete, tooltip: "Unterbaum löschen", action: scene.delete}
   center:
     type: map_canvas
     id: canvas

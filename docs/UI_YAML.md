@@ -294,3 +294,22 @@ Freie Flächen der oberen Leiste verschieben das Fenster über den Betriebssyste
 Schließen durchläuft denselben Ablauf für ungespeicherte Dokumente wie das native Schließen. Minimieren verwendet die Betriebssystemfunktion und kann über die Taskleiste bzw. das Dock rückgängig gemacht werden.
 
 Die Fensterlogik liegt in `src/editor/app/window.c`; die UI-Lib stellt die Icons bereit. Die SDL-Dummy-Smokes prüfen die Fensterbutton-Anordnung, die Hit-Test-Zonen und die Größenwiederherstellung. Fensterbewegung, Snap-Verhalten und Darstellung mit einem echten Window-Manager müssen zusätzlich manuell auf der Zielplattform geprüft werden.
+
+
+## Werkzeuge des Scene-Graphs
+
+Der spezialisierte Map-Knoten `entity_tree` rendert den aufklappbaren Entity-Baum. Seine optionale `tools`-Liste enthält bis zu vier Buttons. Sie werden oberhalb des Baums gezeichnet und bei langen Labels oder schmalen Panels umgebrochen. IDs müssen wie alle Widget-IDs eindeutig bleiben.
+
+```yaml
+content:
+  type: entity_tree
+  id: entities
+  binding: scene.entities
+  tools:
+    - {type: button, id: entity_root, icon: entity, tooltip: "Neue Wurzel", action: scene.add_root}
+    - {type: button, id: entity_sibling, icon: plus, tooltip: "Geschwister hinzufügen", action: scene.add_sibling}
+    - {type: button, id: entity_child, icon: layers, tooltip: "Kind hinzufügen", action: scene.add_child}
+    - {type: button, id: entity_delete, icon: delete, tooltip: "Unterbaum löschen", action: scene.delete}
+```
+
+Wurzel-Erstellen benötigt keine Auswahl. Geschwister, Kind und Löschen benötigen eine gültige Auswahl; Kind-Erstellen setzt einen Transform voraus. Dokumentänderungen sind während Play oder laufenden Gesten deaktiviert. Pfeile steuern nur die Navigation und ändern das Szenendokument nicht. Aufklappzustände werden mit dem Map-Editor ausgelagert und beim Wechsel/F6 wiederhergestellt. Ohne `tools` wird nur der Baum gezeichnet; dieselben Aktionen lassen sich auch in anderen Map-Toolbars platzieren.

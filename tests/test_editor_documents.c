@@ -52,6 +52,13 @@ static void test_map_checkpoint_preserves_independent_undo_and_redo(void) {
     TEST_ASSERT_NOT_NULL(map_target);
     pe_scene_init(&map_source->scene, 8, 8, 16);
     pe_history_init(&map_source->history);
+    PeEntity parent = pe_entity_create(&map_source->scene, PE_TRANSFORM);
+    PeEntity child = pe_entity_create(&map_source->scene, PE_TRANSFORM);
+    map_source->scene.objects[parent.index].x = 30;
+    map_source->scene.objects[child.index].x = 4;
+    TEST_ASSERT_TRUE(pe_entity_set_parent(&map_source->scene, child, parent, false));
+    map_source->collapsed[0] = map_source->scene.objects[parent.index].stable_id;
+    map_source->collapsed_count = 1;
     TEST_ASSERT_TRUE(pe_history_begin(&map_source->history, &map_source->scene));
     pe_tile_set(&map_source->scene, 0, 2, 3, 1);
     TEST_ASSERT_TRUE(pe_history_commit(&map_source->history, &map_source->scene));
@@ -64,6 +71,11 @@ static void test_map_checkpoint_preserves_independent_undo_and_redo(void) {
                              error);
     TEST_ASSERT_TRUE_MESSAGE(pe_session_load(CACHE, 1, map_codec, map_target, error, sizeof error),
                              error);
+    TEST_ASSERT_EQUAL_INT(1, map_target->collapsed_count);
+    TEST_ASSERT_EQUAL_UINT32(map_source->collapsed[0], map_target->collapsed[0]);
+    float x, y;
+    TEST_ASSERT_TRUE(pe_entity_world_position(&map_target->scene, child, &x, &y));
+    TEST_ASSERT_EQUAL_FLOAT(34, x);
     TEST_ASSERT_EQUAL_UINT16(1, pe_tile_get(&map_target->scene, 0, 2, 3));
     TEST_ASSERT_TRUE(pe_history_dirty(&map_target->history));
     TEST_ASSERT_TRUE(pe_redo(&map_target->history, &map_target->scene));

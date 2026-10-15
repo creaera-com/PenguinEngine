@@ -12,6 +12,7 @@ option(PENGUIN_SANITIZERS "Enable address and undefined behavior sanitizers" OFF
 add_library(penguin STATIC
  src/engine/scene/scene.c
  src/engine/ecs/entities.c
+ src/engine/ecs/hierarchy.c
  src/engine/tilemap/tilemap.c
  src/engine/history/history.c
  src/engine/camera/camera.c
@@ -111,6 +112,10 @@ if(BUILD_TESTING)
  target_link_libraries(penguin_tests PRIVATE penguin unity)
  target_include_directories(penguin_tests PRIVATE third_party/cjson)
  add_test(NAME engine_unit_tests COMMAND penguin_tests)
+ add_executable(penguin_hierarchy_tests tests/test_hierarchy.c)
+ target_link_libraries(penguin_hierarchy_tests PRIVATE penguin unity)
+ target_include_directories(penguin_hierarchy_tests PRIVATE third_party/cjson)
+ add_test(NAME hierarchy_unit_tests COMMAND penguin_hierarchy_tests)
  add_executable(penguin_script_tests tests/test_script.c)
  target_link_libraries(penguin_script_tests PRIVATE penguin_script unity)
  add_test(NAME script_unit_tests COMMAND penguin_script_tests)
@@ -166,6 +171,7 @@ if(PENGUIN_BUILD_EDITOR)
   src/editor/editors/map/document.c
   src/editor/editors/map/tools.c
   src/editor/editors/map/panels.c
+  src/editor/editors/map/scene_tree.c
   src/editor/editors/map/canvas.c
   src/editor/editors/scripts/script_editor.c
   src/editor/editors/scripts/actions.c

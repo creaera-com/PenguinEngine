@@ -599,3 +599,91 @@ bool editor_verify_window(void) {
     }
     return ok;
 }
+
+bool editor_verify_scene_graph(void) {
+    PeScene original = app.map->scene;
+    pe_history_free(&app.map->history);
+    pe_scene_init(&app.map->scene, 16, 16, 16);
+    snprintf(app.map->scene.tileset, PE_PATH, "%s", original.tileset);
+    app.map->scene.tileset_tile_size = original.tileset_tile_size;
+    app.map->collapsed_count = 0;
+    app.left_tabs.selected = UI_SCENE_TAB;
+    app.selected = 0;
+    editor_draw();
+    bool ok = !editor_yaml_action_enabled("scene.add_child");
+    float tools_y = TOP + TABS + 18.f;
+    smoke_click(PANEL_GAP + 24, tools_y);
+    uint32_t root = app.selected;
+    ok = ok && root != 0 && app.map->history.count == 1;
+    smoke_click(PANEL_GAP + 100, tools_y);
+    uint32_t child = app.selected;
+    PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, child));
+    ok = ok && o && o->parent_id == root;
+    smoke_click(PANEL_GAP + 62, tools_y);
+    uint32_t sibling = app.selected;
+    o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, sibling));
+    ok = ok && o && o->parent_id == root;
+    float first_y = TOP + TABS + 48.f;
+    smoke_click(80, first_y + 36);
+    ok = ok && app.selected == child;
+    smoke_click(PANEL_GAP + 100, tools_y);
+    uint32_t leaf = app.selected;
+    o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, leaf));
+    ok = ok && o && o->parent_id == child;
+    editor_draw();
+    ok = ok && app.scene_view.content == 4 * 26;
+    smoke_click(23, first_y + 10);
+    editor_draw();
+    ok = ok && app.scene_view.content == 26;
+    smoke_click(23, first_y + 10);
+    editor_draw();
+    ok = ok && app.scene_view.content == 4 * 26;
+    /* Drag the root in world space and verify inherited motion of the leaf. */
+    smoke_click(65, first_y + 10);
+    float before_x = 0, before_y = 0;
+    ok = ok && pe_entity_world_position(&app.map->scene, pe_entity_find(&app.map->scene, leaf),
+                                        &before_x, &before_y);
+    float sx = app.viewport.x + (66 - app.camera.x) * app.camera.zoom;
+    float sy = app.viewport.y + (66 - app.camera.y) * app.camera.zoom;
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, sx, sy);
+    smoke_pointer(SDL_EVENT_MOUSE_MOTION, sx + 32 * app.camera.zoom, sy + 16 * app.camera.zoom);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, sx + 32 * app.camera.zoom, sy + 16 * app.camera.zoom);
+    float x = 0, y = 0;
+    ok = ok &&
+         pe_entity_world_position(&app.map->scene, pe_entity_find(&app.map->scene, leaf), &x, &y);
+    ok = ok && fabsf(x - before_x - 32) < .01f && fabsf(y - before_y - 16) < .01f;
+    editor_undo_active(false);
+    ok = ok &&
+         pe_entity_world_position(&app.map->scene, pe_entity_find(&app.map->scene, leaf), &x, &y);
+    ok = ok && fabsf(x - before_x) < .01f;
+    editor_undo_active(true);
+    smoke_click(PANEL_GAP + 138, tools_y);
+    ok = ok && !pe_entity_valid(&app.map->scene, pe_entity_find(&app.map->scene, leaf));
+    editor_undo_active(false);
+    ok = ok && pe_entity_valid(&app.map->scene, pe_entity_find(&app.map->scene, leaf));
+    editor_draw();
+    /* Collapse the child and persist both hierarchy and tree state across F6 and unload. */
+    smoke_click(35, first_y + 36);
+    editor_draw();
+    ok = ok && app.map->collapsed_count == 1 && app.map->collapsed[0] == child;
+    ok = ok && editor_reload_layout();
+    editor_tab_select(true);
+    ok = ok && app.map == NULL;
+    editor_tab_select(false);
+    ok = ok && app.map && app.map->collapsed_count == 1 && app.map->collapsed[0] == child;
+    if (app.map) {
+        o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, leaf));
+        ok = ok && o && o->parent_id == child;
+        pe_history_free(&app.map->history);
+        app.map->scene = original;
+        app.map->collapsed_count = 0;
+    }
+    app.selected = 0;
+    app.left_tabs.selected = UI_EXPLORER_TAB;
+    app.tool = BRUSH;
+    editor_selection_sync();
+    if (!ok) {
+        fprintf(stderr, "Scene graph smoke failed\n");
+    }
+    return ok;
+}

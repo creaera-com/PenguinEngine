@@ -21,6 +21,9 @@ typedef struct {
     PeScene runtime;   ///< Separate Playkopie; verändert die bearbeitete Szene nicht.
     PeHistory history; ///< Besitzender Szenen-Undo-/Redo-Verlauf.
     PeAssets assets;   ///< Besitzender Tilesetcache der geladenen Map.
+    uint32_t
+        collapsed[PE_ENTITIES]; ///< Stabile IDs zugeklappter Scene-Knoten; keine Dokumentdaten.
+    int collapsed_count;        ///< Anzahl gültiger Einträge in collapsed.
 } MapPayload;
 
 /* Map-specific operations, used only within the editor. */
@@ -63,6 +66,15 @@ void editor_draw_map_tools(SDL_FRect area);
  * @brief Zeichnet die Entity-Liste und verarbeitet die Auswahl.
  */
 void editor_draw_scene_tree(void);
+
+/**
+ * @brief Erstellt eine Entity als Wurzel, Geschwister oder Kind der Auswahl, jeweils als
+ * Undo-Schritt.
+ * @param relation 0 für Wurzel, 1 für Geschwister, 2 für Kind.
+ */
+void editor_scene_add(int relation);
+/** @brief Löscht die ausgewählte Entity samt Unterbaum als gemeinsamen Undo-Schritt. */
+void editor_scene_delete(void);
 
 /**
  * @brief Beendet eine Pinsel-/Auswahlgeste als gemeinsamen Undo-Schritt.

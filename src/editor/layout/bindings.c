@@ -102,6 +102,19 @@ bool editor_yaml_action_enabled(const char *action) {
     if (!action || !strcmp(action, "scene.toggle_play")) {
         return !editor_edit_pending();
     }
+    if (!strncmp(action, "scene.", 6)) {
+        bool enabled = app.map && !app.playing && !editor_edit_pending();
+        if (strcmp(action, "scene.add_root")) {
+            enabled = enabled && pe_entity_valid(&app.map->scene,
+                                                 pe_entity_find(&app.map->scene, app.selected));
+        }
+        if (enabled && !strcmp(action, "scene.add_child")) {
+            const PeObject *o =
+                pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
+            enabled = (o->mask & PE_TRANSFORM) != 0;
+        }
+        return enabled;
+    }
     if (!strncmp(action, "map.", 4)) {
         return app.map && !app.playing && !editor_edit_pending();
     }

@@ -5,12 +5,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-static const char *actions[] = {"document.save",     "document.undo",        "document.redo",
-                                "scene.toggle_play", "map.import_tileset",   "map.select_brush",
-                                "map.select_eraser", "map.select_rectangle", "map.select_fill",
-                                "map.select_entity", "map.toggle_grid",      "map.toggle_collision",
-                                "script.check",      "window.minimize",      "window.maximize",
-                                "window.collapse",   "window.close",         NULL};
+static const char *actions[] = {"document.save",      "document.undo",
+                                "document.redo",      "scene.toggle_play",
+                                "map.import_tileset", "map.select_brush",
+                                "map.select_eraser",  "map.select_rectangle",
+                                "map.select_fill",    "map.select_entity",
+                                "map.toggle_grid",    "map.toggle_collision",
+                                "scene.add_root",     "scene.add_sibling",
+                                "scene.add_child",    "scene.delete",
+                                "script.check",       "window.minimize",
+                                "window.maximize",    "window.collapse",
+                                "window.close",       NULL};
 static const char *bindings[] = {
     "document.can_save",     "document.can_undo", "document.can_redo", "document.save_state",
     "editor.mode",           "editor.details",    "editor.message",    "map.grid_visible",
@@ -194,6 +199,8 @@ static bool widget(Check *c, const cJSON *v, int depth) {
     const char *extra = "";
     if (!strcmp(type, "tabs")) {
         extra = "|tabs|";
+    } else if (!strcmp(type, "entity_tree")) {
+        extra = "|tools|";
     } else if (!strcmp(type, "section")) {
         extra = "|children||title||open|";
     } else if (!strcmp(type, "row") || !strcmp(type, "column")) {
@@ -246,6 +253,18 @@ static bool widget(Check *c, const cJSON *v, int depth) {
              (!strncmp(a, "map.", 4) || !strncmp(a, "scene.", 6))) ||
             (!strcmp(c->module, "map") && !strncmp(a, "script.", 7))) {
             return error_at(c, action, "action is unavailable in this editor");
+        }
+    }
+
+    const cJSON *tools = pe_ui_get(v, "tools");
+    if (tools) {
+        if (!cJSON_IsArray(tools) || cJSON_GetArraySize(tools) > 4) {
+            return error_at(c, tools, "entity_tree tools requires at most four buttons");
+        }
+        for (const cJSON *tool = tools->child; tool; tool = tool->next) {
+            if (strcmp(pe_ui_string(tool, "type", ""), "button") || !widget(c, tool, depth + 1)) {
+                return error_at(c, tool, "entity_tree tools only supports buttons");
+            }
         }
     }
 

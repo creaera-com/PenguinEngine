@@ -23,9 +23,11 @@ void editor_draw_map_content(void) {
                     app.collision && !app.playing);
     if (!app.playing) {
         PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
-        if (o) {
-            SDL_FRect rect = {app.viewport.x + (o->x - app.camera.x) * app.camera.zoom,
-                              app.viewport.y + (o->y - app.camera.y) * app.camera.zoom,
+        float x, y;
+        if (o && pe_entity_world_position(&app.map->scene,
+                                          pe_entity_find(&app.map->scene, app.selected), &x, &y)) {
+            SDL_FRect rect = {app.viewport.x + (x - app.camera.x) * app.camera.zoom,
+                              app.viewport.y + (y - app.camera.y) * app.camera.zoom,
                               o->w * app.camera.zoom, o->h * app.camera.zoom};
             editor_draw_color(UI_ACCENT);
             SDL_RenderRect(app.renderer, &rect);

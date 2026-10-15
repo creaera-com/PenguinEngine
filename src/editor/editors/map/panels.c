@@ -1,51 +1,5 @@
 #include "app/editor_internal.h"
 
-void editor_draw_scene_tree(void) {
-    editor_section(app.panel_area.x + 11, app.panel_top + 18, ICON_ENTITY, "SCENE ENTITIES");
-    int count = 0;
-    for (int i = 0; i < PE_ENTITIES; i++) {
-        if (app.map->scene.objects[i].alive) {
-            count++;
-        }
-    }
-    app.scene_view.content = count ? count * 26.f : 26;
-    app.scene_view.viewport = (float)(app.panel_area.h - 46);
-    ui_scroll_clamp(&app.scene_view);
-    UiRect track = {app.panel_area.x + app.panel_area.w - 15, app.panel_top + 46, 8,
-                    app.scene_view.viewport};
-    ui_scrollbar(&app.ui, UI_SCENE_SCROLL, track, &app.scene_view, UI_AXIS_Y);
-    ui_clip_push(&app.ui, (UiRect){app.panel_area.x, app.panel_top + 46, app.panel_area.w - 18,
-                                   app.scene_view.viewport});
-    ui_apply_clip(app.renderer, &app.ui);
-    float y = app.panel_top + 46 - app.scene_view.offset;
-    if (!count) {
-        editor_text(app.panel_area.x + 11, y + 8, "No entities in scene.", UI_MUTED);
-    }
-    for (int i = 0; i < PE_ENTITIES; i++) {
-        const PeObject *o = &app.map->scene.objects[i];
-        if (!o->alive) {
-            continue;
-        }
-        char label[40];
-        snprintf(label, sizeof label, "%s %u", o->mask & PE_PLAYER ? "Player" : "Entity",
-                 o->stable_id);
-        app.widget_scope = ui_id("scene_entity") ^ o->stable_id;
-        if (icon_button(app.panel_area.x + 9, y, app.panel_area.w - 32, ICON_ENTITY, label,
-                        "Select entity", app.selected == o->stable_id,
-                        (app.map || app.script) && !app.playing && !editor_edit_pending())) {
-            app.selected = o->stable_id;
-            app.tool = SELECT;
-            app.right_tabs.selected = UI_INSPECTOR_TAB;
-            editor_tab_select(false);
-        }
-        y += 26;
-    }
-    app.widget_scope = 0;
-    ui_clip_pop(&app.ui);
-    ui_apply_clip(app.renderer, &app.ui);
-    ui_draw_scrollbar(app.renderer, &app.ui, UI_SCENE_SCROLL, track, &app.scene_view, UI_AXIS_Y);
-}
-
 void editor_draw_info(void) {
     float x = (float)(app.panel_area.x + 9);
     app.info_view.content = 340;
@@ -173,28 +127,14 @@ void editor_draw_inspector(void) {
     editor_disclosure(x, y, w, "Entity", &app.entity_open);
     y += 32;
     if (app.entity_open) {
-        if (icon_button(x, y, half, ICON_PLUS, "New", "Create entity", false, enabled) &&
-            editor_begin()) {
-            PeEntity e = pe_entity_create(&app.map->scene, PE_TRANSFORM | PE_SPRITE | PE_BODY);
-            PeObject *o = pe_entity_get(&app.map->scene, e);
-            if (o) {
-                o->x = 64;
-                o->y = 64;
-                app.selected = o->stable_id;
-                app.tool = SELECT;
-            } else {
-                editor_message("Entity limit reached");
-            }
-            editor_commit();
+        if (icon_button(x, y, half, ICON_PLUS, "New", "Create root entity", false, enabled)) {
+            editor_scene_add(0);
         }
         PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
-        if (icon_button(x + half + 8, y, half, ICON_DELETE, "Delete", "Delete entity", false,
-                        enabled && o) &&
-            editor_begin()) {
-            pe_entity_destroy(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
-            app.selected = 0;
-            editor_commit();
-            o = NULL;
+        if (icon_button(x + half + 8, y, half, ICON_DELETE, "Delete", "Delete entity and children",
+                        false, enabled && o)) {
+            editor_scene_delete();
+            o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
         }
         y += 34;
         if (o) {
@@ -202,7 +142,13 @@ void editor_draw_inspector(void) {
             editor_text(x, y, label, UI_TEXT);
             y += 20;
             float values[] = {o->x, o->y, o->w, o->h};
-            const char *names[] = {"X", "Y", "Width", "Height"};
+            if (o->parent_id) {
+                snprintf(label, sizeof label, "Parent: #%u (local position)", o->parent_id);
+                editor_text(x, y, label, UI_MUTED);
+                y += 22;
+            }
+            const char *names[] = {o->parent_id ? "Local X" : "X", o->parent_id ? "Local Y" : "Y",
+                                   "Width", "Height"};
             Field fields[] = {FIELD_X, FIELD_Y, FIELD_W, FIELD_H};
             for (int i = 0; i < 4; i++) {
                 app.widget_scope = ui_id("entity_field") ^ o->stable_id * 31u ^ (UiId)i;

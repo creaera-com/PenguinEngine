@@ -106,7 +106,7 @@ Die Build-Targets für Editor und Spiel hängen ausdrücklich von der erstmalige
 
 ## Speichern und Laden
 
-`project.json` enthält `version`, `name` und `start_scene`. Nur `version` und `start_scene` werden für den Start benötigt. Projekt- und Szenenformat haben Version 1.
+`project.json` enthält `version`, `name` und `start_scene`. Nur `version` und `start_scene` werden für den Start benötigt. Das Projektformat bleibt Version 1. Szenen werden als Version 2 mit Parent-IDs gespeichert; Version 1 wird weiterhin als flache Hierarchie gelesen.
 
 Eine Szene speichert Rastergröße, Welt-/Source-Tilegröße, PNG-Pfad, Ebenen, Kollisionsraster und Entities. Eine Entity speichert ihre stabile ID, Maske, Position, Größe und Farbe. Geschwindigkeit ist Laufzeitzustand und wird beim Laden auf null gesetzt.
 
@@ -150,7 +150,7 @@ Für eine spätere umfangreiche Completion wäre eine LSP-Anbindung, etwa an ein
 
 ## Tests und CI
 
-Unity 2.6.1 prüft 33 Engine-Regeln, unter anderem Entity-Lebenszyklen, Kapazität, Rastergrenzen, Füllen, gruppierte Commands, Historienbegrenzung, gespeicherte Revisionen, Kameraanker, Kollision, Dateiformate und abgelehnte Szenendaten.
+Unity 2.6.1 prüft 33 bisherige Engine-Regeln sowie zehn Hierarchie-Regeln, unter anderem Entity-Lebenszyklen, Kapazität, Rastergrenzen, Füllen, gruppierte Commands, Historienbegrenzung, gespeicherte Revisionen, Kameraanker, Kollision, Dateiformate und abgelehnte Szenendaten.
 
 32 weitere Unity-Tests prüfen Textbearbeitung, UTF-8-Grenzen, Dateioperationen, Parserfehler mit Zeilenangabe, Compile-only-Verhalten, Imports, Highlighting und Vervollständigung. 26 zusätzliche Unity-Tests prüfen die SDL-unabhängige UI-Bibliothek. Insgesamt laufen 91 Unity-Tests in drei Suiten und zehn CTest-Prüfungen.
 
@@ -184,6 +184,9 @@ Die Sicherung umfasst Dokumente, ungespeicherte Revisionen, sämtliche Undo-/Red
 
 F6 validiert Shell und aktiven Editor vor dem Entladen. Ungültiges YAML lässt die bisherige Oberfläche aktiv. Shell-Fehler beim ersten Start werden auf stderr gemeldet. GUI-Callbacks verschieben Editorwechsel und dokumentübergreifendes Speichern ans Frameende, damit keine Beschreibung während ihrer Traversierung freigegeben wird.
 
-Unter Linux 128 Unity-Tests sowie die Editor-Smokes prüfen Loader, Checkpointfehler, Editorwechsel, Reload und die bisherige Bedienung. Details, Grenzen und Beispiele stehen in [UI_YAML.md](UI_YAML.md).
+Unter Linux 139 Unity-Tests sowie die Editor-Smokes prüfen Loader, Checkpointfehler, Editorwechsel, Reload und die bisherige Bedienung. Details, Grenzen und Beispiele stehen in [UI_YAML.md](UI_YAML.md).
 
 Die gemeinsame [Shell-Konsole](KONSOLE.md) wird vom Editor-Lebenszyklus nicht entladen. YAML-Splitter teilen den mittleren Bereich in Editor und kontextbezogene Tooltabs. libvterm verarbeitet VT-Steuersequenzen; der Shellprozess ist über einen separaten Plattformvertrag angebunden.
+
+
+Der Scene-Graph liegt fachlich in `src/engine/ecs/hierarchy.c`, seine Editor-Bedienung in `src/editor/editors/map/scene_tree.c`. Details zu Parent-IDs, lokalen Positionen und Dateiversionen stehen in [SCENE_GRAPH.md](SCENE_GRAPH.md).

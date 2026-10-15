@@ -31,6 +31,18 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column);
  * @brief Zeichnet die Werkzeugaktionen des aktiven Editorlayouts.
  */
 void editor_draw_yaml_toolbar(SDL_FRect area);
+/**
+ * @brief Zeichnet eine validierte YAML-Buttonliste in einem lokalen Werkzeugbereich.
+ * @param list Geliehene Liste aus dem aktuellen Layout; NULL ist eine leere Liste.
+ * @param area Bereich in Fensterpixeln; berücksichtigt den aktiven Clip.
+ */
+void editor_draw_yaml_tool_list(const cJSON *list, SDL_FRect area);
+/**
+ * @brief Berechnet die Zeilenzahl einer lokalen YAML-Werkzeugliste.
+ * @param list Geliehene Buttonliste; NULL ist eine leere Liste.
+ * @param width Verfügbare Breite in Fensterpixeln.
+ */
+int editor_yaml_tool_rows(const cJSON *list, float width);
 
 /**
  * @brief Liefert einen geliehenen Shell-Registryeintrag zur Editor-ID.

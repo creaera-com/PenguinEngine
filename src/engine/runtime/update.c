@@ -14,15 +14,34 @@ void pe_update(PeScene *s, float ix, float iy, float dt) {
         ix /= length;
         iy /= length;
     }
-    for (int i = 0; i < PE_ENTITIES; i++) {
-        PeObject *o = &s->objects[i];
-        if (!o->alive || (o->mask & (PE_TRANSFORM | PE_BODY)) != (PE_TRANSFORM | PE_BODY)) {
-            continue;
+    /* Parents move first even when their slot follows their children. */
+    bool updated[PE_ENTITIES] = {false};
+    for (int pass = 0; pass < PE_ENTITIES; pass++) {
+        bool progress = false;
+        for (int i = 0; i < PE_ENTITIES; i++) {
+            PeObject *o = &s->objects[i];
+            if (!o->alive || updated[i]) {
+                continue;
+            }
+            if (o->parent_id) {
+                PeEntity parent = pe_entity_find(s, o->parent_id);
+                if (!pe_entity_valid(s, parent) || !updated[parent.index]) {
+                    continue;
+                }
+            }
+            updated[i] = true;
+            progress = true;
+            if ((o->mask & (PE_TRANSFORM | PE_BODY)) != (PE_TRANSFORM | PE_BODY)) {
+                continue;
+            }
+            if (o->mask & PE_PLAYER) {
+                o->vx = ix * 90;
+                o->vy = iy * 90;
+            }
+            pe_move(s, o, o->vx * dt, o->vy * dt);
         }
-        if (o->mask & PE_PLAYER) {
-            o->vx = ix * 90;
-            o->vy = iy * 90;
+        if (!progress) {
+            break;
         }
-        pe_move(s, o, o->vx * dt, o->vy * dt);
     }
 }
