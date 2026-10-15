@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
     UiContext context;
     ui_init(&context);
     UiTabs tabs;
-    UiTab items[] = {{101, true}, {102, true}, {103, true}};
+    UiTab items[] = {{101, true, 0}, {102, true, 0}, {103, true, 0}};
     ui_tabs_init(&tabs, items, 3, 101);
     UiScroll scroll = {0, 50 * 32, 500};
     float left = 220, right = 200;

@@ -1,5 +1,6 @@
 #include "penguin/ui.h"
 #include "unity.h"
+#include <math.h>
 #include <string.h>
 static UiContext ui;
 static UiRect button = {10, 10, 100, 30};
@@ -173,7 +174,7 @@ static void test_horizontal_thumb(void) {
     TEST_ASSERT_EQUAL_FLOAT(35, thumb.x);
 }
 static void test_tab_selection(void) {
-    UiTab items[] = {{1, true}, {2, true}};
+    UiTab items[] = {{1, true, 0}, {2, true, 0}};
     UiTabs tabs;
     TEST_ASSERT_TRUE(ui_tabs_init(&tabs, items, 2, 1));
     ui_pointer(&ui, 140, 12, true);
@@ -182,23 +183,23 @@ static void test_tab_selection(void) {
     TEST_ASSERT_EQUAL_UINT(2, tabs.selected);
 }
 static void test_tab_reorder_preserves_identity(void) {
-    UiTab items[] = {{1, true}, {2, true}, {3, true}};
+    UiTab items[] = {{1, true, 0}, {2, true, 0}, {3, true, 0}};
     UiTabs t;
     ui_tabs_init(&t, items, 3, 1);
     ui_pointer(&ui, 20, 12, true);
     ui_tabs_update(&ui, &t, (UiRect){0, 0, 400, 25}, 110);
     ui_end_frame(&ui);
-    ui_pointer(&ui, 250, 12, true);
+    ui_pointer(&ui, 300, 12, true);
     ui_tabs_update(&ui, &t, (UiRect){0, 0, 400, 25}, 110);
     TEST_ASSERT_EQUAL_UINT(1, t.items[2].id);
     TEST_ASSERT_EQUAL_UINT(1, t.selected);
     ui_end_frame(&ui);
-    ui_pointer(&ui, 250, 12, false);
+    ui_pointer(&ui, 300, 12, false);
     ui_tabs_update(&ui, &t, (UiRect){0, 0, 400, 25}, 110);
     TEST_ASSERT_EQUAL_UINT(0, ui.active);
 }
 static void test_disabled_tab(void) {
-    UiTab items[] = {{1, true}, {2, false}};
+    UiTab items[] = {{1, true, 0}, {2, false, 0}};
     UiTabs t;
     ui_tabs_init(&t, items, 2, 1);
     ui_pointer(&ui, 140, 12, true);
@@ -207,16 +208,62 @@ static void test_disabled_tab(void) {
     TEST_ASSERT_EQUAL_UINT(1, t.selected);
 }
 static void test_tab_scroll_and_duplicates(void) {
-    UiTab items[] = {{1, true}, {2, true}};
+    UiTab items[] = {{1, true, 0}, {2, true, 0}};
     UiTabs t;
     ui_tabs_init(&t, items, 2, 1);
     ui_tabs_scroll(&t, 100, 110, 999);
-    TEST_ASSERT_EQUAL_FLOAT(120, t.scroll);
+    TEST_ASSERT_EQUAL_FLOAT(118, t.scroll);
     ui_tabs_scroll(&t, 100, 110, -999);
     TEST_ASSERT_EQUAL_FLOAT(0, t.scroll);
     items[1].id = 1;
     TEST_ASSERT_FALSE(ui_tabs_init(&t, items, 2, 1));
     TEST_ASSERT_FALSE(ui_tabs_init(&t, items, 0, 1));
+}
+static void test_variable_tab_geometry_and_scroll(void) {
+    UiTab items[] = {{1, true, 64}, {2, true, 144}, {3, true, 80}};
+    UiTabs t;
+    TEST_ASSERT_TRUE(ui_tabs_init(&t, items, 3, 1));
+    UiRect bar = {10, 20, 200, 26};
+    UiRect r = ui_tab_rect(&t, bar, 110, 1);
+    TEST_ASSERT_EQUAL_FLOAT(74, r.x);
+    TEST_ASSERT_EQUAL_FLOAT(142, r.w);
+    ui_tabs_scroll(&t, 200, 110, 999);
+    TEST_ASSERT_EQUAL_FLOAT(86, t.scroll);
+    TEST_ASSERT_TRUE(ui_tabs_set_width(&t, 2, 100));
+    ui_tabs_scroll(&t, 200, 110, 0);
+    TEST_ASSERT_EQUAL_FLOAT(42, t.scroll);
+    TEST_ASSERT_FALSE(ui_tabs_set_width(&t, 2, NAN));
+    TEST_ASSERT_FALSE(ui_tabs_set_width(&t, 2, UI_TAB_GAP));
+    TEST_ASSERT_FALSE(ui_tabs_set_width(&t, 99, 100));
+    items[0].width = -1;
+    TEST_ASSERT_FALSE(ui_tabs_init(&t, items, 3, 1));
+}
+static void test_variable_tab_hit_and_reorder(void) {
+    UiTab items[] = {{1, true, 64}, {2, true, 144}, {3, true, 80}};
+    UiTabs t;
+    UiRect bar = {0, 0, 400, 26};
+    ui_tabs_init(&t, items, 3, 1);
+    ui_pointer(&ui, 150, 12, true);
+    ui_tabs_update(&ui, &t, bar, 110);
+    ui_end_frame(&ui);
+    ui_pointer(&ui, 150, 12, false);
+    TEST_ASSERT_TRUE(ui_tabs_update(&ui, &t, bar, 110));
+    TEST_ASSERT_EQUAL_UINT(2, t.selected);
+    ui_end_frame(&ui);
+    ui_pointer(&ui, 20, 12, true);
+    ui_tabs_update(&ui, &t, bar, 110);
+    ui_end_frame(&ui);
+    ui_pointer(&ui, 150, 12, true);
+    ui_tabs_update(&ui, &t, bar, 110);
+    TEST_ASSERT_EQUAL_UINT(1, t.items[1].id);
+    TEST_ASSERT_EQUAL_FLOAT(64, t.items[1].width);
+    /* Repeated frames with the pointer still held must not reverse the reorder. */
+    ui_end_frame(&ui);
+    ui_tabs_update(&ui, &t, bar, 110);
+    TEST_ASSERT_EQUAL_UINT(1, t.items[1].id);
+    ui_pointer(&ui, 150, 12, false);
+    ui_tabs_update(&ui, &t, bar, 110);
+    TEST_ASSERT_EQUAL_UINT(1, t.selected);
 }
 static void test_hidden_focused_button(void) {
     ui_focus(&ui, 1);
@@ -252,5 +299,7 @@ int main(void) {
     RUN_TEST(test_disabled_tab);
     RUN_TEST(test_tab_scroll_and_duplicates);
     RUN_TEST(test_hidden_focused_button);
+    RUN_TEST(test_variable_tab_geometry_and_scroll);
+    RUN_TEST(test_variable_tab_hit_and_reorder);
     return UNITY_END();
 }

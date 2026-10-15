@@ -91,6 +91,9 @@ static void lines(SDL_Renderer *r, float x, float y, float size, const Line *v, 
 void ui_icon(SDL_Renderer *r, UiIcon icon, float x, float y, float s, Uint32 c) {
     color(r, c);
     switch (icon) {
+    case ICON_MENU:
+        DRAW({2, 4, 14, 4}, {2, 8, 14, 8}, {2, 12, 14, 12});
+        break;
     case ICON_SAVE:
         DRAW({2, 2, 12, 2}, {12, 2, 14, 4}, {14, 4, 14, 14}, {14, 14, 2, 14}, {2, 14, 2, 2},
              {5, 2, 5, 6}, {5, 6, 11, 6}, {11, 6, 11, 2}, {5, 14, 5, 10}, {5, 10, 11, 10},
@@ -232,9 +235,33 @@ void ui_draw_button(SDL_Renderer *r, SDL_FRect rect, UiIcon icon, const char *la
     UiTheme theme = ui_dark_theme();
     ui_draw_button_themed(r, &theme, rect, icon, label, active, enabled, hover);
 }
+float ui_text_width(const char *text) {
+    float width = 0, longest = 0;
+    if (!text)
+        return 0;
+    while (*text) {
+        Uint32 code = SDL_StepUTF8(&text, NULL);
+        if (code == '\n') {
+            longest = fmaxf(longest, width);
+            width = 0;
+        } else if (code != '\r')
+            width += UI_FONT_WIDTH * (code == '\t' ? 4 : 1);
+    }
+    return fmaxf(longest, width);
+}
+float ui_tab_content_width(UiIcon icon, const char *label) {
+    return ui_text_width(label) + (icon == ICON_NONE ? 18 : 40);
+}
 void ui_draw_tab(SDL_Renderer *r, SDL_FRect rect, UiIcon icon, const char *label, bool active,
                  bool enabled, bool hover) {
-    ui_draw_button(r, rect, icon, label, active, enabled, hover);
+    ui_panel(r, rect, active ? UI_PANEL : hover ? UI_HOVER : UI_SURFACE);
+    Uint32 foreground = enabled ? UI_TEXT : UI_DISABLED;
+    if (active)
+        ui_panel(r, (SDL_FRect){rect.x, rect.y, rect.w, 2}, enabled ? UI_ACCENT : UI_DISABLED);
+    if (icon != ICON_NONE)
+        ui_icon(r, icon, rect.x + 9, rect.y + (rect.h - 16) * .5f, 16, foreground);
+    ui_text(r, rect.x + (icon == ICON_NONE ? 9 : 31), rect.y + (rect.h - UI_FONT_HEIGHT) * .5f,
+            label, foreground);
 }
 void ui_draw_scrollbar(SDL_Renderer *r, const UiContext *c, UiId id, UiRect track,
                        const UiScroll *s, UiAxis axis) {

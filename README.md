@@ -11,7 +11,7 @@ Eine kleine 2D-Engine in **C17 mit SDL3**, einem einfachen ECS und einem Tilemap
 - Wiederverwendbare C-UI-Bibliothek mit dunklem Flat-Design, geraden Kanten und orangefarbenen Akzenten.
 - Ziehbare Spaltentrenner, umsortierbare Tabs, Scrollbars und klappbare Inspector-Bereiche.
 - Icon-Buttons und Werkzeug-Tooltips.
-- Workspace-Tabs **Map** und **Scripts** mit JavaScript-Texteditor, Highlighting, Syntaxprüfung und einfacher Autovervollständigung.
+- Globale Arbeitsbereichsauswahl **Map / Scripts** mit eigenen Werkzeugleisten direkt über dem Inhalt; Scripts bietet einen JavaScript-Texteditor, Highlighting, Syntaxprüfung und einfache Autovervollständigung.
 - Projekt-Dateibaum, PNG-Import per Drag-and-drop oder Dateipfad, Tile-Palette.
 - Pinsel, Radierer, Rechteck, Füllen, Entity-Auswahl und Verschieben.
 - Ebenen hinzufügen, löschen, umbenennen, sortieren und ausblenden.
@@ -78,7 +78,7 @@ Bei älteren Ständen mit `Cannot open example/project.json`: Working directory 
 
 ## Tests ohne SDL oder Fenster
 
-Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Insgesamt 91 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge und UI-Regeln ohne Download.
+Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Insgesamt 93 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge und UI-Regeln ohne Download.
 
 ```sh
 cmake -S . -B build-core -DPENGUIN_BUILD_EDITOR=OFF

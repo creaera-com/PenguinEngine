@@ -220,7 +220,8 @@ bool ui_tabs_init(UiTabs *t, const UiTab *items, int count, UiId selected) {
         return false;
     bool found = false;
     for (int i = 0; i < count; i++) {
-        if (!items[i].id)
+        if (!items[i].id || !isfinite(items[i].width) || items[i].width < 0 ||
+            (items[i].width > 0 && items[i].width <= UI_TAB_GAP))
             return false;
         for (int k = 0; k < i; k++)
             if (items[i].id == items[k].id)
@@ -236,11 +237,35 @@ bool ui_tabs_init(UiTabs *t, const UiTab *items, int count, UiId selected) {
     t->selected = selected;
     return true;
 }
+bool ui_tabs_set_width(UiTabs *t, UiId id, float width) {
+    if (!isfinite(width) || width < 0 || (width > 0 && width <= UI_TAB_GAP))
+        return false;
+    for (int i = 0; i < t->count; i++) {
+        if (t->items[i].id == id) {
+            t->items[i].width = width;
+            return true;
+        }
+    }
+    return false;
+}
+static float tab_width(const UiTabs *t, float fallback, int index) {
+    return t->items[index].width > 0 ? t->items[index].width : fallback;
+}
 UiRect ui_tab_rect(const UiTabs *t, UiRect bar, float width, int index) {
-    return (UiRect){bar.x + index * width - t->scroll, bar.y, width - 4, bar.h};
+    if (index < 0 || index >= t->count)
+        return (UiRect){0};
+    float x = bar.x - t->scroll;
+    for (int i = 0; i < index; i++)
+        x += tab_width(t, width, i);
+    return (UiRect){x, bar.y, tab_width(t, width, index) - UI_TAB_GAP, bar.h};
 }
 void ui_tabs_scroll(UiTabs *t, float viewport, float width, float delta) {
-    UiScroll s = {t->scroll, t->count * width, viewport};
+    float content = 0;
+    for (int i = 0; i < t->count; i++)
+        content += tab_width(t, width, i);
+    if (t->count)
+        content -= UI_TAB_GAP;
+    UiScroll s = {t->scroll, content, viewport};
     ui_scroll_by(&s, delta);
     t->scroll = s.offset;
 }
@@ -269,7 +294,17 @@ bool ui_tabs_update(UiContext *c, UiTabs *t, UiRect bar, float width) {
         if (fabsf(c->x - c->drag_origin) > 6)
             t->dragging = true;
         if (t->dragging && ui_contains(bar, c->x, c->y)) {
-            int target = (int)floorf((c->x - bar.x + t->scroll) / width);
+            int target = i;
+            for (int k = i + 1; k < t->count; k++) {
+                UiRect neighbor = ui_tab_rect(t, bar, width, k);
+                if (c->x > neighbor.x + neighbor.w * .5f)
+                    target = k;
+            }
+            for (int k = i - 1; k >= 0; k--) {
+                UiRect neighbor = ui_tab_rect(t, bar, width, k);
+                if (c->x < neighbor.x + neighbor.w * .5f)
+                    target = k;
+            }
             if (target < 0)
                 target = 0;
             if (target >= t->count)
