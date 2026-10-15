@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #define LINE_HEIGHT 18
-#define CHAR_WIDTH 8
+#define CHAR_WIDTH UI_FONT_WIDTH
 #define GUTTER 54
 #define SCRIPT_VSCROLL 0x10005u
 #define SCRIPT_HSCROLL 0x10006u
@@ -21,7 +21,7 @@ static void rect(SDL_Renderer *r, SDL_FRect b, Uint32 c) {
 }
 static void text(SDL_Renderer *r, float x, float y, const char *s, Uint32 c) {
     color(r, c);
-    SDL_RenderDebugText(r, x, y, s);
+    ui_text(r, x, y - 2, s, c);
 }
 static void layout(PeScriptEditor *e, SDL_FRect a) {
     e->body = (SDL_FRect){a.x + GUTTER, a.y + 38, a.w - GUTTER - 18, a.h - 98};

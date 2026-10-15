@@ -92,7 +92,7 @@ static void box(SDL_FRect r, uint32_t c) {
 }
 static void text(float x, float y, const char *label, uint32_t color) {
     draw_color(color);
-    SDL_RenderDebugText(app.renderer, x, y, label);
+    ui_text(app.renderer, x, y - 4, label, color);
 }
 static const char *tooltip;
 static bool icon_button_impl(UiId callsite, float x, float y, float w, UiIcon icon,

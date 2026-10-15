@@ -4,7 +4,7 @@
 #include <string.h>
 static void text(SDL_Renderer *r, float x, float y, const char *s, Uint32 c) {
     SDL_SetRenderDrawColor(r, (Uint8)(c >> 24), (Uint8)(c >> 16), (Uint8)(c >> 8), (Uint8)c);
-    SDL_RenderDebugText(r, x, y, s);
+    ui_text(r, x, y, s, c);
 }
 int main(int argc, char **argv) {
     bool smoke = argc == 2 && !strcmp(argv[1], "--smoke");

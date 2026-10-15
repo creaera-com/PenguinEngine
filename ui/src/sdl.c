@@ -1,6 +1,73 @@
+#include "font_atlas.h"
 #include "penguin/ui_sdl.h"
 #include <math.h>
 #include <string.h>
+
+/* The texture belongs to its renderer; SDL releases it with the renderer. */
+static SDL_Texture *font_texture(SDL_Renderer *r) {
+    SDL_PropertiesID props = SDL_GetRendererProperties(r);
+    SDL_Texture *texture = SDL_GetPointerProperty(props, "penguin.ui.font", NULL);
+    if (texture)
+        return texture;
+    SDL_Surface *surface = SDL_CreateSurface(128, 256, SDL_PIXELFORMAT_RGBA32);
+    if (!surface)
+        return NULL;
+    size_t pixel = 0;
+    for (size_t i = 0; i < sizeof ui_font_runs; i += 2) {
+        for (unsigned n = 0; n < ui_font_runs[i]; n++, pixel++) {
+            Uint8 *p =
+                (Uint8 *)surface->pixels + (pixel / 128) * surface->pitch + (pixel % 128) * 4;
+            p[0] = p[1] = p[2] = 255;
+            p[3] = ui_font_runs[i + 1];
+        }
+    }
+    texture = SDL_CreateTextureFromSurface(r, surface);
+    SDL_DestroySurface(surface);
+    if (!texture)
+        return NULL;
+    SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
+    if (!SDL_SetPointerProperty(props, "penguin.ui.font", texture)) {
+        SDL_DestroyTexture(texture);
+        return NULL;
+    }
+    return texture;
+}
+
+bool ui_text(SDL_Renderer *r, float x, float y, const char *text, Uint32 rgba) {
+    if (!r || !text)
+        return false;
+    SDL_Texture *texture = font_texture(r);
+    if (!texture)
+        return false;
+    SDL_SetTextureColorMod(texture, (Uint8)(rgba >> 24), (Uint8)(rgba >> 16), (Uint8)(rgba >> 8));
+    SDL_SetTextureAlphaMod(texture, (Uint8)rgba);
+    const float origin = x;
+    while (*text) {
+        Uint32 code = SDL_StepUTF8(&text, NULL);
+        if (code == '\n') {
+            x = origin;
+            y += UI_FONT_HEIGHT;
+            continue;
+        }
+        if (code == '\r')
+            continue;
+        if (code == '\t') {
+            x += UI_FONT_WIDTH * 4;
+            continue;
+        }
+        if (code < 32 || (code >= 127 && code < 160) || code > 255)
+            code = '?';
+        SDL_FRect src = {(float)(code % 16 * UI_FONT_WIDTH), (float)(code / 16 * UI_FONT_HEIGHT),
+                         UI_FONT_WIDTH, UI_FONT_HEIGHT};
+        SDL_FRect dst = {x, y, UI_FONT_WIDTH, UI_FONT_HEIGHT};
+        if (!SDL_RenderTexture(r, texture, &src, &dst))
+            return false;
+        x += UI_FONT_WIDTH;
+    }
+    return true;
+}
+
 static void color(SDL_Renderer *r, Uint32 c) {
     SDL_SetRenderDrawColor(r, (Uint8)(c >> 24), (Uint8)(c >> 16), (Uint8)(c >> 8), (Uint8)c);
 }
@@ -156,8 +223,8 @@ void ui_draw_button_themed(SDL_Renderer *r, const UiTheme *theme, SDL_FRect rect
                 rect.y + (rect.h - 16) * .5f, 16, foreground);
     if (label_present) {
         color(r, foreground);
-        SDL_RenderDebugText(r, rect.x + (icon == ICON_NONE ? 9 : 31), rect.y + (rect.h - 8) * .5f,
-                            label);
+        ui_text(r, rect.x + (icon == ICON_NONE ? 9 : 31), rect.y + (rect.h - UI_FONT_HEIGHT) * .5f,
+                label, foreground);
     }
 }
 void ui_draw_button(SDL_Renderer *r, SDL_FRect rect, UiIcon icon, const char *label, bool active,

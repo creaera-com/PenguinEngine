@@ -43,7 +43,9 @@ Das Standardtheme verwendet unter anderem:
 
 `ui_dark_theme()` liefert ein Theme als Wert. Spiele können eine Kopie ändern und an `ui_draw_button_themed()` übergeben. Es wird kein globales Theme verändert. Die bestehenden Kurzfunktionen wie `ui_draw_button()` verwenden das Standardtheme.
 
-Die Icons bleiben SDL-Linien und Flächen. Text nutzt zunächst `SDL_RenderDebugText`; eine umfassende Font-/Unicode-Darstellung ist ein späterer Ausbau.
+Die Icons bleiben SDL-Linien und Flächen. Text nutzt `ui_text(renderer, x, y, utf8, rgba)` mit eingebetteter **JetBrains Mono Regular 2.304** (13 px, Zeichenraster 8 × 16). Die Textur wird pro Renderer einmal angelegt und von SDL mit dem Renderer freigegeben. Es gibt keine installierte Schrift, Dateipfad- oder SDL_ttf-Abhängigkeit. UTF-8 wird decodiert; druckbare ASCII- und Latin-1-Zeichen einschließlich äöüÄÖÜß werden dargestellt. Weitere Zeichen erscheinen als `?`; der Dokumentinhalt bleibt erhalten. Ligaturen, komplexe Schriftformung und DPI-abhängige Neurasterung sind noch nicht implementiert.
+
+Originalschrift und SIL Open Font License liegen in `ui/assets/`. Bei Weitergabe die Lizenz beilegen. `tools/bake_font.py` erzeugt mit Pillow den eingecheckten Alpha-Atlas `ui/src/font_atlas.h` neu. Reguläre CMake-Builds benötigen dafür weder Python noch Pillow.
 
 ## Zustände und Frame-Ablauf
 

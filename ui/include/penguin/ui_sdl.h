@@ -14,6 +14,11 @@
 #define UI_MUTED 0xa2a2a2ffu
 #define UI_DISABLED 0x686868ffu
 
+#define UI_FONT_WIDTH 8
+#define UI_FONT_HEIGHT 16
+/* UTF-8, Latin-1 glyphs; unsupported codepoints use ?. Texture cached per renderer. */
+bool ui_text(SDL_Renderer *renderer, float x, float y, const char *text, Uint32 color);
+
 typedef struct {
     Uint32 canvas, panel, surface, hover, accent, text, muted, disabled, border;
 } UiTheme;
