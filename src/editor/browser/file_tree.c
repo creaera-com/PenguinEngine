@@ -98,7 +98,9 @@ void editor_draw_tree(void) {
         Uint32 channel = (UI_SURFACE >> shift) & 0xffu;
         background |= ((channel * 95 + 255 * 5) / 100) << shift;
     }
-    editor_box(body, background);
+    /* Keep the refresh toolbar on the panel; only the node area is lifted. */
+    SDL_FRect nodes = {body.x, body.y + 30, body.w, fmaxf(0, body.h - 30)};
+    editor_box(nodes, background);
     if (icon_button(body.x + body.w - 36, body.y + 4, 32, ICON_REFRESH, "", "Refresh project files",
                     false, true)) {
         editor_tree_refresh();
