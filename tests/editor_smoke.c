@@ -706,7 +706,7 @@ bool editor_verify_components(void) {
     editor_draw();
     float x = app.width - RIGHT + PANEL_GAP + 9;
     float top = TOP + TABS + 67.f + 22;
-    float remove_x = x + (RIGHT - 2 * PANEL_GAP - 32) - 18;
+    float remove_x = x + (RIGHT - 2 * PANEL_GAP - 32) - 11;
     float content_before = app.inspector_view.content;
     smoke_click(x + 90, top + 12);
     bool ok = app.map->component_add_open && app.inspector_view.content == content_before;
@@ -751,10 +751,10 @@ bool editor_verify_components(void) {
     smoke_click(x + 80, transform + 12);
     ok = ok && !(app.map->component_closed[entity.index] & PE_TRANSFORM);
     uint64_t revision = app.map->history.revision;
-    smoke_click(remove_x, transform + 12);
-    smoke_click(remove_x, body + 12);
+    smoke_click(remove_x, transform + 16);
+    smoke_click(remove_x, body + 16);
     ok = ok && o->mask == 15 && app.map->history.revision == revision;
-    smoke_click(remove_x, sprite + 12);
+    smoke_click(remove_x, sprite + 16);
     ok = ok && !(o->mask & PE_SPRITE);
     editor_undo_active(false);
     ok = ok && (o->mask & PE_SPRITE);
@@ -820,9 +820,9 @@ bool editor_verify_components(void) {
     editor_field_apply();
     ok = ok && app.field == FIELD_NONE && o->vx == 25.5f;
     editor_draw();
-    smoke_click(remove_x, player + 12);
+    smoke_click(remove_x, player + 16);
     ok = ok && !(o->mask & PE_PLAYER);
-    smoke_click(remove_x, body + 12);
+    smoke_click(remove_x, body + 16);
     ok = ok && !(o->mask & PE_BODY);
     editor_undo_active(false);
     editor_undo_active(false);

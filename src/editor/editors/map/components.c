@@ -72,7 +72,7 @@ static float component_card(PeEntity entity, int index, float x, float y, float 
     uint32_t bit = components[index].bit;
     app.widget_scope = ui_id("component") ^ o->stable_id * 31u ^ bit;
     bool open = !(app.map->component_closed[entity.index] & bit);
-    UiRect header = {x + 4, y + 4, fmaxf(0, w - 40), 25};
+    UiRect header = {x + 4, y + 4, fmaxf(0, w - 26), 25};
     ui_disclosure(&app.ui, app.widget_scope, header, &open, !editor_edit_pending());
     if (open) {
         app.map->component_closed[entity.index] &= ~bit;
@@ -95,7 +95,19 @@ static float component_card(PeEntity entity, int index, float x, float y, float 
     const char *hint = removable        ? "Remove component"
                        : bit == PE_BODY ? "Remove Player first"
                                         : "Required by components or hierarchy";
-    if (icon_button(x + w - 32, y + 4, 28, ICON_CLOSE, "", hint, false, enabled && removable)) {
+    UiRect remove = {x + w - 18, y + 10.25f, 14, 12.5f};
+    bool can_remove = enabled && removable;
+    bool hover = ui_hovered(&app.ui, remove);
+    editor_register_ui_hit(remove);
+    editor_box((SDL_FRect){remove.x, remove.y, remove.w, remove.h}, !can_remove ? UI_PANEL
+                                                                    : hover     ? UI_HOVER
+                                                                                : UI_SURFACE);
+    ui_icon(app.renderer, ICON_CLOSE, remove.x + 3, remove.y + 2.25f, 8,
+            can_remove ? UI_TEXT : UI_DISABLED);
+    if (hover) {
+        editor_tooltip = hint;
+    }
+    if (ui_button(&app.ui, app.widget_scope ^ ui_id("remove_component"), remove, can_remove)) {
         editor_component_change(bit, false);
         return y + height + 6;
     }
