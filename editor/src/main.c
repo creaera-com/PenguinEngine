@@ -956,28 +956,28 @@ static void draw(void) {
     app.ui.blocked = modal;
     tooltip = NULL;
     bool map_active = !app.script_tab;
-    if (icon_button(14, 12, 88, ICON_SAVE, "Save",
+    if (icon_button(14, 12, 38, ICON_SAVE, "",
                     app.script_tab ? "Save script (Ctrl+S)" : "Save scene (Ctrl+S)", false,
                     !app.playing && !app.history.pending))
         save();
     if (icon_button(
-            110, 12, 38, ICON_UNDO, "", "Undo (Ctrl+Z)", false,
+            60, 12, 38, ICON_UNDO, "", "Undo (Ctrl+Z)", false,
             !app.playing &&
                 (app.script_tab ? app.script.document.position > 0 : app.history.cursor > 0) &&
                 !app.history.pending)) {
         undo_active(false);
     }
-    if (icon_button(156, 12, 38, ICON_REDO, "", "Redo (Ctrl+Shift+Z)", false,
+    if (icon_button(106, 12, 38, ICON_REDO, "", "Redo (Ctrl+Shift+Z)", false,
                     !app.playing &&
                         (app.script_tab ? app.script.document.position < app.script.document.count
                                         : app.history.cursor < app.history.count) &&
                         !app.history.pending)) {
         undo_active(true);
     }
-    if (icon_button(214, 12, 88, app.playing ? ICON_STOP : ICON_PLAY, app.playing ? "Stop" : "Play",
-                    "Play / Stop (F5)", app.playing, !app.history.pending && map_active))
+    if (icon_button(164, 12, 38, app.playing ? ICON_STOP : ICON_PLAY, "", "Play / Stop (F5)",
+                    app.playing, !app.history.pending && map_active))
         play_toggle();
-    if (icon_button(310, 12, 122, ICON_IMPORT, "Import PNG", "Import a tileset image", false,
+    if (icon_button(210, 12, 122, ICON_IMPORT, "Import PNG", "Import a tileset image", false,
                     !app.playing && map_active))
         field_start(FIELD_IMPORT, "");
     const UiIcon tool_icons[] = {ICON_BRUSH, ICON_ERASE, ICON_RECTANGLE, ICON_FILL, ICON_SELECT};
@@ -985,15 +985,15 @@ static void draw(void) {
                                 "Select entity (V)"};
     for (int i = 0; i < 5; i++) {
         app.widget_scope = ui_id("tile_tool") ^ (UiId)i;
-        if (icon_button(458 + i * 48, 12, 40, tool_icons[i], "", tool_hints[i], app.tool == i,
+        if (icon_button(358 + i * 48, 12, 40, tool_icons[i], "", tool_hints[i], app.tool == i,
                         !app.playing && !app.history.pending && map_active))
             app.tool = i;
     }
     app.widget_scope = 0;
-    if (icon_button(714, 12, 108, ICON_COLLISION, "Collision", "Edit collision grid", app.collision,
+    if (icon_button(614, 12, 108, ICON_COLLISION, "Collision", "Edit collision grid", app.collision,
                     !app.playing && map_active))
         app.collision = !app.collision;
-    if (icon_button(830, 12, 80, ICON_GRID, "Grid", "Show tile grid", app.grid, map_active))
+    if (icon_button(730, 12, 80, ICON_GRID, "Grid", "Show tile grid", app.grid, map_active))
         app.grid = !app.grid;
     text(14, 49,
          app.script_tab
@@ -1020,6 +1020,18 @@ static void draw(void) {
     ui_clip_pop(&app.ui);
     ui_apply_clip(app.renderer, &app.ui);
     if (!app.script_tab) {
+        /* Distinguish the workspace from empty/transparent tiles inside the map. */
+        box(app.viewport, 0x383838ffu);
+        SDL_Rect map_clip = {(int)app.viewport.x, (int)app.viewport.y, (int)app.viewport.w,
+                             (int)app.viewport.h};
+        SDL_SetRenderClipRect(app.renderer, &map_clip);
+        const PeScene *visible_scene = app.playing ? &app.runtime : &app.scene;
+        box((SDL_FRect){app.viewport.x - app.camera.x * app.camera.zoom,
+                        app.viewport.y - app.camera.y * app.camera.zoom,
+                        visible_scene->width * visible_scene->tile_size * app.camera.zoom,
+                        visible_scene->height * visible_scene->tile_size * app.camera.zoom},
+            UI_CANVAS);
+        SDL_SetRenderClipRect(app.renderer, NULL);
         pe_render_scene(app.renderer, app.playing ? &app.runtime : &app.scene, &app.assets,
                         &app.camera, app.viewport, app.grid && !app.playing,
                         app.collision && !app.playing);
