@@ -52,10 +52,10 @@ void editor_draw_inspector(void) {
     ui_apply_clip(app.renderer, &app.ui);
     PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
     if (o) {
-        editor_draw_input(FIELD_NAME, o->name, o->name, (UiRect){x, y - 6, w, 25},
-                          !app.playing && !editor_edit_pending());
         snprintf(label, sizeof label, "ID: %u", o->stable_id);
-        editor_text(x, y + 29, label, UI_MUTED);
+        editor_text(x, y, label, UI_MUTED);
+        editor_draw_input(FIELD_NAME, o->name, o->name, (UiRect){x, y + 14, w, 25},
+                          !app.playing && !editor_edit_pending());
         y += 45;
         if (!(o->mask & PE_TRANSFORM)) {
             editor_text(x, y, "No Transform: no map position", UI_MUTED);

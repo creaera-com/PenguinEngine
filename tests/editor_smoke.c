@@ -830,7 +830,7 @@ bool editor_verify_components(void) {
     editor_draw();
     smoke_click(x + 80, sprite + 12);
     ok = ok && (app.map->component_closed[entity.index] & PE_SPRITE);
-    smoke_click(x + 90, TOP + TABS + 18);
+    smoke_click(x + 90, TOP + TABS + 44);
     ok = ok && app.field == FIELD_NAME && app.field_inline;
     text.text.text = "Hero";
     editor_event(&text);
@@ -841,7 +841,7 @@ bool editor_verify_components(void) {
     ok = ok && !strcmp(o->name, "Entity 1");
     editor_undo_active(true);
     editor_draw();
-    smoke_click(x + 90, TOP + TABS + 18);
+    smoke_click(x + 90, TOP + TABS + 44);
     text.text.text = "   ";
     editor_event(&text);
     editor_field_apply();
@@ -1084,7 +1084,7 @@ void editor_capture_component_dropdown(void) {
         }
         pe_entity_set_name(&app.map->scene, entity, "Hero");
         editor_draw();
-        smoke_click(app.width - RIGHT + PANEL_GAP + 100, TOP + TABS + 18);
+        smoke_click(app.width - RIGHT + PANEL_GAP + 100, TOP + TABS + 44);
         SDL_Event end_name = {0};
         end_name.type = SDL_EVENT_KEY_DOWN;
         end_name.key.key = SDLK_END;
