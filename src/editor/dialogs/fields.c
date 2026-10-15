@@ -38,6 +38,7 @@ void editor_draw_modal(void) {
     } else {
         const char *title = app.field == FIELD_IMPORT  ? "Import PNG: enter full file path"
                             : app.field == FIELD_LAYER ? "Layer name"
+                            : app.field == FIELD_COLOR ? "Sprite color: RRGGBBAA"
                                                        : "Enter value";
         editor_text(x + 20, y + 24, title, UI_ACCENT);
         editor_box((SDL_FRect){x + 20, y + 54, 580, 28}, UI_CANVAS);

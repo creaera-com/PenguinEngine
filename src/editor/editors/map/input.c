@@ -11,10 +11,8 @@ void editor_map_key(SDL_Keycode k) {
         app.tool = FILL;
     } else if (k == SDLK_V) {
         app.tool = SELECT;
-    } else if (k == SDLK_DELETE && app.selected && editor_begin()) {
-        pe_entity_destroy(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
-        app.selected = 0;
-        editor_commit();
+    } else if (k == SDLK_DELETE && app.selected) {
+        editor_scene_delete();
     }
 }
 
@@ -78,8 +76,9 @@ void editor_map_pointer(SDL_Event *e, bool modal) {
                 float x, y;
                 pe_screen_to_world(&app.camera, app.mx - app.viewport.x, app.my - app.viewport.y,
                                    &x, &y);
-                o->x = x - app.drag_x;
-                o->y = y - app.drag_y;
+                pe_entity_set_world_position(&app.map->scene,
+                                             pe_entity_find(&app.map->scene, app.selected),
+                                             x - app.drag_x, y - app.drag_y);
             }
         }
         break;

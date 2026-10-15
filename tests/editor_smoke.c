@@ -161,7 +161,9 @@ bool editor_verify_ui_layout(void) {
     smoke_pointer(SDL_EVENT_MOUSE_MOTION, x - 80, y);
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x - 80, y);
     ok = ok && fabsf(app.right_width - 360) < .01f;
-    float header_x = app.width - app.right_width + 30, header_y = SIDE_TOP + 20;
+    app.left_tabs.selected = UI_MAP_TAB;
+    editor_draw();
+    float header_x = 30, header_y = SIDE_TOP + 20;
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, header_x, header_y);
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, header_x, header_y);
     ok = ok && !app.layers_open;
@@ -596,6 +598,274 @@ bool editor_verify_window(void) {
     smoke_pointer(SDL_EVENT_MOUSE_MOTION, 500, 400);
     if (!ok) {
         fprintf(stderr, "Window chrome smoke failed\n");
+    }
+    return ok;
+}
+
+bool editor_verify_scene_graph(void) {
+    PeScene original = app.map->scene;
+    pe_history_free(&app.map->history);
+    pe_scene_init(&app.map->scene, 16, 16, 16);
+    snprintf(app.map->scene.tileset, PE_PATH, "%s", original.tileset);
+    app.map->scene.tileset_tile_size = original.tileset_tile_size;
+    app.map->collapsed_count = 0;
+    app.left_tabs.selected = UI_SCENE_TAB;
+    app.selected = 0;
+    editor_draw();
+    bool ok = !editor_yaml_action_enabled("scene.add_child");
+    float tools_y = TOP + TABS + 18.f;
+    smoke_click(PANEL_GAP + 24, tools_y);
+    uint32_t root = app.selected;
+    ok = ok && root != 0 && app.map->history.count == 1;
+    smoke_click(PANEL_GAP + 100, tools_y);
+    uint32_t child = app.selected;
+    PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, child));
+    ok = ok && o && o->parent_id == root;
+    smoke_click(PANEL_GAP + 62, tools_y);
+    uint32_t sibling = app.selected;
+    o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, sibling));
+    ok = ok && o && o->parent_id == root;
+    float first_y = TOP + TABS + 48.f;
+    smoke_click(80, first_y + 36);
+    ok = ok && app.selected == child;
+    smoke_click(PANEL_GAP + 100, tools_y);
+    uint32_t leaf = app.selected;
+    o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, leaf));
+    ok = ok && o && o->parent_id == child;
+    editor_draw();
+    ok = ok && app.scene_view.content == 4 * 26;
+    smoke_click(23, first_y + 10);
+    editor_draw();
+    ok = ok && app.scene_view.content == 26;
+    smoke_click(23, first_y + 10);
+    editor_draw();
+    ok = ok && app.scene_view.content == 4 * 26;
+    /* Drag the root in world space and verify inherited motion of the leaf. */
+    smoke_click(65, first_y + 10);
+    float before_x = 0, before_y = 0;
+    ok = ok && pe_entity_world_position(&app.map->scene, pe_entity_find(&app.map->scene, leaf),
+                                        &before_x, &before_y);
+    float sx = app.viewport.x + (66 - app.camera.x) * app.camera.zoom;
+    float sy = app.viewport.y + (66 - app.camera.y) * app.camera.zoom;
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, sx, sy);
+    smoke_pointer(SDL_EVENT_MOUSE_MOTION, sx + 32 * app.camera.zoom, sy + 16 * app.camera.zoom);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, sx + 32 * app.camera.zoom, sy + 16 * app.camera.zoom);
+    float x = 0, y = 0;
+    ok = ok &&
+         pe_entity_world_position(&app.map->scene, pe_entity_find(&app.map->scene, leaf), &x, &y);
+    ok = ok && fabsf(x - before_x - 32) < .01f && fabsf(y - before_y - 16) < .01f;
+    editor_undo_active(false);
+    ok = ok &&
+         pe_entity_world_position(&app.map->scene, pe_entity_find(&app.map->scene, leaf), &x, &y);
+    ok = ok && fabsf(x - before_x) < .01f;
+    editor_undo_active(true);
+    smoke_click(PANEL_GAP + 138, tools_y);
+    ok = ok && !pe_entity_valid(&app.map->scene, pe_entity_find(&app.map->scene, leaf));
+    editor_undo_active(false);
+    ok = ok && pe_entity_valid(&app.map->scene, pe_entity_find(&app.map->scene, leaf));
+    editor_draw();
+    /* Collapse the child and persist both hierarchy and tree state across F6 and unload. */
+    smoke_click(35, first_y + 36);
+    editor_draw();
+    ok = ok && app.map->collapsed_count == 1 && app.map->collapsed[0] == child;
+    ok = ok && editor_reload_layout();
+    editor_tab_select(true);
+    ok = ok && app.map == NULL;
+    editor_tab_select(false);
+    ok = ok && app.map && app.map->collapsed_count == 1 && app.map->collapsed[0] == child;
+    if (app.map) {
+        o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, leaf));
+        ok = ok && o && o->parent_id == child;
+        pe_history_free(&app.map->history);
+        app.map->scene = original;
+        app.map->collapsed_count = 0;
+    }
+    app.selected = 0;
+    app.left_tabs.selected = UI_EXPLORER_TAB;
+    app.tool = BRUSH;
+    editor_selection_sync();
+    if (!ok) {
+        fprintf(stderr, "Scene graph smoke failed\n");
+    }
+    return ok;
+}
+
+bool editor_verify_components(void) {
+    PeScene original = app.map->scene;
+    pe_history_free(&app.map->history);
+    pe_scene_init(&app.map->scene, 16, 16, 16);
+    snprintf(app.map->scene.tileset, PE_PATH, "%s", original.tileset);
+    app.map->scene.tileset_tile_size = original.tileset_tile_size;
+    PeEntity entity = pe_entity_create(&app.map->scene, 0);
+    uint32_t id = app.map->scene.objects[entity.index].stable_id;
+    app.selected = id;
+    memset(app.map->component_ids, 0, sizeof app.map->component_ids);
+    memset(app.map->component_closed, 0, sizeof app.map->component_closed);
+    editor_inspect_entity();
+    editor_draw();
+    float x = app.width - RIGHT + PANEL_GAP + 9;
+    float top = TOP + TABS + 108.f;
+    float remove_x = x + (RIGHT - 2 * PANEL_GAP - 32) - 18;
+    smoke_click(x + 90, top + 12);
+    bool ok = app.map->component_add_open;
+    /* Empty entity: the fourth choice is Player, which also adds Transform + Body. */
+    smoke_click(x + 90, top + 33 + 3 * 29 + 12);
+    PeObject *o = pe_entity_get(&app.map->scene, entity);
+    ok = ok && o && o->mask == (PE_TRANSFORM | PE_BODY | PE_PLAYER) && app.map->history.count == 1;
+    smoke_click(x + 90, top + 12);
+    smoke_click(x + 90, top + 33 + 12);
+    ok = ok && o->mask == 15 && !app.map->component_add_open;
+    float transform = top + 33, sprite = transform + 164, body = sprite + 77, player = body + 106;
+    smoke_click(x + 80, transform + 12);
+    ok = ok && (app.map->component_closed[entity.index] & PE_TRANSFORM);
+    smoke_click(x + 80, transform + 12);
+    ok = ok && !(app.map->component_closed[entity.index] & PE_TRANSFORM);
+    uint64_t revision = app.map->history.revision;
+    smoke_click(remove_x, transform + 12);
+    smoke_click(remove_x, body + 12);
+    ok = ok && o->mask == 15 && app.map->history.revision == revision;
+    smoke_click(remove_x, sprite + 12);
+    ok = ok && !(o->mask & PE_SPRITE);
+    editor_undo_active(false);
+    ok = ok && (o->mask & PE_SPRITE);
+    editor_draw();
+    smoke_click(x + 90, sprite + 34 + 12);
+    ok = ok && app.field == FIELD_COLOR;
+    uint32_t color = o->color;
+    strcpy(app.input, "nothex");
+    editor_field_apply();
+    ok = ok && app.field == FIELD_COLOR && o->color == color;
+    strcpy(app.input, "#12345678");
+    editor_field_apply();
+    ok = ok && app.field == FIELD_NONE && o->color == 0x12345678;
+    editor_undo_active(false);
+    ok = ok && o->color == color;
+    editor_undo_active(true);
+    editor_draw();
+    smoke_click(x + 90, body + 34 + 12);
+    ok = ok && app.field == FIELD_VX;
+    strcpy(app.input, "25.5");
+    editor_field_apply();
+    ok = ok && app.field == FIELD_NONE && o->vx == 25.5f;
+    editor_draw();
+    smoke_click(remove_x, player + 12);
+    ok = ok && !(o->mask & PE_PLAYER);
+    smoke_click(remove_x, body + 12);
+    ok = ok && !(o->mask & PE_BODY);
+    editor_undo_active(false);
+    editor_undo_active(false);
+    ok = ok && o->mask == 15 && o->vx == 25.5f;
+    editor_draw();
+    smoke_click(x + 80, sprite + 12);
+    ok = ok && (app.map->component_closed[entity.index] & PE_SPRITE);
+    ok = ok && editor_reload_layout();
+    editor_tab_select(true);
+    editor_tab_select(false);
+    o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, id));
+    ok = ok && o && o->mask == 15 && o->color == 0x12345678 && o->vx == 25.5f &&
+         (app.map->component_closed[entity.index] & PE_SPRITE);
+    editor_play_toggle();
+    ok = ok && !editor_component_change(PE_PLAYER, false);
+    editor_play_toggle();
+    pe_history_free(&app.map->history);
+    app.map->scene = original;
+    memset(app.map->component_ids, 0, sizeof app.map->component_ids);
+    memset(app.map->component_closed, 0, sizeof app.map->component_closed);
+    app.map->component_add_open = false;
+    app.selected = 0;
+    app.layers_open = app.entity_open = app.palette_open = true;
+    app.inspector_view.offset = 0;
+    editor_selection_sync();
+    if (!ok) {
+        fprintf(stderr, "Component inspector smoke failed\n");
+    }
+    return ok;
+}
+
+static bool smoke_panel_tab(bool right, UiId id) {
+    UiTabs *tabs = right ? &app.right_tabs : &app.left_tabs;
+    UiRect bar = {right ? app.width - RIGHT + PANEL_GAP : PANEL_GAP, TOP + PANEL_GAP,
+                  (right ? RIGHT : LEFT) - 2 * PANEL_GAP, TABS - PANEL_GAP};
+    for (int i = 0; i < tabs->count; i++) {
+        if (tabs->items[i].id == id) {
+            UiRect tab = ui_tab_rect(tabs, bar, 112, i);
+            smoke_click(tab.x + tab.w * .5f, tab.y + 12);
+            return tabs->selected == id;
+        }
+    }
+    return false;
+}
+
+bool editor_verify_map_panels(void) {
+    PeScene original = app.map->scene;
+    pe_history_free(&app.map->history);
+    app.layers_open = app.palette_open = true;
+    editor_draw();
+    bool ok = smoke_panel_tab(false, UI_MAP_TAB) && smoke_panel_tab(true, UI_TILES_TAB);
+    float x = PANEL_GAP + 9, w = LEFT - 2 * PANEL_GAP - 32;
+    float right_x = app.width - RIGHT + PANEL_GAP + 9;
+    float first = TOP + TABS + 72.f;
+    int before = app.map->scene.layer_count;
+    smoke_click(x + 40, first + before * 30 + 12);
+    ok = ok && app.map->scene.layer_count == before + 1;
+    float actions = first + app.map->scene.layer_count * 30;
+    smoke_click(x + 40, actions + 32 + 12);
+    ok = ok && app.field == FIELD_LAYER;
+    strcpy(app.input, "Decoration");
+    editor_field_apply();
+    ok = ok && !strcmp(app.map->scene.layers[app.layer].name, "Decoration");
+    editor_undo_active(false);
+    ok = ok && strcmp(app.map->scene.layers[app.layer].name, "Decoration");
+    editor_undo_active(true);
+    editor_draw();
+    smoke_click(x + w - 22, first + app.layer * 30 + 12);
+    ok = ok && !app.map->scene.layers[app.layer].visible;
+    editor_undo_active(false);
+    ok = ok && app.map->scene.layers[app.layer].visible;
+    editor_draw();
+    float half = (w - 8) / 2;
+    smoke_click(x + half + 8 + (half - 8) / 4, actions + 44);
+    ok = ok && app.layer == before - 1 &&
+         !strcmp(app.map->scene.layers[app.layer].name, "Decoration");
+    editor_undo_active(false);
+    app.layer = before;
+    editor_draw();
+    smoke_click(x + half + 8 + half / 2, actions + 12);
+    ok = ok && app.map->scene.layer_count == before;
+    editor_undo_active(false);
+    app.layer = before;
+    editor_draw();
+    /* Import and source size belong to Tiles, independently of the selected entity. */
+    smoke_click(right_x + 70, TOP + TABS + 82);
+    ok = ok && app.field == FIELD_IMPORT;
+    editor_field_stop();
+    editor_draw();
+    smoke_click(right_x + 70, TOP + TABS + 114);
+    ok = ok && app.field == FIELD_TILESIZE;
+    editor_field_stop();
+    editor_draw();
+    int old_tile = app.tile;
+    smoke_click(right_x + 37 + 16, TOP + TABS + 182);
+    ok = ok && app.tile == 2;
+    ok = ok && editor_reload_layout() && app.left_tabs.selected == UI_MAP_TAB &&
+         app.right_tabs.selected == UI_TILES_TAB;
+    editor_tab_select(true);
+    editor_tab_select(false);
+    ok = ok && app.left_tabs.selected == UI_MAP_TAB && app.right_tabs.selected == UI_TILES_TAB &&
+         app.map->scene.layer_count == before + 1 &&
+         !strcmp(app.map->scene.layers[app.layer].name, "Decoration");
+    editor_undo_active(false);
+    ok = ok && strcmp(app.map->scene.layers[app.layer].name, "Decoration");
+    pe_history_free(&app.map->history);
+    app.map->scene = original;
+    app.layer = 0;
+    app.tile = old_tile;
+    app.left_tabs.selected = UI_EXPLORER_TAB;
+    app.right_tabs.selected = UI_INSPECTOR_TAB;
+    app.map_view = app.tiles_view = (UiScroll){0};
+    editor_selection_sync();
+    if (!ok) {
+        fprintf(stderr, "Map/Tiles panel smoke failed\n");
     }
     return ok;
 }

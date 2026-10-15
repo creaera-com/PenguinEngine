@@ -5,12 +5,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-static const char *actions[] = {"document.save",     "document.undo",        "document.redo",
-                                "scene.toggle_play", "map.import_tileset",   "map.select_brush",
-                                "map.select_eraser", "map.select_rectangle", "map.select_fill",
-                                "map.select_entity", "map.toggle_grid",      "map.toggle_collision",
-                                "script.check",      "window.minimize",      "window.maximize",
-                                "window.collapse",   "window.close",         NULL};
+static const char *actions[] = {"document.save",      "document.undo",
+                                "document.redo",      "scene.toggle_play",
+                                "map.import_tileset", "map.select_brush",
+                                "map.select_eraser",  "map.select_rectangle",
+                                "map.select_fill",    "map.select_entity",
+                                "map.toggle_grid",    "map.toggle_collision",
+                                "scene.add_root",     "scene.add_sibling",
+                                "scene.add_child",    "scene.delete",
+                                "script.check",       "window.minimize",
+                                "window.maximize",    "window.collapse",
+                                "window.close",       NULL};
 static const char *bindings[] = {
     "document.can_save",     "document.can_undo", "document.can_redo", "document.save_state",
     "editor.mode",           "editor.details",    "editor.message",    "map.grid_visible",
@@ -178,9 +183,9 @@ static bool widget(Check *c, const cJSON *v, int depth) {
         return error_at(c, v, "only one interactive canvas per editor is supported");
     }
 
-    const char *specialized[] = {"file_tree",     "entity_tree", "map_canvas",
-                                 "script_editor", "inspector",   "scene_info",
-                                 "script_info",   "terminal",    NULL};
+    const char *specialized[] = {"file_tree",  "entity_tree",  "map_canvas",  "script_editor",
+                                 "inspector",  "scene_info",   "script_info", "terminal",
+                                 "map_layers", "tile_palette", NULL};
     for (int i = 0; specialized[i]; i++) {
         if (!strcmp(type, specialized[i])) {
             unsigned bit = 1u << i;
@@ -194,6 +199,8 @@ static bool widget(Check *c, const cJSON *v, int depth) {
     const char *extra = "";
     if (!strcmp(type, "tabs")) {
         extra = "|tabs|";
+    } else if (!strcmp(type, "entity_tree")) {
+        extra = "|tools|";
     } else if (!strcmp(type, "section")) {
         extra = "|children||title||open|";
     } else if (!strcmp(type, "row") || !strcmp(type, "column")) {
@@ -206,7 +213,8 @@ static bool widget(Check *c, const cJSON *v, int depth) {
                strcmp(type, "spacer") && strcmp(type, "file_tree") && strcmp(type, "entity_tree") &&
                strcmp(type, "map_canvas") && strcmp(type, "script_editor") &&
                strcmp(type, "inspector") && strcmp(type, "scene_info") &&
-               strcmp(type, "script_info") && strcmp(type, "terminal")) {
+               strcmp(type, "script_info") && strcmp(type, "terminal") &&
+               strcmp(type, "map_layers") && strcmp(type, "tile_palette")) {
         return error_at(c, v, "unknown widget type");
     }
 
@@ -249,19 +257,33 @@ static bool widget(Check *c, const cJSON *v, int depth) {
         }
     }
 
+    const cJSON *tools = pe_ui_get(v, "tools");
+    if (tools) {
+        if (!cJSON_IsArray(tools) || cJSON_GetArraySize(tools) > 4) {
+            return error_at(c, tools, "entity_tree tools requires at most four buttons");
+        }
+        for (const cJSON *tool = tools->child; tool; tool = tool->next) {
+            if (strcmp(pe_ui_string(tool, "type", ""), "button") || !widget(c, tool, depth + 1)) {
+                return error_at(c, tool, "entity_tree tools only supports buttons");
+            }
+        }
+    }
+
     const char *binding = pe_ui_string(v, "binding", "");
     if (pe_ui_get(v, "binding") && !pe_ui_binding_known(binding)) {
         return error_at(c, v, "unknown binding");
     }
 
-    const char *required =
-        !strcmp(type, "terminal")                                          ? "terminal.shared"
-        : !strcmp(type, "file_tree")                                       ? "project.files"
-        : !strcmp(type, "entity_tree")                                     ? "scene.entities"
-        : (!strcmp(type, "map_canvas") || !strcmp(type, "scene_info"))     ? "scene.active"
-        : !strcmp(type, "inspector")                                       ? "selection.active"
-        : (!strcmp(type, "script_editor") || !strcmp(type, "script_info")) ? "document.active"
-                                                                           : NULL;
+    const char *required = !strcmp(type, "terminal")      ? "terminal.shared"
+                           : !strcmp(type, "file_tree")   ? "project.files"
+                           : !strcmp(type, "entity_tree") ? "scene.entities"
+                           : (!strcmp(type, "map_canvas") || !strcmp(type, "scene_info") ||
+                              !strcmp(type, "map_layers") || !strcmp(type, "tile_palette"))
+                               ? "scene.active"
+                           : !strcmp(type, "inspector") ? "selection.active"
+                           : (!strcmp(type, "script_editor") || !strcmp(type, "script_info"))
+                               ? "document.active"
+                               : NULL;
     if (!required && pe_ui_get(v, "binding")) {
         return error_at(c, v, "binding property is unavailable on this widget");
     }
@@ -270,7 +292,8 @@ static bool widget(Check *c, const cJSON *v, int depth) {
     }
 
     bool map_only = !strcmp(type, "entity_tree") || !strcmp(type, "map_canvas") ||
-                    !strcmp(type, "scene_info") || !strcmp(type, "inspector");
+                    !strcmp(type, "scene_info") || !strcmp(type, "inspector") ||
+                    !strcmp(type, "map_layers") || !strcmp(type, "tile_palette");
     bool script_only = !strcmp(type, "script_editor") || !strcmp(type, "script_info");
     if ((map_only && (!c->module || strcmp(c->module, "map"))) ||
         (script_only && (!c->module || strcmp(c->module, "scripts")))) {

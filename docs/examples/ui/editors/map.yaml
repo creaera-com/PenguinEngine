@@ -27,7 +27,18 @@ columns:
       - id: scene_tab
         title: "Scene"
         icon: entity
-        content: {type: entity_tree, id: entities, binding: scene.entities}
+        content:
+          type: entity_tree
+          id: entities
+          binding: scene.entities
+          tools:
+            - {type: button, id: entity_root, icon: entity, tooltip: "Neue Wurzel", action: scene.add_root}
+            - {type: button, id: entity_sibling, icon: plus, tooltip: "Geschwister hinzufügen", action: scene.add_sibling}
+            - {type: button, id: entity_child, icon: layers, tooltip: "Kind hinzufügen", action: scene.add_child}
+            - {type: button, id: entity_delete, icon: delete, tooltip: "Unterbaum löschen", action: scene.delete}
+      - id: map_tab
+        title: "Map"
+        content: {type: map_layers, id: layers, binding: scene.active}
   center:
     type: map_canvas
     id: canvas
@@ -44,3 +55,7 @@ columns:
         title: "Info"
         icon: file
         content: {type: scene_info, id: scene_info, binding: scene.active}
+      - id: tiles_tab
+        title: "Tiles"
+        icon: image
+        content: {type: tile_palette, id: tiles, binding: scene.active}

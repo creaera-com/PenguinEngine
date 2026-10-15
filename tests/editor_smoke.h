@@ -32,4 +32,10 @@ bool editor_verify_workspace_tools(void);
 bool editor_verify_console(void);
 /** @brief Prüft Rahmen-Hit-Test, Fensterbuttons und Größenwiederherstellung. */
 bool editor_verify_window(void);
+/** @brief Prüft Scene-Baum, Erstellen, Verschieben, Löschen, Verlauf und Editorwechsel. */
+bool editor_verify_scene_graph(void);
+/** @brief Prüft Komponentenmenü, Karten, Einstellungen, Verlauf und Editorwechsel. */
+bool editor_verify_components(void);
+/** @brief Prüft getrennte Map-/Tiles-Tabs, Layeraktionen, Palette und Checkpoints. */
+bool editor_verify_map_panels(void);
 #endif

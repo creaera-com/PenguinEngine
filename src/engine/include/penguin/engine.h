@@ -41,15 +41,17 @@ typedef struct {
 
 /** @brief Feste ECS-Komponentendaten eines Entity-Slots; mask bestimmt die aktiven Komponenten. */
 typedef struct {
-    float x;             ///< Horizontale Position.
-    float y;             ///< Vertikale Position.
-    float w;             ///< Breite.
-    float h;             ///< Höhe.
-    float vx;            ///< Horizontale Geschwindigkeit in Weltpixeln pro Sekunde.
-    float vy;            ///< Vertikale Geschwindigkeit in Weltpixeln pro Sekunde.
-    uint32_t color;      ///< Gepackte Darstellungsfarbe im Format 0xRRGGBBAA.
-    uint32_t mask;       ///< Bitmaske der aktiven Komponenten.
-    uint32_t stable_id;  ///< Im Szenenformat gespeicherte Objekt-ID.
+    float x;        ///< Horizontale lokale Position relativ zum Parent; ohne Parent Weltposition.
+    float y;        ///< Vertikale lokale Position relativ zum Parent; ohne Parent Weltposition.
+    float w;        ///< Breite.
+    float h;        ///< Höhe.
+    float vx;       ///< Horizontale Geschwindigkeit in Weltpixeln pro Sekunde.
+    float vy;       ///< Vertikale Geschwindigkeit in Weltpixeln pro Sekunde.
+    uint32_t color; ///< Gepackte Darstellungsfarbe im Format 0xRRGGBBAA.
+    uint32_t mask;  ///< Bitmaske der aktiven Komponenten.
+    uint32_t stable_id; ///< Im Szenenformat gespeicherte Objekt-ID.
+    uint32_t
+        parent_id; ///< Stabile ID des Parents; 0 bezeichnet eine Wurzel. Über Parent-API ändern.
     uint32_t generation; ///< Slotgeneration zur Erkennung veralteter Entity-Kennungen.
     bool alive;          ///< Ob dieser Entity-Slot belegt ist.
 } PeObject;
@@ -136,7 +138,7 @@ PeEntity pe_entity_create(PeScene *scene, uint32_t mask);
 bool pe_entity_valid(const PeScene *scene, PeEntity entity);
 
 /**
- * @brief Entfernt eine Entity und erhöht ihre Generation; alte Kennungen werden ungültig.
+ * @brief Entfernt eine Entity samt Unterbaum und erhöht die Generationen aller entfernten Slots.
  *
  * @param scene Szenenmodell; muss während des Aufrufs gültig sein.
  * @param entity Laufzeitkennung mit Slot und Generation.
@@ -160,6 +162,67 @@ PeObject *pe_entity_get(PeScene *scene, PeEntity entity);
  * @param stable_id Gespeicherte Objekt-ID, keine Slotnummer.
  */
 PeEntity pe_entity_find(const PeScene *scene, uint32_t stable_id);
+
+/**
+ * @brief Berechnet die Weltposition aus lokalen Translationen der Elternkette; false bei Fehlern.
+ * @param scene Geliehene Szene; bleibt unverändert.
+ * @param entity Gültige Entity mit PE_TRANSFORM.
+ * @param x Ausgabe der Welt-X-Position; nur bei Erfolg beschrieben.
+ * @param y Ausgabe der Welt-Y-Position; nur bei Erfolg beschrieben.
+ */
+bool pe_entity_world_position(const PeScene *scene, PeEntity entity, float *x, float *y);
+
+/**
+ * @brief Setzt die Weltposition durch Umrechnung in die lokale Position; Kinder folgen automatisch.
+ * @param scene Zu ändernde Szene.
+ * @param entity Gültige Entity mit PE_TRANSFORM.
+ * @param x Endliche Welt-X-Position.
+ * @param y Endliche Welt-Y-Position.
+ * @return false ohne Änderung bei ungültiger Hierarchie oder Position.
+ */
+bool pe_entity_set_world_position(PeScene *scene, PeEntity entity, float x, float y);
+
+/**
+ * @brief Ändert den Parent atomar; lehnt Zyklen, veraltete Kennungen und fehlende Transforms ab.
+ * @param scene Zu ändernde Szene.
+ * @param entity Zu verschiebende Entity mit PE_TRANSFORM.
+ * @param parent Neue Parent-Entity mit PE_TRANSFORM; {UINT32_MAX, 0} löst die Beziehung.
+ * @param keep_world true erhält die Weltposition; false erhält die lokale Position.
+ */
+bool pe_entity_set_parent(PeScene *scene, PeEntity entity, PeEntity parent, bool keep_world);
+
+/**
+ * @brief Prüft IDs, Elternreferenzen, Transform-Voraussetzungen, Zyklen und endliche Positionen.
+ * @param scene Geliehene Szene; bleibt unverändert.
+ */
+bool pe_scene_hierarchy_valid(const PeScene *scene);
+
+/**
+ * @brief Fügt eine Komponente mit Standardwerten und nötigen Abhängigkeiten hinzu.
+ * @param scene Zu ändernde Szene.
+ * @param entity Gültige Entity.
+ * @param component Genau eines der Bits PE_TRANSFORM, PE_SPRITE, PE_BODY oder PE_PLAYER.
+ * @return false ohne Änderung bei ungültigem Bit, ungültiger Entity oder bereits vorhandener
+ * Komponente.
+ */
+bool pe_entity_add_component(PeScene *scene, PeEntity entity, uint32_t component);
+
+/**
+ * @brief Prüft, ob eine Komponente ohne Verletzung von Abhängigkeiten/Hierarchie entfernbar ist.
+ * @param scene Geliehene Szene.
+ * @param entity Gültige Entity.
+ * @param component Genau ein bekanntes Komponentenbit.
+ */
+bool pe_entity_component_removable(const PeScene *scene, PeEntity entity, uint32_t component);
+
+/**
+ * @brief Entfernt eine Komponente; abhängige Komponenten und Hierarchien bleiben geschützt.
+ * @param scene Zu ändernde Szene.
+ * @param entity Gültige Entity.
+ * @param component Genau ein bekanntes Komponentenbit.
+ * @return false ohne Änderung, wenn pe_entity_component_removable false liefert.
+ */
+bool pe_entity_remove_component(PeScene *scene, PeEntity entity, uint32_t component);
 
 /**
  * @brief Setzt ein Tile auf einer gültigen Ebene und Kartenposition.

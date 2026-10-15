@@ -21,6 +21,13 @@ typedef struct {
     PeScene runtime;   ///< Separate Playkopie; verändert die bearbeitete Szene nicht.
     PeHistory history; ///< Besitzender Szenen-Undo-/Redo-Verlauf.
     PeAssets assets;   ///< Besitzender Tilesetcache der geladenen Map.
+    uint32_t
+        collapsed[PE_ENTITIES]; ///< Stabile IDs zugeklappter Scene-Knoten; keine Dokumentdaten.
+    uint32_t
+        component_ids[PE_ENTITIES]; ///< IDs zur Zuordnung der Inspector-Navigation zu Entity-Slots.
+    uint32_t component_closed[PE_ENTITIES]; ///< Bits zugeklappter Komponenten; keine Dokumentdaten.
+    bool component_add_open;                ///< Flüchtiger Zustand der Hinzufügen-Auswahl.
+    int collapsed_count;                    ///< Anzahl gültiger Einträge in collapsed.
 } MapPayload;
 
 /* Map-specific operations, used only within the editor. */
@@ -45,9 +52,29 @@ void editor_commit(void);
 void editor_draw_info(void);
 
 /**
- * @brief Zeichnet Map-Inspector, Ebenenliste, Entity-Werte und Tile-Palette.
+ * @brief Zeichnet ausschließlich Auswahl und Komponenten der inspizierten Entity.
  */
 void editor_draw_inspector(void);
+/** @brief Zeichnet Karteninformationen und Ebenenverwaltung im Map-Tab. */
+void editor_draw_map_panel(void);
+/** @brief Zeichnet Tileset-Import, Quell-Tilegröße und Tile-Palette im Tiles-Tab. */
+void editor_draw_tiles_panel(void);
+/**
+ * @brief Zeichnet Komponenten-Karten der aktuellen Auswahl und liefert die nächste
+ * Inhalts-Y-Position.
+ * @param x Linke Position in Fensterpixeln.
+ * @param y Obere Position in Fensterpixeln.
+ * @param width Verfügbare Breite in Fensterpixeln.
+ */
+float editor_draw_components(float x, float y, float width);
+/**
+ * @brief Fügt eine Komponente zur Auswahl hinzu oder entfernt sie als Undo-Schritt.
+ * @param component Genau ein bekanntes Komponentenbit.
+ * @param add true zum Hinzufügen, false zum Entfernen.
+ */
+bool editor_component_change(uint32_t component, bool add);
+/** @brief Öffnet den Entity-Inspector und schafft Platz für seine Komponenten. */
+void editor_inspect_entity(void);
 
 /**
  * @brief Zeichnet Map-Canvas, Auswahlrahmen und Werkzeugvorschau.
@@ -63,6 +90,15 @@ void editor_draw_map_tools(SDL_FRect area);
  * @brief Zeichnet die Entity-Liste und verarbeitet die Auswahl.
  */
 void editor_draw_scene_tree(void);
+
+/**
+ * @brief Erstellt eine Entity als Wurzel, Geschwister oder Kind der Auswahl, jeweils als
+ * Undo-Schritt.
+ * @param relation 0 für Wurzel, 1 für Geschwister, 2 für Kind.
+ */
+void editor_scene_add(int relation);
+/** @brief Löscht die ausgewählte Entity samt Unterbaum als gemeinsamen Undo-Schritt. */
+void editor_scene_delete(void);
 
 /**
  * @brief Beendet eine Pinsel-/Auswahlgeste als gemeinsamen Undo-Schritt.

@@ -11,7 +11,15 @@ void editor_map_action(const char *name) {
     if (app.playing || editor_edit_pending() || !app.loaded_view) {
         return;
     }
-    if (!strcmp(name, "map.import_tileset")) {
+    if (!strcmp(name, "scene.add_root")) {
+        editor_scene_add(0);
+    } else if (!strcmp(name, "scene.add_sibling")) {
+        editor_scene_add(1);
+    } else if (!strcmp(name, "scene.add_child")) {
+        editor_scene_add(2);
+    } else if (!strcmp(name, "scene.delete")) {
+        editor_scene_delete();
+    } else if (!strcmp(name, "map.import_tileset")) {
         editor_field_start(FIELD_IMPORT, "");
     } else if (!strcmp(name, "map.toggle_grid")) {
         app.grid = !app.grid;

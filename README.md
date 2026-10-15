@@ -93,7 +93,7 @@ Bei älteren Ständen mit `Cannot open example/project.json`: Working directory 
 
 ## Tests ohne SDL oder Fenster
 
-Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Unter Linux insgesamt 128 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge, UI-Regeln und Editorzustände ohne Download. Die beiden zusätzlichen Dokument-Checkpoint-Tests werden im SDL-Build ausgeführt.
+Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Unter Linux insgesamt 146 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge, UI-Regeln und Editorzustände ohne Download. Die beiden zusätzlichen Dokument-Checkpoint-Tests werden im SDL-Build ausgeführt.
 
 ```sh
 cmake -S . -B build-core -DPENGUIN_BUILD_EDITOR=OFF
@@ -169,3 +169,9 @@ QuickJS-ng prüft echte JavaScript-/ES-Modulsyntax, **führt den Code aber nicht
 Die Engine ist eine ausbaubare Basis. Sprite-Entities werden zunächst als farbige Rechtecke dargestellt; Bildausschnitte werden bei Tilemaps unterstützt. Die Undo-Historie liegt im Speicher und umfasst maximal 64 Änderungen. Importierte Dateien bleiben beim Undo erhalten. Weitere Grenzen und Abweichungen vom ursprünglichen Konzept beschreibt die Implementierungsdokumentation.
 
 Der Editor und die UI-Demo verwenden die mitgelieferte **JetBrains Mono Regular** (SIL Open Font License). Details zur Textdarstellung und zum Schriftatlas stehen in [UI_BIBLIOTHEK.md](docs/UI_BIBLIOTHEK.md).
+
+Der Scene-Tab zeigt einen aufklappbaren Entity-Graphen mit Parent-Beziehungen, lokalen Positionen und Undo/Redo. Bedienung, C-API und Beispiel: [Scene-Graph](docs/SCENE_GRAPH.md).
+
+Im Entity-Inspector lassen sich Transform, Sprite, Body und Player hinzufügen oder entfernen. Jede Komponente hat einen eigenen klappbaren Bereich mit Einstellungen. Details: [Komponenten im Inspector](docs/COMPONENTS.md).
+
+Layer liegen im linken **Map**-Tab, Tileset und Palette im rechten **Tiles**-Tab. Der Inspector zeigt die Entity-Komponenten. Mit `--map-tools` werden Map und Tiles direkt geöffnet.

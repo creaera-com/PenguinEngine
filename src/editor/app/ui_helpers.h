@@ -15,6 +15,8 @@
  * @brief Zeichnet eine gefüllte Editorfläche in RGBA.
  */
 void editor_box(SDL_FRect r, uint32_t c);
+/** @brief Liefert die um 5 Prozent Weiß aufgehellte Theme-Surface als Widget-Hintergrund. */
+Uint32 editor_widget_background(void);
 
 /**
  * @brief Zeichnet und verarbeitet einen Textbutton mit aufruferspezifischer ID.

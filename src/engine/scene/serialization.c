@@ -29,7 +29,7 @@ bool pe_scene_load(PeScene *scene, const char *path, char *error, size_t size) {
     }
 
     int version, w, h, tile, source_size;
-    bool ok = pe_json_integer(cJSON_GetObjectItemCaseSensitive(j, "version"), 1, 1, &version) &&
+    bool ok = pe_json_integer(cJSON_GetObjectItemCaseSensitive(j, "version"), 1, 2, &version) &&
               pe_json_integer(cJSON_GetObjectItemCaseSensitive(j, "width"), 1, PE_MAP_MAX, &w) &&
               pe_json_integer(cJSON_GetObjectItemCaseSensitive(j, "height"), 1, PE_MAP_MAX, &h) &&
               pe_json_integer(cJSON_GetObjectItemCaseSensitive(j, "tile_size"), 1, 128, &tile) &&
@@ -129,9 +129,27 @@ bool pe_scene_load(PeScene *scene, const char *path, char *error, size_t size) {
         o->w = ow;
         o->h = oh;
         o->color = (uint32_t)color->valuedouble;
+        cJSON *parent = cJSON_GetObjectItemCaseSensitive(obj, "parent");
+        int parent_id = 0;
+        if (((parent || version == 2) && !pe_json_integer(parent, 0, 1000000, &parent_id)) ||
+            (version == 1 && parent_id != 0)) {
+            ok = false;
+            goto done;
+        }
+        o->parent_id = (uint32_t)parent_id;
+        cJSON *vx = cJSON_GetObjectItemCaseSensitive(obj, "vx");
+        cJSON *vy = cJSON_GetObjectItemCaseSensitive(obj, "vy");
+        if ((vx && !number(vx, &o->vx)) || (vy && !number(vy, &o->vy))) {
+            ok = false;
+            goto done;
+        }
         if (s->next_id <= (uint32_t)id) {
             s->next_id = (uint32_t)id + 1;
         }
+    }
+    if (!pe_scene_hierarchy_valid(s)) {
+        ok = false;
+        goto done;
     }
     *scene = *s;
 done:
@@ -142,11 +160,21 @@ done:
 }
 
 bool pe_scene_save(const PeScene *s, const char *path, char *error, size_t size) {
+    if (!pe_scene_hierarchy_valid(s)) {
+        return pe_json_fail(error, size, "Cannot save invalid scene hierarchy");
+    }
+    for (int i = 0; i < PE_ENTITIES; i++) {
+        const PeObject *o = &s->objects[i];
+        if (o->alive && (!isfinite(o->vx) || !isfinite(o->vy) || fabsf(o->vx) > 1000000 ||
+                         fabsf(o->vy) > 1000000)) {
+            return pe_json_fail(error, size, "Cannot save invalid entity velocity");
+        }
+    }
     cJSON *j = cJSON_CreateObject();
     if (!j) {
         return pe_json_fail(error, size, "Out of memory");
     }
-    cJSON_AddNumberToObject(j, "version", 1);
+    cJSON_AddNumberToObject(j, "version", 2);
     cJSON_AddNumberToObject(j, "width", s->width);
     cJSON_AddNumberToObject(j, "height", s->height);
     cJSON_AddNumberToObject(j, "tile_size", s->tile_size);
@@ -180,12 +208,15 @@ bool pe_scene_save(const PeScene *s, const char *path, char *error, size_t size)
         cJSON *obj = cJSON_CreateObject();
         cJSON_AddItemToArray(objects, obj);
         cJSON_AddNumberToObject(obj, "id", o->stable_id);
+        cJSON_AddNumberToObject(obj, "parent", o->parent_id);
         cJSON_AddNumberToObject(obj, "mask", o->mask);
         cJSON_AddNumberToObject(obj, "x", o->x);
         cJSON_AddNumberToObject(obj, "y", o->y);
         cJSON_AddNumberToObject(obj, "w", o->w);
         cJSON_AddNumberToObject(obj, "h", o->h);
         cJSON_AddNumberToObject(obj, "color", o->color);
+        cJSON_AddNumberToObject(obj, "vx", o->vx);
+        cJSON_AddNumberToObject(obj, "vy", o->vy);
     }
 
     char *text = cJSON_Print(j);

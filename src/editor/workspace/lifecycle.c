@@ -3,7 +3,7 @@
 typedef struct {
     float left, right;
     PeCamera camera;
-    float scroll[4];
+    float scroll[6];
     int layer, tile, tool, palette;
     uint32_t selected, flags;
     int counts[2];
@@ -34,6 +34,8 @@ static void snapshot_ui(UiSnapshot *s, bool load) {
         s->scroll[1] = app.scene_view.offset;
         s->scroll[2] = app.inspector_view.offset;
         s->scroll[3] = app.info_view.offset;
+        s->scroll[4] = app.map_view.offset;
+        s->scroll[5] = app.tiles_view.offset;
         s->layer = app.layer;
         s->tile = app.tile;
         s->tool = app.tool;
@@ -63,6 +65,8 @@ static void snapshot_ui(UiSnapshot *s, bool load) {
         app.scene_view = (UiScroll){s->scroll[1], 0, 0};
         app.inspector_view = (UiScroll){s->scroll[2], 0, 0};
         app.info_view = (UiScroll){s->scroll[3], 0, 0};
+        app.map_view = (UiScroll){s->scroll[4], 0, 0};
+        app.tiles_view = (UiScroll){s->scroll[5], 0, 0};
         app.layer = s->layer;
         app.tile = s->tile;
         app.tool = s->tool;
@@ -113,7 +117,7 @@ static bool valid_snapshot(const UiSnapshot *s) {
         !memchr(s->status, 0, sizeof s->status)) {
         return false;
     }
-    for (int k = 0; k < 4; k++) {
+    for (int k = 0; k < 6; k++) {
         if (!isfinite(s->scroll[k]) || s->scroll[k] < 0) {
             return false;
         }
@@ -137,8 +141,9 @@ static bool valid_snapshot(const UiSnapshot *s) {
 
 bool editor_checkpoint(PeSession *io, void *opaque) {
     UiId id = *(UiId *)opaque;
-    uint32_t abi[3] = {sizeof(PeScene), sizeof(UiSnapshot), se_checkpoint_header_size()};
-    uint32_t expected[3];
+    uint32_t abi[4] = {sizeof(PeScene), sizeof(UiSnapshot), se_checkpoint_header_size(),
+                       sizeof(MapPayload)};
+    uint32_t expected[4];
     memcpy(expected, abi, sizeof abi);
     if (!pe_session_block(io, abi, sizeof abi) || memcmp(abi, expected, sizeof abi)) {
         return false;
@@ -205,11 +210,12 @@ static void default_editor_ui(bool scripts) {
     app.grid = true;
     app.collision = false;
     app.layers_open = app.entity_open = app.palette_open = true;
-    app.tree_view = app.scene_view = app.inspector_view = app.info_view = (UiScroll){0};
-    UiTab left[] = {{UI_EXPLORER_TAB, true, 0}, {UI_SCENE_TAB, true, 0}};
-    UiTab right[] = {{UI_INSPECTOR_TAB, true, 0}, {UI_INFO_TAB, true, 0}};
-    ui_tabs_init(&app.left_tabs, left, scripts ? 1 : 2, UI_EXPLORER_TAB);
-    ui_tabs_init(&app.right_tabs, right, 2, UI_INSPECTOR_TAB);
+    app.tree_view = app.scene_view = app.inspector_view = app.info_view = app.map_view =
+        app.tiles_view = (UiScroll){0};
+    UiTab left[] = {{UI_EXPLORER_TAB, true, 0}, {UI_SCENE_TAB, true, 0}, {UI_MAP_TAB, true, 0}};
+    UiTab right[] = {{UI_INSPECTOR_TAB, true, 0}, {UI_INFO_TAB, true, 0}, {UI_TILES_TAB, true, 0}};
+    ui_tabs_init(&app.left_tabs, left, scripts ? 1 : 3, UI_EXPLORER_TAB);
+    ui_tabs_init(&app.right_tabs, right, scripts ? 2 : 3, UI_INSPECTOR_TAB);
 }
 
 bool editor_activate(UiId id, char *error, size_t size) {

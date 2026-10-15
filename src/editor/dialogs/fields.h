@@ -19,7 +19,10 @@ typedef enum {
     FIELD_X,
     FIELD_Y,
     FIELD_W,
-    FIELD_H
+    FIELD_H,
+    FIELD_VX,   ///< Body-Geschwindigkeit in Weltpixeln pro Sekunde.
+    FIELD_VY,   ///< Body-Geschwindigkeit in Weltpixeln pro Sekunde.
+    FIELD_COLOR ///< Sprite-Farbe als acht hexadezimale RGBA-Ziffern.
 } Field;
 
 /**

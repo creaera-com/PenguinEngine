@@ -37,11 +37,33 @@ bool pe_entity_destroy(PeScene *s, PeEntity e) {
         return false;
     }
 
-    PeObject *o = &s->objects[e.index];
-    o->alive = false;
-    o->generation++;
-    if (!o->generation) {
-        o->generation = 1;
+    bool removed[PE_ENTITIES] = {false};
+    removed[e.index] = true;
+    for (int pass = 0; pass < PE_ENTITIES; pass++) {
+        bool changed = false;
+        for (uint32_t i = 0; i < PE_ENTITIES; i++) {
+            if (!s->objects[i].alive || removed[i] || !s->objects[i].parent_id) {
+                continue;
+            }
+            PeEntity parent = pe_entity_find(s, s->objects[i].parent_id);
+            if (pe_entity_valid(s, parent) && removed[parent.index]) {
+                removed[i] = true;
+                changed = true;
+            }
+        }
+        if (!changed) {
+            break;
+        }
+    }
+    for (int i = 0; i < PE_ENTITIES; i++) {
+        if (removed[i]) {
+            PeObject *o = &s->objects[i];
+            o->alive = false;
+            o->generation++;
+            if (!o->generation) {
+                o->generation = 1;
+            }
+        }
     }
 
     return true;

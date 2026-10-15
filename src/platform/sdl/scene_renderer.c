@@ -106,18 +106,24 @@ void pe_render_scene(SDL_Renderer *r, const PeScene *s, const PeAssets *a, const
             }
         }
     }
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
     for (int i = 0; i < PE_ENTITIES; i++) {
         const PeObject *o = &s->objects[i];
         if (!o->alive || (o->mask & (PE_TRANSFORM | PE_SPRITE)) != (PE_TRANSFORM | PE_SPRITE)) {
             continue;
         }
-        SDL_FRect dst = {v.x + (o->x - c->x) * c->zoom, v.y + (o->y - c->y) * c->zoom,
-                         o->w * c->zoom, o->h * c->zoom};
+        float x, y;
+        if (!pe_entity_world_position(s, (PeEntity){(uint32_t)i, o->generation}, &x, &y)) {
+            continue;
+        }
+        SDL_FRect dst = {v.x + (x - c->x) * c->zoom, v.y + (y - c->y) * c->zoom, o->w * c->zoom,
+                         o->h * c->zoom};
         color(r, o->color);
         SDL_RenderFillRect(r, &dst);
-        color(r, 0x17202aff);
+        color(r, 0x17202a00u | (o->color & 0xffu));
         SDL_RenderRect(r, &dst);
     }
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_NONE);
     if (collision) {
         SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
         color(r, 0xff566880);

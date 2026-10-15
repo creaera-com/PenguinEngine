@@ -30,6 +30,10 @@ void pe_move(PeScene *s, PeObject *o, float dx, float dy) {
         return;
     }
 
+    float px = 0, py = 0;
+    if (o->parent_id && !pe_entity_world_position(s, pe_entity_find(s, o->parent_id), &px, &py)) {
+        return;
+    }
     float requested = ceilf(fmaxf(fabsf(dx), fabsf(dy)) / fmaxf(1, s->tile_size * .25f));
     if (requested > 4096) {
         return;
@@ -40,10 +44,10 @@ void pe_move(PeScene *s, PeObject *o, float dx, float dy) {
         steps = 1;
     }
     for (int i = 0; i < steps; i++) {
-        if (!pe_collides(s, o->x + dx / steps, o->y, o->w, o->h)) {
+        if (!pe_collides(s, px + o->x + dx / steps, py + o->y, o->w, o->h)) {
             o->x += dx / steps;
         }
-        if (!pe_collides(s, o->x, o->y + dy / steps, o->w, o->h)) {
+        if (!pe_collides(s, px + o->x, py + o->y + dy / steps, o->w, o->h)) {
             o->y += dy / steps;
         }
     }

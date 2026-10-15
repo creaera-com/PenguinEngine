@@ -78,13 +78,17 @@ void editor_edit_start(float sx, float sy, bool erase) {
         app.selected = 0;
         for (int i = PE_ENTITIES - 1; i >= 0; i--) {
             PeObject *o = &app.map->scene.objects[i];
-            if (o->alive && (o->mask & PE_TRANSFORM) && wx >= o->x && wy >= o->y &&
-                wx < o->x + o->w && wy < o->y + o->h) {
+            float ox, oy;
+            if (o->alive &&
+                pe_entity_world_position(&app.map->scene, (PeEntity){(uint32_t)i, o->generation},
+                                         &ox, &oy) &&
+                wx >= ox && wy >= oy && wx < ox + o->w && wy < oy + o->h) {
                 app.selected = o->stable_id;
+                editor_inspect_entity();
                 if (editor_begin()) {
                     app.dragging = true;
-                    app.drag_x = wx - o->x;
-                    app.drag_y = wy - o->y;
+                    app.drag_x = wx - ox;
+                    app.drag_y = wy - oy;
                 }
                 break;
             }

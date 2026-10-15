@@ -4,6 +4,8 @@
 #include "editor_smoke.h"
 #endif
 static bool start_scripts;
+static bool start_scene_tree;
+static bool start_map_tools;
 
 int main(int argc, char **argv) {
     const char *root = NULL;
@@ -16,11 +18,16 @@ int main(int argc, char **argv) {
             snprintf(app.ui_path, sizeof app.ui_path, "%s", argv[++i]);
         } else if (!strcmp(argv[i], "--scripts")) {
             start_scripts = true;
+        } else if (!strcmp(argv[i], "--map-tools")) {
+            start_map_tools = true;
+        } else if (!strcmp(argv[i], "--scene-tree")) {
+            start_scene_tree = true;
         } else if (!strcmp(argv[i], "--smoke")) {
             app.smoke = true;
         } else {
-            fprintf(stderr, "Usage: penguin_editor [--project path] [--smoke] [--scripts] "
-                            "[--ui shell.yaml] [--screenshot file.bmp]\n");
+            fprintf(stderr,
+                    "Usage: penguin_editor [--project path] [--smoke] [--scripts] "
+                    "[--scene-tree] [--map-tools] [--ui shell.yaml] [--screenshot file.bmp]\n");
             return 1;
         }
     }
@@ -77,10 +84,12 @@ int main(int argc, char **argv) {
     app.right_width = 280;
     app.layers_open = app.entity_open = app.palette_open = true;
     editor_apply_shell_layout();
-    UiTab left_tabs[] = {{UI_EXPLORER_TAB, true, 0}, {UI_SCENE_TAB, true, 0}};
-    UiTab right_tabs[] = {{UI_INSPECTOR_TAB, true, 0}, {UI_INFO_TAB, true, 0}};
-    ui_tabs_init(&app.left_tabs, left_tabs, 2, UI_EXPLORER_TAB);
-    ui_tabs_init(&app.right_tabs, right_tabs, 2, UI_INSPECTOR_TAB);
+    UiTab left_tabs[] = {
+        {UI_EXPLORER_TAB, true, 0}, {UI_SCENE_TAB, true, 0}, {UI_MAP_TAB, true, 0}};
+    UiTab right_tabs[] = {
+        {UI_INSPECTOR_TAB, true, 0}, {UI_INFO_TAB, true, 0}, {UI_TILES_TAB, true, 0}};
+    ui_tabs_init(&app.left_tabs, left_tabs, 3, UI_EXPLORER_TAB);
+    ui_tabs_init(&app.right_tabs, right_tabs, 3, UI_INSPECTOR_TAB);
     app.vertical_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NS_RESIZE);
     app.resize_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE);
     app.width = 1280;
@@ -120,13 +129,26 @@ int main(int argc, char **argv) {
     if (app.smoke &&
         (!editor_verify_editor() || !editor_verify_script_editor() || !editor_verify_ui_layout() ||
          !editor_verify_workspace_tools() || !editor_verify_lifecycle() ||
-         !editor_verify_console() || !editor_verify_window())) {
+         !editor_verify_console() || !editor_verify_window() || !editor_verify_scene_graph() ||
+         !editor_verify_components() || !editor_verify_map_panels())) {
         app.running = false;
         exit_code = 1;
     }
 #endif
     if (start_scripts) {
         editor_tab_select(true);
+    } else if (start_map_tools) {
+        app.left_tabs.selected = UI_MAP_TAB;
+        app.right_tabs.selected = UI_TILES_TAB;
+    } else if (start_scene_tree) {
+        app.left_tabs.selected = UI_SCENE_TAB;
+        for (int i = 0; i < PE_ENTITIES; i++) {
+            if (app.map->scene.objects[i].alive) {
+                app.selected = app.map->scene.objects[i].stable_id;
+                editor_inspect_entity();
+                break;
+            }
+        }
     }
 
     int frames = 0;
