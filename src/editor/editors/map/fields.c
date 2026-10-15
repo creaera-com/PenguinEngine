@@ -92,6 +92,9 @@ void editor_field_apply(void) {
             break;
         }
         editor_commit();
+        if (required == PE_TRANSFORM) {
+            app.map->reveal_selected = true;
+        }
         editor_field_stop();
     }
 }

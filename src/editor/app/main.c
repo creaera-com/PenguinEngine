@@ -130,9 +130,15 @@ int main(int argc, char **argv) {
         (!editor_verify_editor() || !editor_verify_script_editor() || !editor_verify_ui_layout() ||
          !editor_verify_workspace_tools() || !editor_verify_lifecycle() ||
          !editor_verify_console() || !editor_verify_window() || !editor_verify_scene_graph() ||
-         !editor_verify_components() || !editor_verify_map_panels())) {
+         !editor_verify_components() || !editor_verify_map_panels() ||
+         !editor_verify_selection())) {
         app.running = false;
         exit_code = 1;
+    }
+#endif
+#ifdef PE_EDITOR_SMOKE_TESTS
+    if (app.smoke && exit_code == 0 && editor_screenshot_path) {
+        editor_capture_component_dropdown();
     }
 #endif
     if (start_scripts) {
@@ -146,6 +152,7 @@ int main(int argc, char **argv) {
             if (app.map->scene.objects[i].alive) {
                 app.selected = app.map->scene.objects[i].stable_id;
                 editor_inspect_entity();
+                app.tool = SELECT;
                 break;
             }
         }

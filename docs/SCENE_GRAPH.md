@@ -61,7 +61,7 @@ Für einen Parent-Wechsel erhält `keep_world=true` die Weltposition; `false` er
 
 ## Rendering und Laufzeit
 
-Rendering, Auswahlrahmen und Picking verwenden Weltpositionen. Das Ziehen und `pe_entity_set_world_position` ändern nur die lokale Position der ausgewählten Entity.
+Rendering, Auswahlrahmen und Picking verwenden Weltpositionen. Die Auswahl erscheint mit orangefarbenen Eckmarkierungen und Entity-ID auf der Map. Beim Auswählen einer Entity außerhalb der Ansicht wird die Kamera auf sie zentriert, ohne den Zoom oder das Szenendokument zu ändern. Während des Ziehens bleibt die Kamera unverändert. Das Ziehen und `pe_entity_set_world_position` ändern nur die lokale Position der ausgewählten Entity.
 
 Die Laufzeit verarbeitet Parents vor Kindern, unabhängig von ihrer Slotreihenfolge. `pe_move` prüft die eigene Tilekollision in Weltkoordinaten und schreibt die Bewegung lokal zurück. Eine Parent-Beziehung ist **keine Physikverbindung**: Eine geerbte Parent-Bewegung prüft nicht gemeinsam die Collider aller Nachkommen und kann Kinder in Wände tragen. Zusammengesetzte Körper, bewegliche Plattformen und ähnliche Physikregeln benötigen später ein eigenes System.
 

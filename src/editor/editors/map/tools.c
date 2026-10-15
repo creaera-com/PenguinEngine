@@ -85,6 +85,8 @@ void editor_edit_start(float sx, float sy, bool erase) {
                 wx >= ox && wy >= oy && wx < ox + o->w && wy < oy + o->h) {
                 app.selected = o->stable_id;
                 editor_inspect_entity();
+                /* Never move the camera between pressing and dragging an entity. */
+                app.map->reveal_selected = false;
                 if (editor_begin()) {
                     app.dragging = true;
                     app.drag_x = wx - ox;

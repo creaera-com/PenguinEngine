@@ -46,7 +46,7 @@ Die automatisierten Tests wurden in der Entwicklungsumgebung headless ausgeführ
 7. `penguin_ui_demo` starten und dieselben UI-Komponenten ohne Engine-/Editorfunktionen prüfen.
 
 8. Links Explorer/Scene und rechts Inspector/Info wechseln, auch im Scripts-Tab. Die Gruppen schalten unabhängig voneinander; ihre Tabs lassen sich innerhalb der Gruppe umsortieren. Die Inhalte folgen der Tab-ID.
-9. Scene: Entity anklicken. Map und Inspector werden aktiv, die passende Entity ist ausgewählt. Auswahl/Tabwechsel erzeugen keine Undo-Schritte. Löschen/Undo im Inspector aktualisieren die Scene-Liste. Leere Szenen zeigen einen Hinweis.
+9. Scene: Entity anklicken. Map und Inspector werden aktiv, die passende Entity ist ausgewählt. Auswahl/Tabwechsel erzeugen keine Undo-Schritte. Löschen/Undo im Scene-Tab aktualisieren die Scene-Liste. Leere Szenen zeigen einen Hinweis.
 10. Viele Entities anlegen und Scene scrollen; dann Explorer öffnen und zurückwechseln. Beide Scrollpositionen bleiben separat erhalten. Info zeigt aktuelle Szenenzahlen. Bei minimalen Spaltenbreiten passen die Tabtitel weiterhin.
 11. Zwischenräume der Spalten prüfen: keine sichtbaren Trennstriche, auch bei Hover. Jeweils drei senkrecht angeordnete Punkte sitzen mittig, folgen beim Resize und werden bei Hover/Ziehen orange. Resize-Cursor und Ziehen funktionieren weiterhin.
 
@@ -108,3 +108,12 @@ Die Editor-Smokes bedienen das Hinzufügen-Menü und die Entfernen-Buttons, klap
 Ein zusätzlicher YAML-Test prüft die Bindings der neuen Adapter, ihre Beschränkung auf den Map-Editor und die Einmaligkeitsregel für `tile_palette`. Die aktualisierten Layout-Smokes klappen die Layerverwaltung im linken Map-Tab statt im Inspector.
 
 Der neue Panel-Smoke wählt Map und Tiles per Tab-Klick, erstellt/benennt/sortiert/löscht Layer und prüft Undo, Sichtbarkeit sowie Redo beim Umbenennen. Er öffnet Import und Source-Tilegröße aus Tiles, wählt ein Palette-Tile und erhält Tabs, Layernamen und Undo-Verlauf über F6 sowie Map → Scripts → Map. Manuell zusätzlich Mausrad und Scrollbars bei großen Tilesets und schmalen Panels testen.
+
+### Dropdown und sichtbare Auswahl
+
+- Add component: alle vier Typen sichtbar, vorhandene deaktiviert; fehlende per Maus oder Pfeiltasten/Enter hinzufügen. Escape und Außenklick schließen ohne Kartenverschiebung oder Weiterreichen des Klicks.
+- Entity-Erstellen/Löschen nur im Scene-Tab; Komponenten-Entfernen weiterhin an der Karte.
+- Entity im Scene-Baum wählen: Map-Rahmen und ID erscheinen auch für Kinder und Transform ohne Sprite. Außerhalb der Ansicht wird die Auswahl sichtbar; erneute Auswahl innerhalb der Ansicht verschiebt die Kamera nicht.
+- Auswahl ziehen: keine Kamerabewegung während der Geste. Entfernte Position im Inspector eingeben: Auswahl wird wieder sichtbar. Ohne Transform wird der Hinweis angezeigt.
+
+Diese Abläufe werden zusätzlich im Editor-Smoke geprüft. Bei `--smoke --screenshot /tmp/editor.bmp` entsteht neben dem normalen Bild `/tmp/editor.bmp.dropdown.bmp` mit geöffnetem Komponenten-Dropdown.

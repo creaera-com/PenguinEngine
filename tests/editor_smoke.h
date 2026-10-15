@@ -38,4 +38,9 @@ bool editor_verify_scene_graph(void);
 bool editor_verify_components(void);
 /** @brief Prüft getrennte Map-/Tiles-Tabs, Layeraktionen, Palette und Checkpoints. */
 bool editor_verify_map_panels(void);
+/** @brief Prüft sichtbare Hierarchie-Auswahl, Kamerafokus und Drag ohne Kamerasprung. */
+bool editor_verify_selection(void);
+/** @brief Erzeugt bei --screenshot zusätzlich eine Dropdown-Ansicht aus der wiederhergestellten
+ * Szene. */
+void editor_capture_component_dropdown(void);
 #endif

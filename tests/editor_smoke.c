@@ -704,17 +704,46 @@ bool editor_verify_components(void) {
     editor_inspect_entity();
     editor_draw();
     float x = app.width - RIGHT + PANEL_GAP + 9;
-    float top = TOP + TABS + 108.f;
+    float top = TOP + TABS + 74.f + 22;
     float remove_x = x + (RIGHT - 2 * PANEL_GAP - 32) - 18;
+    float content_before = app.inspector_view.content;
     smoke_click(x + 90, top + 12);
-    bool ok = app.map->component_add_open;
+    bool ok = app.map->component_add_open && app.inspector_view.content == content_before;
+    SDL_Event key = {0};
+    key.type = SDL_EVENT_KEY_DOWN;
+    key.key.key = SDLK_ESCAPE;
+    editor_event(&key);
+    editor_draw();
+    ok = ok && !app.map->component_add_open;
+    PeScene before_popup = app.map->scene;
+    smoke_click(x + 90, top + 12);
+    smoke_click(app.viewport.x + 40, app.viewport.y + 40);
+    ok = ok && !app.map->component_add_open && app.selected == id &&
+         !memcmp(&before_popup, &app.map->scene, sizeof before_popup);
+    smoke_click(x + 90, top + 12);
+    key.key.key = SDLK_DOWN;
+    editor_event(&key);
+    key.key.key = SDLK_RETURN;
+    editor_event(&key);
+    editor_draw();
+    ok = ok && app.map->scene.objects[entity.index].mask == (PE_TRANSFORM | PE_SPRITE);
+    editor_undo_active(false);
+    editor_draw();
+    smoke_click(x + 90, top + 12);
     /* Empty entity: the fourth choice is Player, which also adds Transform + Body. */
-    smoke_click(x + 90, top + 33 + 3 * 29 + 12);
+    smoke_click(x + 90, top + 33 + 3 * 28 + 12);
     PeObject *o = pe_entity_get(&app.map->scene, entity);
     ok = ok && o && o->mask == (PE_TRANSFORM | PE_BODY | PE_PLAYER) && app.map->history.count == 1;
+    top -= 22;
+    smoke_click(x + 90, top + 12);
+    smoke_click(x + 90, top + 33 + 28 + 12);
+    ok = ok && o->mask == 15 && !app.map->component_add_open;
     smoke_click(x + 90, top + 12);
     smoke_click(x + 90, top + 33 + 12);
-    ok = ok && o->mask == 15 && !app.map->component_add_open;
+    ok = ok && app.map->component_add_open && o->mask == 15;
+    key.key.key = SDLK_ESCAPE;
+    editor_event(&key);
+    editor_draw();
     float transform = top + 33, sprite = transform + 164, body = sprite + 77, player = body + 106;
     smoke_click(x + 80, transform + 12);
     ok = ok && (app.map->component_closed[entity.index] & PE_TRANSFORM);
@@ -868,4 +897,119 @@ bool editor_verify_map_panels(void) {
         fprintf(stderr, "Map/Tiles panel smoke failed\n");
     }
     return ok;
+}
+
+bool editor_verify_selection(void) {
+    PeScene original = app.map->scene;
+    PeCamera camera = app.camera;
+    pe_history_free(&app.map->history);
+    PeEntity parent = pe_entity_create(&app.map->scene, PE_TRANSFORM | PE_SPRITE);
+    PeEntity child = pe_entity_create(&app.map->scene, PE_TRANSFORM | PE_SPRITE);
+    PeObject *p = pe_entity_get(&app.map->scene, parent);
+    PeObject *o = pe_entity_get(&app.map->scene, child);
+    if (!p || !o) {
+        return false;
+    }
+    p->x = p->y = 2000;
+    o->x = 12;
+    o->y = 14;
+    bool ok = pe_entity_set_parent(&app.map->scene, child, parent, false);
+    app.selected = 0;
+    app.left_tabs.selected = UI_SCENE_TAB;
+    app.right_tabs.selected = UI_INFO_TAB;
+    editor_draw();
+    PeScene unchanged = app.map->scene;
+    int roots = 0;
+    for (int i = 0; i < PE_ENTITIES; i++) {
+        if (original.objects[i].alive && !original.objects[i].parent_id) {
+            roots++;
+        }
+    }
+    float row_y = TOP + TABS + 48.f + (roots + 1) * 26;
+    smoke_click(85, row_y + 12);
+    editor_draw();
+    float wx = 0, wy = 0;
+    ok = ok && app.selected == o->stable_id && app.right_tabs.selected == UI_INSPECTOR_TAB;
+    ok = ok && pe_entity_world_position(&app.map->scene, child, &wx, &wy);
+    float sx = app.viewport.x + (wx - app.camera.x) * app.camera.zoom;
+    float sy = app.viewport.y + (wy - app.camera.y) * app.camera.zoom;
+    ok = ok && editor_inside(sx, sy, app.viewport) &&
+         !memcmp(&unchanged, &app.map->scene, sizeof unchanged);
+    PeCamera focused = app.camera;
+    editor_inspect_entity();
+    editor_draw();
+    ok = ok && !memcmp(&focused, &app.camera, sizeof focused);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, sx + 2, sy + 2);
+    smoke_pointer(SDL_EVENT_MOUSE_MOTION, sx + 2 + 20 * app.camera.zoom, sy + 2);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, sx + 2 + 20 * app.camera.zoom, sy + 2);
+    ok = ok && !memcmp(&focused, &app.camera, sizeof focused);
+    float moved_x = 0, moved_y = 0;
+    ok = ok && pe_entity_world_position(&app.map->scene, child, &moved_x, &moved_y) &&
+         fabsf(moved_x - wx - 20) < .01f;
+    editor_field_start(FIELD_X, "5000");
+    editor_field_apply();
+    editor_draw();
+    ok = ok && pe_entity_world_position(&app.map->scene, child, &wx, &wy);
+    sx = app.viewport.x + (wx - app.camera.x) * app.camera.zoom;
+    sy = app.viewport.y + (wy - app.camera.y) * app.camera.zoom;
+    ok = ok && editor_inside(sx, sy, app.viewport);
+    pe_history_free(&app.map->history);
+    app.map->scene = original;
+    app.camera = camera;
+    app.map->reveal_selected = false;
+    app.selected = 0;
+    app.left_tabs.selected = UI_EXPLORER_TAB;
+    app.right_tabs.selected = UI_INSPECTOR_TAB;
+    if (!ok) {
+        fprintf(stderr, "Entity selection focus smoke failed\n");
+    }
+    return ok;
+}
+
+void editor_capture_component_dropdown(void) {
+    PeScene scene = app.map->scene;
+    PeCamera camera = app.camera;
+    uint32_t selected = app.selected;
+    UiId left = app.left_tabs.selected, right = app.right_tabs.selected;
+    Tool tool = app.tool;
+    for (uint32_t i = 0; i < PE_ENTITIES; i++) {
+        PeObject *o = &app.map->scene.objects[i];
+        if (!o->alive) {
+            continue;
+        }
+        PeEntity entity = {i, o->generation};
+        /* Show one selectable option without changing the real scene or its history. */
+        if (o->mask & PE_PLAYER) {
+            pe_entity_remove_component(&app.map->scene, entity, PE_PLAYER);
+        } else if (o->mask & PE_BODY) {
+            pe_entity_remove_component(&app.map->scene, entity, PE_BODY);
+        }
+        app.selected = o->stable_id;
+        app.tool = SELECT;
+        app.left_tabs.selected = UI_SCENE_TAB;
+        editor_inspect_entity();
+        editor_draw();
+        SDL_FRect anchor = app.map->component_anchor;
+        smoke_click(anchor.x + anchor.w * .5f, anchor.y + 12);
+        char path[1200];
+        const char *original_path = editor_screenshot_path;
+        if (snprintf(path, sizeof path, "%s.dropdown.bmp", original_path) < (int)sizeof path) {
+            editor_screenshot_path = path;
+            editor_draw();
+            editor_screenshot_path = original_path;
+        }
+        SDL_Event escape = {0};
+        escape.type = SDL_EVENT_KEY_DOWN;
+        escape.key.key = SDLK_ESCAPE;
+        editor_event(&escape);
+        break;
+    }
+    app.map->scene = scene;
+    app.camera = camera;
+    app.selected = selected;
+    app.tool = tool;
+    app.left_tabs.selected = left;
+    app.right_tabs.selected = right;
+    app.map->reveal_selected = false;
+    app.map->component_add_open = false;
 }

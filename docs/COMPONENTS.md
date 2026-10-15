@@ -6,7 +6,7 @@ Eine ausgewählte Entity zeigt im Inspector jede vorhandene Komponente in einer 
 
 ## Hinzufügen und Entfernen
 
-**Add component** öffnet eine Liste der fehlenden Komponenten. Eine Komponente kann nur einmal pro Entity vorhanden sein. Neue Komponenten erhalten Standardwerte; notwendige Abhängigkeiten werden in demselben Undo-Schritt ergänzt. Bestehende Komponenten und ihre Werte bleiben dabei unverändert.
+**Add component** öffnet ein Dropdown mit allen Komponententypen. Vorhandene Komponenten sind abgehakt und deaktiviert. Die Auswahl funktioniert per Maus oder Pfeiltasten und Enter; Escape oder ein Klick außerhalb schließen das Menü. Der Klick außerhalb wird abgefangen, ohne darunterliegende Elemente zu betätigen. Das Menü liegt über den Karten und verschiebt sie nicht. Eine Komponente kann nur einmal pro Entity vorhanden sein. Neue Komponenten erhalten Standardwerte; notwendige Abhängigkeiten werden in demselben Undo-Schritt ergänzt. Bestehende Komponenten und ihre Werte bleiben dabei unverändert.
 
 Das **X** rechts in der Kartenüberschrift entfernt die Komponente. Die Entity selbst und andere Komponenten bleiben erhalten. Nach Entfernen und erneutem Hinzufügen erhält die Komponente wieder Standardwerte. Undo stellt dagegen die entfernte Komponente mit ihren vorherigen Werten wieder her.
 
@@ -25,7 +25,11 @@ Wenn alle Komponenten entfernt sind, bleibt die Entity im Scene-Baum auswählbar
 
 ## Navigation und Verlauf
 
-Auswahl einer Entity im Scene-Baum oder Canvas öffnet deren Inspector. Layer und Tile-Palette liegen in eigenen Tabs: Map links und Tiles rechts. Der Inspector enthält ausschließlich die Entity und ihre Komponenten. Die Entity-Auswahl ändert den Aufklappzustand dieser anderen Panels nicht.
+Auswahl einer Entity im Scene-Baum oder Canvas öffnet deren Inspector. Layer und Tile-Palette liegen in eigenen Tabs: Map links und Tiles rechts. Der Inspector enthält ausschließlich die Entity und ihre Komponenten. Die Entity-Auswahl ändert den Aufklappzustand dieser anderen Panels nicht. Entities werden ausschließlich im Scene-Tab erstellt oder gelöscht.
+
+Die ausgewählte Entity erhält auf der Map einen orangefarbenen Rahmen mit Eckmarkierungen und ihrer ID. Auch Kinder verwenden dabei ihre Weltposition. Liegt die Auswahl außerhalb der Ansicht, zeigt die Kamera sie automatisch; der Zoom bleibt erhalten. Manuelles Schwenken bleibt möglich. Ohne Transform gibt es keine Map-Position; darauf weist der Inspector hin.
+
+![Komponenten-Dropdown und Map-Auswahl](images/component-dropdown.png)
 
 Erstellen/Entfernen von Komponenten und Änderungen ihrer Einstellungen verwenden denselben Undo-/Redo-Verlauf wie die Szene. Automatisch ergänzte Abhängigkeiten sind Teil eines gemeinsamen Schritts. Während Play und laufenden Canvas-Gesten sind Änderungen gesperrt.
 

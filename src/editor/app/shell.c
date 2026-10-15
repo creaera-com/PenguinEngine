@@ -43,7 +43,11 @@ void editor_draw(void) {
     SDL_GetWindowSize(app.window, &app.width, &app.height);
     app.hit_count = 0;
     app.canvas_enabled = false;
-    app.ui.blocked = app.field != FIELD_NONE || app.request != REQUEST_NONE;
+    bool popup = app.map && app.map->component_add_open;
+    if (app.map) {
+        app.map->component_anchor_seen = false;
+    }
+    app.ui.blocked = app.field != FIELD_NONE || app.request != REQUEST_NONE || popup;
     if (!app.window_collapsed) {
         layout_columns();
     }
@@ -58,7 +62,7 @@ void editor_draw(void) {
     if (modal) {
         app.click = false;
     }
-    app.ui.blocked = modal;
+    app.ui.blocked = modal || popup;
     editor_tooltip = NULL;
     editor_draw_global_tools();
     UiRect nav = {(float)app.global_nav_x, 12,
@@ -169,7 +173,8 @@ void editor_draw(void) {
     }
     ui_clip_pop(&app.ui);
     ui_apply_clip(app.renderer, &app.ui);
-    if (editor_tooltip && !modal) {
+    editor_draw_component_popup();
+    if (editor_tooltip && !modal && !(app.map && app.map->component_add_open)) {
         float width = (float)strlen(editor_tooltip) * 8 + 20;
         float tx = fminf(app.mx + 12, app.width - width - 8),
               ty = fminf(app.my + 30, app.height - 28.f);
