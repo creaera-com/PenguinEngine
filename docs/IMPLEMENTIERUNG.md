@@ -164,3 +164,14 @@ GitHub Actions baut auf Linux, Windows und macOS und führt CTest aus. Ein zusä
 8. Dialogeditor auf derselben Command- und Asset-Basis.
 
 Diese Erweiterungen brauchen eigene Datenmodelle und Tests und gehören nicht zum bereits ausgelieferten Funktionsumfang.
+
+
+## YAML und Editor-Lebenszyklus
+
+Die drei Spalten werden aus der aktiven YAML-Editorbeschreibung gerendert. Die Shell bleibt geladen; jeder Editor besitzt eine eigene Map- oder Script-Payload und eine eigene Layoutinstanz. Beim Wechsel wird die Zielbeschreibung vorab validiert, der aktuelle Zustand atomar in eine Sitzung geschrieben und anschließend vollständig freigegeben. Erst danach wird die Ziel-Payload angelegt. Ein Fehler bei der Zielsitzung führt zur Wiederherstellung des bisherigen Editors; ein Sicherungsfehler verhindert das Entladen.
+
+Die Sicherung umfasst Dokumente, ungespeicherte Revisionen, sämtliche Undo-/Redo-Snapshots und UI-Zustand einschließlich Kamera, Tabs, offenen Bereichen, Scrollpositionen und Dateibaum-Expansion. Flüchtige GPU-/Parser-/Highlighting-Ressourcen werden neu aufgebaut. Checkpoints sind ein privates, versioniertes natives Format mit Prüfsumme und 32-MiB-Grenze; sie sind nicht plattformübergreifend und werden beim normalen Beenden entfernt. Die nächste Programmsitzung lädt sie nicht automatisch. Während Play bleibt ein Wechsel gesperrt.
+
+F6 validiert Shell und aktiven Editor vor dem Entladen. Ungültiges YAML lässt die bisherige Oberfläche aktiv. Shell-Fehler beim ersten Start werden auf stderr gemeldet. GUI-Callbacks verschieben Editorwechsel und dokumentübergreifendes Speichern ans Frameende, damit keine Beschreibung während ihrer Traversierung freigegeben wird.
+
+114 Unity-Tests sowie die Editor-Smokes prüfen Loader, Checkpointfehler, Editorwechsel, Reload und die bisherige Bedienung. Details, Grenzen und Beispiele stehen in [UI_YAML.md](UI_YAML.md).

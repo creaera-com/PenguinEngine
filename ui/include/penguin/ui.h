@@ -31,7 +31,7 @@ typedef struct {
     UiTab items[UI_MAX_TABS];
     int count;
     UiId selected;
-    float scroll;
+    float scroll, gap;
     bool dragging;
 } UiTabs;
 UiId ui_id(const char *label);

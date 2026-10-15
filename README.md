@@ -23,6 +23,12 @@ Eine kleine 2D-Engine in **C17 mit SDL3**, einem einfachen ECS und einem Tilemap
 
 **Noch nicht enthalten:** Ausführen von JavaScript/Python im Spiel, Language-Server-/Typanalyse, Dialogeditor, Shooter-Logik, Plattformphysik, Animationen, Audio, Asset-Umbenennung und Tile-Auswahl/Kopieren. Diese Erweiterungen bleiben im Entwicklungsplan.
 
+## Deklarative UI mit YAML
+
+Die [YAML-Anleitung](docs/UI_YAML.md) beschreibt die verwendbaren Elemente, Aktionen und Bindings. [editor/ui/shell.yaml](editor/ui/shell.yaml) definiert die globale Oberfläche; Map und Scripts besitzen eigene Layouts für alle drei Spalten. Mit `--ui /pfad/shell.yaml` eigene Beschreibungen laden, mit **F6** erneut einlesen.
+
+Beim Bereichswechsel wird der bisherige Editor vollständig entladen. Ungespeicherte Dokumente, Undo/Redo und UI-Zustand werden vorher separat auf Datenträger gesichert. Das ist kein automatisches Speichern der Projektdateien. Die Checkpoints gelten für den laufenden Programmstart; automatische Crash-Recovery ist noch nicht enthalten.
+
 ## Bauen und starten
 
 Voraussetzungen: C17-Compiler, CMake >= 3.20 und Git. SDL3 >= 3.2 wird verwendet, wenn es als CMake-Paket installiert ist. Andernfalls lädt CMake **SDL3 3.2.10** mit geprüftem SHA-256 herunter. Dafür ist beim ersten Konfigurieren Internetzugriff nötig.
@@ -78,7 +84,7 @@ Bei älteren Ständen mit `Cannot open example/project.json`: Working directory 
 
 ## Tests ohne SDL oder Fenster
 
-Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Insgesamt 93 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge und UI-Regeln ohne Download.
+Unity 2.6.1 und QuickJS-ng 0.10.1 sind im Repo enthalten. Insgesamt 114 Unity-Tests prüfen Engine-Kern, Textbearbeitung, JavaScript-Werkzeuge und UI-Regeln ohne Download.
 
 ```sh
 cmake -S . -B build-core -DPENGUIN_BUILD_EDITOR=OFF

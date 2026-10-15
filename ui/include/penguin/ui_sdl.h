@@ -3,16 +3,16 @@
 #include "penguin/ui.h"
 #include <SDL3/SDL.h>
 /* Editor theme: RGBA, separate from game artwork. */
-#define UI_CANVAS 0x101010ffu
-#define UI_PANEL 0x202020ffu
-#define UI_SURFACE 0x292929ffu
-#define UI_BORDER 0x303030ffu
-#define UI_HOVER 0x393939ffu
-#define UI_ACCENT 0xc28e5cffu
-#define UI_ACCENT_BG 0xc28e5cffu
-#define UI_TEXT 0xe9e9e9ffu
-#define UI_MUTED 0xa2a2a2ffu
-#define UI_DISABLED 0x686868ffu
+#define UI_CANVAS (ui_theme.canvas)
+#define UI_PANEL (ui_theme.panel)
+#define UI_SURFACE (ui_theme.surface)
+#define UI_BORDER (ui_theme.border)
+#define UI_HOVER (ui_theme.hover)
+#define UI_ACCENT (ui_theme.accent)
+#define UI_ACCENT_BG (ui_theme.accent)
+#define UI_TEXT (ui_theme.text)
+#define UI_MUTED (ui_theme.muted)
+#define UI_DISABLED (ui_theme.disabled)
 
 #define UI_FONT_WIDTH 8
 #define UI_FONT_HEIGHT 16
@@ -23,6 +23,8 @@ bool ui_text(SDL_Renderer *renderer, float x, float y, const char *text, Uint32 
 typedef struct {
     Uint32 canvas, panel, surface, hover, accent, text, muted, disabled, border;
 } UiTheme;
+extern UiTheme ui_theme;
+void ui_set_theme(const UiTheme *theme);
 UiTheme ui_dark_theme(void);
 typedef enum {
     ICON_NONE,
