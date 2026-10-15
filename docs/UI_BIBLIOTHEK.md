@@ -133,16 +133,16 @@ Zwischen den Spalten werden keine Trennlinien gezeichnet, auch nicht bei Hover. 
 
 Tabbreiten folgen dem Inhalt: `ui_text_width()` misst UTF-8 nach denselben festen Zeichenbreiten wie `ui_text()`, nicht nach UTF-8-Bytes. `ui_tab_content_width(icon, label)` addiert Icon und Innenabstände. Mit `ui_tabs_set_width(tabs, id, content_width + 4)` bekommt jeder Tab seine eigene Slotbreite inklusive 4 px Zwischenraum. `UiTab.width = 0` erhält die bisherige Fallbackbreite aus `ui_tabs_update`/`ui_tab_rect`. Die Messung und Darstellung bleiben im SDL-Backend, das Layoutmodell bleibt SDL-frei. Beim Umsortieren wandert die Breite mit der ID; Ziele werden über die Mittelpunkte der Nachbartabs bestimmt, damit unterschiedlich breite Tabs bei gehaltenem Mauszeiger nicht hin- und herspringen. Überlaufende Tabreihen lassen sich mit dem Mausrad über der Kopfzeile scrollen. Hinter dem letzten Tab wird kein zusätzlicher Zwischenraum gescrollt.
 
-Die obere Toolbar enthält nur die Arbeitsbereichsauswahl, ohne zusätzliche Bedienhinweiszeile. Kontextbezogene Aktionsbuttons stehen direkt über dem jeweiligen Editorinhalt. Tooltips und Tastenkürzel bleiben verfügbar.
+Die obere Toolbar enthält Hamburger-Menü (zunächst ohne Funktion), Speichern, Undo/Redo und die Icon-Auswahl der Arbeitsbereiche, getrennt durch schmale Linien mit Abstand. Speichern und Undo/Redo gehören zum aktiven Dokument. Spezifische Werkzeuge stehen direkt über dem jeweiligen Editorinhalt. Tooltips und Tastenkürzel bleiben verfügbar.
 
 
 ## Arbeitsbereiche und kontextbezogene Werkzeugleisten
 
 | Bereich | Inhalt |
 | --- | --- |
-| Globale Toolbar | Map / Scripts, später weitere Editoren |
-| Map-Werkzeugleiste | Szene speichern, Undo/Redo, Play/Stop, PNG-Import, Pinsel/Radierer/Rechteck/Füllen/Auswahl, Kollisionen, Raster |
-| Scripts-Werkzeugleiste | Script speichern, Undo/Redo, JavaScript-Syntaxprüfung |
+| Globale Toolbar | Menü-Platzhalter, Speichern, Undo/Redo, Map-/Scripts-Icons |
+| Map-Werkzeugleiste | Play/Stop, PNG-Import, Pinsel/Radierer/Rechteck/Füllen/Auswahl, Kollisionen, Raster |
+| Scripts-Werkzeugleiste | JavaScript-Syntaxprüfung |
 | Seitenpanels | Explorer/Scene und Inspector/Info, unabhängig von der globalen Auswahl |
 
 `editor_views` in `editor/src/main.c` ist die zentrale Liste der Arbeitsbereiche. Ein `EditorView` enthält stabile ID, Namen, Icon, Aktionsanzahl und zwei Callbacks: `draw_tools(area)` und `draw_content()`. Aus der Liste entstehen die Navigationsbuttons. `select_workspace(id)` verwaltet Auswahl und Textfokus; `map_active()`/`scripts_active()` leiten den Zustand aus der ausgewählten ID ab, ohne zweite Zustandsvariable. Beim Wechsel bleiben die vorhandenen Editor-Daten einschließlich Kamera, Auswahl, Text und Undo erhalten.

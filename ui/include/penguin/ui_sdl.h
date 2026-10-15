@@ -54,7 +54,8 @@ typedef enum {
     ICON_EYE,
     ICON_EYE_OFF,
     ICON_CHECK,
-    ICON_CLOSE
+    ICON_CLOSE,
+    ICON_MENU
 } UiIcon;
 void ui_draw_button_themed(SDL_Renderer *renderer, const UiTheme *theme, SDL_FRect rect,
                            UiIcon icon, const char *label, bool active, bool enabled, bool hover);

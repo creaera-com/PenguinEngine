@@ -13,6 +13,7 @@
 #define TABS 32
 #define BOTTOM 48
 #define PANEL_GAP 6
+#define GLOBAL_NAV_X 232
 #define SIDE_TOP (TOP + TABS)
 #define TREE_MAX 256
 #define UI_SPLIT_LEFT 0x10001u
@@ -103,8 +104,8 @@ static void draw_script_tools(SDL_FRect area);
 static void draw_map_content(void);
 static void draw_script_content(void);
 static const EditorView editor_views[] = {
-    {UI_MAP_VIEW, "Map", ICON_GRID, 12, draw_map_tools, draw_map_content},
-    {UI_SCRIPT_VIEW, "Scripts", ICON_FILE, 4, draw_script_tools, draw_script_content}};
+    {UI_MAP_VIEW, "Map", ICON_GRID, 9, draw_map_tools, draw_map_content},
+    {UI_SCRIPT_VIEW, "Scripts", ICON_FILE, 1, draw_script_tools, draw_script_content}};
 #define VIEW_COUNT ((int)(sizeof editor_views / sizeof editor_views[0]))
 static const EditorView *editor_view(UiId id) {
     for (int i = 0; i < VIEW_COUNT; i++)
@@ -1095,26 +1096,32 @@ static bool context_button_impl(ToolLayout *layout, UiId id, UiIcon icon, const 
 static ToolLayout tools_layout(SDL_FRect area) {
     return (ToolLayout){area.x + 8, area.y + 6, area.x + 8, area.x + area.w - 8};
 }
-static void draw_document_tools(ToolLayout *layout) {
-    if (context_button(layout, ICON_SAVE,
-                       scripts_active() ? "Save script (Ctrl+S)" : "Save scene (Ctrl+S)", false,
-                       !app.playing && !app.history.pending))
+static void toolbar_separator(float x) {
+    box((SDL_FRect){x, 16, 1, 17}, UI_BORDER);
+}
+static void draw_global_tools(void) {
+    /* Placeholder: the application menu intentionally has no action yet. */
+    (void)icon_button(14, 12, 32, ICON_MENU, "", "Application menu (coming later)", false, true);
+    toolbar_separator(60);
+    if (icon_button(74, 12, 32, ICON_SAVE, "",
+                    scripts_active() ? "Save script (Ctrl+S)" : "Save scene (Ctrl+S)", false,
+                    !app.playing && !app.history.pending))
         save();
-    if (context_button(
-            layout, ICON_UNDO, "Undo (Ctrl+Z)", false,
+    toolbar_separator(120);
+    if (icon_button(
+            134, 12, 32, ICON_UNDO, "", "Undo (Ctrl+Z)", false,
             !app.playing && !app.history.pending &&
                 (scripts_active() ? app.script.document.position > 0 : app.history.cursor > 0)))
         undo_active(false);
-    if (context_button(layout, ICON_REDO, "Redo (Ctrl+Shift+Z)", false,
-                       !app.playing && !app.history.pending &&
-                           (scripts_active()
-                                ? app.script.document.position < app.script.document.count
-                                : app.history.cursor < app.history.count)))
+    if (icon_button(172, 12, 32, ICON_REDO, "", "Redo (Ctrl+Shift+Z)", false,
+                    !app.playing && !app.history.pending &&
+                        (scripts_active() ? app.script.document.position < app.script.document.count
+                                          : app.history.cursor < app.history.count)))
         undo_active(true);
+    toolbar_separator(218);
 }
 static void draw_map_tools(SDL_FRect area) {
     ToolLayout layout = tools_layout(area);
-    draw_document_tools(&layout);
     if (context_button(&layout, app.playing ? ICON_STOP : ICON_PLAY, "Play / Stop (F5)",
                        app.playing, !app.history.pending))
         play_toggle();
@@ -1137,7 +1144,6 @@ static void draw_map_tools(SDL_FRect area) {
 }
 static void draw_script_tools(SDL_FRect area) {
     ToolLayout layout = tools_layout(area);
-    draw_document_tools(&layout);
     if (context_button(&layout, ICON_CHECK, "Check JavaScript syntax (F7)", false, true)) {
         se_check(&app.script);
         ui_focus(&app.ui, UI_SCRIPT_DOCUMENT);
@@ -1213,11 +1219,11 @@ static void draw(void) {
         app.click = false;
     app.ui.blocked = modal;
     tooltip = NULL;
-    UiRect nav = {14, 12, (float)(app.width - 28), 25};
+    draw_global_tools();
+    UiRect nav = {GLOBAL_NAV_X, 12, (float)(app.width - GLOBAL_NAV_X - 14), 25};
     for (int i = 0; i < app.workspaces.count; i++) {
         const EditorView *item = editor_view(app.workspaces.items[i].id);
-        ui_tabs_set_width(&app.workspaces, item->id,
-                          ui_tab_content_width(item->icon, item->label) + 8);
+        ui_tabs_set_width(&app.workspaces, item->id, 36);
         app.workspaces.items[i].enabled =
             !app.history.pending && (item->id == UI_MAP_VIEW || !app.playing);
     }
@@ -1228,9 +1234,11 @@ static void draw(void) {
     for (int i = 0; i < app.workspaces.count; i++) {
         const EditorView *item = editor_view(app.workspaces.items[i].id);
         UiRect r = ui_tab_rect(&app.workspaces, nav, 112, i);
-        ui_draw_button(app.renderer, (SDL_FRect){r.x, r.y, r.w, r.h}, item->icon, item->label,
-                       app.workspaces.selected == item->id, app.workspaces.items[i].enabled,
-                       ui_hovered(&app.ui, r));
+        bool hover = ui_hovered(&app.ui, r);
+        ui_draw_button(app.renderer, (SDL_FRect){r.x, r.y, r.w, r.h}, item->icon, "",
+                       app.workspaces.selected == item->id, app.workspaces.items[i].enabled, hover);
+        if (hover)
+            tooltip = item->label;
     }
     ui_clip_pop(&app.ui);
     ui_apply_clip(app.renderer, &app.ui);
@@ -1457,7 +1465,8 @@ static void event(SDL_Event *e) {
     case SDL_EVENT_MOUSE_WHEEL:
         if (!modal && !app.history.pending) {
             if (app.my < TOP)
-                ui_tabs_scroll(&app.workspaces, (float)(app.width - 28), 112, -e->wheel.y * 56);
+                ui_tabs_scroll(&app.workspaces, (float)(app.width - GLOBAL_NAV_X - 14), 112,
+                               -e->wheel.y * 56);
             else if (inside(app.mx, app.my, app.viewport) && map_active())
                 pe_camera_zoom(&app.camera, app.mx - app.viewport.x, app.my - app.viewport.y,
                                powf(1.15f, e->wheel.y));
@@ -1681,10 +1690,10 @@ static bool verify_ui_layout(void) {
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, header_x, header_y);
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, header_x, header_y);
     ok = ok && !app.layers_open;
-    float tab_x = 30, tab_y = 24;
+    float tab_x = GLOBAL_NAV_X + 16, tab_y = 24;
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, tab_x, tab_y);
-    smoke_pointer(SDL_EVENT_MOUSE_MOTION, tab_x + 130, tab_y);
-    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, tab_x + 130, tab_y);
+    smoke_pointer(SDL_EVENT_MOUSE_MOTION, tab_x + 60, tab_y);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, tab_x + 60, tab_y);
     ok = ok && app.workspaces.items[0].id == UI_SCRIPT_VIEW &&
          app.workspaces.items[1].id == UI_MAP_VIEW && map_active();
     /* Sidebar navigation is independent of workspace tabs and scene history. */
@@ -1763,25 +1772,44 @@ static bool verify_workspace_tools(void) {
     tab_select(false);
     draw();
     float action_y = TOP + PANEL_GAP + 18;
-    smoke_click(14 + app.workspaces.items[0].width + 20, 24);
-    bool ok = scripts_active();
+    smoke_click(30, 24);
+    bool menu_unchanged = map_active() && app.request == REQUEST_NONE && app.field == FIELD_NONE;
+    smoke_click(GLOBAL_NAV_X + app.workspaces.items[0].width + 16, 24);
+    bool ok = menu_unchanged && scripts_active();
     app.script.checked_revision = UINT64_MAX;
-    smoke_click(LEFT + PANEL_GAP + 8 + 3 * 38 + 16, action_y);
+    smoke_click(LEFT + PANEL_GAP + 8 + 16, action_y);
     ok = ok && scripts_active() && app.script.checked_revision == revision;
+    /* Global Undo/Redo must operate on the active script, never the scene. */
+    PeText saved_document = app.script.document;
+    pe_text_init(&app.script.document, "// toolbar test");
+    pe_text_insert(&app.script.document, "// edited\n");
+    se_changed(&app.script, app.viewport, false);
+    draw();
+    smoke_click(150, 24);
+    ok = ok && app.script.document.position == 0 &&
+         !strcmp(app.script.document.text, "// toolbar test");
+    smoke_click(188, 24);
+    ok = ok && app.script.document.position == 1 &&
+         strstr(app.script.document.text, "edited") != NULL;
+    pe_text_free(&app.script.document);
+    app.script.document = saved_document;
+    app.script.extent_revision = app.script.highlighted_revision = app.script.checked_revision =
+        UINT64_MAX;
+    se_check(&app.script);
     SDL_Event f5 = {0};
     f5.type = SDL_EVENT_KEY_DOWN;
     f5.key.key = SDLK_F5;
     event(&f5);
     ok = ok && !app.playing;
-    smoke_click(34, 24);
+    smoke_click(GLOBAL_NAV_X + 16, 24);
     ok = ok && map_active();
     /* Narrow the center until the last map actions wrap to a second row. */
     app.left_width = 400;
     app.right_width = app.width - app.left_width - 320;
     draw();
     ok = ok && app.viewport.y == TOP + 2 * PANEL_GAP + 70;
-    /* Seven actions fit in row one; Grid is the fifth action in row two. */
-    smoke_click(LEFT + PANEL_GAP + 8 + 4 * 38 + 16, action_y + 32);
+    /* Seven actions fit in row one; Grid is the second action in row two. */
+    smoke_click(LEFT + PANEL_GAP + 8 + 38 + 16, action_y + 32);
     ok = ok && app.grid != grid && !memcmp(&original, &app.scene, sizeof original) &&
          app.history.cursor == history_cursor && app.script.document.revision == revision &&
          !memcmp(&camera, &app.camera, sizeof camera);
