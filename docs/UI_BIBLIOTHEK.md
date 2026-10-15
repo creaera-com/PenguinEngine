@@ -39,7 +39,7 @@ Das Standardtheme verwendet unter anderem:
 | Panel | `#181818` |
 | Button | `#242424` |
 | Hover | `#333333` |
-| Akzent | `#FF932B` |
+| Akzent | `#C28E5C` |
 
 `ui_dark_theme()` liefert ein Theme als Wert. Spiele können eine Kopie ändern und an `ui_draw_button_themed()` übergeben. Es wird kein globales Theme verändert. Die bestehenden Kurzfunktionen wie `ui_draw_button()` verwenden das Standardtheme.
 

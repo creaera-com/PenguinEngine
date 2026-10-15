@@ -8,8 +8,8 @@
 #define UI_SURFACE 0x292929ffu
 #define UI_BORDER 0x303030ffu
 #define UI_HOVER 0x393939ffu
-#define UI_ACCENT 0xff932bffu
-#define UI_ACCENT_BG 0xff932bffu
+#define UI_ACCENT 0xc28e5cffu
+#define UI_ACCENT_BG 0xc28e5cffu
 #define UI_TEXT 0xe9e9e9ffu
 #define UI_MUTED 0xa2a2a2ffu
 #define UI_DISABLED 0x686868ffu
