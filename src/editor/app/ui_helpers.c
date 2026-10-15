@@ -10,6 +10,19 @@ Uint32 editor_widget_background(void) {
     return background;
 }
 
+Uint32 editor_tree_row_background(int row) {
+    Uint32 base = editor_widget_background();
+    if (!(row & 1)) {
+        return base;
+    }
+    Uint32 background = base & 0xffu;
+    for (int shift = 8; shift <= 24; shift += 8) {
+        Uint32 channel = (base >> shift) & 0xffu;
+        background |= ((channel * 97 + 255 * 3) / 100) << shift;
+    }
+    return background;
+}
+
 bool editor_inside(float x, float y, SDL_FRect r) {
     return x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h;
 }

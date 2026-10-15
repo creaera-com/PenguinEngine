@@ -17,6 +17,10 @@
 void editor_box(SDL_FRect r, uint32_t c);
 /** @brief Liefert die um 5 Prozent Weiß aufgehellte Theme-Surface als Widget-Hintergrund. */
 Uint32 editor_widget_background(void);
+/** @brief Liefert dezente alternierende Tree-Zeilenfarben aus dem aktuellen Theme.
+ * @param row Nullbasierter Index in der aufgeklappten Liste, unabhängig vom Scrolloffset.
+ */
+Uint32 editor_tree_row_background(int row);
 
 /**
  * @brief Zeichnet und verarbeitet einen Textbutton mit aufruferspezifischer ID.

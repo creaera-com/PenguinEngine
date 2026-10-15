@@ -346,3 +346,5 @@ Beide Adapter sind Map-spezifisch und dürfen wie die anderen spezialisierten Wi
 Die Entity-Auswahl öffnet den Inspector und lässt den Layer- und Palettenzustand unberührt. Im Script-Editor werden diese Map-spezifischen Tabs nicht geladen. `--map-tools` startet direkt mit Map links und Tiles rechts; `--scripts` hat Vorrang. Die Engine unterstützt weiterhin genau ein Tileset pro Szene; der neue Tab führt noch keine Mehrfach-Tilesets ein.
 
 ![Map und Tiles](images/map-tiles.png)
+
+Explorer und Scene-Baum verwenden dezente alternierende Zeilenfarben aus der Theme-Surface. Die Parität folgt dem Index in der aufgeklappten Liste und bleibt beim Scrollen stabil; Hover und Auswahl überlagern die Zeilenfarbe. Dafür sind keine zusätzlichen YAML-Eigenschaften nötig.

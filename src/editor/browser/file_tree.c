@@ -116,6 +116,7 @@ void editor_draw_tree(void) {
         float y = tree_clip.y + i * 23 - app.tree_view.offset;
         char label[128];
         snprintf(label, sizeof label, "%.20s", row.name);
+        editor_box((SDL_FRect){tree_clip.x, y, tree_clip.w, 23}, editor_tree_row_background(i));
         SDL_FRect r = {tree_clip.x, y, tree_clip.w, 22};
         bool hover = ui_hovered(&app.ui, (UiRect){r.x, r.y, r.w, r.h});
         if (hover) {

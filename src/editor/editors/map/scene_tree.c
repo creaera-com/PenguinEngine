@@ -114,6 +114,20 @@ void editor_scene_delete(void) {
     }
 }
 
+static bool row_button(UiId id, UiRect rect, UiIcon icon, const char *label, const char *hint,
+                       bool selected, bool enabled, Uint32 background) {
+    UiTheme theme = ui_theme;
+    theme.surface = theme.panel = background;
+    bool hover = ui_hovered(&app.ui, rect);
+    editor_register_ui_hit(rect);
+    ui_draw_button_themed(app.renderer, &theme, (SDL_FRect){rect.x, rect.y, rect.w, rect.h}, icon,
+                          label, selected, enabled, hover);
+    if (hover) {
+        editor_tooltip = hint;
+    }
+    return ui_button(&app.ui, id, rect, enabled);
+}
+
 void editor_draw_scene_tree(void) {
     /* Drop obsolete navigation state after deletion/replacing a document. */
     for (int i = app.map->collapsed_count - 1; i >= 0; i--) {
@@ -127,7 +141,7 @@ void editor_draw_scene_tree(void) {
     collect(rows, &count, 0, 0);
     SDL_FRect body = {app.panel_area.x + 6, app.panel_area.y + 6, fmaxf(0, app.panel_area.w - 12),
                       fmaxf(0, app.panel_area.h - 12)};
-    editor_box(body, UI_SURFACE);
+    editor_box(body, editor_widget_background());
     app.scene_view.content = count ? count * 26.f : 26;
     app.scene_view.viewport = fmaxf(0, body.h - 8);
     ui_scroll_clamp(&app.scene_view);
@@ -143,12 +157,16 @@ void editor_draw_scene_tree(void) {
     for (int i = 0; i < count; i++) {
         const PeObject *o = pe_entity_get(&app.map->scene, rows[i].entity);
         float y = body.y + 4 + i * 26 - app.scene_view.offset;
+        Uint32 background = editor_tree_row_background(i);
+        editor_box((SDL_FRect){body.x + 4, y, fmaxf(0, body.w - 20), 26}, background);
         float indent = fminf(rows[i].depth * 12.f, fmaxf(0, body.w - 100));
         float x = body.x + 4 + indent;
         app.widget_scope = ui_id("scene_entity") ^ o->stable_id;
         bool open = !collapsed(o->stable_id);
-        if (rows[i].children && icon_button(x, y, 20, open ? ICON_DOWN : ICON_RIGHT, "",
-                                            "Expand / collapse", false, !editor_edit_pending())) {
+        if (rows[i].children &&
+            row_button(app.widget_scope ^ ui_id("scene_expand"), (UiRect){x, y, 20, 25},
+                       open ? ICON_DOWN : ICON_RIGHT, "", "Expand / collapse", false,
+                       !editor_edit_pending(), background)) {
             if (open) {
                 app.map->collapsed[app.map->collapsed_count++] = o->stable_id;
             } else {
@@ -156,8 +174,9 @@ void editor_draw_scene_tree(void) {
             }
         }
         const char *label = o->name;
-        if (icon_button(x + 22, y, fmaxf(0, body.w - indent - 42), ICON_ENTITY, label,
-                        "Select entity", app.selected == o->stable_id, enabled)) {
+        if (row_button(app.widget_scope ^ ui_id("scene_select"),
+                       (UiRect){x + 22, y, fmaxf(0, body.w - indent - 42), 25}, ICON_ENTITY, label,
+                       "Select entity", app.selected == o->stable_id, enabled, background)) {
             app.selected = o->stable_id;
             app.tool = SELECT;
             editor_inspect_entity();
