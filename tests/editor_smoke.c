@@ -262,6 +262,10 @@ bool editor_verify_workspace_tools(void) {
     PeScene original = app.workspace.map->scene;
     int history_cursor = app.workspace.map->history.cursor;
     uint64_t revision = 0;
+    editor_draw();
+    SDL_Texture *nav_image = pe_ui_images_get(&app.shell.shell_images, app.platform.renderer,
+                                              app.shell.shell_layout, "icons/grid.png");
+    PeUiImageEntry *shared_images = app.shell.shell_images.entries;
     bool grid = app.workspace.map->view.grid;
     PeCamera camera = app.workspace.map->view.camera;
     editor_tab_select(false);
@@ -271,7 +275,10 @@ bool editor_verify_workspace_tools(void) {
     bool menu_unchanged =
         editor_map_active() && app.shell.request == REQUEST_NONE && app.shell.field == FIELD_NONE;
     smoke_click(GLOBAL_NAV_X + app.shell.workspaces.items[0].width + 16, 24);
-    bool ok = editor_yaml_action_enabled(NULL) && menu_unchanged && editor_scripts_active() &&
+    bool ok = nav_image && shared_images == app.shell.shell_images.entries &&
+              nav_image == pe_ui_images_get(&app.shell.shell_images, app.platform.renderer,
+                                            app.shell.shell_layout, "icons/grid.png") &&
+              editor_yaml_action_enabled(NULL) && menu_unchanged && editor_scripts_active() &&
               !app.workspace.map;
     if (!app.workspace.script) {
         return false;

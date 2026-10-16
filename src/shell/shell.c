@@ -79,10 +79,12 @@ void editor_draw(void) {
     for (int i = 0; i < app.shell.workspaces.count; i++) {
         const EditorView *item = editor_view(app.shell.workspaces.items[i].id);
         const cJSON *entry = editor_layout_entry(item->id);
-        float width = labels
-                          ? ui_tab_content_width(editor_yaml_icon(pe_ui_string(entry, "icon", "")),
-                                                 pe_ui_string(entry, "title", item->label))
-                          : 32;
+        float width =
+            labels ? ui_tab_content_width(pe_ui_get(entry, "image")
+                                              ? ICON_IMAGE
+                                              : editor_yaml_icon(pe_ui_string(entry, "icon", "")),
+                                          pe_ui_string(entry, "title", item->label))
+                   : 32;
         ui_tabs_set_width(&app.shell.workspaces, item->id,
                           width + app.shell.tab_gap +
                               (cJSON_IsTrue(pe_ui_get(entry, "separator_before")) ? 22 : 0));
@@ -117,11 +119,27 @@ void editor_draw(void) {
         }
         editor_register_ui_hit(r);
         bool hover = ui_hovered(&app.shell.ui, r);
-        ui_draw_button(app.platform.renderer, (SDL_FRect){r.x, r.y, r.w, r.h},
-                       editor_yaml_icon(pe_ui_string(entry, "icon", "")),
-                       labels ? pe_ui_string(entry, "title", item->label) : "",
-                       app.shell.workspaces.selected == item->id,
-                       app.shell.workspaces.items[i].enabled, hover);
+        const char *image_path = pe_ui_string(entry, "image", NULL);
+        SDL_Texture *image = image_path
+                                 ? pe_ui_images_get(&app.shell.shell_images, app.platform.renderer,
+                                                    app.shell.shell_layout, image_path)
+                                 : NULL;
+        const char *label = labels ? pe_ui_string(entry, "title", item->label) : "";
+        bool selected = app.shell.workspaces.selected == item->id;
+        bool enabled = app.shell.workspaces.items[i].enabled;
+        if (image) {
+            const cJSON *padding = pe_ui_get(entry, "image_padding");
+            ui_draw_image_button(app.platform.renderer, (SDL_FRect){r.x, r.y, r.w, r.h}, image,
+                                 label, padding ? (float)padding->valuedouble : 4, selected,
+                                 enabled, hover,
+                                 app.shell.ui.active == item->id && app.shell.ui.down,
+                                 app.shell.ui.focus == item->id);
+        } else {
+            UiIcon fallback = editor_yaml_icon(pe_ui_string(entry, "icon", ""));
+            ui_draw_button(app.platform.renderer, (SDL_FRect){r.x, r.y, r.w, r.h},
+                           image_path && fallback == ICON_NONE ? ICON_IMAGE : fallback, label,
+                           selected, enabled, hover);
+        }
         if (hover) {
             editor_tooltip = pe_ui_string(entry, "title", item->label);
         }

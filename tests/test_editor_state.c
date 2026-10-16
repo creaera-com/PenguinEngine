@@ -435,8 +435,47 @@ static void test_button_images_schema(void) {
     free(invalid);
 }
 
+static void test_shell_editor_image_schema(void) {
+    PeUiLayout *source = pe_ui_layout_load(PE_SOURCE_DIR "/resources/editor/ui/shell.yaml", "shell",
+                                           error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(source, error);
+    cJSON *entry = cJSON_GetArrayItem(cJSON_GetObjectItem(source->root, "editors"), 0);
+    cJSON_DeleteItemFromObject(entry, "icon");
+    cJSON_DeleteItemFromObject(entry, "image");
+    cJSON_DeleteItemFromObject(entry, "image_padding");
+    cJSON_AddStringToObject(entry, "image", "icons/grid.png");
+    cJSON_AddNumberToObject(entry, "image_padding", 6);
+    for (int mode = 0; mode < 4; mode++) {
+        if (mode == 1) {
+            cJSON_SetNumberValue(cJSON_GetObjectItem(entry, "image_padding"), 1);
+        } else if (mode == 2) {
+            cJSON_DeleteItemFromObject(entry, "image");
+            cJSON_AddNumberToObject(entry, "image", 12);
+        } else if (mode == 3) {
+            cJSON_DeleteItemFromObject(entry, "image");
+            cJSON_DeleteItemFromObject(entry, "image_padding");
+        }
+        char *text = cJSON_PrintUnformatted(source->root);
+        TEST_ASSERT_NOT_NULL(text);
+        write_file(YAML_FILE, text);
+        free(text);
+        PeUiLayout *layout = pe_ui_layout_load(YAML_FILE, "shell", error, sizeof error);
+        if (!mode) {
+            TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+        } else {
+            TEST_ASSERT_NULL(layout);
+            TEST_ASSERT_NOT_NULL(strstr(error, mode == 1   ? "range"
+                                               : mode == 2 ? "path"
+                                                           : "editor entry"));
+        }
+        pe_ui_layout_free(layout);
+    }
+    pe_ui_layout_free(source);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_shell_editor_image_schema);
     RUN_TEST(test_button_images_schema);
     RUN_TEST(test_vector_grid_schema);
     RUN_TEST(test_vector_preview_schema);

@@ -211,6 +211,19 @@ static bool text_value(Check *c, const cJSON *v) {
            error_at(c, v, "expected text or a text binding");
 }
 
+static bool image_fields(Check *c, const cJSON *v) {
+    const cJSON *image = pe_ui_get(v, "image");
+    const cJSON *padding = pe_ui_get(v, "image_padding");
+    if (image &&
+        (!cJSON_IsString(image) || !*image->valuestring || strlen(image->valuestring) > 1023)) {
+        return error_at(c, image, "image must be a non-empty PNG path (maximum 1023 bytes)");
+    }
+    if (padding && (!image || !number(c, padding, 2, 8))) {
+        return error_at(c, padding, "image_padding requires image and a value in range 2..8");
+    }
+    return true;
+}
+
 static bool widget(Check *, const cJSON *, int);
 
 static bool widgets(Check *c, const cJSON *v, int depth) {
@@ -301,14 +314,8 @@ static bool widget(Check *c, const cJSON *v, int depth) {
         return false;
     }
 
-    const cJSON *image = pe_ui_get(v, "image");
-    const cJSON *padding = pe_ui_get(v, "image_padding");
-    if (image &&
-        (!cJSON_IsString(image) || !*image->valuestring || strlen(image->valuestring) > 1023)) {
-        return error_at(c, image, "image must be a non-empty PNG path (maximum 1023 bytes)");
-    }
-    if (padding && (!image || !number(c, padding, 2, 8))) {
-        return error_at(c, padding, "image_padding requires image and a value in range 2..8");
+    if (!image_fields(c, v)) {
+        return false;
     }
     const cJSON *icon = pe_ui_get(v, "icon");
     if (icon && (!cJSON_IsString(icon) || !contains(icons, icon->valuestring))) {
@@ -612,8 +619,9 @@ static bool validate(Check *c, const char *kind) {
         return error_at(c, editors, "requires 1..16 editors");
     }
     for (const cJSON *e = editors->child; e; e = e->next) {
-        if (!fields(c, e, "|id||title||icon||module||file||separator_before|") ||
-            !id(c, pe_ui_get(e, "id"))) {
+        if (!fields(c, e,
+                    "|id||title||icon||image||image_padding||module||file||separator_before|") ||
+            !id(c, pe_ui_get(e, "id")) || !image_fields(c, e)) {
             return false;
         }
         const cJSON *separator = pe_ui_get(e, "separator_before");
@@ -624,8 +632,11 @@ static bool validate(Check *c, const char *kind) {
         const char *file = pe_ui_string(e, "file", "");
         if ((strcmp(module, "map") && strcmp(module, "scripts") && strcmp(module, "vector")) ||
             strcmp(module, pe_ui_string(e, "id", "")) || !cJSON_IsString(pe_ui_get(e, "title")) ||
-            !contains(icons, pe_ui_string(e, "icon", "")) || !*file || *file == '/' ||
-            strstr(file, "..") || strchr(file, '\\') || strchr(file, ':')) {
+            (!pe_ui_get(e, "image") && !pe_ui_get(e, "icon")) ||
+            (pe_ui_get(e, "icon") && (!cJSON_IsString(pe_ui_get(e, "icon")) ||
+                                      !contains(icons, pe_ui_string(e, "icon", "")))) ||
+            !*file || *file == '/' || strstr(file, "..") || strchr(file, '\\') ||
+            strchr(file, ':')) {
             return error_at(c, e, "invalid or unregistered editor entry");
         }
     }

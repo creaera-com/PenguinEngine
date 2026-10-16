@@ -389,3 +389,20 @@ Buttons können statt eines eingebauten Symbols ein eigenes PNG verwenden:
 Ein angegebenes `icon` dient als Ersatz, wenn die Datei fehlt oder nicht geladen werden kann. Ohne Ersatz wird das eingebaute Bildsymbol gezeichnet. Fehler werden einmal je Cacheeintrag protokolliert. PNGs sind auf 1024×1024 Pixel begrenzt. Je Shell bzw. aktivem Editor werden maximal 64 Bildpfade einschließlich Fehlern zwischengespeichert. Änderungen an Bilddateien werden nach **F6** neu geladen; der Editorcache wird bei jedem Editorwechsel vollständig freigegeben, die globalen Shellbilder bleiben bis Reload/Beenden erhalten. YAML-Schema und Dokumentformate bleiben `penguin.ui/v1`.
 
 Die UI-Bibliothek stellt `ui_image_fit()` und `ui_draw_image_button()` für Spiele und Editor bereit. Dateiladen liegt in `platform/sdl/image.c`, Cache und YAML-Pfadauflösung in `editor/layout/images.c`; die wiederverwendbaren Widgets kennen kein Dateisystem.
+
+### Bilder in der Editor-Auswahl der shell.yaml
+
+Auch die Einträge unter `editors:` unterstützen `image` und `image_padding`:
+
+```yaml
+editors:
+  - id: map
+    title: "Map"
+    module: map
+    file: editors/map.yaml
+    image: "icons/grid.png"
+    image_padding: 4
+    icon: grid
+```
+
+Hier ist der Bildpfad relativ zur **shell.yaml**, nicht zur Editor-YAML. `icon` ist optional und dient als Ersatzsymbol bei Ladefehlern. Ohne `icon` erscheint bei Fehlern das eingebaute Bildsymbol. Innenabstand und Bilddarstellung entsprechen normalen Buttons; mit `labels: true` am `editor_switcher` steht der Titel neben dem Bild. Diese Bilder liegen im Shellcache und bleiben bei Editorwechseln geladen; **F6** lädt sie erneut.
