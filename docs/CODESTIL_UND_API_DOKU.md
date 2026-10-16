@@ -60,3 +60,7 @@ python tools/format_code.py --check
 ```
 
 Das Skript benötigt clang-format in PATH. Für eine konkrete Installation lässt sich `--clang-format /pfad/zu/clang-format` angeben. Die CI nutzt dieselbe Dateiauswahl und Version und erzeugt zusätzlich die API-Dokumentation.
+
+## Handbuch in der Doxygen-Navigation
+
+Die Seitennavigation enthält unter **Handbuch** auch die Markdown-Anleitungen aus `docs/` und die README. Projektstruktur und Architektur stehen dabei am Anfang; weitere Gruppen führen zu Oberfläche/Werkzeugen und Entwicklung/Tests. Die Seiten werden direkt aus den Markdown-Dateien erzeugt, sodass GitHub und Doxygen dieselben Inhalte verwenden. Neue Anleitungen unter `docs/` werden automatisch eingelesen; ihre Einordnung wird in `docs/doxygen/mainpage.dox` mit `@subpage` gepflegt.

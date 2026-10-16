@@ -164,7 +164,7 @@ QuickJS-ng prüft echte JavaScript-/ES-Modulsyntax, **führt den Code aber nicht
 - [Bedienung, Architektur und Erweiterungen](docs/IMPLEMENTIERUNG.md)
 - [Ursprüngliches Konzept und Entwicklungsplan](docs/ENGINE_KONZEPT.md)
 - [Manueller Prüfablauf](docs/TESTPLAN.md)
-- [Abhängigkeiten und Lizenzen](third_party/README.md)
+- [Abhängigkeiten und Lizenzen](https://github.com/creaera-com/PenguinEngine/blob/main/third_party/README.md)
 
 Die Engine ist eine ausbaubare Basis. Sprite-Entities werden zunächst als farbige Rechtecke dargestellt; Bildausschnitte werden bei Tilemaps unterstützt. Die Undo-Historie liegt im Speicher und umfasst maximal 64 Änderungen. Importierte Dateien bleiben beim Undo erhalten. Weitere Grenzen und Abweichungen vom ursprünglichen Konzept beschreibt die Implementierungsdokumentation.
 
