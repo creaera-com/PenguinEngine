@@ -147,6 +147,12 @@ bool editor_yaml_action_active(const char *action) {
     }
 
     if (app.vector) {
+        if (!strcmp(action, "vector.toggle_grid")) {
+            return app.vector->view.grid_visible;
+        }
+        if (!strcmp(action, "vector.grid_standard") || !strcmp(action, "vector.grid_isometric")) {
+            return app.vector->view.grid_isometric == !strcmp(action, "vector.grid_isometric");
+        }
         if (!strcmp(action, "vector.preview_select")) {
             return app.vector->view.tool == VT_PREVIEW;
         }

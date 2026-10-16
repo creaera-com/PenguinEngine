@@ -15,6 +15,11 @@ typedef struct {
     char path[1024];                    ///< Dateipfad; leer für ein unbenanntes Dokument.
     uint64_t selected;                  ///< Bitmaske ausgewählter Objekt-Slots.
     uint32_t expanded_paths[VE_SHAPES]; ///< Stabile IDs aufgeklappter Pfade; 0 ist frei.
+    float grid_width;                   ///< Zell- bzw. Rautenbreite in lokalen Pixeln.
+    float grid_height;                  ///< Zell- bzw. Rautenhöhe in lokalen Pixeln.
+    uint32_t grid_color;                ///< RGBA-Farbe des Editor-Grids.
+    bool grid_visible;                  ///< Ob das Grid eingeblendet ist.
+    bool grid_isometric;                ///< Rauten statt rechtwinkligem Raster.
     VeRegion preview;                   ///< Lokaler 1:1-Auswahlbereich; keine SVG-Geometrie.
     int preview_board;                  ///< Artboard der Vorschau.
     bool preview_enabled;               ///< Ob eine Vorschauauswahl existiert.
@@ -83,6 +88,10 @@ void vector_draw_tools(SDL_FRect area);
 void vector_draw_canvas(void);
 /** @brief Zeichnet Artboard-/Objektbaum. */
 void vector_draw_tree(void);
+/** @brief Zeichnet das lokale Grid als reine Canvas-Überlagerung. */
+void vector_draw_grid(void);
+/** @brief Zeichnet Zellmaße und Farbe im YAML-Grid-Widget. */
+void vector_draw_grid_settings(SDL_FRect area);
 /** @brief Zeichnet die 1:1-Vorschau im übergebenen Panelbereich. */
 void vector_draw_preview(SDL_FRect area);
 /** @brief Liefert die an aktuelle Artboardgrenzen beschnittene lokale Auswahl. */

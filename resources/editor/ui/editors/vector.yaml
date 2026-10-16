@@ -19,6 +19,8 @@ toolbar:
   - {type: button, id: vector_zoom_in, label: "+", tooltip: "Zoom in around view center", action: vector.zoom_in}
   - {type: button, id: vector_zoom_reset, label: "100%", tooltip: "Reset view to 100 percent", action: vector.zoom_reset}
   - {type: button, id: vector_fit, icon: grid, tooltip: "Fit active artboard", action: vector.fit}
+  - {type: separator, id: vector_grid_gap}
+  - {type: button, id: vector_grid_toggle, icon: grid, tooltip: "Show / hide artboard grid", action: vector.toggle_grid}
 
 columns:
   left:
@@ -49,6 +51,15 @@ columns:
           type: tool_panel
           id: vector_tool_panel
           children:
+            - type: section
+              id: vector_grid_tools
+              title: "Grid"
+              icon: grid
+              open: true
+              children:
+                - {type: button, id: vector_grid_standard, label: "Standard", tooltip: "Rectangular grid", action: vector.grid_standard}
+                - {type: button, id: vector_grid_isometric, label: "Isometric", tooltip: "Diamond grid; width / height define the full diamond", action: vector.grid_isometric}
+                - {type: vector_grid, id: vector_grid_settings, binding: vector.active, height: 100}
             - type: section
               id: vector_preview_tools
               title: "Preview"

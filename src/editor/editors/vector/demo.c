@@ -38,6 +38,7 @@ void vector_demo(void) {
     snprintf(v->document.shapes[moon].name, 64, "Cut contour");
     ve_history_free(&v->history);
     ve_history_init(&v->history, &v->document);
+    v->view.grid_visible = true;
     v->view.preview_enabled = true;
     v->view.preview_board = 0;
     v->view.preview = (VeRegion){220, 152, 160, 160};

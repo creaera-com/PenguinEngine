@@ -181,6 +181,11 @@ static bool zoom_smoke(void) {
 static bool tools_smoke(void) {
     app.right_tabs.selected = ui_id("vector_tools_tab");
     editor_draw();
+    WidgetState *grid_group = tool_state("vector_grid_tools");
+    if (grid_group) {
+        grid_group->open = 0;
+        editor_draw();
+    }
     WidgetState *preview_group = tool_state("vector_preview_tools");
     if (preview_group) {
         preview_group->open = 0;
@@ -191,7 +196,7 @@ static bool tools_smoke(void) {
     if (!group || !panel || !group->open) {
         return false;
     }
-    float x = app.width - RIGHT + PANEL_GAP + 40, y = TOP + TABS + 18 + 41;
+    float x = app.width - RIGHT + PANEL_GAP + 40, y = TOP + TABS + 18 + 82;
     pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, app.width - 164, y + 39);
     pointer(SDL_EVENT_MOUSE_BUTTON_UP, app.width - 164, y + 39);
     bool ok =
@@ -222,12 +227,71 @@ static bool tools_smoke(void) {
     SDL_SetWindowSize(app.window, app.width, height);
     SDL_SetWindowMinimumSize(app.window, 1100, 740);
     editor_draw();
+    if (grid_group) {
+        grid_group->open = 1;
+    }
     if (preview_group) {
         preview_group->open = 1;
         editor_draw();
     }
     if (!ok) {
         fprintf(stderr, "Vector Tools tab / actions / collapse / scrolling smoke failed\n");
+    }
+    return ok;
+}
+
+static bool grid_smoke(void) {
+    VectorEditor *v = app.vector;
+    app.right_tabs.selected = ui_id("vector_tools_tab");
+    editor_draw();
+    int revision = v->history.position;
+    bool ok = v->view.grid_width == 16 && v->view.grid_height == 16 &&
+              v->view.grid_color == 0x80808060 && !v->view.grid_isometric;
+    bool visible = v->view.grid_visible;
+    /* Toggle through the actual last toolbar button. */
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, v->canvas.x + 582, TOP + 21);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, v->canvas.x + 582, TOP + 21);
+    ok = ok && v->view.grid_visible != visible;
+    vector_action("vector.toggle_grid");
+    float x = app.width - RIGHT + PANEL_GAP + 179, y = TOP + TABS + 99;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, x, y);
+    ok = ok && app.field == FIELD_V_GRID_WIDTH;
+    SDL_Event text = {0};
+    text.type = SDL_EVENT_TEXT_INPUT;
+    text.text.text = "32";
+    editor_event(&text);
+    SDL_Event enter = {0};
+    enter.type = SDL_EVENT_KEY_DOWN;
+    enter.key.key = SDLK_RETURN;
+    editor_event(&enter);
+    ok = ok && app.field == FIELD_NONE && v->view.grid_width == 32;
+    editor_field_start(FIELD_V_GRID_HEIGHT, "0");
+    editor_field_apply();
+    ok = ok && app.field == FIELD_V_GRID_HEIGHT && v->view.grid_height == 16;
+    editor_field_stop();
+    editor_field_start(FIELD_V_GRID_COLOR, "broken");
+    editor_field_apply();
+    ok = ok && app.field == FIELD_V_GRID_COLOR && v->view.grid_color == 0x80808060;
+    editor_field_stop();
+    editor_field_start(FIELD_V_GRID_COLOR, "55667788");
+    editor_field_apply();
+    vector_action("vector.grid_isometric");
+    editor_draw();
+    ok = ok && v->view.grid_isometric && v->view.grid_visible == visible &&
+         v->view.grid_color == 0x55667788 && v->history.position == revision;
+    if (editor_screenshot_path) {
+        char path[1600];
+        int length = snprintf(path, sizeof path, "%s.grid-isometric.bmp", editor_screenshot_path);
+        if (length > 0 && length < (int)sizeof path) {
+            const char *original = editor_screenshot_path;
+            editor_screenshot_path = path;
+            editor_draw();
+            editor_screenshot_path = original;
+        }
+    }
+    if (!ok) {
+        fprintf(stderr, "Vector grid toolbar / settings / validation smoke failed\n");
     }
     return ok;
 }
@@ -364,6 +428,7 @@ bool vector_smoke(void) {
     bool interaction = interaction_smoke();
     vector_demo();
     interaction = zoom_smoke() && interaction;
+    interaction = grid_smoke() && interaction;
     interaction = preview_smoke() && interaction;
     interaction = tools_smoke() && interaction;
     interaction = tree_smoke() && interaction;
@@ -387,7 +452,8 @@ bool vector_smoke(void) {
          !strcmp(app.vector->document.shapes[shape].name, "Edited vector") &&
          app.vector->history.position == 1 && !app.vector->preview_texture &&
          !app.vector->preview_pixels && app.vector->view.preview_enabled &&
-         app.vector->view.preview.w == 160 &&
+         app.vector->view.preview.w == 160 && app.vector->view.grid_width == 32 &&
+         app.vector->view.grid_isometric && app.vector->view.grid_color == 0x55667788 &&
          app.vector->view.expanded_paths[0] == app.vector->document.shapes[shape].id &&
          app.right_tabs.selected == ui_id("vector_tools_tab") &&
          tool_state("vector_transform_tools") && !tool_state("vector_transform_tools")->open;

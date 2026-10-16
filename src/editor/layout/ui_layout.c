@@ -41,6 +41,9 @@ static const char *actions[] = {"document.save",
                                 "vector.zoom_reset",
                                 "vector.preview_select",
                                 "vector.preview_clear",
+                                "vector.toggle_grid",
+                                "vector.grid_standard",
+                                "vector.grid_isometric",
                                 "vector.convert",
                                 "vector.mirror_x",
                                 "vector.mirror_y",
@@ -240,9 +243,10 @@ static bool widget(Check *c, const cJSON *v, int depth) {
     }
 
     const char *specialized[] = {
-        "file_tree",     "entity_tree", "map_canvas",       "script_editor",  "inspector",
-        "scene_info",    "script_info", "terminal",         "map_layers",     "tile_palette",
-        "vector_canvas", "vector_tree", "vector_inspector", "vector_preview", NULL};
+        "file_tree",        "entity_tree",    "map_canvas",    "script_editor",
+        "inspector",        "scene_info",     "script_info",   "terminal",
+        "map_layers",       "tile_palette",   "vector_canvas", "vector_tree",
+        "vector_inspector", "vector_preview", "vector_grid",   NULL};
     for (int i = 0; specialized[i]; i++) {
         if (!strcmp(type, specialized[i])) {
             unsigned bit = 1u << i;
@@ -260,7 +264,7 @@ static bool widget(Check *c, const cJSON *v, int depth) {
         extra = "|tools|";
     } else if (!strcmp(type, "tool_panel")) {
         extra = "|children|";
-    } else if (!strcmp(type, "vector_preview")) {
+    } else if ((!strcmp(type, "vector_preview") || !strcmp(type, "vector_grid"))) {
         extra = "|height|";
     } else if (!strcmp(type, "section")) {
         extra = "|children||title||open|";
@@ -277,7 +281,8 @@ static bool widget(Check *c, const cJSON *v, int depth) {
                strcmp(type, "script_info") && strcmp(type, "terminal") &&
                strcmp(type, "map_layers") && strcmp(type, "tile_palette") &&
                strcmp(type, "vector_canvas") && strcmp(type, "vector_tree") &&
-               strcmp(type, "vector_inspector") && strcmp(type, "vector_preview")) {
+               strcmp(type, "vector_inspector") && strcmp(type, "vector_preview") &&
+               strcmp(type, "vector_grid")) {
         return error_at(c, v, "unknown widget type");
     }
 
@@ -351,7 +356,8 @@ static bool widget(Check *c, const cJSON *v, int depth) {
                               !strcmp(type, "map_layers") || !strcmp(type, "tile_palette"))
                                ? "scene.active"
                            : (!strcmp(type, "vector_canvas") || !strcmp(type, "vector_tree") ||
-                              !strcmp(type, "vector_inspector") || !strcmp(type, "vector_preview"))
+                              !strcmp(type, "vector_inspector") ||
+                              !strcmp(type, "vector_preview") || !strcmp(type, "vector_grid"))
                                ? "vector.active"
                            : !strcmp(type, "inspector") ? "selection.active"
                            : (!strcmp(type, "script_editor") || !strcmp(type, "script_info"))
@@ -368,7 +374,8 @@ static bool widget(Check *c, const cJSON *v, int depth) {
                     !strcmp(type, "scene_info") || !strcmp(type, "inspector") ||
                     !strcmp(type, "map_layers") || !strcmp(type, "tile_palette");
     bool vector_only = !strcmp(type, "vector_canvas") || !strcmp(type, "vector_tree") ||
-                       !strcmp(type, "vector_inspector") || !strcmp(type, "vector_preview");
+                       !strcmp(type, "vector_inspector") || !strcmp(type, "vector_preview") ||
+                       !strcmp(type, "vector_grid");
     bool script_only = !strcmp(type, "script_editor") || !strcmp(type, "script_info");
     if ((map_only && (!c->module || strcmp(c->module, "map"))) ||
         (script_only && (!c->module || strcmp(c->module, "scripts"))) ||
@@ -427,15 +434,17 @@ static bool widget(Check *c, const cJSON *v, int depth) {
             for (const cJSON *button = buttons->child; button; button = button->next) {
                 const char *child_type = pe_ui_string(button, "type", "");
                 if (strcmp(child_type, "button") &&
-                    (strcmp(child_type, "vector_preview") || button->next)) {
-                    return error_at(
-                        c, button,
-                        "tool_panel sections only support buttons and a final vector_preview");
+                    ((strcmp(child_type, "vector_preview") && strcmp(child_type, "vector_grid")) ||
+                     button->next)) {
+                    return error_at(c, button,
+                                    "tool_panel sections only support buttons and a final "
+                                    "vector_preview/vector_grid");
                 }
             }
         }
     }
-    if (!strcmp(type, "vector_preview") && !number(c, pe_ui_get(v, "height"), 64, 512)) {
+    if ((!strcmp(type, "vector_preview") || !strcmp(type, "vector_grid")) &&
+        !number(c, pe_ui_get(v, "height"), !strcmp(type, "vector_grid") ? 96 : 64, 512)) {
         return false;
     }
     if (!strcmp(type, "section")) {

@@ -151,6 +151,7 @@ void vector_draw_canvas(void) {
     if (raster()) {
         SDL_RenderTexture(app.renderer, v->texture, NULL, &v->canvas);
     }
+    vector_draw_grid();
     for (int b = 0; b < VE_BOARDS; b++) {
         VeBoard *board = &v->document.boards[b];
         if (!board->used) {

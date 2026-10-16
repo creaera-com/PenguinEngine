@@ -40,6 +40,14 @@ bool vector_action(const char *action) {
         v->preview_cache_valid = false;
         return true;
     }
+    if (!strcmp(name, "toggle_grid")) {
+        v->view.grid_visible = !v->view.grid_visible;
+        return true;
+    }
+    if (!strcmp(name, "grid_standard") || !strcmp(name, "grid_isometric")) {
+        v->view.grid_isometric = !strcmp(name, "grid_isometric");
+        return true;
+    }
     const char *tools[] = {"select", "rectangle", "ellipse", "pen", "nodes", "artboard"};
     for (int i = 0; i < 6; i++) {
         if (!strcmp(name, tools[i])) {

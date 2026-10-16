@@ -35,6 +35,34 @@ void vector_apply_field(int value) {
         }
         return;
     }
+    if (field == FIELD_V_GRID_WIDTH || field == FIELD_V_GRID_HEIGHT ||
+        field == FIELD_V_GRID_COLOR) {
+        if (field == FIELD_V_GRID_COLOR) {
+            const char *hex = app.input + (app.input[0] == '#');
+            if (strlen(hex) != 8 || strspn(hex, "0123456789abcdefABCDEF") != 8) {
+                editor_message("Grid color: enter eight RGBA hex digits");
+                return;
+            }
+            v->view.grid_color = (uint32_t)strtoul(hex, NULL, 16);
+        } else {
+            char *end;
+            errno = 0;
+            float number = strtof(app.input, &end);
+            if (errno || end == app.input || *end || !isfinite(number) || number < 1 ||
+                number > 100000) {
+                editor_message("Grid size: 1..100000 px");
+                return;
+            }
+            if (field == FIELD_V_GRID_WIDTH) {
+                v->view.grid_width = number;
+            } else {
+                v->view.grid_height = number;
+            }
+        }
+        editor_message("Grid updated");
+        editor_field_stop();
+        return;
+    }
     int index = vector_first(), n = vector_selected_count();
     VeShape *s = index >= 0 ? &v->document.shapes[index] : NULL;
     VeBoard *b = &v->document.boards[v->view.board];

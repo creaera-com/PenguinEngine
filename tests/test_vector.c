@@ -1,4 +1,5 @@
 #include "editors/vector/document.h"
+#include "editors/vector/grid.h"
 #include "editors/vector/preview.h"
 #include "unity.h"
 #include <math.h>
@@ -281,8 +282,58 @@ static void test_preview_invalid_input_is_atomic(void) {
     TEST_ASSERT_EQUAL_FLOAT(78, result.source.h);
 }
 
+static void test_grid_standard_origin_and_pan(void) {
+    VeGridLine lines[64];
+    int n = ve_grid_lines((VeRegion){0, 0, 32, 32}, 16, 16, false, 1, lines, 64);
+    TEST_ASSERT_EQUAL_INT(6, n);
+    TEST_ASSERT_EQUAL_FLOAT(0, lines[0].a.x);
+    TEST_ASSERT_EQUAL_FLOAT(16, lines[1].a.x);
+    TEST_ASSERT_EQUAL_FLOAT(32, lines[2].a.x);
+    n = ve_grid_lines((VeRegion){8, 8, 16, 16}, 16, 16, false, 1, lines, 64);
+    TEST_ASSERT_EQUAL_INT(2, n);
+    TEST_ASSERT_EQUAL_FLOAT(16, lines[0].a.x);
+    TEST_ASSERT_EQUAL_FLOAT(8, lines[0].a.y);
+    TEST_ASSERT_EQUAL_FLOAT(24, lines[0].b.y);
+    TEST_ASSERT_EQUAL_FLOAT(16, lines[1].a.y);
+}
+
+static void test_grid_isometric_diamond_and_clip(void) {
+    VeGridLine lines[64];
+    int n = ve_grid_lines((VeRegion){0, 0, 32, 16}, 32, 16, true, 1, lines, 64);
+    TEST_ASSERT_EQUAL_INT(2, n);
+    for (int i = 0; i < n; i++) {
+        TEST_ASSERT_FLOAT_WITHIN(.001f, 32, fabsf(lines[i].b.x - lines[i].a.x));
+        TEST_ASSERT_FLOAT_WITHIN(.001f, 16, fabsf(lines[i].b.y - lines[i].a.y));
+        TEST_ASSERT_TRUE(lines[i].a.y >= 0 && lines[i].a.y <= 16);
+        TEST_ASSERT_TRUE(lines[i].b.y >= 0 && lines[i].b.y <= 16);
+    }
+    n = ve_grid_lines((VeRegion){10, 3, 9, 7}, 32, 16, true, 1, lines, 64);
+    for (int i = 0; i < n; i++) {
+        TEST_ASSERT_TRUE(lines[i].a.x >= 10 && lines[i].a.x <= 19);
+        TEST_ASSERT_TRUE(lines[i].b.x >= 10 && lines[i].b.x <= 19);
+        TEST_ASSERT_TRUE(lines[i].a.y >= 3 && lines[i].a.y <= 10);
+        TEST_ASSERT_TRUE(lines[i].b.y >= 3 && lines[i].b.y <= 10);
+    }
+}
+
+static void test_grid_density_and_invalid_inputs_are_bounded(void) {
+    VeGridLine lines[64];
+    int n = ve_grid_lines((VeRegion){0, 0, 100000, 100000}, 1, 1, true, .02f, lines, 64);
+    TEST_ASSERT_TRUE(n > 0 && n <= 64);
+    n = ve_grid_lines((VeRegion){0, 0, 100000, 100000}, 1, 100000, true, 32, lines, 64);
+    TEST_ASSERT_TRUE(n >= 0 && n <= 64);
+    lines[0].a.x = 123;
+    TEST_ASSERT_EQUAL_INT(0, ve_grid_lines((VeRegion){0, 0, 32, 32}, 0, 16, false, 1, lines, 64));
+    TEST_ASSERT_EQUAL_INT(0, ve_grid_lines((VeRegion){0, 0, 32, 32}, 16, NAN, true, 1, lines, 64));
+    TEST_ASSERT_EQUAL_INT(0, ve_grid_lines((VeRegion){0, 0, 32, 32}, 16, 16, true, 0, lines, 64));
+    TEST_ASSERT_EQUAL_FLOAT(123, lines[0].a.x);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_grid_standard_origin_and_pan);
+    RUN_TEST(test_grid_isometric_diamond_and_clip);
+    RUN_TEST(test_grid_density_and_invalid_inputs_are_bounded);
     RUN_TEST(test_preview_small_selection_is_one_to_one);
     RUN_TEST(test_preview_large_selection_follows_and_clamps);
     RUN_TEST(test_preview_invalid_input_is_atomic);

@@ -229,7 +229,8 @@ int editor_yaml_tool_rows(const cJSON *list, float width) {
     float x = 8;
     int rows = 1;
     for (const cJSON *n = list ? list->child : NULL; n; n = n->next) {
-        if (!strcmp(pe_ui_string(n, "type", ""), "vector_preview")) {
+        if ((!strcmp(pe_ui_string(n, "type", ""), "vector_preview") ||
+             !strcmp(pe_ui_string(n, "type", ""), "vector_grid"))) {
             break;
         }
         if (!editor_yaml_boolean(pe_ui_get(n, "visible"), true)) {
@@ -256,11 +257,13 @@ void editor_draw_yaml_toolbar(SDL_FRect area) {
 void editor_draw_yaml_tool_list(const cJSON *list, SDL_FRect area, bool right_aligned) {
     const cJSON *start = list ? list->child : NULL;
     float available = fmaxf(32, area.w - 16), y = area.y + 6;
-    while (start && strcmp(pe_ui_string(start, "type", ""), "vector_preview")) {
+    while (start && strcmp(pe_ui_string(start, "type", ""), "vector_preview") &&
+           strcmp(pe_ui_string(start, "type", ""), "vector_grid")) {
         float used = 0;
         const cJSON *end = start;
         for (; end; end = end->next) {
-            if (!strcmp(pe_ui_string(end, "type", ""), "vector_preview")) {
+            if ((!strcmp(pe_ui_string(end, "type", ""), "vector_preview") ||
+                 !strcmp(pe_ui_string(end, "type", ""), "vector_grid"))) {
                 break;
             }
             if (!editor_yaml_boolean(pe_ui_get(end, "visible"), true)) {
@@ -354,10 +357,11 @@ bool editor_layout_scrolls_at(float x, float y) {
     return false;
 }
 
-static const cJSON *tool_preview(const cJSON *section) {
+static const cJSON *tool_content(const cJSON *section) {
     const cJSON *children = pe_ui_get(section, "children");
     for (const cJSON *child = children->child; child; child = child->next) {
-        if (!strcmp(pe_ui_string(child, "type", ""), "vector_preview") &&
+        if ((!strcmp(pe_ui_string(child, "type", ""), "vector_preview") ||
+             !strcmp(pe_ui_string(child, "type", ""), "vector_grid")) &&
             editor_yaml_boolean(pe_ui_get(child, "visible"), true)) {
             return child;
         }
@@ -365,9 +369,9 @@ static const cJSON *tool_preview(const cJSON *section) {
     return NULL;
 }
 
-static float tool_preview_height(const cJSON *section) {
-    const cJSON *preview = tool_preview(section);
-    return preview ? (float)pe_ui_get(preview, "height")->valuedouble + 12 : 0;
+static float tool_content_height(const cJSON *section) {
+    const cJSON *content = tool_content(section);
+    return content ? (float)pe_ui_get(content, "height")->valuedouble + 12 : 0;
 }
 
 static void draw_tool_panel(const cJSON *n, SDL_FRect area, UiId id) {
@@ -398,7 +402,7 @@ static void draw_tool_panel(const cJSON *n, SDL_FRect area, UiId id) {
         content += 33 + 8;
         if (app.widgets[group].open) {
             content += editor_yaml_tool_rows(pe_ui_get(s, "children"), clip.w) * 32 + 6 +
-                       tool_preview_height(s);
+                       tool_content_height(s);
         }
     }
     UiScroll scroll = {app.widgets[state].scroll, content, clip.h};
@@ -434,7 +438,7 @@ static void draw_tool_panel(const cJSON *n, SDL_FRect area, UiId id) {
         float height = 33;
         if (open) {
             height += editor_yaml_tool_rows(pe_ui_get(s, "children"), clip.w) * 32 + 6 +
-                      tool_preview_height(s);
+                      tool_content_height(s);
         }
         editor_box((SDL_FRect){clip.x, y, clip.w, height}, editor_widget_background());
         if (ui_hovered(&app.ui, header)) {
@@ -447,15 +451,17 @@ static void draw_tool_panel(const cJSON *n, SDL_FRect area, UiId id) {
         if (open) {
             editor_draw_yaml_tool_list(pe_ui_get(s, "children"),
                                        (SDL_FRect){clip.x, y + 33, clip.w, height - 33}, true);
-            const cJSON *preview = tool_preview(s);
-            if (preview) {
+            const cJSON *content_widget = tool_content(s);
+            if (content_widget) {
                 float top =
                     y + 33 + editor_yaml_tool_rows(pe_ui_get(s, "children"), clip.w) * 32 + 12;
-                float preview_height = (float)pe_ui_get(preview, "height")->valuedouble;
-                if (top + preview_height > clip.y && top < clip.y + clip.h) {
+                float content_widget_height =
+                    (float)pe_ui_get(content_widget, "height")->valuedouble;
+                if (top + content_widget_height > clip.y && top < clip.y + clip.h) {
                     editor_draw_yaml_node(
-                        preview,
-                        (SDL_FRect){clip.x + 8, top, fmaxf(0, clip.w - 16), preview_height}, -1);
+                        content_widget,
+                        (SDL_FRect){clip.x + 8, top, fmaxf(0, clip.w - 16), content_widget_height},
+                        -1);
                 }
             }
         }
@@ -705,6 +711,8 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
             editor_draw_scene_tree();
         } else if (!strcmp(type, "vector_tree")) {
             vector_draw_tree();
+        } else if (!strcmp(type, "vector_grid")) {
+            vector_draw_grid_settings(area);
         } else if (!strcmp(type, "vector_preview")) {
             vector_draw_preview(area);
         } else if (!strcmp(type, "vector_inspector")) {
