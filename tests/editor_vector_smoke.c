@@ -118,6 +118,52 @@ static bool interaction_smoke(void) {
     return ok;
 }
 
+static bool tree_smoke(void) {
+    VectorEditor *v = app.vector;
+    app.left_tabs.selected = UI_SCENE_TAB;
+    app.scene_view.offset = 0;
+    editor_draw();
+    float x = PANEL_GAP + 10, y = TOP + TABS - PANEL_GAP + 10;
+    float content = app.scene_view.content;
+    int revision = v->history.position;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x + 30, y + 3 * 26 + 12);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 30, y + 3 * 26 + 12);
+    editor_draw();
+    bool ok = !v->view.expanded_paths[0] && app.scene_view.content == content - 5 * 26;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x + 30, y + 3 * 26 + 12);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 30, y + 3 * 26 + 12);
+    editor_draw();
+    ok = ok && v->view.expanded_paths[0] == v->document.shapes[2].id;
+    v->view.node = -1;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x + 80, y + 5 * 26 + 12);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 80, y + 5 * 26 + 12);
+    editor_draw();
+    ok = ok && v->view.node == 1 && v->view.tool == VT_NODE && v->view.selected == 4 &&
+         v->history.position == revision;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x + 80, y + 8 * 26 + 12);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 80, y + 8 * 26 + 12);
+    ok = ok && v->view.node == 4 && v->history.position == revision;
+    /* Expansion belongs to stable IDs even when stacking order changes slots. */
+    uint32_t expanded = v->view.expanded_paths[0];
+    vector_action("vector.raise");
+    ok = ok && v->view.expanded_paths[0] == expanded && v->document.shapes[3].id == expanded;
+    vector_undo(false);
+    editor_draw();
+    /* Closing the artboard hides all its descendants, not the next artboard. */
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x + 10, y + 12);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 10, y + 12);
+    editor_draw();
+    ok = ok && !v->view.expanded[0] && app.scene_view.content == 3 * 26;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x + 10, y + 12);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 10, y + 12);
+    editor_draw();
+    ok = ok && v->view.expanded[0] && app.scene_view.content == content;
+    if (!ok) {
+        fprintf(stderr, "Vector tree collapse / segment selection smoke failed\n");
+    }
+    return ok;
+}
+
 bool vector_smoke(void) {
     editor_select_workspace(UI_VECTOR_VIEW);
     if (!app.vector || app.map || app.script) {
@@ -125,6 +171,7 @@ bool vector_smoke(void) {
     }
     bool interaction = interaction_smoke();
     vector_demo();
+    interaction = tree_smoke() && interaction;
     VectorEditor *v = app.vector;
     int shape = 2;
     char original[64];
@@ -143,7 +190,8 @@ bool vector_smoke(void) {
     editor_select_workspace(UI_VECTOR_VIEW);
     ok = ok && app.vector && !app.map && !app.script &&
          !strcmp(app.vector->document.shapes[shape].name, "Edited vector") &&
-         app.vector->history.position == 1;
+         app.vector->history.position == 1 &&
+         app.vector->view.expanded_paths[0] == app.vector->document.shapes[shape].id;
     editor_select_workspace(UI_SCRIPT_VIEW);
     ok = ok && !app.vector && app.script && !app.map;
     editor_select_workspace(UI_MAP_VIEW);

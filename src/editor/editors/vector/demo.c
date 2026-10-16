@@ -42,6 +42,7 @@ void vector_demo(void) {
     v->view.board = 0;
     v->view.tool = VT_NODE;
     v->view.node = 1;
+    v->view.expanded_paths[0] = p->id;
     v->view.zoom = .85f;
     v->view.x = -36;
     v->view.y = -44;

@@ -174,6 +174,7 @@ if(PENGUIN_BUILD_EDITOR)
  target_link_libraries(penguin_editor_documents PUBLIC penguin_editor_session penguin_sdl penguin_script penguin_ui)
  add_executable(penguin_editor
   src/editor/editors/vector/editor.c
+  src/editor/editors/vector/tree.c
   src/editor/editors/vector/panels.c
   src/editor/editors/vector/fields.c
   src/editor/editors/vector/actions.c

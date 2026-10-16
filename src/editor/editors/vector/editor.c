@@ -33,6 +33,19 @@ void vector_sync(void) {
             v->view.selected &= ~(UINT64_C(1) << i);
         }
     }
+    for (int i = 0; i < VE_SHAPES; i++) {
+        bool found = false;
+        for (int j = 0; j < VE_SHAPES; j++) {
+            VeShape *shape = &v->document.shapes[j];
+            if (shape->used && shape->kind == VE_PATH && shape->id == v->view.expanded_paths[i]) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            v->view.expanded_paths[i] = 0;
+        }
+    }
     if (v->view.board < 0 || v->view.board >= VE_BOARDS ||
         !v->document.boards[v->view.board].used) {
         for (int i = 0; i < VE_BOARDS; i++) {
@@ -123,6 +136,7 @@ bool vector_open(const char *path) {
     free(next);
     snprintf(v->view.path, sizeof v->view.path, "%s", full);
     v->view.exists = 1;
+    memset(v->view.expanded_paths, 0, sizeof v->view.expanded_paths);
     v->view.selected = 0;
     v->view.node = -1;
     vector_sync();
@@ -139,6 +153,7 @@ void vector_new(void) {
     ve_history_init(&v->history, &v->document);
     v->view.path[0] = 0;
     v->view.exists = 0;
+    memset(v->view.expanded_paths, 0, sizeof v->view.expanded_paths);
     v->view.selected = 0;
     v->view.board = 0;
     v->view.node = -1;

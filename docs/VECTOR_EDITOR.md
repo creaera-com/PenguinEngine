@@ -8,7 +8,7 @@ Vector Art ist ein eigenständiger dritter Editor. Der Stift-Button in der obere
 
 1. Vector Art öffnen. Ein neues Dokument enthält ein Artboard mit 512 × 384 Pixeln.
 2. Mit **R** ein Rechteck oder **C** eine Ellipse im Artboard ziehen. **Shift** erzwingt Quadrat/Kreis.
-3. Mit **V** auswählen und verschieben; **Shift+Klick** wählt mehrere Objekte. Die Objektliste links bietet dieselbe Auswahl.
+3. Mit **V** auswählen und verschieben; **Shift+Klick** wählt mehrere Objekte. Der Objektbaum links bietet dieselbe Auswahl. Artboards und Pfade lassen sich aufklappen; unter einem Pfad stehen Move-, Line-, Bézier- und Close-Segmente mit ihren lokalen Pixelkoordinaten. Ein Klick auf ein Segment aktiviert das Knotenwerkzeug und markiert den zugehörigen Anker im Canvas. Close zeigt den Konturschluss ohne eigenen Anker. Aufklappen verändert das Dokument nicht und bleibt beim Editorwechsel erhalten.
 4. Rechts Namen, Position, Größe, Füllung und Kontur direkt bearbeiten. Farben sind acht hexadezimale RGBA-Ziffern; die letzten beiden bestimmen die Deckkraft. Konturbreiten sind Pixelwerte. Enter/Außenklick übernimmt, Escape verwirft.
 5. **Ctrl/Cmd+S** speichert. Beim ersten Speichern fragt der Editor nach einem Pfad, beispielsweise `assets/icon.svg`. Relative Pfade beziehen sich auf das Projektverzeichnis. Open und Save As liegen in der lokalen Werkzeugleiste. SVG-Dateien können auch im Explorer geöffnet oder ins Fenster gezogen werden.
 
@@ -43,13 +43,13 @@ Mit Shift genau zwei Objekte **auf demselben Artboard** auswählen. Beide benöt
 | Werkzeug | Ergebnis |
 | --- | --- |
 | Union | A vereinigt mit B |
-| Mask | Schnittmenge A ∩ B |
-| Cut | A minus B |
+| Intersection | Schnittmenge A ∩ B |
+| Difference | A minus B |
 | XOR | Bereiche, die nur in einer der beiden Formen liegen |
 
 Das Ergebnis ersetzt A, B wird entfernt. Füllung/Kontur stammen von A. Leere Ergebnisse entfernen beide Formen. Mehrere Konturen und Löcher werden als zusammengesetzter Pfad erhalten. Jede Operation ist ein Undo-Schritt.
 
-**Mask ist hier eine geometrische, destruktive Schnittmenge**, die sich rückgängig machen lässt. Nichtdestruktive SVG-`mask`-/`clipPath`-Objekte, weiche Masken und Stroke-to-path sind noch nicht enthalten. Kurven werden für die Flächenoperation mit einer Kontrollabstandstoleranz von 0,25 Dokumentpixeln polygonalisiert. Die Ursprungsformen bleiben über Undo erreichbar. Nicht unterstützte oder zu komplexe Ergebnisse werden abgewiesen, ohne die Eingabeformen zu ersetzen.
+**Intersection ist eine geometrische, destruktive Schnittmenge**, die sich rückgängig machen lässt. Nichtdestruktive SVG-`mask`-/`clipPath`-Objekte, weiche Masken und Stroke-to-path sind noch nicht enthalten. Kurven werden für die Flächenoperation mit einer Kontrollabstandstoleranz von 0,25 Dokumentpixeln polygonalisiert. Die Ursprungsformen bleiben über Undo erreichbar. Nicht unterstützte oder zu komplexe Ergebnisse werden abgewiesen, ohne die Eingabeformen zu ersetzen.
 
 ## Dateiformat und Grenzen
 
@@ -65,6 +65,7 @@ Aktuelle Kapazitäten: 16 Artboards, 64 Objekte, 256 Pfadsegmente pro Objekt, 2.
 - `boolean.c`: Segmentteilung, Flächenklassifikation und geschlossene Ergebnis-Konturen; ohne SDL.
 - `svg.c`, `metadata.c`, `history.c`: SVG-Austausch, validierte Metadaten und begrenzte Undo-/Redo-Snapshots; ohne SDL.
 - `editor.c`, `panels.c`, `fields.c`, `actions.c`, `input.c`: Lebenszyklus, Eigenschaften, Werkzeuge und Eingabeintegration.
+- `tree.c`: hierarchischer Objektbaum mit gemeinsamen Tree-Guides und Segmentauswahl.
 - `render.c`: NanoSVG-Rastercache, Lineale und Bearbeitungsgriffe.
 - `checkpoint.c`: Dokument/Verlauf und Ansicht beim vollständigen Entladen sichern und wiederherstellen.
 - `third_party/nanosvg`: vendorte C-Bibliothek für SVG-Geometrieimport und Antialiasing. Die Engine bleibt C17.

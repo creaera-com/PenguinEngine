@@ -11,16 +11,17 @@ typedef enum { VT_SELECT, VT_RECT, VT_ELLIPSE, VT_PEN, VT_NODE, VT_BOARD } VeToo
 
 /** @brief Persistente Navigation des Vektorarbeitsbereichs. */
 typedef struct {
-    char path[1024];             ///< Dateipfad; leer für ein unbenanntes Dokument.
-    uint64_t selected;           ///< Bitmaske ausgewählter Objekt-Slots.
-    int board;                   ///< Index des zugehörigen aktiven Artboards.
-    int tool;                    ///< Aktives Werkzeug aus VeTool.
-    int node;                    ///< Ausgewähltes Pfadsegment; -1 bedeutet keines.
-    float x;                     ///< Horizontale Position in Pixeln.
-    float y;                     ///< Vertikale Position in Pixeln.
-    float zoom;                  ///< Zoomfaktor; 1 entspricht einem Pixel pro Dokumentpixel.
-    uint8_t expanded[VE_BOARDS]; ///< Aufklappzustand je Artboard, 0 oder 1.
-    uint8_t exists;              ///< Ob das Dokument bereits als Datei existiert.
+    char path[1024];                    ///< Dateipfad; leer für ein unbenanntes Dokument.
+    uint64_t selected;                  ///< Bitmaske ausgewählter Objekt-Slots.
+    uint32_t expanded_paths[VE_SHAPES]; ///< Stabile IDs aufgeklappter Pfade; 0 ist frei.
+    int board;                          ///< Index des zugehörigen aktiven Artboards.
+    int tool;                           ///< Aktives Werkzeug aus VeTool.
+    int node;                           ///< Ausgewähltes Pfadsegment; -1 bedeutet keines.
+    float x;                            ///< Horizontale Position in Pixeln.
+    float y;                            ///< Vertikale Position in Pixeln.
+    float zoom;                         ///< Zoomfaktor; 1 entspricht einem Pixel pro Dokumentpixel.
+    uint8_t expanded[VE_BOARDS];        ///< Aufklappzustand je Artboard, 0 oder 1.
+    uint8_t exists;                     ///< Ob das Dokument bereits als Datei existiert.
 } VeView;
 
 /** @brief Besitzender Editor; Render-Caches werden beim Verlassen freigegeben. */

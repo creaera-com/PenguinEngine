@@ -101,7 +101,7 @@ bool vector_action(const char *action) {
         vector_commit();
         return true;
     }
-    const char *booleans[] = {"union", "mask", "subtract", "xor"};
+    const char *booleans[] = {"union", "intersection", "difference", "xor"};
     for (int k = 0; k < 4; k++) {
         if (!strcmp(name, booleans[k])) {
             int a = -1, b = -1, count = 0;

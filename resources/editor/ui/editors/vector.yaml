@@ -20,8 +20,8 @@ toolbar:
   - {type: button, id: vector_flip_x, icon: right, label: "Flip X", tooltip: "Mirror horizontally", action: vector.mirror_x}
   - {type: button, id: vector_flip_y, icon: down, label: "Flip Y", tooltip: "Mirror vertically", action: vector.mirror_y}
   - {type: button, id: vector_union, icon: plus, label: "Union", tooltip: "Unite two filled contours", action: vector.union}
-  - {type: button, id: vector_mask, icon: layers, label: "Mask", tooltip: "Intersection of two contours", action: vector.mask}
-  - {type: button, id: vector_subtract, icon: erase, label: "Cut", tooltip: "Lower object minus upper object", action: vector.subtract}
+  - {type: button, id: vector_intersection, icon: layers, label: "Intersection", tooltip: "Intersection of two contours", action: vector.intersection}
+  - {type: button, id: vector_difference, icon: erase, label: "Difference", tooltip: "Lower object minus upper object", action: vector.difference}
   - {type: button, id: vector_xor, icon: collision, label: "XOR", tooltip: "Exclusive areas of two contours", action: vector.xor}
   - {type: button, id: vector_duplicate, icon: file, tooltip: "Duplicate selected objects", action: vector.duplicate}
   - {type: button, id: vector_raise, icon: up, tooltip: "Raise object", action: vector.raise}
