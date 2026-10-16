@@ -52,8 +52,8 @@ Scripts verwendet als `first` stattdessen `{type: script_editor, id: document, b
 
 | Teil | Verantwortung |
 | --- | --- |
-| `src/editor/console/terminal.*` | SDL-unabhängiges VT-Modell, Farben, Tastencodierung und begrenzter Scrollback; verwendet libvterm 0.3.3. |
-| `src/editor/console/view.*` | Darstellung, Auswahl, Fokus, Clipboard und pro Frame begrenzte Shellkommunikation. |
+| `src/services/terminal/terminal.*` | SDL-unabhängiges VT-Modell, Farben, Tastencodierung und begrenzter Scrollback; verwendet libvterm 0.3.3. |
+| `src/shell/console/view.*` | Darstellung, Auswahl, Fokus, Clipboard und pro Frame begrenzte Shellkommunikation. |
 | `src/platform/terminal/process.h` | Plattformvertrag für Start, nichtblockierendes Lesen/Schreiben, Resize und Stop. |
 | `src/platform/terminal/posix.c` | PTY, kontrollierendes Terminal und Shellprozess unter Linux/POSIX. |
 | `src/platform/terminal/unavailable.c` | Kompilierbarer Fallback für Plattformen ohne Backend. |

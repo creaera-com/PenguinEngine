@@ -1,5 +1,5 @@
-#include "console/terminal.h"
 #include "platform/terminal/process.h"
+#include "services/terminal/terminal.h"
 #include "unity.h"
 #include <stdlib.h>
 #include <string.h>

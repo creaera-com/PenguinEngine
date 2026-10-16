@@ -1,6 +1,6 @@
-#include "layout/ui_layout.h"
+#include "editor/layout/ui_layout.h"
+#include "editor/workspace/session.h"
 #include "unity.h"
-#include "workspace/session.h"
 #include <stdlib.h>
 #include <string.h>
 #define CACHE "editor-state-test.session"

@@ -87,7 +87,7 @@ Aktuelle Kapazitäten: 16 Artboards, 64 Objekte, 256 Pfadsegmente pro Objekt, 2.
 
 ## Architektur und Weiterentwicklung
 
-- `src/editor/editors/vector/document.c`: Dokument, Grundformen, Béziersegmente, Transformation und Polygonalisierung; ohne SDL.
+- `src/editors/graphics/vector/document/document.c`: Dokument, Grundformen, Béziersegmente, Transformation und Polygonalisierung; ohne SDL.
 - `boolean.c`: Segmentteilung, Flächenklassifikation und geschlossene Ergebnis-Konturen; ohne SDL.
 - `svg.c`, `metadata.c`, `history.c`: SVG-Austausch, validierte Metadaten und begrenzte Undo-/Redo-Snapshots; ohne SDL.
 - `editor.c`, `panels.c`, `fields.c`, `actions.c`, `input.c`: Lebenszyklus, Eigenschaften, Werkzeuge und Eingabeintegration.

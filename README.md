@@ -32,7 +32,7 @@ Beim Bereichswechsel wird der bisherige Editor vollständig entladen. Ungespeich
 
 ## Projektstruktur
 
-Produktiver C-Code liegt unter `src/`, geordnet nach Engine, Editor, UI und Plattform. Map und Scripts gehören zu `src/editor/editors/`. YAML-Layouts und Schriftdateien liegen unter `resources/`; Beispiele, Tests und Fremdbibliotheken bleiben getrennt. Die [Strukturanleitung](docs/PROJEKTSTRUKTUR.md) erklärt die Ordner, Schnittstellen und Abhängigkeiten.
+Produktiver C-Code liegt unter `src/`, geordnet nach Engine, Editor, UI und Plattform. Die konkreten Editoren liegen unter `src/editors/game/map/`, `graphics/vector/` und `script/`. YAML-Layouts und Schriftdateien liegen unter `resources/`; Beispiele, Tests und Fremdbibliotheken bleiben getrennt. Die [Strukturanleitung](docs/PROJEKTSTRUKTUR.md) erklärt die Ordner; die [Architektur-Anleitung](docs/ARCHITEKTUR.md) erklärt Schnittstellen, Besitzregeln und Erweiterungen.
 
 ## Codestil und API-Dokumentation
 

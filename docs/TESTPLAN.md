@@ -70,9 +70,9 @@ Der native Sitzungscache ersetzt keine Backups und ist noch keine Crash-Recovery
 
 ## Fachliche Modultrennung
 
-- Im SDL-Build laufen insgesamt unter Linux 183 Unity-Tests und 16 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
+- Im SDL-Build laufen insgesamt unter Linux 189 Unity-Tests und 18 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
 - `tests/editor_smoke.c` verwendet weiterhin die echten Eingabehandler, Editorwechsel und F6-Reloads. Die Tests liegen außerhalb des produktiven Quellcodes und werden nur bei `BUILD_TESTING=ON` eingebunden.
-- Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die acht SDL-freien Testgruppen verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
+- Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die zehn SDL-freien Testgruppen verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
 - Für das Strukturrefactoring zusätzlich die Map-/Scripts-Aufnahmen gegen den vorherigen Stand vergleichen und einen vollständigen ASan-/UBSan-Testlauf ausführen.
 
 ## Konsolenpanel und gemeinsame Shell
@@ -155,3 +155,5 @@ Preview: Drei zusätzliche Unity-Fälle prüfen kleine zentrierte Bereiche, übe
 Grid: Drei zusätzliche Unity-Fälle prüfen 16-Pixel-Linien mit lokalem Ursprung und beschnittenem Pan-Bereich, 32×16-Isometrie, sichere Linienanzahl bei dichten/extremen Rastern und ungültige Eingaben. Ein Schematest prüft Modul- und Höhengrenzen. Der GUI-Smoke klickt den Toolbar-Schalter und das Breitenfeld, ändert Farbe und Typ, weist ungültige Maße/Farben ab und erhält Einstellungen über F6/Editorwechsel ohne Dokumentänderung. Manuell Standard/Isometrie, Zoom/Pan und farbige/halbtransparente Linien prüfen; SVG und Preview bleiben ohne Grid.
 
 Grid-Snapping: Drei weitere Unity-Fälle prüfen Kreisradius/Grenztreffer, negative Koordinaten, ungültige Eingaben ohne Ausgabeänderung, nächste isometrische Kreuzungen auch bei extremem Seitenverhältnis, Zoom-unabhängige Bildschirmtoleranz und dichtes logisches Raster. Der GUI-Smoke prüft freies/gerastetes Verschieben, Loslösen bei mehreren Mausereignissen, Undo/Redo, Mehrfachauswahl mit unveränderten Abständen, Wechsel des Rasterursprungs beim Artboardwechsel, neue Pen-Punkte, Toleranzvalidierung und Erhalt des Schalters/Fangradius beim vollständigen Entladen und Wiederherstellen. Manuell die Preview als erste Tools-Karte, Mehrfachauswahl und artboardübergreifendes Einrasten prüfen.
+
+Architekturrefactoring: `document_contract_unit_tests` prüft fünf SDL-freie Vertragsfälle für leere Bindungen, Speichern, Undo/Redo, begrenzte Beschreibungen und unabhängige Kontexte. `architecture_boundaries` prüft verbotene Querabhängigkeiten und transitive SDL-Abhängigkeiten der Modelle. Map-Codecs erhalten Kamera, Werkzeug und Panel-Scrolloffsets; der Payload wird mit der Map vollständig freigegeben. Produktionsbuild, SDL-freier Build, Sanitizer und unveränderte Editor-Smokes gehören zur Freigabe.

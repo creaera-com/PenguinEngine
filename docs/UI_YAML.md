@@ -255,10 +255,10 @@ Die Positionsangabe ist ein Beispiel. Validiert wird vor Aktivierung einer neuen
 ## Implementierung und Erweiterungsstellen
 
 - `src/editor/layout/ui_layout.c`: YAML → Knotenmodell, Quellpositionen, Schema, Typ-/Aktions-/Binding-Prüfung.
-- `src/editor/app/main.c`: Start und Hauptschleife; `app/shell.c` zeichnet die Anwendungshülle.
+- `src/application/application.c`: Start und Hauptschleife; `shell/shell.c` zeichnet die Anwendungshülle.
 - `src/editor/layout/renderer.c` und `bindings.c`: YAML-Darstellung sowie Bindings und Aktionsverteilung. Map-/Script-Aktionen liegen bei den jeweiligen Editoren.
 - `src/editor/workspace/lifecycle.c`: Editorwechsel, UI-Snapshots und F6-Reload. Wechsel aus einem UI-Callback werden bis zum Frameende aufgeschoben, damit keine gerade benutzten YAML-Knoten freigegeben werden.
-- `src/editor/editors/map/checkpoint.c` und `scripts/checkpoint.c`: Dokument- und Undo-Codecs ohne Abhängigkeit vom globalen Editorzustand.
+- `src/editors/game/map/checkpoint.c` und `scripts/checkpoint.c`: Dokument- und Undo-Codecs ohne Abhängigkeit vom globalen Editorzustand.
 - `src/editor/workspace/session.c`: begrenzter Checkpoint-Stream, Prüfsumme und atomarer Austausch. Dokument-/Undo-Codec und UI-Snapshots werden vom Editor bereitgestellt.
 - `src/editor/layout/ui_layout.h` und `src/editor/workspace/session.h`: interne C-Schnittstellen für Loader und Checkpoints, unabhängig von SDL testbar.
 - `src/ui/`: wiederverwendbare Eingabe-/Layoutbausteine und SDL-Darstellung; das Theme kann zur Laufzeit gesetzt werden.
@@ -296,7 +296,7 @@ Freie Flächen der oberen Leiste verschieben das Fenster über den Betriebssyste
 
 Schließen durchläuft denselben Ablauf für ungespeicherte Dokumente wie das native Schließen. Minimieren verwendet die Betriebssystemfunktion und kann über die Taskleiste bzw. das Dock rückgängig gemacht werden.
 
-Die Fensterlogik liegt in `src/editor/app/window.c`; die UI-Lib stellt die Icons bereit. Die SDL-Dummy-Smokes prüfen die Fensterbutton-Anordnung, die Hit-Test-Zonen und die Größenwiederherstellung. Fensterbewegung, Snap-Verhalten und Darstellung mit einem echten Window-Manager müssen zusätzlich manuell auf der Zielplattform geprüft werden.
+Die Fensterlogik liegt in `src/platform/window/window.c`; die UI-Lib stellt die Icons bereit. Die SDL-Dummy-Smokes prüfen die Fensterbutton-Anordnung, die Hit-Test-Zonen und die Größenwiederherstellung. Fensterbewegung, Snap-Verhalten und Darstellung mit einem echten Window-Manager müssen zusätzlich manuell auf der Zielplattform geprüft werden.
 
 
 ## Werkzeuge des Scene-Graphs

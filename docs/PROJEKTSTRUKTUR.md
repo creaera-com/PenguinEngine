@@ -1,91 +1,96 @@
-# Projektstruktur
+# Projektstruktur und Einstieg
 
-Unser produktiver C-Code liegt unter `src/`, geordnet nach fachlicher Verantwortung. Tests, Beispielprogramme, Ressourcen und Fremdbibliotheken besitzen eigene Verzeichnisse.
+PenguinEngine besteht aus einer wiederverwendbaren Engine, einer UI-Bibliothek und einer Editor-Anwendung. Der gesamte eigene C-Code liegt unter `src/`. Fremdbibliotheken bleiben unter `third_party/`, Layouts und Fonts unter `resources/`.
 
 ```text
-PenguinEngine/
-├── src/
-│   ├── engine/
-│   │   ├── include/penguin/     Öffentliche Engine- und Script-Schnittstellen
-│   │   ├── project/             Projektsuche und JSON-Projektmanifest
-│   │   ├── scene/               Szeneninitialisierung und JSON-Szenendateien
-│   │   ├── ecs/                 Entity-Kennungen und Komponentenmasken
-│   │   ├── tilemap/             Tile-Zugriff, Füllen und Rechteckwerkzeug
-│   │   ├── history/             Szenenänderungen mit Undo/Redo
-│   │   ├── camera/              Welt-/Bildschirmkoordinaten und Zoom
-│   │   ├── collision/           Tile-Kollision und kollisionsgeprüfte Bewegung
-│   │   ├── runtime/             Laufzeitaktualisierung und Spielersteuerung
-│   │   └── scripting/           Textdokumente und JavaScript-Sprachunterstützung
-│   ├── editor/
-│   │   ├── app/                 Start, Hauptschleife, Shell und Eingabeverteilung
-│   │   ├── console/             Gemeinsamer Shellservice und Terminalansicht
-│   │   ├── browser/             Projekt-Dateibaum und Dateityperkennung
-│   │   ├── dialogs/             Modale Rückfragen und Texteingabefelder
-│   │   ├── editors/
-│   │   │   ├── map/             Map-Dokument, Werkzeuge, Eingaben, Panels und Play
-│   │   │   └── scripts/         Textansicht, Script-Aktionen, Infopanel und Checkpoint
-│   │   ├── layout/              YAML-Loader, Darstellung und Binding-/Aktionsadapter
-│   │   └── workspace/           Dokumentaktionen, Editor-Lebenszyklus und Checkpoints
-│   ├── ui/
-│   │   ├── include/penguin/     Öffentliche UI-Schnittstellen
-│   │   ├── core/                Eingabe, Fokus, Layout und Widget-Zustände
-│   │   └── rendering/           SDL-Darstellung, Icons und eingebetteter Font-Atlas
-│   ├── platform/
-│   │   ├── sdl/                SDL-Szenenrenderer und öffentliche Render-Schnittstelle
-│   │   └── terminal/           PTY-Prozessadapter und zukünftiger ConPTY-Port
-│   └── shared/
-│       └── json/               Gemeinsames JSON-Einlesen und grundlegende Validierung
-├── resources/
-│   ├── editor/ui/              Ausgelieferte Shell- und Editor-YAML-Dateien
-│   └── ui/fonts/               Originalschrift und SIL Open Font License
-├── examples/                   Eigenständige Beispielprogramme und Spielprojekte
-├── tests/                      Unity-Tests und CMake-/SDL-Integrationstests
-├── third_party/                Mitgelieferte Bibliotheken und deren Lizenzen
-├── docs/                       Anleitungen und Screenshots
-├── tools/                      Entwicklungswerkzeuge, etwa der Font-Atlas-Generator
-└── cmake/                      Hilfsskripte für den Build
+src/
+├── main.c                     Dünner Programmeinstieg
+├── application/               Start, Hauptschleife und Zusammenbau der Anwendung
+│   ├── application.h          pe_application_run als Einstieg
+│   ├── editors.c              Registrierung der konkreten Editoren
+│   └── internal.h             Composition Root mit konkreten Editor-Headern
+├── platform/
+│   ├── window/                SDL-Fenster, Hit-Tests und Fensterzustand
+│   ├── sdl/                   Szenenrenderer und Textur-Lebenszyklus
+│   └── terminal/              PTY-Prozessvertrag und Plattformimplementierungen
+├── ui/                        In Spielen und Editor nutzbare Widgets
+│   ├── core/                  Fokus, Eingaben und Widget-Geometrie
+│   ├── rendering/             SDL-Darstellung, Icons und Font-Atlas
+│   └── include/penguin/       Öffentliche UI-Header
+├── shell/                     Gemeinsamer sichtbarer Rahmen der Anwendung
+│   ├── shell.c                Spalten, Navigation, Toolbar und Statuszeile
+│   ├── input.c                Globale Ereignisverteilung
+│   ├── explorer/              Projekt-Dateibaum
+│   ├── dialogs/               Gemeinsame Textfelder und Eingabeabläufe
+│   └── console/               Geteilte Terminalansicht und Shellkommunikation
+├── editor/                    Infrastruktur für austauschbare Editoren
+│   ├── module.h               Editor-Lebenszyklus und Aktionsvertrag
+│   ├── host.h                 Privater Frontend-Host; Dokumenttypen bleiben opaque
+│   ├── document/              Gemeinsamer SDL-freier Dokumentvertrag
+│   ├── layout/                YAML-Schema, Rendering und Bindings
+│   └── workspace/             Wechsel, Entladen, Rückfall und Sitzungsdateien
+├── editors/                   Konkrete fachliche Werkzeuge
+│   ├── game/map/              Spielszene, Tilemap, ECS-Inspector und Play
+│   ├── graphics/vector/
+│   │   ├── document/          Formen, Pfade, SVG, Boolesche Operationen und Undo
+│   │   ├── tools/             Aktionen, Eingaben und Feldvalidierung
+│   │   ├── panels/            Eigenschaften und Objektbaum
+│   │   └── viewport/          Zeichnung, Kamera, Grid und 1:1-Vorschau
+│   └── script/                Textansicht und Script-Werkzeuge
+├── services/
+│   ├── json/                  Modellunabhängiges Einlesen und Validieren
+│   ├── project/               Projektkontext der geöffneten Editor-Anwendung
+│   └── terminal/              SDL-freies VT-Modell und Tastencodierung
+└── engine/                    Laufzeitcode für die erstellten Spiele
+    ├── include/penguin/       Öffentliche Engine- und Script-APIs
+    ├── ecs/                   Entities, Komponenten und Hierarchie
+    ├── scene/                 Szenenmodell und JSON-Szenendateien
+    ├── tilemap/               Tile-Zugriff und Bearbeitungsoperationen
+    ├── camera/                Kamera- und Koordinatenrechnung
+    ├── collision/             Tile-Kollisionen
+    ├── history/               Szenen-Undo/Redo
+    ├── project/               Projektsuche und Manifestformat
+    ├── scripting/             Textmodell und JavaScript-Sprachunterstützung
+    └── runtime/               Spielaktualisierung
 ```
 
-## Zuordnung von Code
+`editor/` beschreibt den gemeinsamen Vertrag, `editors/` die einzelnen Implementierungen. Mit „Shell“ ist die Programmoberfläche gemeint; die Betriebssystem-Shell läuft im gemeinsamen Konsolendienst. Neue Oberflächen-Widgets gehören nach `ui/`, nicht in einen bestimmten Editor.
 
-Ein Modul liegt bei der Domäne, deren Aufgabe es erfüllt. Der Script-Editor gehört beispielsweise nach `src/editor/editors/scripts/`, die JavaScript-Syntaxprüfung dagegen nach `src/engine/scripting/`: Sie benötigt keine Editoroberfläche. Weitere Editoren erhalten später eigene Ordner unter `src/editor/editors/`, etwa `dialogs/` oder `fx/`.
+## Wo fange ich an?
 
-Interne Header liegen neben der zugehörigen Implementierung. Öffentlich nutzbare Engine-, UI- und SDL-Schnittstellen liegen in den jeweiligen `include/penguin/`-Verzeichnissen. CMake exportiert deren Include-Pfade. Aufrufer verwenden weiterhin beispielsweise `#include "penguin/engine.h"` und `#include "penguin/ui.h"`.
+| Aufgabe | Einstieg |
+| --- | --- |
+| Anwendung starten oder Argument ergänzen | `src/main.c`, `src/application/application.c` |
+| Gemeinsame Toolbar oder Panels anordnen | `resources/editor/ui/shell.yaml`, `resources/editor/ui/editors/*.yaml` |
+| Neuen Editor anbinden | `src/editor/module.h`, `src/application/editors.c` |
+| Speichern/Undo in einem Editor ändern | dessen `adapter.c`, dann Dokumentmodell |
+| Tilemap-/Scene-Funktion ergänzen | `src/editors/game/map/`, fachliche Laufzeitoperation in `src/engine/` |
+| Vector-Werkzeug ergänzen | `src/editors/graphics/vector/tools/` und `document/` |
+| UI-Element in Editor und Spiel nutzen | `src/ui/include/penguin/`, `core/`, `rendering/` |
+| Fehler beim Editorwechsel untersuchen | `src/editor/workspace/lifecycle.c`, danach Editor-Checkpoint |
+| Terminal-Plattformport ergänzen | `src/platform/terminal/process.h` |
 
-Die Engine hängt nicht vom Editor ab. Die UI-Bibliothek ist ebenfalls unabhängig vom Editor und kann in Spielen verwendet werden. Editorinterne Header wie `layout/ui_layout.h` und `workspace/session.h` werden ausschließlich vom Editor und seinen Tests verwendet.
+Die [Architektur-Anleitung](ARCHITEKTUR.md) erklärt Abhängigkeiten, Besitzregeln und konkrete Erweiterungsabläufe. Die [YAML-Doku](UI_YAML.md) beschreibt die Oberfläche.
 
-`src/shared/json/` enthält die von Szenen- und Projektdateien gemeinsam verwendeten JSON-Helfer: begrenztes Einlesen, Zahlenprüfung, Fehlertexte und sichere relative Pfade. Diese Helfer kennen weder Szenen noch Editoren. Gemeinsam verwendete Widgets bleiben dagegen bei ihrer fachlichen Zuständigkeit unter `src/ui/`.
+## CMake und CLion
 
-## Zusammenspiel der Module
+Jede Domäne pflegt ihre Quellen in einer eigenen `CMakeLists.txt`. Die Datei im Repository-Wurzelverzeichnis verbindet die Module und definiert Build-Optionen. `cmake/Dependencies.cmake` enthält die Fremdbibliotheken und SDL-Suche. Neue Quelldateien werden ausdrücklich im zuständigen Modul eingetragen; wir verwenden kein automatisches Dateiglob für C-Quellen.
 
-`src/editor/app/main.c` liest Programmargumente, initialisiert die Anwendung und führt die Hauptschleife aus. Die Anwendungshülle zeichnet `app/shell.c`; `app/input.c` verteilt Eingaben an globale Bedienung, Dialoge, Script-Editor und Map-Eingabe. Map-spezifische Tasten, Mausaktionen, Zoom und Play-Aktualisierung liegen unter `editors/map/`.
-
-Der Map-Editor ist in `document.c` (Dateioperationen, Tileset und Bearbeitungstransaktionen), `tools.c` (Pinsel, Füllen und Auswahl), `input.c`, `actions.c`, `fields.c` (Inspector-Werte), `panels.c`, `canvas.c`, `runtime.c` und `checkpoint.c` aufgeteilt. Der Script-Editor besitzt seine Textansicht sowie eigene Aktions-, Panel- und Checkpoint-Module.
-
-`workspace/documents.c` koordiniert globale Befehle wie Speichern, Undo/Redo und Öffnen. `workspace/lifecycle.c` sichert den aktuellen UI-Zustand, entlädt den bisherigen Editor und aktiviert den nächsten. Die tatsächlichen Dokumentdaten serialisieren die jeweiligen `checkpoint.c`-Module. Diese erhalten Dokument und Kontext als Argumente und benötigen weder den globalen Editorzustand noch ein geöffnetes Fenster. Ihre eigenständigen Unity-Tests verifizieren auch nach dem Wiederherstellen unabhängiges Undo/Redo.
-
-Die interne Anwendungsschnittstelle `app/editor_internal.h` führt die privaten Modulverträge zusammen und beschreibt den gemeinsamen Editorzustand. Die UI-Adapter greifen weiterhin auf diese eine Anwendungsinstanz zu. Die [gemeinsame Shellkonsole](KONSOLE.md) bleibt dabei unabhängig von den geladenen Editoren bestehen; nur ihre Panels und Splitterzustände sind editorbezogen. Das ist eine Aufteilung in fachliche C-Module, noch keine vollständige Entkopplung aller UI-Adapter oder Unterstützung mehrerer Editorfenster. Engine und wiederverwendbare UI-Bibliothek kennen diesen Zustand nicht. Änderungen daran bleiben auf den Editor beschränkt.
-
-Die öffentlichen Engine-Funktionen aus `penguin/engine.h` sind unverändert. Ihre Implementierungen liegen nun in der jeweiligen Domäne statt in einem gemeinsamen `scene/core.c`. Projektmanifeste werden unter `engine/project/` verarbeitet; Szenenserialisierung bleibt unter `engine/scene/`.
-
-## Tests und Produktionsbuild
-
-Die bisherigen GUI-Smoke-Prüfungen liegen unter `tests/editor_smoke.c`. Sie werden nur bei `BUILD_TESTING=ON` in den Editor eingebunden. `--smoke` führt dann dieselben Eingabe- und Editorwechselprüfungen wie bisher aus und beendet sich nach wenigen Frames.
-
-Mit `-DBUILD_TESTING=OFF` enthält der Editor diese Testfunktionen nicht. `--smoke` bleibt als kurzer Start-/Rendercheck verfügbar. Der Produktionsbuild und die normalen Programme verwenden ansonsten dieselben Module.
-
-## Build und Ressourcen
-
-Die CMake-Targets und Namen der Programme bleiben gleich. Nach dem Aktualisieren des Repositories in CLion das CMake-Projekt neu laden. Beim Bauen kopiert CMake `resources/editor/ui/` weiterhin nach `build/ui-layouts/`. Der normale Programmstart und die Projektsuche bleiben gleich.
-
-Eigene Layouts lassen sich wie bisher laden:
+Nach diesem Refactoring in CLion das CMake-Projekt neu laden. Programme heißen weiterhin `penguin_editor`, `penguin_game` und `penguin_ui_demo`; YAML-, Projekt-, Szenen- und SVG-Dateien behalten ihre Pfade und Formate. Die ausführbaren Dateien liegen weiterhin im Build-Verzeichnis (bei Visual Studio gegebenenfalls unter `Debug/`).
 
 ```sh
-build/penguin_editor --ui resources/editor/ui/shell.yaml
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build --parallel 4
+ctest --test-dir build --output-on-failure
 ```
 
-Wenn bisher ein eigener `--ui`-Pfad auf `editor/ui/shell.yaml` zeigte, muss er auf den neuen Ressourcenpfad angepasst werden. **F6** lädt die aktive Beschreibung erneut. Die Details stehen in [UI_YAML.md](UI_YAML.md).
+Für Tests wird Python 3.9 oder neuer für die Architekturprüfung benötigt. Ein Produktionsbuild mit `-DBUILD_TESTING=OFF` benötigt kein Python. Doxygen und der Font-Bake bleiben optionale Werkzeuge.
 
-`tools/bake_font.py` liest die Schrift aus `resources/ui/fonts/` und schreibt den generierten Header nach `src/ui/rendering/font_atlas.h`. Der normale Build benötigt weiterhin kein Python und kein Pillow.
+```sh
+python3 tools/check_architecture.py
+cmake -S . -B build-core -DPENGUIN_BUILD_EDITOR=OFF
+cmake --build build-core --parallel 4
+ctest --test-dir build-core --output-on-failure
+```
 
-Die Befehle zum Bauen und Testen stehen in der [README](../README.md); die Testfälle in [TESTPLAN.md](TESTPLAN.md).
+Mit ausgeschaltetem Editor laufen Dokumentvertrag und Modelltests ohne SDL. Ein Testbuild enthält zusätzlich die echten Editor-Ereignistests; ein Produktionsbuild verwendet dieselben Module ohne Testfunktionen. `--smoke` beendet sich in beiden Fällen nach wenigen Frames.

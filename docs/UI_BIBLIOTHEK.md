@@ -114,7 +114,7 @@ Dateibaum, Inspector und Scripteditor verwenden das gemeinsame Scroll-Modell. Sc
 
 Layout- und UI-Zustände verändern keine Szenendaten und gehören nicht zum Undo-Verlauf. Sie bleiben zunächst für die Sitzung erhalten; Speichern eines Benutzerlayouts über Programmstarts hinweg ist noch nicht implementiert.
 
-Dateibrowser und Scripteditor behalten ihre spezialisierten Funktionen. Die Bibliothek stellt deren Scroll-/Fokus-/Clip-Grundlagen bereit; sie enthält keinen fertigen Codeeditor oder Dateibrowser.
+Dateishell/explorer und Scripteditor behalten ihre spezialisierten Funktionen. Die Bibliothek stellt deren Scroll-/Fokus-/Clip-Grundlagen bereit; sie enthält keinen fertigen Codeeditor oder Dateishell/explorer.
 
 ## Prüfung
 
@@ -148,7 +148,7 @@ Die obere Toolbar enthält Hamburger-Menü (zunächst ohne Funktion), Speichern,
 | Scripts-Werkzeugleiste | JavaScript-Syntaxprüfung |
 | Seitenpanels | Explorer/Scene und Inspector/Info, unabhängig von der globalen Auswahl |
 
-`editor_views` in `src/editor/app/state.c` ist die zentrale Liste der Arbeitsbereiche. Ein `EditorView` enthält stabile ID, Namen, Icon, Aktionsanzahl und die Callbacks `draw_tools(area)` und `draw_content()`. Die Shell baut daraus zusammen mit YAML die Navigation. `editor_select_workspace(id)` in `workspace/documents.c` koordiniert Auswahl und Textfokus. `editor_map_active()` und `editor_scripts_active()` leiten den aktiven Bereich aus `loaded_view` ab. Beim Wechsel sichert `workspace/lifecycle.c` Dokument und UI-Zustand, entlädt die aktive Instanz und stellt den Zielbereich wieder her. Map-/Script-Darstellung liegt unter `editors/map/` und `editors/scripts/`.
+`editor_views` in `src/application/editors.c` ist die zentrale Liste der Arbeitsbereiche. Ein `EditorView` enthält stabile ID, Namen, Icon, Aktionsanzahl und die Callbacks `draw_tools(area)`, `draw_content()` und einen `PeEditorBackend`-Adapter. Die Shell baut daraus zusammen mit YAML die Navigation. `editor_select_workspace(id)` in `workspace/documents.c` koordiniert Auswahl und Textfokus. `editor_map_active()` und `editor_scripts_active()` leiten den aktiven Bereich aus `loaded_view` ab. Beim Wechsel sichert `workspace/lifecycle.c` Dokument und UI-Zustand, entlädt die aktive Instanz und stellt den Zielbereich wieder her. Map-/Script-Darstellung liegt unter `editors/game/map/` und `editors/script/`.
 
 Für einen weiteren Bereich eine neue stabile ID, eigenen Datenzustand, Toolbar-/Inhaltsrenderer und einen Eintrag in der Liste ergänzen. Passende Eingaben, Kurzbefehle, Speichern und Inspector-Inhalte müssen für den neuen Editor ebenfalls ergänzt werden. Dies ist eine interne C-Erweiterungsstelle, noch keine dynamische Plugin-API. Es gibt keine leeren Platzhalter für künftige Tools.
 
@@ -166,6 +166,8 @@ Die [YAML-Anleitung](UI_YAML.md) beschreibt die implementierte Shell, drei konte
 
 `UiTextEdit` enthält Cursor und Auswahl als UTF-8-Byteoffsets sowie den horizontalen Scrollversatz. Der Aufrufer besitzt den nullterminierten Textpuffer. `ui_text_edit_init` kann einen Anfangswert komplett auswählen; `ui_text_edit_insert` ersetzt die Auswahl und lehnt Platzmangel, ungültiges UTF-8 sowie Zeilenumbrüche und andere ASCII-Steuerzeichen ohne Teiländerung ab. Cursorbewegung und Löschen arbeiten an Codepoint-Grenzen; kombinierte Grapheme und IME-Kompositionsvorschau sind noch nicht implementiert.
 
-`ui_draw_text_input` erhält Fokus, Enabled-/Fehlerzustand und die Blinkphase. Es bewahrt den Render-Clip, zeigt bei Fokus einen orangefarbenen Rahmen und hält den Cursor durch horizontales Scrollen im Feld sichtbar. Die Ereignisübersetzung und Zwischenablage gehören dem jeweiligen Host, beim Editor `src/editor/dialogs/fields.c`. So ist das Widget auch ohne Szenen-/Inspector-Abhängigkeit nutzbar.
+`ui_draw_text_input` erhält Fokus, Enabled-/Fehlerzustand und die Blinkphase. Es bewahrt den Render-Clip, zeigt bei Fokus einen orangefarbenen Rahmen und hält den Cursor durch horizontales Scrollen im Feld sichtbar. Die Ereignisübersetzung und Zwischenablage gehören dem jeweiligen Host, beim Editor `src/shell/dialogs/fields.c`. So ist das Widget auch ohne Szenen-/Inspector-Abhängigkeit nutzbar.
 
 Im Inspector startet ein Klick die direkte Bearbeitung. Enter oder ein Klick außerhalb bestätigt einen gültigen Wert als einen Dokument-Undo-Schritt. Escape verwirft den Entwurf. Ungültige Werte behalten den Fokus und erscheinen mit rotem Rahmen; die Statuszeile erklärt den Fehler. Bei Fenster-Fokusverlust wird der unbestätigte Entwurf verworfen. Pfeile, Home/End, Shift-Auswahl, Mausauswahl, Backspace/Delete, Ctrl/Cmd+A und Ctrl/Cmd+C/X/V werden unterstützt. Während der Eingabe gelangen Tastenkürzel nicht an die Map oder Shell. Import-/Layer-Dialoge verwenden denselben Textfeldkern.
+
+Die implementierten Modulverträge, Zustandseigentümer und Schritte für neue Editoren stehen in [ARCHITEKTUR.md](ARCHITEKTUR.md).

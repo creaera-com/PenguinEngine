@@ -52,7 +52,7 @@ if (pe_entity_component_removable(&scene, entity, PE_PLAYER)) {
 
 Jeder Aufruf akzeptiert genau ein bekanntes Komponentenbit. Bei bereits vorhandener Komponente, veraltetem Handle oder geschützter Entfernung wird `false` ohne Änderung zurückgegeben. Der Editor legt für erfolgreiche Aktionen eine History-Transaktion darum.
 
-Der Inspector ist der bestehende spezialisierte YAML-Knoten mit `binding: selection.active`. Die Komponenten-Karten und ihre Registrierung liegen im Map-Modul `src/editor/editors/map/components.c`. Neue eigene Komponententypen benötigen zunächst eine Erweiterung des C-Datenmodells, der Operationen, des Szenenformats und dieser Registrierung. Ein allgemeines reflektiertes Komponenten-/Formularschema ist noch nicht implementiert.
+Der Inspector ist der bestehende spezialisierte YAML-Knoten mit `binding: selection.active`. Die Komponenten-Karten und ihre Registrierung liegen im Map-Modul `src/editors/game/map/components.c`. Neue eigene Komponententypen benötigen zunächst eine Erweiterung des C-Datenmodells, der Operationen, des Szenenformats und dieser Registrierung. Ein allgemeines reflektiertes Komponenten-/Formularschema ist noch nicht implementiert.
 
 Neun Unity-Tests prüfen die Engine-Regeln und Dateikompatibilität. Die Editor-Smokes prüfen Menüs, Karten, Einstellungen, Schutzregeln, Undo/Redo und Editorwechsel. Ein Screenshot aus der Beispielszene `hierarchy.json` dient der visuellen Kontrolle.
 

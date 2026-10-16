@@ -1,4 +1,4 @@
-#include "app/editor_internal.h"
+#include "application/internal.h"
 
 static UiId yaml_id(const char *name);
 static float yaml_button_width(const cJSON *n);
@@ -80,12 +80,12 @@ UiIcon editor_yaml_icon(const char *name) {
 }
 
 const cJSON *editor_layout_entry(UiId id) {
-    if (!app.shell_layout) {
+    if (!app.shell.shell_layout) {
         return NULL;
     }
 
     const char *module = id == UI_MAP_VIEW ? "map" : id == UI_SCRIPT_VIEW ? "scripts" : "vector";
-    const cJSON *entries = pe_ui_get(app.shell_layout->root, "editors");
+    const cJSON *entries = pe_ui_get(app.shell.shell_layout->root, "editors");
     for (const cJSON *e = entries ? entries->child : NULL; e; e = e->next) {
         if (!strcmp(pe_ui_string(e, "module", ""), module)) {
             return e;
@@ -103,7 +103,7 @@ PeUiLayout *editor_load_editor_layout(UiId id, char *error, size_t size) {
     }
 
     char path[1400], directory[1024];
-    snprintf(directory, sizeof directory, "%s", app.ui_path);
+    snprintf(directory, sizeof directory, "%s", app.shell.ui_path);
     char *last = strrchr(directory, '/'), *back = strrchr(directory, '\\');
     if (back && (!last || back > last)) {
         last = back;
@@ -129,16 +129,16 @@ PeUiLayout *editor_load_editor_layout(UiId id, char *error, size_t size) {
 }
 
 void editor_apply_shell_layout(void) {
-    const cJSON *root = app.shell_layout->root, *layout = pe_ui_get(root, "layout"),
+    const cJSON *root = app.shell.shell_layout->root, *layout = pe_ui_get(root, "layout"),
                 *cols = pe_ui_get(layout, "columns");
-    app.gap = pe_ui_get(layout, "gap")->valueint;
-    app.tab_gap = pe_ui_get(layout, "tab_gap")->valueint;
-    app.min_left = (float)pe_ui_get(pe_ui_get(cols, "left"), "minimum")->valuedouble;
-    app.min_right = (float)pe_ui_get(pe_ui_get(cols, "right"), "minimum")->valuedouble;
-    app.min_center = (float)pe_ui_get(pe_ui_get(cols, "center"), "minimum")->valuedouble;
-    if (!app.loaded_view) {
-        app.left_width = (float)pe_ui_get(pe_ui_get(cols, "left"), "initial")->valuedouble;
-        app.right_width = (float)pe_ui_get(pe_ui_get(cols, "right"), "initial")->valuedouble;
+    app.shell.gap = pe_ui_get(layout, "gap")->valueint;
+    app.shell.tab_gap = pe_ui_get(layout, "tab_gap")->valueint;
+    app.shell.min_left = (float)pe_ui_get(pe_ui_get(cols, "left"), "minimum")->valuedouble;
+    app.shell.min_right = (float)pe_ui_get(pe_ui_get(cols, "right"), "minimum")->valuedouble;
+    app.shell.min_center = (float)pe_ui_get(pe_ui_get(cols, "center"), "minimum")->valuedouble;
+    if (!app.workspace.loaded_view) {
+        app.shell.left_width = (float)pe_ui_get(pe_ui_get(cols, "left"), "initial")->valuedouble;
+        app.shell.right_width = (float)pe_ui_get(pe_ui_get(cols, "right"), "initial")->valuedouble;
     }
 
     UiTheme theme = ui_dark_theme();
@@ -155,7 +155,7 @@ void editor_apply_shell_layout(void) {
     ui_set_theme(&theme);
     UiTab items[UI_MAX_TABS];
     int count = 0;
-    UiId selected = app.loaded_view;
+    UiId selected = app.workspace.loaded_view;
     const cJSON *entries = pe_ui_get(root, "editors");
     for (const cJSON *e = entries->child; e; e = e->next) {
         items[count++] =
@@ -174,8 +174,8 @@ void editor_apply_shell_layout(void) {
     if (!found) {
         selected = items[0].id;
     }
-    ui_tabs_init(&app.workspaces, items, count, selected);
-    app.workspaces.gap = (float)app.tab_gap;
+    ui_tabs_init(&app.shell.workspaces, items, count, selected);
+    app.shell.workspaces.gap = (float)app.shell.tab_gap;
 }
 
 static float yaml_button_width(const cJSON *n) {
@@ -190,21 +190,21 @@ static void yaml_button(const cJSON *n, SDL_FRect area) {
         editor_yaml_boolean(pe_ui_get(n, "enabled"), true) && editor_yaml_action_enabled(action);
     bool active = editor_yaml_boolean(pe_ui_get(n, "active"), editor_yaml_action_active(action));
     UiIcon icon = editor_yaml_icon(pe_ui_string(n, "icon", ""));
-    if (action && !strcmp(action, "scene.toggle_play") && app.playing) {
+    if (action && !strcmp(action, "scene.toggle_play") && editor_playing()) {
         icon = ICON_STOP;
     }
 
-    bool hover = ui_hovered(&app.ui, (UiRect){area.x, area.y, area.w, area.h});
+    bool hover = ui_hovered(&app.shell.ui, (UiRect){area.x, area.y, area.w, area.h});
     char buffer[256];
     const char *label = editor_yaml_text(pe_ui_get(n, "label"), buffer, sizeof buffer);
-    ui_draw_button(app.renderer, area, icon, label, active, enabled, hover);
+    ui_draw_button(app.platform.renderer, area, icon, label, active, enabled, hover);
     if (hover) {
         editor_tooltip = pe_ui_string(n, "tooltip", NULL);
     }
 
     bool shell = false;
-    for (int i = 0; i < app.shell_layout->mark_count; i++) {
-        if (app.shell_layout->marks[i].value == n) {
+    for (int i = 0; i < app.shell.shell_layout->mark_count; i++) {
+        if (app.shell.shell_layout->marks[i].value == n) {
             shell = true;
             break;
         }
@@ -216,13 +216,13 @@ static void yaml_button(const cJSON *n, SDL_FRect area) {
     if (!id) {
         id = 1;
     }
-    if (ui_button(&app.ui, id, (UiRect){area.x, area.y, area.w, area.h}, enabled)) {
+    if (ui_button(&app.shell.ui, id, (UiRect){area.x, area.y, area.w, area.h}, enabled)) {
         editor_yaml_action(action);
     }
 }
 
 int editor_yaml_toolbar_rows(float width) {
-    return editor_yaml_tool_rows(pe_ui_get(app.active_layout->root, "toolbar"), width);
+    return editor_yaml_tool_rows(pe_ui_get(app.workspace.active_layout->root, "toolbar"), width);
 }
 
 int editor_yaml_tool_rows(const cJSON *list, float width) {
@@ -250,7 +250,7 @@ int editor_yaml_tool_rows(const cJSON *list, float width) {
 }
 
 void editor_draw_yaml_toolbar(SDL_FRect area) {
-    const cJSON *list = pe_ui_get(app.active_layout->root, "toolbar");
+    const cJSON *list = pe_ui_get(app.workspace.active_layout->root, "toolbar");
     editor_draw_yaml_tool_list(list, area, false);
 }
 
@@ -299,7 +299,7 @@ void editor_draw_yaml_tool_list(const cJSON *list, SDL_FRect area, bool right_al
 
 void editor_draw_global_tools(void) {
     tool_panel_count = 0;
-    const cJSON *list = pe_ui_get(app.shell_layout->root, "toolbar");
+    const cJSON *list = pe_ui_get(app.shell.shell_layout->root, "toolbar");
     float x = 14;
     for (const cJSON *n = list->child; n; n = n->next) {
         if (!editor_yaml_boolean(pe_ui_get(n, "visible"), true)) {
@@ -307,7 +307,7 @@ void editor_draw_global_tools(void) {
         }
         const char *type = pe_ui_string(n, "type", "");
         if (!strcmp(type, "editor_switcher")) {
-            app.global_nav_x = (int)x;
+            app.shell.global_nav_x = (int)x;
             return;
         }
         if (!strcmp(type, "separator")) {
@@ -319,29 +319,29 @@ void editor_draw_global_tools(void) {
             x += w + 6;
         }
     }
-    app.global_nav_x = (int)x;
+    app.shell.global_nav_x = (int)x;
 }
 
 static int widget_state(UiId id) {
-    for (int i = 0; i < app.widget_count; i++) {
-        if (app.widgets[i].id == id) {
+    for (int i = 0; i < app.shell.widget_count; i++) {
+        if (app.shell.widgets[i].id == id) {
             return i;
         }
     }
-    if (app.widget_count == 64) {
+    if (app.shell.widget_count == 64) {
         return -1;
     }
 
-    int i = app.widget_count++;
-    memset(&app.widgets[i], 0, sizeof app.widgets[i]);
-    app.widgets[i].id = id;
-    app.widgets[i].open = -1;
+    int i = app.shell.widget_count++;
+    memset(&app.shell.widgets[i], 0, sizeof app.shell.widgets[i]);
+    app.shell.widgets[i].id = id;
+    app.shell.widgets[i].open = -1;
     return i;
 }
 
 bool editor_layout_captured(void) {
-    for (int i = 0; i < app.widget_count; i++) {
-        if (app.widgets[i].kind != 0 && app.widgets[i].id == app.ui.active) {
+    for (int i = 0; i < app.shell.widget_count; i++) {
+        if (app.shell.widgets[i].kind != 0 && app.shell.widgets[i].id == app.shell.ui.active) {
             return true;
         }
     }
@@ -375,12 +375,12 @@ static float tool_content_height(const cJSON *section) {
 }
 
 static void draw_tool_panel(const cJSON *n, SDL_FRect area, UiId id) {
-    ui_panel(app.renderer, area, UI_PANEL);
+    ui_panel(app.platform.renderer, area, UI_PANEL);
     int state = widget_state(id);
     if (state < 0) {
         return;
     }
-    app.widgets[state].kind = 2;
+    app.shell.widgets[state].kind = 2;
     UiRect clip = {area.x + 6, area.y + 6, fmaxf(0, area.w - 24), fmaxf(0, area.h - 12)};
     if (tool_panel_count < 64) {
         tool_panel_areas[tool_panel_count++] = (UiRect){area.x, area.y, area.w, area.h};
@@ -396,27 +396,27 @@ static void draw_tool_panel(const cJSON *n, SDL_FRect area, UiId id) {
         if (group < 0) {
             continue;
         }
-        if (app.widgets[group].open < 0) {
-            app.widgets[group].open = cJSON_IsTrue(pe_ui_get(s, "open"));
+        if (app.shell.widgets[group].open < 0) {
+            app.shell.widgets[group].open = cJSON_IsTrue(pe_ui_get(s, "open"));
         }
         content += 33 + 8;
-        if (app.widgets[group].open) {
+        if (app.shell.widgets[group].open) {
             content += editor_yaml_tool_rows(pe_ui_get(s, "children"), clip.w) * 32 + 6 +
                        tool_content_height(s);
         }
     }
-    UiScroll scroll = {app.widgets[state].scroll, content, clip.h};
-    if (!app.ui.blocked && !editor_edit_pending() && app.wheel_delta &&
-        ui_contains((UiRect){area.x, area.y, area.w, area.h}, app.mx, app.my)) {
-        ui_scroll_by(&scroll, -app.wheel_delta * 60);
-        app.wheel_delta = 0;
+    UiScroll scroll = {app.shell.widgets[state].scroll, content, clip.h};
+    if (!app.shell.ui.blocked && !editor_edit_pending() && app.shell.wheel_delta &&
+        ui_contains((UiRect){area.x, area.y, area.w, area.h}, app.shell.mx, app.shell.my)) {
+        ui_scroll_by(&scroll, -app.shell.wheel_delta * 60);
+        app.shell.wheel_delta = 0;
     }
     ui_scroll_clamp(&scroll);
     UiRect track = {area.x + area.w - 14, clip.y, 8, clip.h};
-    ui_scrollbar(&app.ui, id, track, &scroll, UI_AXIS_Y);
-    app.widgets[state].scroll = scroll.offset;
-    ui_clip_push(&app.ui, clip);
-    ui_apply_clip(app.renderer, &app.ui);
+    ui_scrollbar(&app.shell.ui, id, track, &scroll, UI_AXIS_Y);
+    app.shell.widgets[state].scroll = scroll.offset;
+    ui_clip_push(&app.shell.ui, clip);
+    ui_apply_clip(app.platform.renderer, &app.shell.ui);
     float y = clip.y - scroll.offset;
     for (const cJSON *s = sections->child; s; s = s->next) {
         if (!editor_yaml_boolean(pe_ui_get(s, "visible"), true)) {
@@ -427,26 +427,27 @@ static void draw_tool_panel(const cJSON *n, SDL_FRect area, UiId id) {
         if (group < 0) {
             continue;
         }
-        bool open = app.widgets[group].open != 0;
+        bool open = app.shell.widgets[group].open != 0;
         bool enabled = editor_yaml_boolean(pe_ui_get(s, "enabled"), true);
-        bool blocked = app.ui.blocked;
-        app.ui.blocked = blocked || !enabled;
+        bool blocked = app.shell.ui.blocked;
+        app.shell.ui.blocked = blocked || !enabled;
         UiRect header = {clip.x, y, clip.w, 33};
         editor_register_ui_hit(header);
-        ui_disclosure(&app.ui, group_id, header, &open, !editor_edit_pending());
-        app.widgets[group].open = open;
+        ui_disclosure(&app.shell.ui, group_id, header, &open, !editor_edit_pending());
+        app.shell.widgets[group].open = open;
         float height = 33;
         if (open) {
             height += editor_yaml_tool_rows(pe_ui_get(s, "children"), clip.w) * 32 + 6 +
                       tool_content_height(s);
         }
         editor_box((SDL_FRect){clip.x, y, clip.w, height}, editor_widget_background());
-        if (ui_hovered(&app.ui, header)) {
+        if (ui_hovered(&app.shell.ui, header)) {
             editor_box((SDL_FRect){clip.x, y, clip.w, 33}, UI_HOVER);
         }
-        ui_icon(app.renderer, open ? ICON_DOWN : ICON_RIGHT, clip.x + 9, y + 10, 12, UI_MUTED);
-        ui_icon(app.renderer, editor_yaml_icon(pe_ui_string(s, "icon", "")), clip.x + 27, y + 8, 16,
-                UI_ACCENT);
+        ui_icon(app.platform.renderer, open ? ICON_DOWN : ICON_RIGHT, clip.x + 9, y + 10, 12,
+                UI_MUTED);
+        ui_icon(app.platform.renderer, editor_yaml_icon(pe_ui_string(s, "icon", "")), clip.x + 27,
+                y + 8, 16, UI_ACCENT);
         editor_text(clip.x + 51, y + 12, pe_ui_string(s, "title", ""), UI_TEXT);
         if (open) {
             editor_draw_yaml_tool_list(pe_ui_get(s, "children"),
@@ -465,12 +466,12 @@ static void draw_tool_panel(const cJSON *n, SDL_FRect area, UiId id) {
                 }
             }
         }
-        app.ui.blocked = blocked;
+        app.shell.ui.blocked = blocked;
         y += height + 8;
     }
-    ui_clip_pop(&app.ui);
-    ui_apply_clip(app.renderer, &app.ui);
-    ui_draw_scrollbar(app.renderer, &app.ui, id, track, &scroll, UI_AXIS_Y);
+    ui_clip_pop(&app.shell.ui);
+    ui_apply_clip(app.platform.renderer, &app.shell.ui);
+    ui_draw_scrollbar(app.platform.renderer, &app.shell.ui, id, track, &scroll, UI_AXIS_Y);
 }
 
 void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
@@ -480,10 +481,10 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
 
     const char *type = pe_ui_string(n, "type", "");
     UiId id = yaml_id(pe_ui_string(n, "id", ""));
-    bool previous_blocked = app.ui.blocked;
-    app.ui.blocked = previous_blocked || !editor_yaml_boolean(pe_ui_get(n, "enabled"), true);
-    ui_clip_push(&app.ui, (UiRect){area.x, area.y, area.w, area.h});
-    ui_apply_clip(app.renderer, &app.ui);
+    bool previous_blocked = app.shell.ui.blocked;
+    app.shell.ui.blocked = previous_blocked || !editor_yaml_boolean(pe_ui_get(n, "enabled"), true);
+    ui_clip_push(&app.shell.ui, (UiRect){area.x, area.y, area.w, area.h});
+    ui_apply_clip(app.platform.renderer, &app.shell.ui);
     if (!strcmp(type, "tool_panel")) {
         draw_tool_panel(n, area, id);
     } else if (!strcmp(type, "split")) {
@@ -491,7 +492,7 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
         if (state < 0) {
             goto done;
         }
-        WidgetState *stored = &app.widgets[state];
+        WidgetState *stored = &app.shell.widgets[state];
         if (stored->kind != 1) {
             stored->extent = (float)pe_ui_get(n, "initial")->valuedouble;
             stored->kind = 1;
@@ -506,19 +507,19 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
         float total = (axis == UI_AXIS_Y ? area.h : area.w) - gap;
         float effective_min = fminf(min_second, split.second_size);
         ui_drag_value(
-            &app.ui, id, split.grip, &stored->extent, effective_min,
+            &app.shell.ui, id, split.grip, &stored->extent, effective_min,
             fmaxf(effective_min,
                   total - fminf(min_first, axis == UI_AXIS_Y ? split.first.h : split.first.w)),
             axis, -1);
         split = ui_split_rects(rect, axis, stored->extent, min_first, min_second, gap);
         stored->extent = split.second_size;
         editor_register_ui_hit(split.grip);
-        bool highlight = ui_hovered(&app.ui, split.grip) || app.ui.active == id;
-        if (highlight && !app.ui.blocked) {
+        bool highlight = ui_hovered(&app.shell.ui, split.grip) || app.shell.ui.active == id;
+        if (highlight && !app.shell.ui.blocked) {
             if (axis == UI_AXIS_Y) {
-                app.layout_resize_y = true;
+                app.shell.layout_resize_y = true;
             } else {
-                app.layout_resize_x = true;
+                app.shell.layout_resize_x = true;
             }
         }
         float cx = split.grip.x + split.grip.w * .5f;
@@ -527,7 +528,7 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
         for (int k = -1; k <= 1; k++) {
             SDL_FRect dot = {floorf(cx + (axis == UI_AXIS_Y ? k * 6 : 0)) - 1,
                              floorf(cy + (axis == UI_AXIS_X ? k * 6 : 0)) - 1, 2, 2};
-            SDL_RenderFillRect(app.renderer, &dot);
+            SDL_RenderFillRect(app.platform.renderer, &dot);
         }
         editor_draw_yaml_node(
             pe_ui_get(n, "first"),
@@ -540,18 +541,20 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
         if (state < 0) {
             goto done;
         }
-        app.widgets[state].kind = 0;
+        app.shell.widgets[state].kind = 0;
         const cJSON *list = pe_ui_get(n, "tabs");
         int count = cJSON_GetArraySize(list);
         UiTabs temporary = {0};
-        UiTabs *tabs = column == 0 ? &app.left_tabs : column == 2 ? &app.right_tabs : &temporary;
+        UiTabs *tabs = column == 0   ? &app.shell.left_tabs
+                       : column == 2 ? &app.shell.right_tabs
+                                     : &temporary;
         if (column != 0 && column != 2) {
-            tabs->selected = app.widgets[state].selected;
-            tabs->count = app.widgets[state].count;
-            tabs->scroll = app.widgets[state].scroll;
-            tabs->dragging = app.widgets[state].dragging != 0;
+            tabs->selected = app.shell.widgets[state].selected;
+            tabs->count = app.shell.widgets[state].count;
+            tabs->scroll = app.shell.widgets[state].scroll;
+            tabs->dragging = app.shell.widgets[state].dragging != 0;
             for (int i = 0; i < tabs->count; i++) {
-                tabs->items[i] = (UiTab){app.widgets[state].order[i], true, 0};
+                tabs->items[i] = (UiTab){app.shell.widgets[state].order[i], true, 0};
             }
         }
         UiTab items[UI_MAX_TABS];
@@ -587,37 +590,38 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
         ui_tabs_init(tabs, items, count, selected);
         tabs->scroll = scroll;
         tabs->dragging = dragging;
-        tabs->gap = (float)app.tab_gap;
+        tabs->gap = (float)app.shell.tab_gap;
         for (const cJSON *t = list->child; t; t = t->next) {
             ui_tabs_set_width(tabs, yaml_id(pe_ui_string(t, "id", "")),
                               ui_tab_content_width(editor_yaml_icon(pe_ui_string(t, "icon", "")),
                                                    pe_ui_string(t, "title", "")) +
-                                  app.tab_gap);
+                                  app.shell.tab_gap);
         }
         UiRect bar = {area.x, area.y, area.w, TABS - PANEL_GAP};
         editor_register_ui_hit(bar);
-        if (column != 0 && column != 2 && app.wheel_delta && ui_contains(bar, app.mx, app.my)) {
-            ui_tabs_scroll(tabs, bar.w, 112, -app.wheel_delta * 56);
-            app.wheel_delta = 0;
+        if (column != 0 && column != 2 && app.shell.wheel_delta &&
+            ui_contains(bar, app.shell.mx, app.shell.my)) {
+            ui_tabs_scroll(tabs, bar.w, 112, -app.shell.wheel_delta * 56);
+            app.shell.wheel_delta = 0;
         }
-        ui_tabs_update(&app.ui, tabs, bar, 112);
+        ui_tabs_update(&app.shell.ui, tabs, bar, 112);
         for (int k = 0; k < count; k++) {
             for (const cJSON *t = list->child; t; t = t->next) {
                 if (tabs->items[k].id == yaml_id(pe_ui_string(t, "id", ""))) {
                     UiRect r = ui_tab_rect(tabs, bar, 112, k);
-                    ui_draw_tab(app.renderer, (SDL_FRect){r.x, r.y, r.w, r.h},
+                    ui_draw_tab(app.platform.renderer, (SDL_FRect){r.x, r.y, r.w, r.h},
                                 editor_yaml_icon(pe_ui_string(t, "icon", "")),
                                 pe_ui_string(t, "title", ""), tabs->selected == tabs->items[k].id,
-                                true, ui_hovered(&app.ui, r));
+                                true, ui_hovered(&app.shell.ui, r));
                 }
             }
         }
-        app.widgets[state].scroll = tabs->scroll;
-        app.widgets[state].dragging = tabs->dragging;
-        app.widgets[state].count = count;
-        app.widgets[state].selected = tabs->selected;
+        app.shell.widgets[state].scroll = tabs->scroll;
+        app.shell.widgets[state].dragging = tabs->dragging;
+        app.shell.widgets[state].count = count;
+        app.shell.widgets[state].selected = tabs->selected;
         for (int k = 0; k < count; k++) {
-            app.widgets[state].order[k] = tabs->items[k].id;
+            app.shell.widgets[state].order[k] = tabs->items[k].id;
         }
         for (const cJSON *t = list->child; t; t = t->next) {
             if (tabs->selected == yaml_id(pe_ui_string(t, "id", ""))) {
@@ -641,14 +645,14 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
             if (state < 0) {
                 goto done;
             }
-            if (app.widgets[state].open < 0) {
-                app.widgets[state].open = cJSON_IsTrue(pe_ui_get(n, "open"));
+            if (app.shell.widgets[state].open < 0) {
+                app.shell.widgets[state].open = cJSON_IsTrue(pe_ui_get(n, "open"));
             }
-            bool open = app.widgets[state].open != 0;
-            ui_panel(app.renderer, area, UI_PANEL);
-            ui_disclosure(&app.ui, id, (UiRect){area.x, area.y, area.w, 26}, &open, true);
-            app.widgets[state].open = open;
-            ui_draw_button(app.renderer, (SDL_FRect){area.x, area.y, area.w, 26},
+            bool open = app.shell.widgets[state].open != 0;
+            ui_panel(app.platform.renderer, area, UI_PANEL);
+            ui_disclosure(&app.shell.ui, id, (UiRect){area.x, area.y, area.w, 26}, &open, true);
+            app.shell.widgets[state].open = open;
+            ui_draw_button(app.platform.renderer, (SDL_FRect){area.x, area.y, area.w, 26},
                            open ? ICON_DOWN : ICON_RIGHT, pe_ui_string(n, "title", ""), false, true,
                            false);
             if (!open) {
@@ -679,17 +683,17 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
     } else if (!strcmp(type, "separator")) {
         editor_box((SDL_FRect){area.x, area.y + 4, 1, fmaxf(0, area.h - 8)}, UI_BORDER);
     } else if (strcmp(type, "spacer")) {
-        ui_panel(app.renderer, area, UI_PANEL);
+        ui_panel(app.platform.renderer, area, UI_PANEL);
         if (strcmp(type, "map_canvas") && strcmp(type, "script_editor") &&
             strcmp(type, "vector_canvas")) {
             editor_register_ui_hit((UiRect){area.x, area.y, area.w, area.h});
         }
-        app.panel_area = area;
-        app.panel_top = area.y;
+        app.shell.panel_area = area;
+        app.shell.panel_top = area.y;
         if (!strcmp(type, "map_canvas") || !strcmp(type, "script_editor") ||
             !strcmp(type, "vector_canvas")) {
-            app.viewport = area;
-            app.canvas_enabled = !app.ui.blocked;
+            app.shell.viewport = area;
+            app.shell.canvas_enabled = !app.shell.ui.blocked;
             if (!strcmp(type, "map_canvas")) {
                 editor_draw_map_content();
             } else if (!strcmp(type, "vector_canvas")) {
@@ -704,9 +708,9 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
             if (tools) {
                 editor_draw_yaml_tool_list(tools, area, true);
                 float height = editor_yaml_tool_rows(tools, area.w) * 32.f + 6;
-                app.panel_area.y += height;
-                app.panel_area.h = fmaxf(0, app.panel_area.h - height);
-                app.panel_top = app.panel_area.y;
+                app.shell.panel_area.y += height;
+                app.shell.panel_area.h = fmaxf(0, app.shell.panel_area.h - height);
+                app.shell.panel_top = app.shell.panel_area.y;
             }
             editor_draw_scene_tree();
         } else if (!strcmp(type, "vector_tree")) {
@@ -726,18 +730,19 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
         } else if (!strcmp(type, "scene_info")) {
             editor_draw_info();
         } else if (!strcmp(type, "terminal")) {
-            if (!app.console) {
-                app.console = pe_console_new(app.root, !app.smoke);
+            if (!app.shell.console) {
+                app.shell.console = pe_console_new(app.project.root, !app.runtime.smoke);
             }
-            if (app.console) {
-                pe_console_draw(app.console, app.renderer, &app.ui, area, !app.ui.blocked);
+            if (app.shell.console) {
+                pe_console_draw(app.shell.console, app.platform.renderer, &app.shell.ui, area,
+                                !app.shell.ui.blocked);
             }
         } else if (!strcmp(type, "script_info")) {
             editor_draw_script_inspector();
         }
     }
 done:
-    app.ui.blocked = previous_blocked;
-    ui_clip_pop(&app.ui);
-    ui_apply_clip(app.renderer, &app.ui);
+    app.shell.ui.blocked = previous_blocked;
+    ui_clip_pop(&app.shell.ui);
+    ui_apply_clip(app.platform.renderer, &app.shell.ui);
 }

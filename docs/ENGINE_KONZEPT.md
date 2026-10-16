@@ -38,7 +38,7 @@ JSON wird über eine kleine C-Bibliothek verarbeitet. Welche Bibliothek wir verw
 
 Die **Engine** enthält wiederverwendbare Funktionen: Assets laden, eine Szene verwalten, Entities aktualisieren und die Welt zeichnen.
 
-Der **Editor** verwendet diese Engine und ergänzt Dateibrowser, Werkzeuge, Auswahl, Inspector, Speichern sowie Undo/Redo.
+Der **Editor** verwendet diese Engine und ergänzt Dateishell/explorer, Werkzeuge, Auswahl, Inspector, Speichern sowie Undo/Redo.
 
 Das **Spiel** verwendet die Engine ohne Editor. Es lädt die erstellten Daten und führt Spiellogik aus. Dadurch braucht ein später veröffentlichtes Spiel keine Editor-Oberfläche.
 
@@ -184,7 +184,7 @@ Die geplante Oberfläche besteht aus vier Bereichen:
 
 | Bereich | Aufgabe |
 | --- | --- |
-| Dateibrowser | Projektordner als Baum anzeigen und Assets oder Szenen öffnen. |
+| Dateishell/explorer | Projektordner als Baum anzeigen und Assets oder Szenen öffnen. |
 | Szenenansicht | Welt anzeigen, zoomen, verschieben, auswählen und bearbeiten. |
 | Tileset-Palette | Ein Tile oder später eine Tile-Gruppe auswählen. |
 | Inspector | Eigenschaften der Auswahl und Tilemap-Ebenen bearbeiten. |

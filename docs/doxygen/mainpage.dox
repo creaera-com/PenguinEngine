@@ -14,7 +14,7 @@
  * Laden, Editorwechsel oder Dokumentersatz nicht weiterverwenden.
  *
  * @section editor_lifecycle Editor-Lebenszyklus
- * Die Editor-UI verwendet eine private Anwendungsinstanz. Nur ein Map- oder
+ * Die Editor-UI verwendet eine private Anwendungsinstanz. Nur ein Map-, Vector- oder
  * Scriptdokument ist gleichzeitig geladen. Temporäre Checkpoints sichern
  * Dokument und Undo/Redo beim Wechsel; sie sind kein portables Projektformat.
  * Die Dokument-Codecs erhalten ihren Kontext explizit.
@@ -22,7 +22,7 @@
  * @section navigation Einstieg
  * Die Modulübersicht gruppiert die APIs nach Zuständigkeit. Die zusätzliche
  * Anleitung docs/PROJEKTSTRUKTUR.md im Repository erklärt den Aufbau und
- * docs/UI_YAML.md die deklarative Oberfläche.
+ * docs/ARCHITEKTUR.md die Modulverträge und docs/UI_YAML.md die deklarative Oberfläche.
  */
 
 /** @defgroup engine_api Engine und SDL-Szenenrenderer

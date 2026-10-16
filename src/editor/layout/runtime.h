@@ -9,7 +9,7 @@
  */
 #ifndef PENGUIN_LAYOUT_RUNTIME_H
 #define PENGUIN_LAYOUT_RUNTIME_H
-#include "layout/ui_layout.h"
+#include "editor/layout/ui_layout.h"
 #include "penguin/ui_sdl.h"
 
 /**
