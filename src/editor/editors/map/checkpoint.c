@@ -34,6 +34,9 @@ static bool session_scene(PeSession *io, PeScene *scene) {
             return false;
         }
         const PeObject *o = &scene->objects[i];
+        if (b && !pe_entity_name_valid(o->name)) {
+            return false;
+        }
         if (!isfinite(o->x) || !isfinite(o->y) || !isfinite(o->w) || !isfinite(o->h) ||
             !isfinite(o->vx) || !isfinite(o->vy)) {
             return false;

@@ -10,6 +10,7 @@
 #ifndef PENGUIN_UI_H
 #define PENGUIN_UI_H
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 /** @brief Maximale Tiefe des UI-Clip-Stacks. */
@@ -312,6 +313,85 @@ void ui_tabs_scroll(UiTabs *tabs, float viewport, float tab_width, float delta);
  * @param tab_width Fallback-Slotbreite einschließlich Abstand in Pixeln.
  */
 bool ui_tabs_update(UiContext *context, UiTabs *tabs, UiRect bar, float tab_width);
+
+/** @brief Zustand eines einzeiligen UTF-8-Eingabefelds; der Textpuffer gehört dem Aufrufer. */
+typedef struct {
+    size_t cursor; ///< Cursorposition als Byteoffset an einer UTF-8-Grenze.
+    size_t anchor; ///< Anfang der Auswahl als Byteoffset; cursor == anchor bedeutet keine Auswahl.
+    float scroll;  ///< Horizontaler Darstellungsversatz in Pixeln.
+} UiTextEdit;
+
+/** @brief Renderer-unabhängige Bearbeitungstasten eines einzeiligen Felds. */
+typedef enum {
+    UI_TEXT_LEFT,
+    UI_TEXT_RIGHT,
+    UI_TEXT_HOME,
+    UI_TEXT_END,
+    UI_TEXT_BACKSPACE,
+    UI_TEXT_DELETE,
+    UI_TEXT_SELECT_ALL
+} UiTextKey;
+
+/** @brief Initialisiert den Cursor am Textende und wählt optional den ganzen Text aus.
+ * @param edit Besitzender Feldzustand.
+ * @param text Nullterminierter UTF-8-Text; wird nicht verändert.
+ * @param select_all Ob der Anfangswert zum direkten Ersetzen markiert wird.
+ */
+void ui_text_edit_init(UiTextEdit *edit, const char *text, bool select_all);
+/** @brief Fügt UTF-8-Text am Cursor ein oder ersetzt die Auswahl atomar.
+ * @param edit Feldzustand, dessen Cursor und Auswahl aktualisiert werden.
+ * @param text Veränderbarer, nullterminierter Puffer mit mindestens capacity Bytes.
+ * @param capacity Gesamtkapazität einschließlich Nullbyte.
+ * @param inserted Geliehener UTF-8-Text; darf nicht mit text überlappen.
+ * @return false bei Platzmangel, ungültigem UTF-8 oder Steuerzeichen; Text bleibt unverändert.
+ */
+bool ui_text_edit_insert(UiTextEdit *edit, char *text, size_t capacity, const char *inserted);
+/** @brief Bewegt Cursor/Auswahl oder löscht ganze UTF-8-Zeichen.
+ * @param edit Feldzustand.
+ * @param text Veränderbarer, nullterminierter UTF-8-Puffer.
+ * @param key Bearbeitungsaktion.
+ * @param shift Ob Navigation die bestehende Auswahl erweitert.
+ * @return true, wenn der Text durch Löschen verändert wurde.
+ */
+bool ui_text_edit_key(UiTextEdit *edit, char *text, UiTextKey key, bool shift);
+/** @brief Setzt den Cursor auf eine nullbasierte Zeichenspalte, begrenzt auf das Textende.
+ * @param edit Feldzustand.
+ * @param text Nullterminierter UTF-8-Text.
+ * @param column Zeichenspalte, unabhängig von der UTF-8-Bytelänge.
+ * @param shift Ob die Auswahl erweitert wird.
+ */
+void ui_text_edit_click(UiTextEdit *edit, const char *text, size_t column, bool shift);
+/** @brief Ermittelt die Zeichenspalte zu einem auf die Textlänge begrenzten Byteoffset.
+ * @param text Nullterminierter UTF-8-Text.
+ * @param offset Byteoffset; wird auf Textlänge und Zeichengrenze begrenzt.
+ */
+size_t ui_text_edit_column(const char *text, size_t offset);
+
+/** @brief Prüft die Fortsetzung einer Hierarchieebene in einer aufgeklappten Baum-Liste.
+ * @param depths Geliehene Preorder-Liste nichtnegativer Einrückungstiefen.
+ * @param count Anzahl sichtbarer (nicht eingeklappter) Einträge, einschließlich außerhalb des
+ * Viewports.
+ * @param row Nullbasierter aktueller Zeilenindex.
+ * @param level Eigene oder übergeordnete Tiefe, deren nächstes Geschwister gesucht wird.
+ * @return true bei einem folgenden Eintrag derselben Ebene vor dem Ende des Teilbaums.
+ */
+bool ui_tree_continues(const int *depths, int count, int row, int level);
+
+/** @brief Zweispaltige Eigenschaftszeile ohne eigenen Zustand oder Rendering. */
+typedef struct {
+    UiRect label; ///< Linke Spalte für die Bezeichnung.
+    UiRect value; ///< Rechte Spalte für Wert oder Eingabefeld.
+} UiPropertyRow;
+
+/**
+ * @brief Teilt eine Eigenschaftszeile in bündige Bezeichnungs- und Wertspalten.
+ * @param area Zeilenbereich in Pixeln; negative Ausdehnungen werden auf 0 begrenzt.
+ * @param label_fraction Anteil der linken Spalte an der Breite ohne Zwischenraum (0 bis 1).
+ * @param gap Zwischenraum in Pixeln; wird auf die verfügbare Breite begrenzt.
+ * @return Nicht überlappende Spalten innerhalb des begrenzten Zeilenbereichs.
+ * Gleiche Breite, Anteil und Abstand ergeben über mehrere Zeilen dieselben Spaltenkanten.
+ */
+UiPropertyRow ui_property_row(UiRect area, float label_fraction, float gap);
 
 /** @brief Geometrie eines teilbaren Bereichs; second_size ist die begrenzte zweite Paneelgröße. */
 typedef struct {

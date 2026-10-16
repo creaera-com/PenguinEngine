@@ -33,6 +33,37 @@
 /** @brief Aktueller Theme-Farbwert UI_DISABLED als RGBA. */
 #define UI_DISABLED (ui_theme.disabled)
 
+/**
+ * @brief Zeichnet gestrichelte Baumverbindungen für eine Zeile; erhält den aktiven Clip.
+ * @param renderer Geliehener SDL-Renderer.
+ * @param depths Preorder-Tiefen aller aufgeklappten Zeilen, auch außerhalb des Viewports.
+ * @param count Anzahl Einträge in depths.
+ * @param row Nullbasierter aktueller Zeilenindex.
+ * @param area Zeilenbereich; x ist der Ursprung der Wurzel-Einrückung, h die Zeilenhöhe.
+ * @param indent Abstand pro Hierarchieebene in Pixeln.
+ * @param marker_center Horizontale Mitte des Aufklappsymbols relativ zum Knotenanfang.
+ * @param max_indent Maximale Einrückung; tiefere Linien werden begrenzt.
+ * @param branch_end Horizontales Ende des Asts in Fensterpixeln, vor Symbol oder Label.
+ * @param rgba Linienfarbe aus dem aktuellen Theme.
+ */
+void ui_draw_tree_guides(SDL_Renderer *renderer, const int *depths, int count, int row, UiRect area,
+                         float indent, float marker_center, float max_indent, float branch_end,
+                         Uint32 rgba);
+
+/**
+ * @brief Zeichnet ein einzeiliges Eingabefeld mit Auswahl, horizontalem Scrollen und Cursor.
+ * @param renderer Geliehener SDL-Renderer.
+ * @param rect Feldbereich in Fensterpixeln; der bisherige Render-Clip bleibt erhalten.
+ * @param text Nullterminierter UTF-8-Text.
+ * @param edit Feldzustand; scroll wird für den sichtbaren Cursor angepasst.
+ * @param focused Ob Auswahl und orange Fokusumrandung sichtbar sind.
+ * @param enabled Ob das Feld bedienbar ist.
+ * @param invalid Ob eine abgewiesene Eingabe rot markiert wird.
+ * @param cursor_visible Blinkphase des Cursors; wird vom Aufrufer gesteuert.
+ */
+void ui_draw_text_input(SDL_Renderer *renderer, SDL_FRect rect, const char *text, UiTextEdit *edit,
+                        bool focused, bool enabled, bool invalid, bool cursor_visible);
+
 /** @brief Interne Layout-/Darstellungsvorgabe UI_FONT_WIDTH. */
 #define UI_FONT_WIDTH 8
 /** @brief Interne Layout-/Darstellungsvorgabe UI_FONT_HEIGHT. */

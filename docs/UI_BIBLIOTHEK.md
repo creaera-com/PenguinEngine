@@ -9,18 +9,21 @@ Penguin UI ist eine kleine eigene UI-Bibliothek für Editor und SDL3-Spiele. Sie
 | `penguin_ui` | `src/ui/include/penguin/ui.h`, `src/ui/core/core.c` | Eingabe, Fokus, Capture, Layout und Widget-Zustände; C17, keine SDL-Abhängigkeit. |
 | `penguin_ui_sdl` | `src/ui/include/penguin/ui_sdl.h`, `src/ui/rendering/sdl.c` | Flat-Rendering, Icons und Themes; nutzt `penguin_ui` und SDL3. |
 | `penguin_ui_demo` | `examples/ui/main.c` | Eigenständiges Beispiel ohne Engine-/Editor-/Script-Bibliotheken. |
-| `penguin_ui_tests` | `tests/test_ui.c` | 28 Unity-Tests der UI-Regeln ohne Fenster. |
+| `penguin_ui_tests` | `tests/test_ui.c` | 40 Unity-Tests der UI-Regeln ohne Fenster. |
 
 Die beiden Bibliotheken werden statisch gebaut. Sie sind keine Kopie der UI in jedem Spiel: Editor und Demo verlinken dieselben Targets. Der Kern lässt sich auch mit einem anderen Renderer verwenden; momentan ist nur der SDL3-Backend implementiert.
 
 ## Bereits enthalten
 
+- Einzeilige Textfelder: UTF-8-Cursor, Auswahl, Einfügen/Ersetzen und Löschen über `UiTextEdit` und `ui_text_edit_*`; `ui_draw_text_input` zeichnet Fokusrahmen, Auswahl, horizontalen Textversatz und Cursor. Textpuffer und Blinkzeit gehören dem Aufrufer; keine SDL-Abhängigkeit im Bearbeitungskern.
 - Buttons und Icon-Buttons: Aktivierung beim Loslassen, Disabled-Zustand und Hover.
 - Flat-Tabs: Auswahl, Umsortieren per Ziehen und Scroll-Modell bei Platzmangel.
 - Klappbare Abschnitte: Überschrift und gespeicherter Offen-/Geschlossen-Zustand.
 - Scrollbars: vertikal/horizontal, Thumb-Ziehen und seitenweises Scrollen beim Klick auf den Track.
 - Splitter: Ziehen mit Mindest-/Maximalwerten, auch außerhalb des ursprünglichen Griffbereichs.
+- Eigenschaftszeilen: `ui_property_row(area, .45f, 8)` liefert linke Bezeichnungs- und rechte Wertspalte ohne Rendering oder Zustand. Gleiche Zeilenbreiten ergeben bündige Spalten; der Zwischenraum wird bei Platzmangel begrenzt. Verwendet im Komponenten-Inspector, auch für Spiele nutzbar.
 - Spaltenlayout: Mindestbreiten und Platz für die mittlere Arbeitsfläche.
+- Baumverbindungen: `ui_tree_continues` erkennt fortlaufende Geschwister-/Vorfahrenebenen aus einer flachen Preorder-Liste; `ui_draw_tree_guides` zeichnet gestrichelte Äste und endet beim letzten Kind. Die Phase hängt am Inhalt, nicht am Viewport, und bleibt beim Scrollen stabil.
 - Clip-Bereiche: Zeichen-/Hit-Test-Grenzen und verschachtelte Rechtecke.
 - Fokus-ID und Tastaturaktivierung von fokussierten Buttons über Enter/Leertaste.
 - Gemeinsame gezeichnete Icons und ein konfigurierbares `UiTheme`.
@@ -115,7 +118,7 @@ Dateibrowser und Scripteditor behalten ihre spezialisierten Funktionen. Die Bibl
 
 ## Prüfung
 
-28 Unity-Tests prüfen unter anderem Press-/Release-Reihenfolge, schnelles Klicken, Disabled/Blocked, exklusives Capture, Fokus, Clip-Grenzen, Drag-Clamping, Spaltenbreiten, Scrollbar-Geometrie, Thumb-Ziehen, Track-Klicks und Tab-Auswahl/-Umsortierung.
+40 Unity-Tests prüfen unter anderem Press-/Release-Reihenfolge, schnelles Klicken, Disabled/Blocked, exklusives Capture, Fokus, Clip-Grenzen, Drag-Clamping, Spaltenbreiten, Scrollbar-Geometrie, Thumb-Ziehen, Track-Klicks und Tab-Auswahl/-Umsortierung.
 
 Editor-Smoke-Tests ziehen beide Spaltentrenner, klappen einen Inspector-Bereich zu, sortieren Tabs um und ziehen eine Script-Scrollbar. Sie prüfen, dass dadurch weder Szene noch Scripttext verändert werden. Das UI-Demo hat einen eigenen SDL-Dummy-Smoke-Test.
 
@@ -158,3 +161,11 @@ Die Statusleiste ist 28 px hoch und zeigt EDIT/PLAY, Saved/Modified, Dokumentdet
 Die [YAML-Anleitung](UI_YAML.md) beschreibt die implementierte Shell, drei kontextbezogene Spalten, Komponenten-/Aktionsregistrierung und Editor-Lebenszyklus mit Sitzungssicherung auf Datenträger. Ausgelieferte Dateien stehen unter `resources/editor/ui`; `--ui` wählt eine eigene Shell, F6 lädt sie erneut. Inaktive Editorinstanzen und ihre Ressourcen werden freigegeben. Die globale UI und ihre Schrifttextur bleiben bestehen.
 
 `UiTheme ui_theme` liefert die aktuellen Farben; `ui_set_theme` setzt sie, `ui_dark_theme` liefert weiterhin das Ausgangstheme. Die `UI_*`-Farbrollen sind damit Laufzeitwerte, keine Konstanten für statische Initialisierer. `UiTabs.gap` legt den Abstand einer konkreten Tabgruppe fest (Standard `UI_TAB_GAP`); die Slotbreite umfasst diesen Abstand.
+
+## Direkt bearbeitbare Werte
+
+`UiTextEdit` enthält Cursor und Auswahl als UTF-8-Byteoffsets sowie den horizontalen Scrollversatz. Der Aufrufer besitzt den nullterminierten Textpuffer. `ui_text_edit_init` kann einen Anfangswert komplett auswählen; `ui_text_edit_insert` ersetzt die Auswahl und lehnt Platzmangel, ungültiges UTF-8 sowie Zeilenumbrüche und andere ASCII-Steuerzeichen ohne Teiländerung ab. Cursorbewegung und Löschen arbeiten an Codepoint-Grenzen; kombinierte Grapheme und IME-Kompositionsvorschau sind noch nicht implementiert.
+
+`ui_draw_text_input` erhält Fokus, Enabled-/Fehlerzustand und die Blinkphase. Es bewahrt den Render-Clip, zeigt bei Fokus einen orangefarbenen Rahmen und hält den Cursor durch horizontales Scrollen im Feld sichtbar. Die Ereignisübersetzung und Zwischenablage gehören dem jeweiligen Host, beim Editor `src/editor/dialogs/fields.c`. So ist das Widget auch ohne Szenen-/Inspector-Abhängigkeit nutzbar.
+
+Im Inspector startet ein Klick die direkte Bearbeitung. Enter oder ein Klick außerhalb bestätigt einen gültigen Wert als einen Dokument-Undo-Schritt. Escape verwirft den Entwurf. Ungültige Werte behalten den Fokus und erscheinen mit rotem Rahmen; die Statuszeile erklärt den Fehler. Bei Fenster-Fokusverlust wird der unbestätigte Entwurf verworfen. Pfeile, Home/End, Shift-Auswahl, Mausauswahl, Backspace/Delete, Ctrl/Cmd+A und Ctrl/Cmd+C/X/V werden unterstützt. Während der Eingabe gelangen Tastenkürzel nicht an die Map oder Shell. Import-/Layer-Dialoge verwenden denselben Textfeldkern.

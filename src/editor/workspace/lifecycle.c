@@ -41,8 +41,8 @@ static void snapshot_ui(UiSnapshot *s, bool load) {
         s->tool = app.tool;
         s->palette = app.palette_scroll;
         s->selected = app.selected;
-        s->flags = app.grid | (app.collision << 1) | (app.layers_open << 2) |
-                   (app.entity_open << 3) | (app.palette_open << 4);
+        s->flags =
+            app.grid | (app.collision << 1) | (app.layers_open << 2) | (app.palette_open << 4);
         UiTabs *tabs[] = {&app.left_tabs, &app.right_tabs};
         for (int k = 0; k < 2; k++) {
             s->counts[k] = tabs[k]->count;
@@ -75,7 +75,6 @@ static void snapshot_ui(UiSnapshot *s, bool load) {
         app.grid = (s->flags & 1) != 0;
         app.collision = (s->flags & 2) != 0;
         app.layers_open = (s->flags & 4) != 0;
-        app.entity_open = (s->flags & 8) != 0;
         app.palette_open = (s->flags & 16) != 0;
         UiTabs *tabs[] = {&app.left_tabs, &app.right_tabs};
         for (int k = 0; k < 2; k++) {
@@ -209,7 +208,7 @@ static void default_editor_ui(bool scripts) {
     snprintf(app.expanded[2], PE_PATH, "scripts");
     app.grid = true;
     app.collision = false;
-    app.layers_open = app.entity_open = app.palette_open = true;
+    app.layers_open = app.palette_open = true;
     app.tree_view = app.scene_view = app.inspector_view = app.info_view = app.map_view =
         app.tiles_view = (UiScroll){0};
     UiTab left[] = {{UI_EXPLORER_TAB, true, 0}, {UI_SCENE_TAB, true, 0}, {UI_MAP_TAB, true, 0}};

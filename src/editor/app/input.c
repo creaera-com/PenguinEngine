@@ -10,24 +10,6 @@ static void keyboard(SDL_KeyboardEvent *key) {
     SDL_Keycode k = key->key;
     bool ctrl = (key->mod & (SDL_KMOD_CTRL | SDL_KMOD_GUI)) != 0,
          shift = (key->mod & SDL_KMOD_SHIFT) != 0;
-    if (app.field != FIELD_NONE) {
-        if (k == SDLK_ESCAPE) {
-            editor_field_stop();
-        } else if (k == SDLK_RETURN) {
-            editor_field_apply();
-        } else if (k == SDLK_BACKSPACE) {
-            size_t n = strlen(app.input);
-            if (n) {
-                do {
-                    n--;
-                } while (n && ((unsigned char)app.input[n] & 0xc0) == 0x80);
-                app.input[n] = 0;
-            }
-        } else if (ctrl && k == SDLK_A) {
-            app.input[0] = 0;
-        }
-        return;
-    }
     if (app.request != REQUEST_NONE) {
         if (k == SDLK_ESCAPE) {
             app.request = REQUEST_NONE;
@@ -72,13 +54,16 @@ void editor_event(SDL_Event *e) {
         editor_draw();
     }
 
-    bool modal = app.field != FIELD_NONE || app.request != REQUEST_NONE;
+    bool modal = (app.field != FIELD_NONE && !app.field_inline) || app.request != REQUEST_NONE;
     if (e->type == SDL_EVENT_MOUSE_MOTION) {
         app.mx = e->motion.x;
         app.my = e->motion.y;
     } else if (e->type == SDL_EVENT_MOUSE_BUTTON_DOWN || e->type == SDL_EVENT_MOUSE_BUTTON_UP) {
         app.mx = e->button.x;
         app.my = e->button.y;
+    }
+    if (editor_field_event(e)) {
+        return;
     }
     if (editor_component_popup_event(e)) {
         return;
@@ -152,12 +137,6 @@ void editor_event(SDL_Event *e) {
         break;
     case SDL_EVENT_KEY_DOWN:
         keyboard(&e->key);
-        break;
-    case SDL_EVENT_TEXT_INPUT:
-        if (app.field != FIELD_NONE &&
-            strlen(app.input) + strlen(e->text.text) < sizeof app.input) {
-            strcat(app.input, e->text.text);
-        }
         break;
     case SDL_EVENT_DROP_FILE:
         if (!modal && !editor_edit_pending()) {

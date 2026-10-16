@@ -50,23 +50,21 @@ void editor_draw_inspector(void) {
     float y = app.panel_top + 18 - app.inspector_view.offset;
     ui_clip_push(&app.ui, panel);
     ui_apply_clip(app.renderer, &app.ui);
-    editor_disclosure(x, y, w, "Entity", &app.entity_open);
-    y += 32;
-    if (app.entity_open) {
-        PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
-        if (o) {
-            snprintf(label, sizeof label, "Entity #%u", o->stable_id);
-            editor_text(x, y, label, UI_TEXT);
-            y += 20;
-            if (!(o->mask & PE_TRANSFORM)) {
-                editor_text(x, y, "No Transform: no map position", UI_MUTED);
-                y += 22;
-            }
-            y = editor_draw_components(x, y + 4, w);
-        } else {
-            editor_text(x, y, "Select an entity in the view.", UI_MUTED);
-            y += 28;
+    PeObject *o = pe_entity_get(&app.map->scene, pe_entity_find(&app.map->scene, app.selected));
+    if (o) {
+        snprintf(label, sizeof label, "ID: %u", o->stable_id);
+        editor_text(x, y, label, UI_MUTED);
+        editor_draw_input(FIELD_NAME, o->name, o->name, (UiRect){x, y + 14, w, 25},
+                          !app.playing && !editor_edit_pending());
+        y += 45;
+        if (!(o->mask & PE_TRANSFORM)) {
+            editor_text(x, y, "No Transform: no map position", UI_MUTED);
+            y += 22;
         }
+        y = editor_draw_components(x, y + 4, w);
+    } else {
+        editor_text(x, y, "Select an entity in the view.", UI_MUTED);
+        y += 28;
     }
     app.inspector_view.content = y + app.inspector_view.offset - app.panel_top + 8;
     app.inspector_view.viewport = (float)(app.panel_area.h - 16);

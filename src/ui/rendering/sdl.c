@@ -343,3 +343,91 @@ void ui_apply_clip(SDL_Renderer *r, const UiContext *c) {
         SDL_SetRenderClipRect(r, NULL);
     }
 }
+
+void ui_draw_text_input(SDL_Renderer *r, SDL_FRect rect, const char *text, UiTextEdit *edit,
+                        bool focused, bool enabled, bool invalid, bool cursor_visible) {
+    ui_panel(r, rect, UI_CANVAS);
+    Uint32 border = invalid ? 0xc97565ffu : focused ? UI_ACCENT : UI_BORDER;
+    color(r, border);
+    SDL_RenderRect(r, &rect);
+    SDL_Rect previous;
+    bool clipped = SDL_RenderClipEnabled(r);
+    SDL_GetRenderClipRect(r, &previous);
+    SDL_Rect inner = {(int)ceilf(rect.x + 5), (int)ceilf(rect.y + 2), (int)fmaxf(0, rect.w - 10),
+                      (int)fmaxf(0, rect.h - 4)};
+    if (clipped) {
+        SDL_GetRectIntersection(&inner, &previous, &inner);
+    }
+    SDL_SetRenderClipRect(r, &inner);
+    float cursor = (float)ui_text_edit_column(text, edit->cursor) * UI_FONT_WIDTH;
+    float available = fmaxf(0, rect.w - 14);
+    if (focused) {
+        edit->scroll = fmaxf(0, fminf(edit->scroll, cursor));
+        if (cursor - edit->scroll > available) {
+            edit->scroll = cursor - available;
+        }
+    } else {
+        edit->scroll = 0;
+    }
+    float x = rect.x + 7 - edit->scroll, y = rect.y + (rect.h - UI_FONT_HEIGHT) * .5f;
+    if (focused && edit->cursor != edit->anchor) {
+        float anchor = (float)ui_text_edit_column(text, edit->anchor) * UI_FONT_WIDTH;
+        ui_panel(r,
+                 (SDL_FRect){x + fminf(cursor, anchor), y, fabsf(cursor - anchor), UI_FONT_HEIGHT},
+                 UI_HOVER);
+    }
+    ui_text(r, x, y, text, enabled ? UI_TEXT : UI_DISABLED);
+    if (focused && cursor_visible) {
+        color(r, UI_ACCENT);
+        SDL_RenderLine(r, x + cursor, rect.y + 4, x + cursor, rect.y + rect.h - 4);
+    }
+    SDL_SetRenderClipRect(r, clipped ? &previous : NULL);
+}
+
+static void tree_vertical(SDL_Renderer *r, float x, float y, float from, float to, float phase) {
+    for (int p = (int)ceilf(phase + from); p < (int)ceilf(phase + to); p++) {
+        if (p % 6 < 3) {
+            SDL_RenderPoint(r, floorf(x), floorf(y + p - phase));
+        }
+    }
+}
+
+void ui_draw_tree_guides(SDL_Renderer *r, const int *depths, int count, int row, UiRect area,
+                         float indent, float marker_center, float max_indent, float branch_end,
+                         Uint32 rgba) {
+    if (!depths || row < 0 || row >= count || indent <= 0 || area.w <= 0 || area.h <= 0) {
+        return;
+    }
+    /* Skip offscreen rows; the phase stays anchored to tree content while scrolling. */
+    SDL_Rect clip;
+    if (SDL_RenderClipEnabled(r)) {
+        SDL_GetRenderClipRect(r, &clip);
+        if (area.y + area.h <= clip.y || area.y >= clip.y + clip.h) {
+            return;
+        }
+    }
+    int depth = depths[row];
+    float center = area.h * .5f, phase = row * area.h;
+    color(r, rgba);
+    for (int level = 1; level < depth && (level - 1) * indent < max_indent; level++) {
+        if (ui_tree_continues(depths, count, row, level)) {
+            tree_vertical(r, area.x + (level - 1) * indent + marker_center, area.y, 0, area.h,
+                          phase);
+        }
+    }
+    if (depth > 0 && (depth - 1) * indent < max_indent) {
+        float x = area.x + (depth - 1) * indent + marker_center;
+        tree_vertical(r, x, area.y, 0,
+                      ui_tree_continues(depths, count, row, depth) ? area.h : center + 1, phase);
+        float end = fminf(branch_end, area.x + area.w);
+        for (int p = 0; p <= (int)floorf(end - x); p++) {
+            if (p % 6 < 3) {
+                SDL_RenderPoint(r, floorf(x + p), floorf(area.y + center));
+            }
+        }
+    }
+    if (row + 1 < count && depths[row + 1] > depth && depth * indent <= max_indent) {
+        tree_vertical(r, area.x + depth * indent + marker_center, area.y, center + 8, area.h,
+                      phase);
+    }
+}

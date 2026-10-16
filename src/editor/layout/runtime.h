@@ -35,8 +35,9 @@ void editor_draw_yaml_toolbar(SDL_FRect area);
  * @brief Zeichnet eine validierte YAML-Buttonliste in einem lokalen Werkzeugbereich.
  * @param list Geliehene Liste aus dem aktuellen Layout; NULL ist eine leere Liste.
  * @param area Bereich in Fensterpixeln; berücksichtigt den aktiven Clip.
+ * @param right_aligned Richtet jede umgebrochene Zeile rechts am Bereich aus.
  */
-void editor_draw_yaml_tool_list(const cJSON *list, SDL_FRect area);
+void editor_draw_yaml_tool_list(const cJSON *list, SDL_FRect area, bool right_aligned);
 /**
  * @brief Berechnet die Zeilenzahl einer lokalen YAML-Werkzeugliste.
  * @param list Geliehene Buttonliste; NULL ist eine leere Liste.

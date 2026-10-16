@@ -83,3 +83,5 @@ Parent-Daten sind Teil sämtlicher Scene-Snapshots. Editorwechsel und F6 sichern
 Zehn SDL-freie Unity-Tests decken Beziehungen, Positionen, Grenzen, Löschung, Undo/Redo, Kollision, Runtime-Reihenfolge und JSON-Kompatibilität ab. Weitere Loader- und Dokumenttests prüfen die YAML-Werkzeuge und das Auslagern der Hierarchie. Die GUI-Smokes bedienen den Baum über echte Editor-Ereignisse einschließlich Canvas-Drag, Reload und Editorwechsel. Sie ersetzen keinen manuellen Bedienungstest mit einem Desktop-Window-Manager.
 
 Der Inspector verwaltet die Komponenten der ausgewählten Entity; siehe [COMPONENTS.md](COMPONENTS.md).
+
+Entities besitzen unabhängig von Komponenten einen gespeicherten Anzeigenamen. Der Inspector bearbeitet ihn direkt; der Scene-Baum zeigt ihn an. Parent-Referenzen und Auswahl verwenden weiter stabile IDs. Das optionale JSON-Feld `name` ergänzt Szene v2 kompatibel; ohne Namen wird beim Laden ein Standardname erzeugt.

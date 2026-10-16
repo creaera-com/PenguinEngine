@@ -1,4 +1,4 @@
-add_library(penguin_ui STATIC core/core.c)
+add_library(penguin_ui STATIC core/core.c core/text_input.c)
 target_include_directories(penguin_ui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(penguin_ui PUBLIC c_std_17)
 if(NOT MSVC)

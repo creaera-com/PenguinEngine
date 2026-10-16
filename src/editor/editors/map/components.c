@@ -11,7 +11,6 @@ static const struct {
 
 void editor_inspect_entity(void) {
     app.right_tabs.selected = UI_INSPECTOR_TAB;
-    app.entity_open = true;
     app.inspector_view.offset = 0;
     app.map->component_add_open = false;
     app.map->reveal_selected = true;
@@ -45,16 +44,27 @@ bool editor_component_change(uint32_t bit, bool add) {
     return true;
 }
 
+static UiRect property_value(float x, float y, float w, const char *name) {
+    UiPropertyRow row = ui_property_row((UiRect){x, y, w, 25}, .45f, 8);
+    ui_clip_push(&app.ui, row.label);
+    ui_apply_clip(app.renderer, &app.ui);
+    editor_text(row.label.x, row.label.y + 10, name, UI_MUTED);
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
+    return row.value;
+}
+
+static void property_field(float x, float y, float w, const char *name, const char *value,
+                           const char *input, Field field, bool enabled) {
+    UiRect cell = property_value(x, y, w, name);
+    editor_draw_input(field, value, input, cell, enabled);
+}
+
 static void number_field(float x, float y, float w, const char *name, float value, Field field,
                          bool enabled) {
-    char label[80], input[64];
-    snprintf(label, sizeof label, "%s: %.2f", name, value);
-    app.widget_scope ^= (UiId)field * 16777619u;
-    if (button(x, y, w, label, false, enabled)) {
-        snprintf(input, sizeof input, "%.2f", value);
-        editor_field_start(field, input);
-    }
-    app.widget_scope ^= (UiId)field * 16777619u;
+    char input[64];
+    snprintf(input, sizeof input, "%.2f", value);
+    property_field(x, y, w, name, input, input, field, enabled);
 }
 
 static float component_card(PeEntity entity, int index, float x, float y, float w, bool enabled) {
@@ -62,7 +72,7 @@ static float component_card(PeEntity entity, int index, float x, float y, float 
     uint32_t bit = components[index].bit;
     app.widget_scope = ui_id("component") ^ o->stable_id * 31u ^ bit;
     bool open = !(app.map->component_closed[entity.index] & bit);
-    UiRect header = {x + 4, y + 4, fmaxf(0, w - 40), 25};
+    UiRect header = {x + 4, y + 4, fmaxf(0, w - 26), 25};
     ui_disclosure(&app.ui, app.widget_scope, header, &open, !editor_edit_pending());
     if (open) {
         app.map->component_closed[entity.index] &= ~bit;
@@ -72,7 +82,7 @@ static float component_card(PeEntity entity, int index, float x, float y, float 
     float content = bit == PE_TRANSFORM ? 4 * 29.f + (o->parent_id ? 22 : 0)
                     : bit == PE_BODY    ? 2 * 29.f
                     : bit == PE_SPRITE  ? 29
-                                        : 24;
+                                        : 2 * 29.f;
     float height = open ? 34 + content + 8 : 33;
     editor_box((SDL_FRect){x, y, w, height}, editor_widget_background());
     if (ui_hovered(&app.ui, header)) {
@@ -85,7 +95,19 @@ static float component_card(PeEntity entity, int index, float x, float y, float 
     const char *hint = removable        ? "Remove component"
                        : bit == PE_BODY ? "Remove Player first"
                                         : "Required by components or hierarchy";
-    if (icon_button(x + w - 32, y + 4, 28, ICON_CLOSE, "", hint, false, enabled && removable)) {
+    UiRect remove = {x + w - 18, y + 4, 14, 12.5f};
+    bool can_remove = enabled && removable;
+    bool hover = ui_hovered(&app.ui, remove);
+    editor_register_ui_hit(remove);
+    editor_box((SDL_FRect){remove.x, remove.y, remove.w, remove.h}, !can_remove ? UI_PANEL
+                                                                    : hover     ? UI_HOVER
+                                                                                : UI_SURFACE);
+    ui_icon(app.renderer, ICON_CLOSE, remove.x + 3, remove.y + 2.25f, 8,
+            can_remove ? UI_TEXT : UI_DISABLED);
+    if (hover) {
+        editor_tooltip = hint;
+    }
+    if (ui_button(&app.ui, app.widget_scope ^ ui_id("remove_component"), remove, can_remove)) {
         editor_component_change(bit, false);
         return y + height + 6;
     }
@@ -94,8 +116,9 @@ static float component_card(PeEntity entity, int index, float x, float y, float 
         if (bit == PE_TRANSFORM) {
             if (o->parent_id) {
                 char label[64];
-                snprintf(label, sizeof label, "Parent: #%u (local)", o->parent_id);
-                editor_text(fx, fy + 8, label, UI_MUTED);
+                snprintf(label, sizeof label, "#%u (local)", o->parent_id);
+                UiRect cell = property_value(fx, fy, fw, "Parent");
+                editor_text(cell.x + 9, cell.y + 10, label, UI_MUTED);
                 fy += 22;
             }
             number_field(fx, fy, fw, o->parent_id ? "Local X" : "X", o->x, FIELD_X, enabled);
@@ -104,16 +127,17 @@ static float component_card(PeEntity entity, int index, float x, float y, float 
             number_field(fx, fy + 87, fw, "Height", o->h, FIELD_H, enabled);
         } else if (bit == PE_SPRITE) {
             char label[64], color[16];
-            snprintf(label, sizeof label, "Color: #%08X", (unsigned)o->color);
-            if (button(fx, fy, fw, label, false, enabled)) {
-                snprintf(color, sizeof color, "%08X", (unsigned)o->color);
-                editor_field_start(FIELD_COLOR, color);
-            }
+            snprintf(label, sizeof label, "#%08X", (unsigned)o->color);
+            snprintf(color, sizeof color, "%08X", (unsigned)o->color);
+            property_field(fx, fy, fw, "Color", label, color, FIELD_COLOR, enabled);
         } else if (bit == PE_BODY) {
             number_field(fx, fy, fw, "Velocity X", o->vx, FIELD_VX, enabled);
             number_field(fx, fy + 29, fw, "Velocity Y", o->vy, FIELD_VY, enabled);
         } else {
-            editor_text(fx, fy + 8, "WASD / arrows | 90 px/s", UI_MUTED);
+            UiRect cell = property_value(fx, fy, fw, "Controls");
+            editor_text(cell.x + 9, cell.y + 10, "WASD/arrows", UI_TEXT);
+            cell = property_value(fx, fy + 29, fw, "Speed");
+            editor_text(cell.x + 9, cell.y + 10, "90 px/s", UI_TEXT);
         }
     }
     return y + height + 6;
@@ -131,9 +155,11 @@ float editor_draw_components(float x, float y, float width) {
         app.map->component_add_open = false;
     }
     bool enabled = !app.playing && !editor_edit_pending();
-    app.map->component_anchor = (SDL_FRect){x, y, width, 25};
+    float button_width = fminf(width, ui_tab_content_width(ICON_PLUS, "Add component") + 20);
+    float button_x = x + width - button_width;
+    app.map->component_anchor = (SDL_FRect){button_x, y, button_width, 25};
     app.map->component_anchor_seen = true;
-    if (icon_button(x, y, width, ICON_PLUS, "Add component", "Choose a component",
+    if (icon_button(button_x, y, button_width, ICON_PLUS, "Add component", "Choose a component",
                     app.map->component_add_open, enabled)) {
         app.map->component_add_open = !app.map->component_add_open;
         app.map->component_owner = o->stable_id;

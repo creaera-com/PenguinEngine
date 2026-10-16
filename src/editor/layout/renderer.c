@@ -242,27 +242,44 @@ int editor_yaml_tool_rows(const cJSON *list, float width) {
 
 void editor_draw_yaml_toolbar(SDL_FRect area) {
     const cJSON *list = pe_ui_get(app.active_layout->root, "toolbar");
-    editor_draw_yaml_tool_list(list, area);
+    editor_draw_yaml_tool_list(list, area, false);
 }
 
-void editor_draw_yaml_tool_list(const cJSON *list, SDL_FRect area) {
-    float x = area.x + 8, y = area.y + 6;
-    for (const cJSON *n = list ? list->child : NULL; n; n = n->next) {
-        if (!editor_yaml_boolean(pe_ui_get(n, "visible"), true)) {
-            continue;
+void editor_draw_yaml_tool_list(const cJSON *list, SDL_FRect area, bool right_aligned) {
+    const cJSON *start = list ? list->child : NULL;
+    float available = fmaxf(32, area.w - 16), y = area.y + 6;
+    while (start) {
+        float used = 0;
+        const cJSON *end = start;
+        for (; end; end = end->next) {
+            if (!editor_yaml_boolean(pe_ui_get(end, "visible"), true)) {
+                continue;
+            }
+            float w = !strcmp(pe_ui_string(end, "type", ""), "separator")
+                          ? 16
+                          : fminf(yaml_button_width(end), available);
+            float next = used + (used > 0 ? 6 : 0) + w;
+            if (used > 0 && next > available) {
+                break;
+            }
+            used = next;
         }
-        bool separator = !strcmp(pe_ui_string(n, "type", ""), "separator");
-        float w = separator ? 16 : fminf(yaml_button_width(n), fmaxf(32, area.w - 16));
-        if (x + w > area.x + area.w - 8) {
-            x = area.x + 8;
-            y += 32;
+        float x = area.x + (right_aligned ? area.w - 8 - used : 8);
+        for (const cJSON *n = start; n != end; n = n->next) {
+            if (!editor_yaml_boolean(pe_ui_get(n, "visible"), true)) {
+                continue;
+            }
+            bool separator = !strcmp(pe_ui_string(n, "type", ""), "separator");
+            float w = separator ? 16 : fminf(yaml_button_width(n), available);
+            if (separator) {
+                editor_box((SDL_FRect){x + 7, y + 4, 1, 17}, UI_BORDER);
+            } else {
+                yaml_button(n, (SDL_FRect){x, y, w, 25});
+            }
+            x += w + 6;
         }
-        if (separator) {
-            editor_box((SDL_FRect){x + 7, y + 4, 1, 17}, UI_BORDER);
-        } else {
-            yaml_button(n, (SDL_FRect){x, y, w, 25});
-        }
-        x += w + 6;
+        start = end;
+        y += 32;
     }
 }
 
@@ -539,7 +556,7 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
         } else if (!strcmp(type, "entity_tree")) {
             const cJSON *tools = pe_ui_get(n, "tools");
             if (tools) {
-                editor_draw_yaml_tool_list(tools, area);
+                editor_draw_yaml_tool_list(tools, area, true);
                 float height = editor_yaml_tool_rows(tools, area.w) * 32.f + 6;
                 app.panel_area.y += height;
                 app.panel_area.h = fmaxf(0, app.panel_area.h - height);

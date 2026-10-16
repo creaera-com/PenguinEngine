@@ -110,12 +110,17 @@ void editor_draw_tree(void) {
     UiRect tree_clip = {nodes.x + 4, nodes.y + 4, fmaxf(0, nodes.w - 20), app.tree_view.viewport};
     ui_clip_push(&app.ui, tree_clip);
     ui_apply_clip(app.renderer, &app.ui);
+    int depths[TREE_MAX];
+    for (int i = 0; i < app.tree_count; i++) {
+        depths[i] = app.tree[i].depth;
+    }
     int visible = (int)(app.tree_view.viewport / 23) + 2;
     for (int i = app.tree_scroll; i < app.tree_count && i < app.tree_scroll + visible; i++) {
         TreeRow row = app.tree[i];
         float y = tree_clip.y + i * 23 - app.tree_view.offset;
         char label[128];
         snprintf(label, sizeof label, "%.20s", row.name);
+        editor_box((SDL_FRect){tree_clip.x, y, tree_clip.w, 23}, editor_tree_row_background(i));
         SDL_FRect r = {tree_clip.x, y, tree_clip.w, 22};
         bool hover = ui_hovered(&app.ui, (UiRect){r.x, r.y, r.w, r.h});
         if (hover) {
@@ -132,6 +137,9 @@ void editor_draw_tree(void) {
                                                   : ICON_FILE,
                 row_x + 16, y + 3, 16, row.directory ? UI_ACCENT : UI_MUTED);
         editor_text(row_x + 40, y + 7, label, UI_TEXT);
+        ui_draw_tree_guides(app.renderer, depths, app.tree_count, i,
+                            (UiRect){tree_clip.x + 2, y, tree_clip.w - 2, 23}, 12, 6, 8 * 12,
+                            row_x + (row.directory ? -2 : 14), UI_DISABLED);
         if (app.click && hover && !app.playing) {
             if (row.directory) {
                 tree_toggle(row.path);

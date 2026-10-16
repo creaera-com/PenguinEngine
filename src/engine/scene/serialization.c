@@ -124,6 +124,17 @@ bool pe_scene_load(PeScene *scene, const char *path, char *error, size_t size) {
         }
         PeObject *o = pe_entity_get(s, pe_entity_create(s, (uint32_t)mask));
         o->stable_id = (uint32_t)id;
+        cJSON *name = cJSON_GetObjectItemCaseSensitive(obj, "name");
+        if (name) {
+            if (!cJSON_IsString(name) || !pe_entity_name_valid(name->valuestring)) {
+                ok = false;
+                goto done;
+            }
+            pe_entity_set_name(s, (PeEntity){(uint32_t)(o - s->objects), o->generation},
+                               name->valuestring);
+        } else {
+            snprintf(o->name, sizeof o->name, "%s %u", mask & PE_PLAYER ? "Player" : "Entity", id);
+        }
         o->x = x;
         o->y = y;
         o->w = ow;
@@ -165,6 +176,9 @@ bool pe_scene_save(const PeScene *s, const char *path, char *error, size_t size)
     }
     for (int i = 0; i < PE_ENTITIES; i++) {
         const PeObject *o = &s->objects[i];
+        if (o->alive && !pe_entity_name_valid(o->name)) {
+            return pe_json_fail(error, size, "Cannot save invalid entity name");
+        }
         if (o->alive && (!isfinite(o->vx) || !isfinite(o->vy) || fabsf(o->vx) > 1000000 ||
                          fabsf(o->vy) > 1000000)) {
             return pe_json_fail(error, size, "Cannot save invalid entity velocity");
@@ -208,6 +222,7 @@ bool pe_scene_save(const PeScene *s, const char *path, char *error, size_t size)
         cJSON *obj = cJSON_CreateObject();
         cJSON_AddItemToArray(objects, obj);
         cJSON_AddNumberToObject(obj, "id", o->stable_id);
+        cJSON_AddStringToObject(obj, "name", o->name);
         cJSON_AddNumberToObject(obj, "parent", o->parent_id);
         cJSON_AddNumberToObject(obj, "mask", o->mask);
         cJSON_AddNumberToObject(obj, "x", o->x);

@@ -17,8 +17,9 @@ void editor_draw_tiles_panel(void) {
     snprintf(label, sizeof label, "%.26s", app.map->scene.tileset);
     editor_text(x, y, label, UI_TEXT);
     y += 24;
-    if (icon_button(x, y, w, ICON_IMPORT, "Import PNG", "Import or replace tileset", false,
-                    enabled)) {
+    float import_width = fminf(w, ui_tab_content_width(ICON_IMPORT, "Import PNG"));
+    if (icon_button(x + w - import_width, y, import_width, ICON_IMPORT, "Import PNG",
+                    "Import or replace tileset", false, enabled)) {
         editor_field_start(FIELD_IMPORT, "");
     }
     y += 32;

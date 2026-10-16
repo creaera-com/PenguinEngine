@@ -300,7 +300,7 @@ Die Fensterlogik liegt in `src/editor/app/window.c`; die UI-Lib stellt die Icons
 
 ## Werkzeuge des Scene-Graphs
 
-Der spezialisierte Map-Knoten `entity_tree` rendert den aufklappbaren Entity-Baum. Seine optionale `tools`-Liste enthält bis zu vier Buttons. Sie werden oberhalb des Baums gezeichnet und bei langen Labels oder schmalen Panels umgebrochen. IDs müssen wie alle Widget-IDs eindeutig bleiben.
+Der spezialisierte Map-Knoten `entity_tree` rendert den aufklappbaren Entity-Baum. Seine optionale `tools`-Liste enthält bis zu vier Buttons. Sie werden oberhalb des Baums rechtsbündig gezeichnet und bei langen Labels oder schmalen Panels umgebrochen. Jede Zeile bleibt dabei rechtsbündig; die Toolbar des mittleren Editors bleibt linksbündig. IDs müssen wie alle Widget-IDs eindeutig bleiben.
 
 ```yaml
 content:
@@ -321,7 +321,7 @@ Wurzel-Erstellen benötigt keine Auswahl. Geschwister, Kind und Löschen benöti
 
 Der vorhandene spezialisierte Knoten `{type: inspector, id: inspector, binding: selection.active}` zeigt die Komponenten der ausgewählten Entity. Die Inhalte werden aus ihrer ECS-Maske und der C-Komponentenregistrierung erzeugt. Die YAML legt weiterhin fest, in welchem Panel der Inspector liegt; das konkrete Transform-/Sprite-/Body-/Player-Formular wird im Map-Modul gepflegt. Es gibt dafür noch keine beliebigen benutzerdefinierten Komponentenfelder aus YAML.
 
-Jede Komponenten-Karte ist einzeln klappbar, verwendet denselben aufgehellten Theme-Hintergrund wie der Dateibaum und hat einen Entfernen-Button. `Add component` öffnet ein überlagerndes Dropdown mit allen registrierten Komponenten; bereits vorhandene Einträge sind abgehakt und deaktiviert. Das Menü unterstützt Maus, Pfeiltasten, Enter und Escape. Entity-Erstellen und -Löschen liegen im Scene-Tab. Abhängigkeiten werden beim Hinzufügen gemeinsam ergänzt; Entfernen ist bei verletzten Abhängigkeiten deaktiviert und hat einen erklärenden Tooltip. Dokumentänderungen nutzen den Undo-Verlauf, die Klappzustände werden als Navigation im Map-Checkpoint gesichert. Siehe [COMPONENTS.md](COMPONENTS.md).
+Der Inspector beginnt mit der festen Entity-ID und dem direkt bearbeitbaren Namen darunter, ohne äußeren Klappbereich. Namen werden im Szenendokument gespeichert und im Scene-Baum angezeigt. Der Button `Add component` ist in Inhaltsbreite rechtsbündig. Die Wertefelder unterstützen direkte einzeilige Texteingabe mit Fokusrahmen und Cursor. Enter oder Fokuswechsel bestätigt, Escape verwirft; ungültige Werte bleiben zur Korrektur aktiv. Der Inspector verwendet die gemeinsamen `ui_text_edit_*`-/`ui_draw_text_input`-Bausteine. Die Eigenschaften einer Komponenten-Karte verwenden zwei Spalten (Bezeichnung/Wert), berechnet durch `ui_property_row` aus der C-UI-Bibliothek. Die Formulargeometrie gehört zum spezialisierten Inspector-Adapter; ein allgemeiner YAML-Grid-Knoten wird dafür nicht benötigt. Jede Komponenten-Karte ist einzeln klappbar, verwendet denselben aufgehellten Theme-Hintergrund wie der Dateibaum und hat einen Entfernen-Button. `Add component` öffnet ein überlagerndes Dropdown mit allen registrierten Komponenten; bereits vorhandene Einträge sind abgehakt und deaktiviert. Das Menü unterstützt Maus, Pfeiltasten, Enter und Escape. Entity-Erstellen und -Löschen liegen im Scene-Tab. Abhängigkeiten werden beim Hinzufügen gemeinsam ergänzt; Entfernen ist bei verletzten Abhängigkeiten deaktiviert und hat einen erklärenden Tooltip. Dokumentänderungen nutzen den Undo-Verlauf, die Klappzustände werden als Navigation im Map-Checkpoint gesichert. Siehe [COMPONENTS.md](COMPONENTS.md).
 
 
 ## Getrennte Map-, Tiles- und Entity-Panels
@@ -346,3 +346,7 @@ Beide Adapter sind Map-spezifisch und dürfen wie die anderen spezialisierten Wi
 Die Entity-Auswahl öffnet den Inspector und lässt den Layer- und Palettenzustand unberührt. Im Script-Editor werden diese Map-spezifischen Tabs nicht geladen. `--map-tools` startet direkt mit Map links und Tiles rechts; `--scripts` hat Vorrang. Die Engine unterstützt weiterhin genau ein Tileset pro Szene; der neue Tab führt noch keine Mehrfach-Tilesets ein.
 
 ![Map und Tiles](images/map-tiles.png)
+
+Explorer und Scene-Baum verwenden dezente alternierende Zeilenfarben aus der Theme-Surface. Die Parität folgt dem Index in der aufgeklappten Liste und bleibt beim Scrollen stabil; Hover und Auswahl überlagern die Zeilenfarbe. Dafür sind keine zusätzlichen YAML-Eigenschaften nötig.
+
+Beide Bäume zeichnen zusätzlich gestrichelte Hierarchielinien. Grundlage ist die aufgeklappte Preorder-Liste; eingeklappte Kinder erzeugen keine Verbindung. Linien enden beim letzten Kind und werden am Viewport abgeschnitten. Der Scene-Baum rückt pro Ebene 20 Pixel ein, mit begrenzter Einrückung bei tiefen Hierarchien. Dafür nutzt der Adapter die gemeinsamen C-UI-Helfer; zusätzliche YAML-Knoten sind nicht nötig.
