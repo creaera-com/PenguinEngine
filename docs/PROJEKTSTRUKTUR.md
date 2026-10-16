@@ -70,7 +70,7 @@ src/
 | Fehler beim Editorwechsel untersuchen | `src/editor/workspace/lifecycle.c`, danach Editor-Checkpoint |
 | Terminal-Plattformport ergänzen | `src/platform/terminal/process.h` |
 
-Die [Architektur-Anleitung](ARCHITEKTUR.md) erklärt Abhängigkeiten, Besitzregeln und konkrete Erweiterungsabläufe. Die [YAML-Doku](UI_YAML.md) beschreibt die Oberfläche.
+Der [Programmablauf vom Start bis zum ersten Editor](PROGRAMMABLAUF.md) führt Schritt für Schritt durch den erfolgreichen Start. Die [Architektur-Anleitung](ARCHITEKTUR.md) erklärt Abhängigkeiten, Besitzregeln und konkrete Erweiterungsabläufe. Die [YAML-Doku](UI_YAML.md) beschreibt die Oberfläche.
 
 ## CMake und CLion
 
