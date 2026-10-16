@@ -50,10 +50,10 @@ window_controls:
   - {type: button, id: window_close, icon: close, tooltip: "Schließen", action: window.close}
 
 editors:
-  - {id: map, title: "Map", icon: grid, image: "icons/grid.png", image_padding: 4, module: map, file: editors/map.yaml}
-  - {id: scripts, title: "Scripts", icon: file, module: scripts, file: editors/scripts.yaml}
+  - {id: map, title: "Map", icon: grid, image: "icons/Icon-Editor-Map.png", image_padding: 2, module: map, file: editors/map.yaml}
+  - {id: scripts, title: "Scripts", icon: file, image: "icons/Icon-Editor-Code.png", image_padding: 2, module: scripts, file: editors/scripts.yaml}
 
-  - {id: vector, title: "Vector Art", icon: edit, module: vector, file: editors/vector.yaml, separator_before: true}
+  - {id: vector, title: "Vector Art", icon: edit, image: "icons/Icon-Editor-Vector.png", image_padding: 2, module: vector, file: editors/vector.yaml, separator_before: true}
 
 editor_policy: unload_on_leave
 
