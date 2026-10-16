@@ -89,6 +89,19 @@ float ui_text_width(const char *text);
  */
 bool ui_text(SDL_Renderer *renderer, float x, float y, const char *text, Uint32 color);
 
+/**
+ * @brief Zeichnet Atlastext mit einem positiven, endlichen Größenfaktor.
+ * @param renderer Geliehener SDL-Renderer.
+ * @param x Horizontale Position in Bildschirm-Pixeln.
+ * @param y Vertikale Position in Bildschirm-Pixeln.
+ * @param text Nullterminierter UTF-8-Text.
+ * @param color Gepacktes RGBA.
+ * @param scale Größenfaktor; 1 entspricht ui_text, 0.75 einer kompakten Beschriftung.
+ * @return false bei ungültigen Argumenten oder einem SDL-Renderfehler.
+ */
+bool ui_text_scaled(SDL_Renderer *renderer, float x, float y, const char *text, Uint32 color,
+                    float scale);
+
 /** @brief UI-Palette als gepackte RGBA-Werte im Format 0xRRGGBBAA. */
 typedef struct {
     Uint32 canvas;   ///< Hintergrundfarbe der Zeichenfläche als RGBA.

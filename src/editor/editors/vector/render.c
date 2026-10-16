@@ -95,24 +95,24 @@ static void ruler_axis(const VeBoard *board, SDL_FRect strip, float step, int ax
         }
         float position = screen + value * v->view.zoom;
         bool major = i % 5 == 0;
-        editor_draw_color(UI_MUTED);
+        editor_draw_color(major ? UI_MUTED : UI_DISABLED);
         if (axis) {
-            SDL_RenderLine(app.renderer, strip.x + strip.w - (major ? 10 : 5), position,
+            SDL_RenderLine(app.renderer, strip.x + strip.w - (major ? 5 : 2), position,
                            strip.x + strip.w, position);
         } else {
-            SDL_RenderLine(app.renderer, position, strip.y + strip.h - (major ? 10 : 5), position,
+            SDL_RenderLine(app.renderer, position, strip.y + strip.h - (major ? 5 : 2), position,
                            strip.y + strip.h);
         }
         if (major) {
             char text[32];
             snprintf(text, sizeof text, "%.0f", value);
-            float label_width = ui_text_width(text);
+            float label_width = ui_text_width(text) * .75f;
             if (label_width + 4 <= strip.w || axis) {
                 float x = axis ? strip.x + 2
                                : fmaxf(strip.x + 2,
                                        fminf(position + 3, strip.x + strip.w - label_width - 2));
-                float y = axis ? fminf(position + 8, strip.y + strip.h - 12) : strip.y + 8;
-                editor_text(x, y, text, UI_MUTED);
+                float y = axis ? fminf(position + 2, strip.y + strip.h - 12) : strip.y + 1;
+                ui_text_scaled(app.renderer, x, y, text, UI_MUTED, .75f);
             }
         }
     }
@@ -125,7 +125,7 @@ static void rulers(const VeBoard *board, bool active) {
     VePoint p = point(board->x, board->y);
     char largest[32];
     snprintf(largest, sizeof largest, "%.0f", board->h);
-    float width = fmaxf(30, ui_text_width(largest) + 8), height = 22;
+    float width = fmaxf(20, ui_text_width(largest) * .75f + 4), height = 16;
     float steps[] = {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000};
     float step = 5000;
     for (size_t i = 0; i < sizeof steps / sizeof *steps; i++) {
@@ -136,8 +136,6 @@ static void rulers(const VeBoard *board, bool active) {
     }
     ruler_axis(board, (SDL_FRect){p.x, p.y - height, board->w * v->view.zoom, height}, step, 0);
     ruler_axis(board, (SDL_FRect){p.x - width, p.y, width, board->h * v->view.zoom}, step, 1);
-    editor_box((SDL_FRect){p.x - width, p.y - height, width, height}, UI_PANEL);
-    editor_text(p.x - width + 3, p.y - height + 9, "px", active ? UI_ACCENT : UI_MUTED);
     editor_text(p.x, p.y - height - 10, board->name, active ? UI_ACCENT : UI_MUTED);
 }
 

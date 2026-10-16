@@ -40,7 +40,11 @@ static SDL_Texture *font_texture(SDL_Renderer *r) {
 }
 
 bool ui_text(SDL_Renderer *r, float x, float y, const char *text, Uint32 rgba) {
-    if (!r || !text) {
+    return ui_text_scaled(r, x, y, text, rgba, 1);
+}
+
+bool ui_text_scaled(SDL_Renderer *r, float x, float y, const char *text, Uint32 rgba, float scale) {
+    if (!r || !text || !isfinite(scale) || scale <= 0) {
         return false;
     }
 
@@ -55,14 +59,14 @@ bool ui_text(SDL_Renderer *r, float x, float y, const char *text, Uint32 rgba) {
         Uint32 code = SDL_StepUTF8(&text, NULL);
         if (code == '\n') {
             x = origin;
-            y += UI_FONT_HEIGHT;
+            y += UI_FONT_HEIGHT * scale;
             continue;
         }
         if (code == '\r') {
             continue;
         }
         if (code == '\t') {
-            x += UI_FONT_WIDTH * 4;
+            x += UI_FONT_WIDTH * 4 * scale;
             continue;
         }
         if (code < 32 || (code >= 127 && code < 160) || code > 255) {
@@ -70,11 +74,11 @@ bool ui_text(SDL_Renderer *r, float x, float y, const char *text, Uint32 rgba) {
         }
         SDL_FRect src = {(float)(code % 16 * UI_FONT_WIDTH), (float)(code / 16 * UI_FONT_HEIGHT),
                          UI_FONT_WIDTH, UI_FONT_HEIGHT};
-        SDL_FRect dst = {x, y, UI_FONT_WIDTH, UI_FONT_HEIGHT};
+        SDL_FRect dst = {x, y, UI_FONT_WIDTH * scale, UI_FONT_HEIGHT * scale};
         if (!SDL_RenderTexture(r, texture, &src, &dst)) {
             return false;
         }
-        x += UI_FONT_WIDTH;
+        x += UI_FONT_WIDTH * scale;
     }
 
     return true;
