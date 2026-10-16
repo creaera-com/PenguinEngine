@@ -33,10 +33,13 @@ bool vector_action(const char *action) {
     }
     if (!strcmp(name, "fit")) {
         VeBoard *b = &v->document.boards[v->view.board];
-        v->view.zoom =
-            fminf(fmaxf(.02f, (v->canvas.w - 80) / b->w), fmaxf(.02f, (v->canvas.h - 80) / b->h));
+        char label[32];
+        snprintf(label, sizeof label, "%.0f", b->h);
+        float margin = fmaxf(40, ui_text_width(label) + 20);
+        v->view.zoom = fminf(fmaxf(.02f, (v->canvas.w - 2 * margin) / b->w),
+                             fmaxf(.02f, (v->canvas.h - 80) / b->h));
         v->view.zoom = fminf(32, v->view.zoom);
-        v->view.x = b->x - 40 / v->view.zoom;
+        v->view.x = b->x - margin / v->view.zoom;
         v->view.y = b->y - 40 / v->view.zoom;
         v->render_dirty = true;
         return true;

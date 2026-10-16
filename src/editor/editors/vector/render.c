@@ -71,11 +71,61 @@ static bool raster(void) {
     return true;
 }
 
-static void rulers(SDL_FRect full) {
+static void ruler_axis(const VeBoard *board, SDL_FRect strip, float step, int axis) {
     VectorEditor *v = app.vector;
-    VeBoard *b = &v->document.boards[v->view.board];
-    editor_box((SDL_FRect){full.x, full.y, full.w, 22}, UI_SURFACE);
-    editor_box((SDL_FRect){full.x, full.y, 22, full.h}, UI_SURFACE);
+    if (strip.x + strip.w < v->canvas.x || strip.y + strip.h < v->canvas.y ||
+        strip.x > v->canvas.x + v->canvas.w || strip.y > v->canvas.y + v->canvas.h) {
+        return;
+    }
+    editor_box(strip, UI_SURFACE);
+    ui_clip_push(&app.ui, (UiRect){strip.x, strip.y, strip.w, strip.h});
+    ui_apply_clip(app.renderer, &app.ui);
+    float length = axis ? board->h : board->w;
+    VePoint origin = point(board->x, board->y);
+    float screen = axis ? origin.y : origin.x;
+    float visible = axis ? v->canvas.y : v->canvas.x;
+    float extent = axis ? v->canvas.h : v->canvas.w;
+    float begin = fmaxf(0, (visible - screen) / v->view.zoom);
+    float end = fminf(length, (visible + extent - screen) / v->view.zoom);
+    int start = (int)floorf(begin / step), last = (int)ceilf(end / step);
+    for (int i = start; i <= last && i - start < 2000; i++) {
+        float value = i * step;
+        if (value < 0 || value > length) {
+            continue;
+        }
+        float position = screen + value * v->view.zoom;
+        bool major = i % 5 == 0;
+        editor_draw_color(UI_MUTED);
+        if (axis) {
+            SDL_RenderLine(app.renderer, strip.x + strip.w - (major ? 10 : 5), position,
+                           strip.x + strip.w, position);
+        } else {
+            SDL_RenderLine(app.renderer, position, strip.y + strip.h - (major ? 10 : 5), position,
+                           strip.y + strip.h);
+        }
+        if (major) {
+            char text[32];
+            snprintf(text, sizeof text, "%.0f", value);
+            float label_width = ui_text_width(text);
+            if (label_width + 4 <= strip.w || axis) {
+                float x = axis ? strip.x + 2
+                               : fmaxf(strip.x + 2,
+                                       fminf(position + 3, strip.x + strip.w - label_width - 2));
+                float y = axis ? fminf(position + 8, strip.y + strip.h - 12) : strip.y + 8;
+                editor_text(x, y, text, UI_MUTED);
+            }
+        }
+    }
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
+}
+
+static void rulers(const VeBoard *board, bool active) {
+    VectorEditor *v = app.vector;
+    VePoint p = point(board->x, board->y);
+    char largest[32];
+    snprintf(largest, sizeof largest, "%.0f", board->h);
+    float width = fmaxf(30, ui_text_width(largest) + 8), height = 22;
     float steps[] = {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000};
     float step = 5000;
     for (size_t i = 0; i < sizeof steps / sizeof *steps; i++) {
@@ -84,40 +134,18 @@ static void rulers(SDL_FRect full) {
             break;
         }
     }
-    float x0 = v->view.x - b->x, y0 = v->view.y - b->y;
-    for (int axis = 0; axis < 2; axis++) {
-        float begin = axis ? y0 : x0, extent = (axis ? v->canvas.h : v->canvas.w) / v->view.zoom;
-        int start = (int)floorf(begin / step), end = (int)ceilf((begin + extent) / step);
-        for (int i = start; i <= end && i - start < 2000; i++) {
-            float value = i * step;
-            VePoint p = point(axis ? b->x : b->x + value, axis ? b->y + value : b->y);
-            bool major = i % 5 == 0;
-            editor_draw_color(UI_MUTED);
-            if (axis) {
-                SDL_RenderLine(app.renderer, full.x + 22 - (major ? 10 : 5), p.y, full.x + 22, p.y);
-            } else {
-                SDL_RenderLine(app.renderer, p.x, full.y + 22 - (major ? 10 : 5), p.x, full.y + 22);
-            }
-            if (major) {
-                char text[32];
-                snprintf(text, sizeof text, "%.0f", value);
-                if (axis) {
-                    editor_text(full.x + 2, p.y + 7, text, UI_MUTED);
-                } else {
-                    editor_text(p.x + 3, full.y + 8, text, UI_MUTED);
-                }
-            }
-        }
-    }
-    editor_box((SDL_FRect){full.x, full.y, 22, 22}, UI_PANEL);
-    editor_text(full.x + 2, full.y + 9, "px", UI_ACCENT);
+    ruler_axis(board, (SDL_FRect){p.x, p.y - height, board->w * v->view.zoom, height}, step, 0);
+    ruler_axis(board, (SDL_FRect){p.x - width, p.y, width, board->h * v->view.zoom}, step, 1);
+    editor_box((SDL_FRect){p.x - width, p.y - height, width, height}, UI_PANEL);
+    editor_text(p.x - width + 3, p.y - height + 9, "px", active ? UI_ACCENT : UI_MUTED);
+    editor_text(p.x, p.y - height - 10, board->name, active ? UI_ACCENT : UI_MUTED);
 }
 
 void vector_draw_canvas(void) {
     VectorEditor *v = app.vector;
     SDL_FRect full = app.viewport;
     editor_box(full, 0x383838ff);
-    v->canvas = (SDL_FRect){full.x + 22, full.y + 22, fmaxf(0, full.w - 22), fmaxf(0, full.h - 22)};
+    v->canvas = full;
     UiRect clip = {v->canvas.x, v->canvas.y, v->canvas.w, v->canvas.h};
     ui_clip_push(&app.ui, clip);
     ui_apply_clip(app.renderer, &app.ui);
@@ -133,7 +161,6 @@ void vector_draw_canvas(void) {
         SDL_FRect rect = {p.x, p.y, board->w * v->view.zoom, board->h * v->view.zoom};
         editor_draw_color(v->view.board == b ? UI_ACCENT : UI_BORDER);
         SDL_RenderRect(app.renderer, &rect);
-        editor_text(p.x, p.y - 10, board->name, v->view.board == b ? UI_ACCENT : UI_MUTED);
     }
     for (int i = 0; i < VE_SHAPES; i++) {
         VeShape *s = &v->document.shapes[i];
@@ -171,7 +198,11 @@ void vector_draw_canvas(void) {
             previous = anchor;
         }
     }
+    for (int b = 0; b < VE_BOARDS; b++) {
+        if (v->document.boards[b].used) {
+            rulers(&v->document.boards[b], v->view.board == b);
+        }
+    }
     ui_clip_pop(&app.ui);
     ui_apply_clip(app.renderer, &app.ui);
-    rulers(full);
 }
