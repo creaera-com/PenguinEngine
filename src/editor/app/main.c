@@ -4,6 +4,7 @@
 #include "editor_smoke.h"
 #endif
 static bool start_scripts;
+static bool start_vector, vector_preview;
 static bool start_scene_tree;
 static bool start_map_tools;
 
@@ -16,6 +17,9 @@ int main(int argc, char **argv) {
             editor_screenshot_path = argv[++i];
         } else if (!strcmp(argv[i], "--ui") && i + 1 < argc) {
             snprintf(app.ui_path, sizeof app.ui_path, "%s", argv[++i]);
+        } else if (!strcmp(argv[i], "--vector") || !strcmp(argv[i], "--vector-demo")) {
+            start_vector = true;
+            vector_preview = !strcmp(argv[i], "--vector-demo");
         } else if (!strcmp(argv[i], "--scripts")) {
             start_scripts = true;
         } else if (!strcmp(argv[i], "--map-tools")) {
@@ -25,9 +29,9 @@ int main(int argc, char **argv) {
         } else if (!strcmp(argv[i], "--smoke")) {
             app.smoke = true;
         } else {
-            fprintf(stderr,
-                    "Usage: penguin_editor [--project path] [--smoke] [--scripts] "
-                    "[--scene-tree] [--map-tools] [--ui shell.yaml] [--screenshot file.bmp]\n");
+            fprintf(stderr, "Usage: penguin_editor [--project path] [--smoke] [--scripts] "
+                            "[--scene-tree] [--map-tools] [--vector | --vector-demo] [--ui "
+                            "shell.yaml] [--screenshot file.bmp]\n");
             return 1;
         }
     }
@@ -102,7 +106,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Cannot create session directory: %s\n", SDL_GetError());
         return 1;
     }
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 3; i++) {
         snprintf(app.session_paths[i], sizeof app.session_paths[i], "%s%08x-%llx-%d.session", pref,
                  ui_id(app.root), (unsigned long long)SDL_GetPerformanceCounter(), i);
     }
@@ -130,8 +134,8 @@ int main(int argc, char **argv) {
         (!editor_verify_editor() || !editor_verify_script_editor() || !editor_verify_ui_layout() ||
          !editor_verify_workspace_tools() || !editor_verify_lifecycle() ||
          !editor_verify_console() || !editor_verify_window() || !editor_verify_scene_graph() ||
-         !editor_verify_components() || !editor_verify_map_panels() ||
-         !editor_verify_selection())) {
+         !editor_verify_components() || !editor_verify_map_panels() || !editor_verify_selection() ||
+         !vector_smoke())) {
         app.running = false;
         exit_code = 1;
     }
@@ -141,7 +145,12 @@ int main(int argc, char **argv) {
         editor_capture_component_dropdown();
     }
 #endif
-    if (start_scripts) {
+    if (start_vector) {
+        editor_select_workspace(UI_VECTOR_VIEW);
+        if (vector_preview && app.vector) {
+            vector_demo();
+        }
+    } else if (start_scripts) {
         editor_tab_select(true);
     } else if (start_map_tools) {
         app.left_tabs.selected = UI_MAP_TAB;
@@ -181,6 +190,10 @@ int main(int argc, char **argv) {
     pe_ui_layout_free(app.active_layout);
     app.active_layout = NULL;
     pe_ui_layout_free(app.shell_layout);
+    if (app.vector) {
+        vector_free(app.vector);
+        free(app.vector);
+    }
     if (app.script) {
         se_free(app.script);
         free(app.script);
@@ -190,7 +203,7 @@ int main(int argc, char **argv) {
         pe_assets_free(&app.map->assets);
         free(app.map);
     }
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 3; i++) {
         remove(app.session_paths[i]);
     }
     pe_console_free(app.console);

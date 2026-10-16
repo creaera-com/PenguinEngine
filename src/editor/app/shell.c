@@ -79,20 +79,38 @@ void editor_draw(void) {
                           ? ui_tab_content_width(editor_yaml_icon(pe_ui_string(entry, "icon", "")),
                                                  pe_ui_string(entry, "title", item->label))
                           : 32;
-        ui_tabs_set_width(&app.workspaces, item->id, width + app.tab_gap);
+        ui_tabs_set_width(&app.workspaces, item->id,
+                          width + app.tab_gap +
+                              (cJSON_IsTrue(pe_ui_get(entry, "separator_before")) ? 22 : 0));
         app.workspaces.gap = (float)app.tab_gap;
         app.workspaces.items[i].enabled =
             !editor_edit_pending() && (item->id == UI_MAP_VIEW || !app.playing);
     }
+    bool nav_blocked = app.ui.blocked;
+    for (int i = 0; i < app.workspaces.count; i++) {
+        const cJSON *entry = editor_layout_entry(app.workspaces.items[i].id);
+        UiRect gap = ui_tab_rect(&app.workspaces, nav, 112, i);
+        gap.w = 22;
+        if (cJSON_IsTrue(pe_ui_get(entry, "separator_before")) && app.ui.pressed &&
+            ui_contains(gap, app.ui.press_x, app.ui.press_y)) {
+            app.ui.blocked = true;
+        }
+    }
     if (ui_tabs_update(&app.ui, &app.workspaces, nav, 112)) {
         editor_select_workspace(app.workspaces.selected);
     }
+    app.ui.blocked = nav_blocked;
     ui_clip_push(&app.ui, nav);
     ui_apply_clip(app.renderer, &app.ui);
     for (int i = 0; i < app.workspaces.count; i++) {
         const EditorView *item = editor_view(app.workspaces.items[i].id);
         const cJSON *entry = editor_layout_entry(item->id);
         UiRect r = ui_tab_rect(&app.workspaces, nav, 112, i);
+        if (cJSON_IsTrue(pe_ui_get(entry, "separator_before"))) {
+            editor_box((SDL_FRect){r.x + 10, r.y + 4, 1, 17}, UI_BORDER);
+            r.x += 22;
+            r.w -= 22;
+        }
         editor_register_ui_hit(r);
         bool hover = ui_hovered(&app.ui, r);
         ui_draw_button(app.renderer, (SDL_FRect){r.x, r.y, r.w, r.h},
@@ -113,7 +131,7 @@ void editor_draw(void) {
         editor_process_deferred_ui();
         return;
     }
-    if (!app.active_layout || (!app.map && !app.script)) {
+    if (!app.active_layout || (!app.map && !app.script && !app.vector)) {
         editor_text(LEFT + 16, TOP + 40, app.status, UI_TEXT);
         ui_end_frame(&app.ui);
         if (modal) {

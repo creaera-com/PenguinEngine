@@ -1,0 +1,52 @@
+schema: penguin.ui/v1
+kind: editor
+id: vector
+document_provider: vector
+
+toolbar:
+  - {type: button, id: vector_new, icon: file, tooltip: "New SVG", action: vector.new}
+  - {type: button, id: vector_open, icon: folder, tooltip: "Open SVG", action: vector.open}
+  - {type: button, id: vector_save_as, icon: save, tooltip: "Save SVG as", action: vector.save_as}
+  - {type: separator, id: vector_files_gap}
+  - {type: button, id: vector_select, icon: select, tooltip: "Select / move (V), Shift: multi-select", action: vector.select}
+  - {type: button, id: vector_rect, icon: rectangle, tooltip: "Rectangle (R); Shift: square", action: vector.rectangle}
+  - {type: button, id: vector_ellipse, icon: collision, tooltip: "Ellipse (C); Shift: circle", action: vector.ellipse}
+  - {type: button, id: vector_pen, icon: edit, tooltip: "Path (P); click nodes, Enter/double-click to close", action: vector.pen}
+  - {type: button, id: vector_nodes, icon: entity, tooltip: "Edit anchors and Bezier handles (N)", action: vector.nodes}
+  - {type: button, id: vector_board, icon: image, tooltip: "Draw artboard (A); Alt+drag to move", action: vector.artboard}
+  - {type: button, id: vector_fit, icon: grid, tooltip: "Fit active artboard", action: vector.fit}
+  - {type: separator, id: vector_geometry_gap}
+  - {type: button, id: vector_convert, icon: edit, label: "Path", tooltip: "Convert rectangle / ellipse to path", action: vector.convert}
+  - {type: button, id: vector_flip_x, icon: right, label: "Flip X", tooltip: "Mirror horizontally", action: vector.mirror_x}
+  - {type: button, id: vector_flip_y, icon: down, label: "Flip Y", tooltip: "Mirror vertically", action: vector.mirror_y}
+  - {type: button, id: vector_union, icon: plus, label: "Union", tooltip: "Unite two filled contours", action: vector.union}
+  - {type: button, id: vector_mask, icon: layers, label: "Mask", tooltip: "Intersection of two contours", action: vector.mask}
+  - {type: button, id: vector_subtract, icon: erase, label: "Cut", tooltip: "Lower object minus upper object", action: vector.subtract}
+  - {type: button, id: vector_xor, icon: collision, label: "XOR", tooltip: "Exclusive areas of two contours", action: vector.xor}
+  - {type: button, id: vector_duplicate, icon: file, tooltip: "Duplicate selected objects", action: vector.duplicate}
+  - {type: button, id: vector_raise, icon: up, tooltip: "Raise object", action: vector.raise}
+  - {type: button, id: vector_lower, icon: down, tooltip: "Lower object", action: vector.lower}
+  - {type: button, id: vector_delete, icon: delete, tooltip: "Delete selected objects or active artboard", action: vector.delete}
+
+columns:
+  left:
+    type: tabs
+    id: vector_navigation
+    tabs:
+      - id: scene_tab
+        title: "Objects"
+        icon: layers
+        content: {type: vector_tree, id: vector_objects, binding: vector.active}
+      - id: explorer_tab
+        title: "Explorer"
+        icon: folder
+        content: {type: file_tree, id: vector_files, binding: project.files}
+  center: {type: vector_canvas, id: vector_canvas, binding: vector.active}
+  right:
+    type: tabs
+    id: vector_properties
+    tabs:
+      - id: inspector_tab
+        title: "Properties"
+        icon: edit
+        content: {type: vector_inspector, id: vector_inspector, binding: vector.active}

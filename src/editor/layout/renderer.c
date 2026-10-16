@@ -82,7 +82,7 @@ const cJSON *editor_layout_entry(UiId id) {
         return NULL;
     }
 
-    const char *module = id == UI_MAP_VIEW ? "map" : "scripts";
+    const char *module = id == UI_MAP_VIEW ? "map" : id == UI_SCRIPT_VIEW ? "scripts" : "vector";
     const cJSON *entries = pe_ui_get(app.shell_layout->root, "editors");
     for (const cJSON *e = entries ? entries->child : NULL; e; e = e->next) {
         if (!strcmp(pe_ui_string(e, "module", ""), module)) {
@@ -156,8 +156,11 @@ void editor_apply_shell_layout(void) {
     UiId selected = app.loaded_view;
     const cJSON *entries = pe_ui_get(root, "editors");
     for (const cJSON *e = entries->child; e; e = e->next) {
-        items[count++] = (UiTab){
-            !strcmp(pe_ui_string(e, "module", ""), "map") ? UI_MAP_VIEW : UI_SCRIPT_VIEW, true, 0};
+        items[count++] =
+            (UiTab){!strcmp(pe_ui_string(e, "module", ""), "map")       ? UI_MAP_VIEW
+                    : !strcmp(pe_ui_string(e, "module", ""), "scripts") ? UI_SCRIPT_VIEW
+                                                                        : UI_VECTOR_VIEW,
+                    true, 0};
     }
 
     bool found = false;
@@ -538,16 +541,20 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
         editor_box((SDL_FRect){area.x, area.y + 4, 1, fmaxf(0, area.h - 8)}, UI_BORDER);
     } else if (strcmp(type, "spacer")) {
         ui_panel(app.renderer, area, UI_PANEL);
-        if (strcmp(type, "map_canvas") && strcmp(type, "script_editor")) {
+        if (strcmp(type, "map_canvas") && strcmp(type, "script_editor") &&
+            strcmp(type, "vector_canvas")) {
             editor_register_ui_hit((UiRect){area.x, area.y, area.w, area.h});
         }
         app.panel_area = area;
         app.panel_top = area.y;
-        if (!strcmp(type, "map_canvas") || !strcmp(type, "script_editor")) {
+        if (!strcmp(type, "map_canvas") || !strcmp(type, "script_editor") ||
+            !strcmp(type, "vector_canvas")) {
             app.viewport = area;
             app.canvas_enabled = !app.ui.blocked;
             if (!strcmp(type, "map_canvas")) {
                 editor_draw_map_content();
+            } else if (!strcmp(type, "vector_canvas")) {
+                vector_draw_canvas();
             } else {
                 editor_draw_script_content();
             }
@@ -563,6 +570,10 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
                 app.panel_top = app.panel_area.y;
             }
             editor_draw_scene_tree();
+        } else if (!strcmp(type, "vector_tree")) {
+            vector_draw_tree();
+        } else if (!strcmp(type, "vector_inspector")) {
+            vector_draw_inspector();
         } else if (!strcmp(type, "map_layers")) {
             editor_draw_map_panel();
         } else if (!strcmp(type, "tile_palette")) {

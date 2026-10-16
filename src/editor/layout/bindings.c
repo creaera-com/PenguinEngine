@@ -10,17 +10,19 @@ bool editor_yaml_boolean(const cJSON *value, bool fallback) {
 
     const char *name = pe_ui_string(value, "binding", "");
     if (!strcmp(name, "document.can_save")) {
-        return (app.map || app.script) && !app.playing && !editor_edit_pending();
+        return (app.map || app.script || app.vector) && !app.playing && !editor_edit_pending();
     }
     if (!strcmp(name, "document.can_undo")) {
         return !app.playing && !editor_edit_pending() &&
-               (app.script ? app.script->document.position > 0
-                           : app.map && app.map->history.cursor > 0);
+               (app.vector   ? app.vector->history.position > 0
+                : app.script ? app.script->document.position > 0
+                             : app.map && app.map->history.cursor > 0);
     }
     if (!strcmp(name, "document.can_redo")) {
         return !app.playing && !editor_edit_pending() &&
-               (app.script ? app.script->document.position < app.script->document.count
-                           : app.map && app.map->history.cursor < app.map->history.count);
+               (app.vector   ? app.vector->history.position + 1 < app.vector->history.count
+                : app.script ? app.script->document.position < app.script->document.count
+                             : app.map && app.map->history.cursor < app.map->history.count);
     }
     if (!strcmp(name, "map.grid_visible")) {
         return app.map && app.grid;
@@ -42,15 +44,23 @@ const char *editor_yaml_text(const cJSON *value, char *buffer, size_t size) {
         return app.playing ? "PLAY" : "EDIT";
     }
     if (!strcmp(b, "document.save_state")) {
-        return (editor_scripts_active() ? editor_script_dirty() : editor_map_dirty()) ? "Modified"
-               : app.script && !app.script->exists                                    ? "Untitled"
-                                                                                      : "Saved";
+        return (editor_vector_active()    ? editor_vector_dirty()
+                : editor_scripts_active() ? editor_script_dirty()
+                                          : editor_map_dirty())
+                   ? "Modified"
+               : (app.vector && !app.vector->view.exists) || (app.script && !app.script->exists)
+                   ? "Untitled"
+                   : "Saved";
     }
     if (!strcmp(b, "editor.message")) {
         return app.script ? app.script->status : app.status;
     }
     if (!strcmp(b, "editor.details")) {
-        if (app.script) {
+        if (app.vector) {
+            snprintf(buffer, size, "SVG | Zoom %.0f%% | px | Undo %d / %d",
+                     app.vector->view.zoom * 100, app.vector->history.position,
+                     app.vector->history.count - 1);
+        } else if (app.script) {
             int l, c;
             pe_text_location(&app.script->document, app.script->document.cursor, &l, &c);
             snprintf(buffer, size, "JS | Ln %d, Col %d | Undo %d / %d", l + 1, c + 1,
@@ -75,21 +85,24 @@ void editor_yaml_action(const char *name) {
         return;
     }
     if (!strcmp(name, "document.save")) {
-        if (!app.playing && !editor_edit_pending() && (app.map || app.script)) {
+        if (!app.playing && !editor_edit_pending() && (app.map || app.script || app.vector)) {
             editor_save();
         }
         return;
     }
     if (!strcmp(name, "document.undo")) {
-        if ((app.map || app.script) && !app.playing && !editor_edit_pending()) {
+        if ((app.map || app.script || app.vector) && !app.playing && !editor_edit_pending()) {
             editor_undo_active(false);
         }
         return;
     }
     if (!strcmp(name, "document.redo")) {
-        if ((app.map || app.script) && !app.playing && !editor_edit_pending()) {
+        if ((app.map || app.script || app.vector) && !app.playing && !editor_edit_pending()) {
             editor_undo_active(true);
         }
+        return;
+    }
+    if (vector_action(name)) {
         return;
     }
     if (editor_script_action(name)) {
@@ -115,6 +128,9 @@ bool editor_yaml_action_enabled(const char *action) {
         }
         return enabled;
     }
+    if (!strncmp(action, "vector.", 7)) {
+        return app.vector && !editor_edit_pending();
+    }
     if (!strncmp(action, "map.", 4)) {
         return app.map && !app.playing && !editor_edit_pending();
     }
@@ -130,6 +146,15 @@ bool editor_yaml_action_active(const char *action) {
         return app.playing;
     }
 
+    if (app.vector) {
+        const char *tools[] = {"vector.select", "vector.rectangle", "vector.ellipse",
+                               "vector.pen",    "vector.nodes",     "vector.artboard"};
+        for (int i = 0; i < 6; i++) {
+            if (!strcmp(action, tools[i])) {
+                return app.vector->view.tool == i;
+            }
+        }
+    }
     const char *names[] = {"map.select_brush", "map.select_eraser", "map.select_rectangle",
                            "map.select_fill", "map.select_entity"};
     for (int i = 0; i < 5; i++) {

@@ -350,3 +350,11 @@ Die Entity-Auswahl öffnet den Inspector und lässt den Layer- und Palettenzusta
 Explorer und Scene-Baum verwenden dezente alternierende Zeilenfarben aus der Theme-Surface. Die Parität folgt dem Index in der aufgeklappten Liste und bleibt beim Scrollen stabil; Hover und Auswahl überlagern die Zeilenfarbe. Dafür sind keine zusätzlichen YAML-Eigenschaften nötig.
 
 Beide Bäume zeichnen zusätzlich gestrichelte Hierarchielinien. Grundlage ist die aufgeklappte Preorder-Liste; eingeklappte Kinder erzeugen keine Verbindung. Linien enden beim letzten Kind und werden am Viewport abgeschnitten. Der Scene-Baum rückt pro Ebene 20 Pixel ein, mit begrenzter Einrückung bei tiefen Hierarchien. Dafür nutzt der Adapter die gemeinsamen C-UI-Helfer; zusätzliche YAML-Knoten sind nicht nötig.
+
+## Vector Art
+
+Die Shell registriert zusätzlich `{id: vector, title: "Vector Art", icon: edit, module: vector, file: editors/vector.yaml, separator_before: true}`. Das optionale boolesche `separator_before` reserviert im Editor-Switcher einen Abstand mit Trennstrich vor dem zugehörigen Button. Auch nach Umsortieren bleibt der Separator am betreffenden Eintrag.
+
+`document_provider: vector` verbindet das neue Layout mit seinem eigenständigen SVG-Dokument. `vector_canvas`, `vector_tree` und `vector_inspector` sind spezialisierte Vector-Widgets mit `binding: vector.active`; sie sind in anderen Modulen nicht verfügbar. Toolbar und alle drei Spalten sind in `resources/editor/ui/editors/vector.yaml` beschrieben. Die registrierten `vector.*`-Aktionen umfassen Dateioperationen, Zeichen-/Knotenwerkzeuge, Artboards, Spiegeln, boolesche Flächenoperationen, Duplizieren und Reihenfolge. Details und Grenzen stehen in [VECTOR_EDITOR.md](VECTOR_EDITOR.md).
+
+`unload_on_leave` gilt auch hier: Beim Wechsel werden Dokumentinstanz, Verlauf und Rastercache vollständig freigegeben und bei Rückkehr aus dem nativen Sitzungscache rekonstruiert. Save/Undo/Redo sowie Speicherrückfragen verwenden das aktive Dokument und berücksichtigen ungespeicherte inaktive Vector-Dokumente.

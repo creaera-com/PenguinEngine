@@ -18,6 +18,8 @@ typedef enum {
     REQUEST_QUIT,
     REQUEST_OPEN,
     REQUEST_SCRIPT_OPEN,
+    REQUEST_VECTOR_OPEN, ///< SVG öffnen, gegebenenfalls nach Speicherrückfrage.
+    REQUEST_VECTOR_NEW,  ///< Neues SVG-Dokument nach Speicherrückfrage.
     REQUEST_IMPORT
 } Request;
 

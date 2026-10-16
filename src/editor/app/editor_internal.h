@@ -21,6 +21,7 @@
 #include "editors/scripts/checkpoint.h"
 #include "editors/scripts/panels.h"
 #include "editors/scripts/script_editor.h"
+#include "editors/vector/editor.h"
 #include "layout/runtime.h"
 #include "layout/ui_layout.h"
 #include "penguin/render.h"
@@ -69,6 +70,8 @@
 #define UI_MAP_VIEW 0x10008u
 /** @brief Interne Widget-ID UI_SCRIPT_VIEW. */
 #define UI_SCRIPT_VIEW 0x10009u
+/** @brief Eigener SVG-/Vector-Arbeitsbereich. */
+#define UI_VECTOR_VIEW 0x1000au
 /** @brief Interne Widget-ID UI_EXPLORER_TAB. */
 #define UI_EXPLORER_TAB 0x1000au
 /** @brief Interne Widget-ID UI_SCENE_TAB. */
@@ -132,12 +135,13 @@ typedef struct {
     float right_width;           ///< Breite der rechten Spalte in Pixeln.
     bool layers_open;            ///< Aufklappzustand der Ebenenliste.
     bool palette_open;           ///< Aufklappzustand der Tile-Palette.
+    VectorEditor *vector;        ///< Besitzende Vectorinstanz; NULL bei entladenem Arbeitsbereich.
     MapPayload *map;             ///< Besitzende Mapinstanz oder NULL bei entladenem Map-Editor.
     PeScriptEditor *script; ///< Besitzende Scriptinstanz oder NULL bei entladenem Script-Editor.
     UiId loaded_view;       ///< ID der tatsächlich geladenen Editorinstanz.
-    char session_paths[2][1200];  ///< Temporäre Checkpointpfade für Map und Scripts.
-    bool session_exists[2];       ///< Ob für den jeweiligen Editor ein Checkpoint vorliegt.
-    bool session_dirty[2];        ///< Änderungszustand des jeweils entladenen Editors.
+    char session_paths[3][1200];  ///< Temporäre Checkpointpfade für Map, Scripts und Vector.
+    bool session_exists[3];       ///< Ob für den jeweiligen Editor ein Checkpoint vorliegt.
+    bool session_dirty[3];        ///< Änderungszustand des jeweils entladenen Editors.
     PeUiLayout *shell_layout;     ///< Besitzendes globales YAML-Shellmodell.
     PeUiLayout *active_layout;    ///< Besitzendes YAML-Modell des geladenen Editors.
     char ui_path[1024];           ///< Pfad zur Shell-YAML-Datei.
@@ -224,6 +228,10 @@ typedef struct {
 } EditorView;
 
 /* Private integration state. Engine and reusable UI never include this header. */
+/** @brief Stabiler Index der drei Dokument-/Editor-Sitzungen. */
+int editor_session_index(UiId id);
+/** @brief Dirty-Zustand des aktiven oder ausgelagerten Vector-Dokuments. */
+bool editor_vector_dirty(void);
 /** @brief Private gemeinsame Editor-Anwendungsinstanz. */
 extern Editor app;
 

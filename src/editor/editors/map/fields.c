@@ -9,6 +9,10 @@ void editor_field_apply(void) {
         return;
     }
     app.field_invalid = true;
+    if (editor_vector_active() && app.field >= FIELD_V_NAME) {
+        vector_apply_field(app.field);
+        return;
+    }
     if (app.field == FIELD_NAME) {
         PeEntity entity = pe_entity_find(&app.map->scene, app.selected);
         PeObject *o = pe_entity_get(&app.map->scene, entity);

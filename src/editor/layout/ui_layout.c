@@ -5,22 +5,70 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-static const char *actions[] = {"document.save",      "document.undo",
-                                "document.redo",      "scene.toggle_play",
-                                "map.import_tileset", "map.select_brush",
-                                "map.select_eraser",  "map.select_rectangle",
-                                "map.select_fill",    "map.select_entity",
-                                "map.toggle_grid",    "map.toggle_collision",
-                                "scene.add_root",     "scene.add_sibling",
-                                "scene.add_child",    "scene.delete",
-                                "script.check",       "window.minimize",
-                                "window.maximize",    "window.collapse",
-                                "window.close",       NULL};
-static const char *bindings[] = {
-    "document.can_save",     "document.can_undo", "document.can_redo", "document.save_state",
-    "editor.mode",           "editor.details",    "editor.message",    "map.grid_visible",
-    "map.collision_visible", "project.files",     "scene.entities",    "scene.active",
-    "selection.active",      "document.active",   "terminal.shared",   NULL};
+static const char *actions[] = {"document.save",
+                                "document.undo",
+                                "document.redo",
+                                "scene.toggle_play",
+                                "map.import_tileset",
+                                "map.select_brush",
+                                "map.select_eraser",
+                                "map.select_rectangle",
+                                "map.select_fill",
+                                "map.select_entity",
+                                "map.toggle_grid",
+                                "map.toggle_collision",
+                                "scene.add_root",
+                                "scene.add_sibling",
+                                "scene.add_child",
+                                "scene.delete",
+                                "script.check",
+                                "window.minimize",
+                                "window.maximize",
+                                "window.collapse",
+                                "window.close",
+                                "vector.new",
+                                "vector.open",
+                                "vector.save_as",
+                                "vector.select",
+                                "vector.rectangle",
+                                "vector.ellipse",
+                                "vector.pen",
+                                "vector.nodes",
+                                "vector.artboard",
+                                "vector.fit",
+                                "vector.convert",
+                                "vector.mirror_x",
+                                "vector.mirror_y",
+                                "vector.union",
+                                "vector.mask",
+                                "vector.subtract",
+                                "vector.xor",
+                                "vector.delete",
+                                "vector.duplicate",
+                                "vector.split",
+                                "vector.close_path",
+                                "vector.curve",
+                                "vector.raise",
+                                "vector.lower",
+                                "vector.delete_node",
+                                NULL};
+static const char *bindings[] = {"document.can_save",
+                                 "document.can_undo",
+                                 "document.can_redo",
+                                 "document.save_state",
+                                 "editor.mode",
+                                 "editor.details",
+                                 "editor.message",
+                                 "map.grid_visible",
+                                 "map.collision_visible",
+                                 "project.files",
+                                 "scene.entities",
+                                 "scene.active",
+                                 "vector.active",
+                                 "selection.active",
+                                 "document.active",
+                                 "terminal.shared",
+                                 NULL};
 static const char *icons[] = {
     "menu",     "save",      "undo",     "redo",    "play",      "stop",   "import",   "brush",
     "erase",    "rectangle", "fill",     "select",  "collision", "grid",   "refresh",  "folder",
@@ -179,13 +227,19 @@ static bool widget(Check *c, const cJSON *v, int depth) {
         ++c->stateful > 64) {
         return error_at(c, v, "maximum 64 stateful containers");
     }
-    if ((!strcmp(type, "map_canvas") || !strcmp(type, "script_editor")) && ++c->canvases > 1) {
+    if ((!strcmp(type, "map_canvas") || !strcmp(type, "script_editor") ||
+         !strcmp(type, "vector_canvas")) &&
+        ++c->canvases > 1) {
         return error_at(c, v, "only one interactive canvas per editor is supported");
     }
 
-    const char *specialized[] = {"file_tree",  "entity_tree",  "map_canvas",  "script_editor",
-                                 "inspector",  "scene_info",   "script_info", "terminal",
-                                 "map_layers", "tile_palette", NULL};
+    const char *specialized[] = {"file_tree",        "entity_tree",
+                                 "map_canvas",       "script_editor",
+                                 "inspector",        "scene_info",
+                                 "script_info",      "terminal",
+                                 "map_layers",       "tile_palette",
+                                 "vector_canvas",    "vector_tree",
+                                 "vector_inspector", NULL};
     for (int i = 0; specialized[i]; i++) {
         if (!strcmp(type, specialized[i])) {
             unsigned bit = 1u << i;
@@ -214,7 +268,9 @@ static bool widget(Check *c, const cJSON *v, int depth) {
                strcmp(type, "map_canvas") && strcmp(type, "script_editor") &&
                strcmp(type, "inspector") && strcmp(type, "scene_info") &&
                strcmp(type, "script_info") && strcmp(type, "terminal") &&
-               strcmp(type, "map_layers") && strcmp(type, "tile_palette")) {
+               strcmp(type, "map_layers") && strcmp(type, "tile_palette") &&
+               strcmp(type, "vector_canvas") && strcmp(type, "vector_tree") &&
+               strcmp(type, "vector_inspector")) {
         return error_at(c, v, "unknown widget type");
     }
 
@@ -249,6 +305,13 @@ static bool widget(Check *c, const cJSON *v, int depth) {
         return error_at(c, action, "unknown action or action on non-button");
     }
     if (action && c->module) {
+        const char *a0 = action->valuestring;
+        if ((!strncmp(a0, "vector.", 7) && strcmp(c->module, "vector")) ||
+            (!strcmp(c->module, "vector") &&
+             (!strncmp(a0, "map.", 4) || !strncmp(a0, "scene.", 6) ||
+              !strncmp(a0, "script.", 7)))) {
+            return error_at(c, action, "action unavailable in this editor");
+        }
         const char *a = action->valuestring;
         if ((!strcmp(c->module, "scripts") &&
              (!strncmp(a, "map.", 4) || !strncmp(a, "scene.", 6))) ||
@@ -280,6 +343,9 @@ static bool widget(Check *c, const cJSON *v, int depth) {
                            : (!strcmp(type, "map_canvas") || !strcmp(type, "scene_info") ||
                               !strcmp(type, "map_layers") || !strcmp(type, "tile_palette"))
                                ? "scene.active"
+                           : (!strcmp(type, "vector_canvas") || !strcmp(type, "vector_tree") ||
+                              !strcmp(type, "vector_inspector"))
+                               ? "vector.active"
                            : !strcmp(type, "inspector") ? "selection.active"
                            : (!strcmp(type, "script_editor") || !strcmp(type, "script_info"))
                                ? "document.active"
@@ -294,9 +360,12 @@ static bool widget(Check *c, const cJSON *v, int depth) {
     bool map_only = !strcmp(type, "entity_tree") || !strcmp(type, "map_canvas") ||
                     !strcmp(type, "scene_info") || !strcmp(type, "inspector") ||
                     !strcmp(type, "map_layers") || !strcmp(type, "tile_palette");
+    bool vector_only = !strcmp(type, "vector_canvas") || !strcmp(type, "vector_tree") ||
+                       !strcmp(type, "vector_inspector");
     bool script_only = !strcmp(type, "script_editor") || !strcmp(type, "script_info");
     if ((map_only && (!c->module || strcmp(c->module, "map"))) ||
-        (script_only && (!c->module || strcmp(c->module, "scripts")))) {
+        (script_only && (!c->module || strcmp(c->module, "scripts"))) ||
+        (vector_only && (!c->module || strcmp(c->module, "vector")))) {
         return error_at(c, v, "widget unavailable in this editor");
     }
     if (!strcmp(type, "editor_switcher") && (c->module || !cJSON_IsBool(pe_ui_get(v, "labels")))) {
@@ -384,14 +453,17 @@ static bool validate(Check *c, const char *kind) {
     }
     if (!strcmp(kind, "editor")) {
         c->module = pe_ui_string(r, "id", "");
-        if (strcmp(c->module, "map") && strcmp(c->module, "scripts")) {
+        if (strcmp(c->module, "map") && strcmp(c->module, "scripts") &&
+            strcmp(c->module, "vector")) {
             return error_at(c, r, "editor module is not registered");
         }
         if (!fields(c, r, "|schema||kind||id||document_provider||toolbar||columns|")) {
             return false;
         }
         const char *provider = pe_ui_string(r, "document_provider", "");
-        if (strcmp(provider, !strcmp(c->module, "map") ? "scene" : "script")) {
+        if (strcmp(provider, !strcmp(c->module, "map")      ? "scene"
+                             : !strcmp(c->module, "vector") ? "vector"
+                                                            : "script")) {
             return error_at(c, r, "document provider does not match editor");
         }
         if (!toolbar(c, pe_ui_get(r, "toolbar"))) {
@@ -488,12 +560,17 @@ static bool validate(Check *c, const char *kind) {
         return error_at(c, editors, "requires 1..16 editors");
     }
     for (const cJSON *e = editors->child; e; e = e->next) {
-        if (!fields(c, e, "|id||title||icon||module||file|") || !id(c, pe_ui_get(e, "id"))) {
+        if (!fields(c, e, "|id||title||icon||module||file||separator_before|") ||
+            !id(c, pe_ui_get(e, "id"))) {
             return false;
+        }
+        const cJSON *separator = pe_ui_get(e, "separator_before");
+        if (separator && !cJSON_IsBool(separator)) {
+            return error_at(c, separator, "separator_before requires boolean");
         }
         const char *module = pe_ui_string(e, "module", "");
         const char *file = pe_ui_string(e, "file", "");
-        if ((strcmp(module, "map") && strcmp(module, "scripts")) ||
+        if ((strcmp(module, "map") && strcmp(module, "scripts") && strcmp(module, "vector")) ||
             strcmp(module, pe_ui_string(e, "id", "")) || !cJSON_IsString(pe_ui_get(e, "title")) ||
             !contains(icons, pe_ui_string(e, "icon", "")) || !*file || *file == '/' ||
             strstr(file, "..") || strchr(file, '\\') || strchr(file, ':')) {

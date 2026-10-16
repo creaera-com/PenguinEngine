@@ -145,7 +145,11 @@ void editor_draw_tree(void) {
                 tree_toggle(row.path);
                 break;
             }
-            if (editor_suffix(row.path, ".js")) {
+            if (editor_suffix(row.path, ".svg")) {
+                char path[1024];
+                snprintf(path, sizeof path, "%s/%s", app.root, row.path);
+                editor_request(REQUEST_VECTOR_OPEN, path);
+            } else if (editor_suffix(row.path, ".js")) {
                 char path[1024];
                 snprintf(path, sizeof path, "%s/%s", app.root, row.path);
                 editor_request(REQUEST_SCRIPT_OPEN, path);

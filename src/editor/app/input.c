@@ -120,6 +120,9 @@ void editor_event(SDL_Event *e) {
         }
         return;
     }
+    if (vector_event(e)) {
+        return;
+    }
     switch (e->type) {
     case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
     case SDL_EVENT_QUIT:
@@ -140,7 +143,9 @@ void editor_event(SDL_Event *e) {
         break;
     case SDL_EVENT_DROP_FILE:
         if (!modal && !editor_edit_pending()) {
-            if (editor_suffix(e->drop.data, ".js")) {
+            if (editor_suffix(e->drop.data, ".svg")) {
+                editor_request(REQUEST_VECTOR_OPEN, e->drop.data);
+            } else if (editor_suffix(e->drop.data, ".js")) {
                 editor_request(REQUEST_SCRIPT_OPEN, e->drop.data);
             } else if (editor_map_active()) {
                 editor_import_png(e->drop.data);

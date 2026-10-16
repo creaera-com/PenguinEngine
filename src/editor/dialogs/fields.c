@@ -12,6 +12,9 @@ void editor_field_start(Field f, const char *value) {
 }
 
 void editor_field_stop(void) {
+    if (app.field == FIELD_V_SAVE && app.vector) {
+        app.vector->after_save = REQUEST_NONE;
+    }
     app.field = FIELD_NONE;
     app.field_inline = app.field_invalid = app.field_selecting = false;
     app.needs_layout = true;
@@ -192,10 +195,12 @@ void editor_draw_modal(void) {
             app.request = REQUEST_NONE;
         }
     } else {
-        const char *title = app.field == FIELD_IMPORT  ? "Import PNG: enter full file path"
-                            : app.field == FIELD_LAYER ? "Layer name"
-                            : app.field == FIELD_COLOR ? "Sprite color: RRGGBBAA"
-                                                       : "Enter value";
+        const char *title = app.field == FIELD_V_OPEN   ? "Open SVG: file path"
+                            : app.field == FIELD_V_SAVE ? "Save SVG as: file path"
+                            : app.field == FIELD_IMPORT ? "Import PNG: enter full file path"
+                            : app.field == FIELD_LAYER  ? "Layer name"
+                            : app.field == FIELD_COLOR  ? "Sprite color: RRGGBBAA"
+                                                        : "Enter value";
         editor_text(x + 20, y + 24, title, UI_ACCENT);
         app.field_rect = (UiRect){x + 20, y + 54, 580, 28};
         ui_draw_text_input(app.renderer, (SDL_FRect){x + 20, y + 54, 580, 28}, app.input,

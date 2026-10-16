@@ -175,3 +175,5 @@ Der Scene-Tab zeigt einen aufklappbaren Entity-Graphen mit Parent-Beziehungen, l
 Im Entity-Inspector lassen sich Transform, Sprite, Body und Player hinzufügen oder entfernen. Jede Komponente hat einen eigenen klappbaren Bereich mit Einstellungen. Details: [Komponenten im Inspector](docs/COMPONENTS.md).
 
 Layer liegen im linken **Map**-Tab, Tileset und Palette im rechten **Tiles**-Tab. Der Inspector zeigt die Entity-Komponenten. Mit `--map-tools` werden Map und Tiles direkt geöffnet.
+
+Der eigenständige [Vector-Art-Editor](docs/VECTOR_EDITOR.md) erstellt und bearbeitet SVG-Assets mit Artboards, Pixel-Linealen, Formen, Bézierpfaden, booleschen Flächenoperationen und Undo/Redo. `penguin_editor --vector-demo` zeigt eine Beispielzeichnung.
