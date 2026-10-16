@@ -97,22 +97,22 @@ static void ruler_axis(const VeBoard *board, SDL_FRect strip, float step, int ax
         bool major = i % 5 == 0;
         editor_draw_color(major ? UI_MUTED : UI_DISABLED);
         if (axis) {
-            SDL_RenderLine(app.renderer, strip.x + strip.w - (major ? 5 : 2), position,
+            SDL_RenderLine(app.renderer, strip.x + strip.w - (major ? 2.5f : 1), position,
                            strip.x + strip.w, position);
         } else {
-            SDL_RenderLine(app.renderer, position, strip.y + strip.h - (major ? 5 : 2), position,
+            SDL_RenderLine(app.renderer, position, strip.y + strip.h - (major ? 2.5f : 1), position,
                            strip.y + strip.h);
         }
         if (major) {
             char text[32];
             snprintf(text, sizeof text, "%.0f", value);
-            float label_width = ui_text_width(text) * .75f;
-            if (label_width + 4 <= strip.w || axis) {
-                float x = axis ? strip.x + 2
-                               : fmaxf(strip.x + 2,
-                                       fminf(position + 3, strip.x + strip.w - label_width - 2));
-                float y = axis ? fminf(position + 2, strip.y + strip.h - 12) : strip.y + 1;
-                ui_text_scaled(app.renderer, x, y, text, UI_MUTED, .75f);
+            float label_width = ui_text_width(text) * .375f;
+            if (label_width + 2 <= strip.w || axis) {
+                float x = axis ? strip.x + 1
+                               : fmaxf(strip.x + 1,
+                                       fminf(position + 1.5f, strip.x + strip.w - label_width - 1));
+                float y = axis ? fminf(position + 1, strip.y + strip.h - 6) : strip.y + .5f;
+                ui_text_scaled(app.renderer, x, y, text, UI_MUTED, .375f);
             }
         }
     }
@@ -125,7 +125,7 @@ static void rulers(const VeBoard *board, bool active) {
     VePoint p = point(board->x, board->y);
     char largest[32];
     snprintf(largest, sizeof largest, "%.0f", board->h);
-    float width = fmaxf(20, ui_text_width(largest) * .75f + 4), height = 16;
+    float width = fmaxf(10, ui_text_width(largest) * .375f + 2), height = 8;
     float steps[] = {1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000};
     float step = 5000;
     for (size_t i = 0; i < sizeof steps / sizeof *steps; i++) {
