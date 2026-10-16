@@ -146,5 +146,6 @@ void vector_draw_preview(SDL_FRect area) {
     ui_clip_pop(&app.ui);
     ui_apply_clip(app.renderer, &app.ui);
     editor_draw_color(UI_BORDER);
-    SDL_RenderRect(app.renderer, &(SDL_FRect){target.x, target.y, target.w, target.h});
+    SDL_RenderRect(app.renderer,
+                   &(SDL_FRect){target.x - 1, target.y - 1, target.w + 2, target.h + 2});
 }
