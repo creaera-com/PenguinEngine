@@ -181,12 +181,17 @@ static bool zoom_smoke(void) {
 static bool tools_smoke(void) {
     app.right_tabs.selected = ui_id("vector_tools_tab");
     editor_draw();
+    WidgetState *preview_group = tool_state("vector_preview_tools");
+    if (preview_group) {
+        preview_group->open = 0;
+        editor_draw();
+    }
     WidgetState *group = tool_state("vector_transform_tools");
     WidgetState *panel = tool_state("vector_tool_panel");
     if (!group || !panel || !group->open) {
         return false;
     }
-    float x = app.width - RIGHT + PANEL_GAP + 40, y = TOP + TABS + 18;
+    float x = app.width - RIGHT + PANEL_GAP + 40, y = TOP + TABS + 18 + 41;
     pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, app.width - 164, y + 39);
     pointer(SDL_EVENT_MOUSE_BUTTON_UP, app.width - 164, y + 39);
     bool ok =
@@ -217,8 +222,90 @@ static bool tools_smoke(void) {
     SDL_SetWindowSize(app.window, app.width, height);
     SDL_SetWindowMinimumSize(app.window, 1100, 740);
     editor_draw();
+    if (preview_group) {
+        preview_group->open = 1;
+        editor_draw();
+    }
     if (!ok) {
         fprintf(stderr, "Vector Tools tab / actions / collapse / scrolling smoke failed\n");
+    }
+    return ok;
+}
+
+static bool preview_smoke(void) {
+    VectorEditor *v = app.vector;
+    app.right_tabs.selected = ui_id("vector_tools_tab");
+    editor_draw();
+    int revision = v->history.position;
+    vector_action("vector.preview_select");
+    gesture(120, 140, 40, 50);
+    VeRegion r = v->view.preview;
+    bool ok = v->view.preview_enabled && v->view.preview_board == 0 && !v->preview_drag &&
+              r.x == 40 && r.y == 50 && r.w == 80 && r.h == 90 && v->preview_width == 80 &&
+              v->preview_height == 90 && v->preview_cache_valid && v->history.position == revision;
+    float sx = v->canvas.x + (32 - v->view.x) * v->view.zoom;
+    float sy = v->canvas.y + (32 - v->view.y) * v->view.zoom;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, sx, sy);
+    SDL_Event key = {0};
+    key.type = SDL_EVENT_KEY_DOWN;
+    key.key.key = SDLK_ESCAPE;
+    editor_event(&key);
+    editor_draw();
+    ok = ok && !v->preview_drag && v->view.preview.x == r.x && v->view.preview.w == r.w;
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, sx, sy);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, sx, sy);
+    SDL_Event focus = {0};
+    focus.type = SDL_EVENT_WINDOW_FOCUS_LOST;
+    editor_event(&focus);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, sx, sy);
+    ok = ok && !v->preview_drag && v->view.preview.w == r.w;
+    gesture(300, 220, 900, 900);
+    ok = ok && v->view.preview.x == 300 && v->view.preview.y == 220 &&
+         v->view.preview.x + v->view.preview.w == 448 &&
+         v->view.preview.y + v->view.preview.h == 384;
+    /* The second board contains only the difference contour, not the first board's objects. */
+    gesture(500, 20, 650, 180);
+    ok = ok && v->view.preview_board == 1 && v->preview_cached_board == 1;
+    if (v->preview_pixels && v->preview_width > 28 && v->preview_height > 130) {
+        const unsigned char *pixel = v->preview_pixels + (130 * v->preview_width + 28) * 4;
+        ok = ok && pixel[0] == 194 && pixel[1] == 142 && pixel[2] == 92 && pixel[3] == 255;
+    } else {
+        ok = false;
+    }
+    vector_action("vector.preview_clear");
+    ok = ok && !v->view.preview_enabled && v->history.position == revision;
+    vector_action("vector.preview_select");
+    gesture(220, 152, 380, 312);
+    vector_action("vector.nodes");
+    editor_draw();
+    ok = ok && v->view.preview_board == 0 && v->view.preview.w == 160 && v->preview_cache_valid &&
+         v->preview_revision == v->history.ids[revision];
+    /* Camera movement changes only the crop of an oversized selection, never its 1:1 scale. */
+    v->view.preview = (VeRegion){0, 0, 448, 384};
+    v->view.x = -48;
+    v->view.y = -44;
+    editor_draw();
+    VeRegion crop = v->preview_cached_source;
+    v->view.x = -300;
+    v->view.y = -200;
+    editor_draw();
+    ok = ok && v->preview_cached_source.x < crop.x && v->preview_cached_source.w == crop.w &&
+         v->preview_cached_source.h == crop.h;
+    v->view.x = -48;
+    v->view.y = -44;
+    v->view.preview = (VeRegion){220, 152, 160, 160};
+    editor_draw();
+    v->document.boards[0].background = 0;
+    ve_history_commit(&v->history, &v->document);
+    editor_draw();
+    size_t last = ((size_t)v->preview_width * v->preview_height - 1) * 4 + 3;
+    ok = ok && v->preview_pixels && v->preview_pixels[last] == 0;
+    vector_undo(false);
+    editor_draw();
+    ok = ok && v->preview_pixels && v->preview_pixels[last] == 255 &&
+         v->history.position == revision;
+    if (!ok) {
+        fprintf(stderr, "Vector preview selection / cancel / crop / cache smoke failed\n");
     }
     return ok;
 }
@@ -277,6 +364,7 @@ bool vector_smoke(void) {
     bool interaction = interaction_smoke();
     vector_demo();
     interaction = zoom_smoke() && interaction;
+    interaction = preview_smoke() && interaction;
     interaction = tools_smoke() && interaction;
     interaction = tree_smoke() && interaction;
     VectorEditor *v = app.vector;
@@ -297,7 +385,9 @@ bool vector_smoke(void) {
     editor_select_workspace(UI_VECTOR_VIEW);
     ok = ok && app.vector && !app.map && !app.script &&
          !strcmp(app.vector->document.shapes[shape].name, "Edited vector") &&
-         app.vector->history.position == 1 &&
+         app.vector->history.position == 1 && !app.vector->preview_texture &&
+         !app.vector->preview_pixels && app.vector->view.preview_enabled &&
+         app.vector->view.preview.w == 160 &&
          app.vector->view.expanded_paths[0] == app.vector->document.shapes[shape].id &&
          app.right_tabs.selected == ui_id("vector_tools_tab") &&
          tool_state("vector_transform_tools") && !tool_state("vector_transform_tools")->open;

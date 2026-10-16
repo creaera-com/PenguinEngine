@@ -15,7 +15,8 @@ bool editor_scripts_active(void) {
 }
 
 bool editor_edit_pending(void) {
-    return (app.map && app.map->history.pending != NULL) || (app.vector && app.vector->dragging);
+    return (app.map && app.map->history.pending != NULL) ||
+           (app.vector && (app.vector->dragging || app.vector->preview_drag));
 }
 
 bool editor_map_dirty(void) {

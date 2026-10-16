@@ -18,6 +18,10 @@ bool vector_init(VectorEditor *v) {
 
 void vector_free(VectorEditor *v) {
     ve_history_free(&v->history);
+    SDL_DestroyTexture(v->preview_texture);
+    free(v->preview_pixels);
+    v->preview_texture = NULL;
+    v->preview_pixels = NULL;
     SDL_DestroyTexture(v->texture);
     nsvgDeleteRasterizer(v->rasterizer);
     free(v->pixels);
@@ -28,6 +32,12 @@ void vector_free(VectorEditor *v) {
 
 void vector_sync(void) {
     VectorEditor *v = app.vector;
+    v->preview_cache_valid = false;
+    if (v->view.preview_enabled &&
+        (v->view.preview_board < 0 || v->view.preview_board >= VE_BOARDS ||
+         !v->document.boards[v->view.preview_board].used)) {
+        v->view.preview_enabled = false;
+    }
     for (int i = 0; i < VE_SHAPES; i++) {
         if (!v->document.shapes[i].used) {
             v->view.selected &= ~(UINT64_C(1) << i);
@@ -150,6 +160,7 @@ bool vector_open(const char *path) {
     snprintf(v->view.path, sizeof v->view.path, "%s", full);
     v->view.exists = 1;
     memset(v->view.expanded_paths, 0, sizeof v->view.expanded_paths);
+    v->view.preview_enabled = false;
     v->view.selected = 0;
     v->view.node = -1;
     vector_sync();
@@ -167,6 +178,7 @@ void vector_new(void) {
     v->view.path[0] = 0;
     v->view.exists = 0;
     memset(v->view.expanded_paths, 0, sizeof v->view.expanded_paths);
+    v->view.preview_enabled = false;
     v->view.selected = 0;
     v->view.board = 0;
     v->view.node = -1;

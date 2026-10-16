@@ -197,6 +197,7 @@ void vector_draw_canvas(void) {
             previous = anchor;
         }
     }
+    vector_draw_preview_selection();
     for (int b = 0; b < VE_BOARDS; b++) {
         if (v->document.boards[b].used) {
             rulers(&v->document.boards[b], v->view.board == b);

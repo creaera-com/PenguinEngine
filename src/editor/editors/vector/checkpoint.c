@@ -14,9 +14,16 @@ bool vector_checkpoint(VectorEditor *v, PeSession *io) {
     }
     if (count < 1 || count > VE_HISTORY || position < 0 || position >= count || !next ||
         !memchr(view.path, 0, sizeof view.path) || view.board < 0 || view.board >= VE_BOARDS ||
-        view.tool < 0 || view.tool > VT_BOARD || view.node < -1 || view.node >= VE_NODES ||
+        view.tool < 0 || view.tool > VT_PREVIEW || view.node < -1 || view.node >= VE_NODES ||
         !isfinite(view.x) || !isfinite(view.y) || !isfinite(view.zoom) || view.zoom < .02f ||
         view.zoom > 32) {
+        return false;
+    }
+    if (view.preview_enabled &&
+        (view.preview_board < 0 || view.preview_board >= VE_BOARDS || !isfinite(view.preview.x) ||
+         !isfinite(view.preview.y) || !isfinite(view.preview.w) || !isfinite(view.preview.h) ||
+         view.preview.x < 0 || view.preview.y < 0 || view.preview.w < 1 || view.preview.h < 1 ||
+         view.preview.x + view.preview.w > 100000 || view.preview.y + view.preview.h > 100000)) {
         return false;
     }
     for (int i = 0; i < VE_BOARDS; i++) {
@@ -41,7 +48,8 @@ bool vector_checkpoint(VectorEditor *v, PeSession *io) {
     if (io->reading) {
         char error[256];
         if (!ve_from_json(&v->document, v->history.states[position], error, sizeof error) ||
-            !v->document.boards[view.board].used) {
+            !v->document.boards[view.board].used ||
+            (view.preview_enabled && !v->document.boards[view.preview_board].used)) {
             return false;
         }
         v->view = view;

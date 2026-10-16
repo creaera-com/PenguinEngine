@@ -367,8 +367,32 @@ static void test_tool_panel_schema(void) {
     }
 }
 
+static void test_vector_preview_schema(void) {
+    const char *valid =
+        "schema: penguin.ui/v1\nkind: editor\nid: vector\ndocument_provider: vector\n"
+        "toolbar: []\ncolumns:\n  left: {type: spacer, id: left}\n"
+        "  center: {type: vector_canvas, id: canvas, binding: vector.active}\n"
+        "  right: {type: vector_preview, id: preview, binding: vector.active, height: 190}\n";
+    write_file(YAML_FILE, valid);
+    PeUiLayout *layout = pe_ui_layout_load(YAML_FILE, "editor", error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+    pe_ui_layout_free(layout);
+    char *invalid = malloc(strlen(valid) + 1);
+    TEST_ASSERT_NOT_NULL(invalid);
+    strcpy(invalid, valid);
+    memcpy(strstr(invalid, "height: 190") + 8, "000", 3);
+    rejects(invalid, "range");
+    free(invalid);
+    rejects("schema: penguin.ui/v1\nkind: editor\nid: map\ndocument_provider: scene\n"
+            "toolbar: []\ncolumns:\n  left: {type: spacer, id: left}\n"
+            "  center: {type: map_canvas, id: canvas, binding: scene.active}\n"
+            "  right: {type: vector_preview, id: preview, binding: vector.active, height: 190}\n",
+            "unavailable");
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_vector_preview_schema);
     RUN_TEST(test_tool_panel_schema);
     RUN_TEST(test_map_panel_widgets_are_typed_and_unique);
     RUN_TEST(test_scene_tree_tools_schema);

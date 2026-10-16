@@ -166,7 +166,7 @@ Die folgenden Adapter sind implementiert. Spezialisierte Typen (`file_tree`, `en
 | `separator` | Schmaler Trennstrich mit Innenabstand in Toolbar/Zeile | Vorhandene Toolbar-Darstellung |
 | `editor_switcher` | Nur Shell; `labels: false` zeigt Icons mit Titel als Tooltip | Vorhandene Bereichsauswahl |
 | `tabs` | `tabs`-Liste mit `id`, `title`, optional `icon`, genau einem `content`-Knoten | Vorhandenes Tabmodell |
-| `tool_panel` | `children` mit `section`-Knoten; darin nur `button`-Knoten | Scrollbare Werkzeugkarten in Inhaltshöhe, mit rechtsbündigem Umbruch und aufklappbaren Überschriften; nur in Editorlayouts |
+| `tool_panel` | `children` mit `section`-Knoten; darin `button`-Knoten und optional ein abschließendes `vector_preview` | Scrollbare Werkzeugkarten in Inhaltshöhe, mit rechtsbündigem Umbruch und aufklappbaren Überschriften; nur in Editorlayouts |
 | `section` | `title`, `open` als anfänglicher Boolean, `children` | Klappbarer Container |
 | `split` | `axis`, `initial`, `minimum_first`, `minimum_second`, `gap`, `first`, `second` | Zwei verstellbare Bereiche; Details in [KONSOLE.md](KONSOLE.md) |
 | `terminal` | `binding: terminal.shared` | Gemeinsame Shell der Anwendungshülle |
@@ -362,4 +362,6 @@ Die Shell registriert zusätzlich `{id: vector, title: "Vector Art", icon: edit,
 
 ### Gruppierte Werkzeuge
 
-Der Vector-Editor verwendet rechts neben Properties einen Tools-Tab mit `tool_panel`. Seine `children` sind normale `section`-Knoten mit `title`, optionalem `icon`, anfänglichem `open` und einer Buttonliste als `children`. Anders als eine gleichmäßig aufgeteilte `column` bemisst dieser Container jede Karte nach ihrer Werkzeugliste. Geschlossene Karten geben ihren Platz sofort frei. Kartenabstand und Hintergrund entsprechen dem Komponenten-Inspector. Scrolloffset und Klappzustände werden nach Widget-ID im entladbaren Workspace gespeichert. Die Buttons verwenden dieselben registrierten Aktionen, Bedingungen und Tooltips wie Toolbarbuttons. Das Panel unterstützt auch andere Editor-Module.
+Der Vector-Editor verwendet rechts neben Properties einen Tools-Tab mit `tool_panel`. Seine `children` sind normale `section`-Knoten mit `title`, optionalem `icon`, anfänglichem `open` und einer Buttonliste als `children` (optional mit abschließendem `vector_preview`). Anders als eine gleichmäßig aufgeteilte `column` bemisst dieser Container jede Karte nach ihrer Werkzeugliste. Geschlossene Karten geben ihren Platz sofort frei. Kartenabstand und Hintergrund entsprechen dem Komponenten-Inspector. Scrolloffset und Klappzustände werden nach Widget-ID im entladbaren Workspace gespeichert. Die Buttons verwenden dieselben registrierten Aktionen, Bedingungen und Tooltips wie Toolbarbuttons. Das Panel unterstützt auch andere Editor-Module.
+
+`vector_preview` ist ein spezialisierter Vector-Knoten mit `binding: vector.active` und `height` von 64 bis 512 Bildschirm-Pixeln. In einer Tool-Panel-Section steht er nach allen Buttons als letztes Kind. Seine Höhe geht in die Kartenhöhe und den Scrollbereich ein. Beispiel: `{type: vector_preview, id: asset_preview, binding: vector.active, height: 190}`. Auswahlwerkzeug und Löschen sind über `vector.preview_select` und `vector.preview_clear` registriert; der C-Adapter rendert ausschließlich die 1:1-Vorschau, die Anordnung bleibt YAML.

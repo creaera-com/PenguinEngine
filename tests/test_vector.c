@@ -1,4 +1,5 @@
 #include "editors/vector/document.h"
+#include "editors/vector/preview.h"
 #include "unity.h"
 #include <math.h>
 #include <stdio.h>
@@ -237,8 +238,54 @@ static void test_boolean_large_offsets(void) {
     TEST_ASSERT_FLOAT_WITHIN(.1f, 600, area(a));
 }
 
+static void test_preview_small_selection_is_one_to_one(void) {
+    VePreviewWindow result;
+    TEST_ASSERT_TRUE(ve_preview_window((VeRegion){10, 20, 40, 30}, (VeRegion){100, 200, 200, 100},
+                                       999, -999, &result));
+    TEST_ASSERT_EQUAL_FLOAT(10, result.source.x);
+    TEST_ASSERT_EQUAL_FLOAT(20, result.source.y);
+    TEST_ASSERT_EQUAL_FLOAT(40, result.source.w);
+    TEST_ASSERT_EQUAL_FLOAT(30, result.source.h);
+    TEST_ASSERT_EQUAL_FLOAT(180, result.destination.x);
+    TEST_ASSERT_EQUAL_FLOAT(235, result.destination.y);
+    TEST_ASSERT_EQUAL_FLOAT(result.source.w, result.destination.w);
+    TEST_ASSERT_EQUAL_FLOAT(result.source.h, result.destination.h);
+}
+
+static void test_preview_large_selection_follows_and_clamps(void) {
+    VePreviewWindow result;
+    VeRegion selection = {50, 60, 1000, 800}, viewport = {0, 0, 200, 100};
+    TEST_ASSERT_TRUE(ve_preview_window(selection, viewport, 450, 310, &result));
+    TEST_ASSERT_EQUAL_FLOAT(350, result.source.x);
+    TEST_ASSERT_EQUAL_FLOAT(260, result.source.y);
+    TEST_ASSERT_EQUAL_FLOAT(200, result.source.w);
+    TEST_ASSERT_TRUE(ve_preview_window(selection, viewport, -400, -400, &result));
+    TEST_ASSERT_EQUAL_FLOAT(50, result.source.x);
+    TEST_ASSERT_EQUAL_FLOAT(60, result.source.y);
+    TEST_ASSERT_TRUE(ve_preview_window(selection, viewport, 5000, 5000, &result));
+    TEST_ASSERT_EQUAL_FLOAT(850, result.source.x);
+    TEST_ASSERT_EQUAL_FLOAT(760, result.source.y);
+    TEST_ASSERT_EQUAL_FLOAT(result.source.w, result.destination.w);
+    TEST_ASSERT_EQUAL_FLOAT(result.source.h, result.destination.h);
+}
+
+static void test_preview_invalid_input_is_atomic(void) {
+    VePreviewWindow result = {.source = {12, 34, 56, 78}};
+    TEST_ASSERT_FALSE(
+        ve_preview_window((VeRegion){0, 0, 0, 30}, (VeRegion){0, 0, 100, 100}, 0, 0, &result));
+    TEST_ASSERT_FALSE(
+        ve_preview_window((VeRegion){0, 0, 30, 30}, (VeRegion){0, 0, .5f, 100}, 0, 0, &result));
+    TEST_ASSERT_FALSE(
+        ve_preview_window((VeRegion){0, 0, 30, 30}, (VeRegion){0, 0, 100, 100}, NAN, 0, &result));
+    TEST_ASSERT_EQUAL_FLOAT(12, result.source.x);
+    TEST_ASSERT_EQUAL_FLOAT(78, result.source.h);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_preview_small_selection_is_one_to_one);
+    RUN_TEST(test_preview_large_selection_follows_and_clamps);
+    RUN_TEST(test_preview_invalid_input_is_atomic);
     RUN_TEST(test_nonzero_winding_import_is_preserved);
     RUN_TEST(test_boolean_large_offsets);
     RUN_TEST(test_artboard_local_positions_and_limits);

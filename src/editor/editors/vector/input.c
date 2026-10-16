@@ -98,12 +98,73 @@ static void move_anchor(VeShape *s, int index, float dx, float dy) {
     }
 }
 
+static bool preview_event(SDL_Event *e, bool inside) {
+    VectorEditor *v = app.vector;
+    bool escape = e->type == SDL_EVENT_KEY_DOWN && e->key.key == SDLK_ESCAPE;
+    bool cancel = escape || e->type == SDL_EVENT_WINDOW_FOCUS_LOST || e->type == SDL_EVENT_QUIT ||
+                  e->type == SDL_EVENT_WINDOW_CLOSE_REQUESTED;
+    if (v->preview_drag && cancel) {
+        v->view.preview = v->preview_before;
+        v->view.preview_board = v->preview_before_board;
+        v->view.preview_enabled = v->preview_before_enabled;
+        v->preview_drag = false;
+        return escape;
+    }
+    if (v->preview_drag && e->type == SDL_EVENT_KEY_DOWN) {
+        return true;
+    }
+    VePoint p = world(app.mx, app.my);
+    bool release = e->type == SDL_EVENT_MOUSE_BUTTON_UP && e->button.button == SDL_BUTTON_LEFT;
+    if (v->preview_drag && (e->type == SDL_EVENT_MOUSE_MOTION || release)) {
+        VeBoard *b = &v->document.boards[v->view.preview_board];
+        float x = fmaxf(0, fminf(b->w, p.x - b->x));
+        float y = fmaxf(0, fminf(b->h, p.y - b->y));
+        float left = floorf(fminf(v->start_x, x) + .0001f),
+              top = floorf(fminf(v->start_y, y) + .0001f);
+        v->view.preview =
+            (VeRegion){left, top, fminf(b->w, ceilf(fmaxf(v->start_x, x) - .0001f)) - left,
+                       fminf(b->h, ceilf(fmaxf(v->start_y, y) - .0001f)) - top};
+        if (release) {
+            v->preview_drag = false;
+            if (v->view.preview.w < 1 || v->view.preview.h < 1) {
+                v->view.preview = v->preview_before;
+                v->view.preview_board = v->preview_before_board;
+                v->view.preview_enabled = v->preview_before_enabled;
+            }
+        }
+        return true;
+    }
+    if (v->view.tool == VT_PREVIEW && inside && !app.ui.blocked &&
+        e->type == SDL_EVENT_MOUSE_BUTTON_DOWN && e->button.button == SDL_BUTTON_LEFT) {
+        int board = board_at(p);
+        if (board < 0) {
+            editor_message("Start the preview selection inside an artboard");
+            return true;
+        }
+        v->preview_before = v->view.preview;
+        v->preview_before_board = v->view.preview_board;
+        v->preview_before_enabled = v->view.preview_enabled;
+        v->view.preview_board = board;
+        v->view.preview_enabled = true;
+        v->preview_drag = true;
+        VeBoard *b = &v->document.boards[board];
+        v->start_x = p.x - b->x;
+        v->start_y = p.y - b->y;
+        v->view.preview = (VeRegion){floorf(v->start_x), floorf(v->start_y), 0, 0};
+        return true;
+    }
+    return false;
+}
+
 bool vector_event(SDL_Event *e) {
     if (!editor_vector_active() || app.request != REQUEST_NONE || app.field != FIELD_NONE) {
         return false;
     }
     VectorEditor *v = app.vector;
     bool inside = editor_inside(app.mx, app.my, v->canvas);
+    if (preview_event(e, inside)) {
+        return true;
+    }
     if (e->type == SDL_EVENT_WINDOW_FOCUS_LOST || e->type == SDL_EVENT_QUIT ||
         e->type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
         if (v->dragging) {
@@ -132,6 +193,10 @@ bool vector_event(SDL_Event *e) {
             return false;
         }
         if (e->key.key == SDLK_DELETE || e->key.key == SDLK_BACKSPACE) {
+            if (v->view.tool == VT_PREVIEW) {
+                vector_action("vector.preview_clear");
+                return true;
+            }
             vector_action(v->view.tool == VT_NODE && v->view.node > 0 ? "vector.delete_node"
                                                                       : "vector.delete");
             return true;

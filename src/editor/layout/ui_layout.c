@@ -5,31 +5,58 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-static const char *actions[] = {"document.save",       "document.undo",
-                                "document.redo",       "scene.toggle_play",
-                                "map.import_tileset",  "map.select_brush",
-                                "map.select_eraser",   "map.select_rectangle",
-                                "map.select_fill",     "map.select_entity",
-                                "map.toggle_grid",     "map.toggle_collision",
-                                "scene.add_root",      "scene.add_sibling",
-                                "scene.add_child",     "scene.delete",
-                                "script.check",        "window.minimize",
-                                "window.maximize",     "window.collapse",
-                                "window.close",        "vector.new",
-                                "vector.open",         "vector.save_as",
-                                "vector.select",       "vector.rectangle",
-                                "vector.ellipse",      "vector.pen",
-                                "vector.nodes",        "vector.artboard",
-                                "vector.fit",          "vector.zoom_in",
-                                "vector.zoom_out",     "vector.zoom_reset",
-                                "vector.convert",      "vector.mirror_x",
-                                "vector.mirror_y",     "vector.union",
-                                "vector.intersection", "vector.difference",
-                                "vector.xor",          "vector.delete",
-                                "vector.duplicate",    "vector.split",
-                                "vector.close_path",   "vector.curve",
-                                "vector.raise",        "vector.lower",
-                                "vector.delete_node",  NULL};
+static const char *actions[] = {"document.save",
+                                "document.undo",
+                                "document.redo",
+                                "scene.toggle_play",
+                                "map.import_tileset",
+                                "map.select_brush",
+                                "map.select_eraser",
+                                "map.select_rectangle",
+                                "map.select_fill",
+                                "map.select_entity",
+                                "map.toggle_grid",
+                                "map.toggle_collision",
+                                "scene.add_root",
+                                "scene.add_sibling",
+                                "scene.add_child",
+                                "scene.delete",
+                                "script.check",
+                                "window.minimize",
+                                "window.maximize",
+                                "window.collapse",
+                                "window.close",
+                                "vector.new",
+                                "vector.open",
+                                "vector.save_as",
+                                "vector.select",
+                                "vector.rectangle",
+                                "vector.ellipse",
+                                "vector.pen",
+                                "vector.nodes",
+                                "vector.artboard",
+                                "vector.fit",
+                                "vector.zoom_in",
+                                "vector.zoom_out",
+                                "vector.zoom_reset",
+                                "vector.preview_select",
+                                "vector.preview_clear",
+                                "vector.convert",
+                                "vector.mirror_x",
+                                "vector.mirror_y",
+                                "vector.union",
+                                "vector.intersection",
+                                "vector.difference",
+                                "vector.xor",
+                                "vector.delete",
+                                "vector.duplicate",
+                                "vector.split",
+                                "vector.close_path",
+                                "vector.curve",
+                                "vector.raise",
+                                "vector.lower",
+                                "vector.delete_node",
+                                NULL};
 static const char *bindings[] = {"document.can_save",
                                  "document.can_undo",
                                  "document.can_redo",
@@ -212,13 +239,10 @@ static bool widget(Check *c, const cJSON *v, int depth) {
         return error_at(c, v, "only one interactive canvas per editor is supported");
     }
 
-    const char *specialized[] = {"file_tree",        "entity_tree",
-                                 "map_canvas",       "script_editor",
-                                 "inspector",        "scene_info",
-                                 "script_info",      "terminal",
-                                 "map_layers",       "tile_palette",
-                                 "vector_canvas",    "vector_tree",
-                                 "vector_inspector", NULL};
+    const char *specialized[] = {
+        "file_tree",     "entity_tree", "map_canvas",       "script_editor",  "inspector",
+        "scene_info",    "script_info", "terminal",         "map_layers",     "tile_palette",
+        "vector_canvas", "vector_tree", "vector_inspector", "vector_preview", NULL};
     for (int i = 0; specialized[i]; i++) {
         if (!strcmp(type, specialized[i])) {
             unsigned bit = 1u << i;
@@ -236,6 +260,8 @@ static bool widget(Check *c, const cJSON *v, int depth) {
         extra = "|tools|";
     } else if (!strcmp(type, "tool_panel")) {
         extra = "|children|";
+    } else if (!strcmp(type, "vector_preview")) {
+        extra = "|height|";
     } else if (!strcmp(type, "section")) {
         extra = "|children||title||open|";
     } else if (!strcmp(type, "row") || !strcmp(type, "column")) {
@@ -251,7 +277,7 @@ static bool widget(Check *c, const cJSON *v, int depth) {
                strcmp(type, "script_info") && strcmp(type, "terminal") &&
                strcmp(type, "map_layers") && strcmp(type, "tile_palette") &&
                strcmp(type, "vector_canvas") && strcmp(type, "vector_tree") &&
-               strcmp(type, "vector_inspector")) {
+               strcmp(type, "vector_inspector") && strcmp(type, "vector_preview")) {
         return error_at(c, v, "unknown widget type");
     }
 
@@ -325,7 +351,7 @@ static bool widget(Check *c, const cJSON *v, int depth) {
                               !strcmp(type, "map_layers") || !strcmp(type, "tile_palette"))
                                ? "scene.active"
                            : (!strcmp(type, "vector_canvas") || !strcmp(type, "vector_tree") ||
-                              !strcmp(type, "vector_inspector"))
+                              !strcmp(type, "vector_inspector") || !strcmp(type, "vector_preview"))
                                ? "vector.active"
                            : !strcmp(type, "inspector") ? "selection.active"
                            : (!strcmp(type, "script_editor") || !strcmp(type, "script_info"))
@@ -342,7 +368,7 @@ static bool widget(Check *c, const cJSON *v, int depth) {
                     !strcmp(type, "scene_info") || !strcmp(type, "inspector") ||
                     !strcmp(type, "map_layers") || !strcmp(type, "tile_palette");
     bool vector_only = !strcmp(type, "vector_canvas") || !strcmp(type, "vector_tree") ||
-                       !strcmp(type, "vector_inspector");
+                       !strcmp(type, "vector_inspector") || !strcmp(type, "vector_preview");
     bool script_only = !strcmp(type, "script_editor") || !strcmp(type, "script_info");
     if ((map_only && (!c->module || strcmp(c->module, "map"))) ||
         (script_only && (!c->module || strcmp(c->module, "scripts"))) ||
@@ -399,11 +425,18 @@ static bool widget(Check *c, const cJSON *v, int depth) {
             }
             const cJSON *buttons = pe_ui_get(section, "children");
             for (const cJSON *button = buttons->child; button; button = button->next) {
-                if (strcmp(pe_ui_string(button, "type", ""), "button")) {
-                    return error_at(c, button, "tool_panel sections only support buttons");
+                const char *child_type = pe_ui_string(button, "type", "");
+                if (strcmp(child_type, "button") &&
+                    (strcmp(child_type, "vector_preview") || button->next)) {
+                    return error_at(
+                        c, button,
+                        "tool_panel sections only support buttons and a final vector_preview");
                 }
             }
         }
+    }
+    if (!strcmp(type, "vector_preview") && !number(c, pe_ui_get(v, "height"), 64, 512)) {
+        return false;
     }
     if (!strcmp(type, "section")) {
         if (!cJSON_IsString(pe_ui_get(v, "title")) || !cJSON_IsBool(pe_ui_get(v, "open"))) {

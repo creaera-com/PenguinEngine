@@ -3,17 +3,21 @@
 #ifndef PENGUIN_VECTOR_EDITOR_H
 #define PENGUIN_VECTOR_EDITOR_H
 #include "editors/vector/document.h"
+#include "editors/vector/preview.h"
 #include "penguin/ui_sdl.h"
 #include "workspace/session.h"
 
 /** @brief Interaktive Vektorwerkzeuge. */
-typedef enum { VT_SELECT, VT_RECT, VT_ELLIPSE, VT_PEN, VT_NODE, VT_BOARD } VeTool;
+typedef enum { VT_SELECT, VT_RECT, VT_ELLIPSE, VT_PEN, VT_NODE, VT_BOARD, VT_PREVIEW } VeTool;
 
 /** @brief Persistente Navigation des Vektorarbeitsbereichs. */
 typedef struct {
     char path[1024];                    ///< Dateipfad; leer für ein unbenanntes Dokument.
     uint64_t selected;                  ///< Bitmaske ausgewählter Objekt-Slots.
     uint32_t expanded_paths[VE_SHAPES]; ///< Stabile IDs aufgeklappter Pfade; 0 ist frei.
+    VeRegion preview;                   ///< Lokaler 1:1-Auswahlbereich; keine SVG-Geometrie.
+    int preview_board;                  ///< Artboard der Vorschau.
+    bool preview_enabled;               ///< Ob eine Vorschauauswahl existiert.
     int board;                          ///< Index des zugehörigen aktiven Artboards.
     int tool;                           ///< Aktives Werkzeug aus VeTool.
     int node;                           ///< Ausgewähltes Pfadsegment; -1 bedeutet keines.
@@ -29,6 +33,19 @@ typedef struct {
     VeDocument document;               ///< Besitzendes Vektordokument.
     VeHistory history;                 ///< Besitzender Undo-/Redo-Verlauf.
     VeView view;                       ///< Auslagerbare Navigation.
+    SDL_Texture *preview_texture;      ///< Besitzender 1:1-Vorschaucache.
+    unsigned char *preview_pixels;     ///< Nur viewportgroßer RGBA-Puffer.
+    int preview_width;                 ///< Cachebreite in Pixeln.
+    int preview_height;                ///< Cachehöhe in Pixeln.
+    VeRegion preview_cached_source;    ///< Lokaler Ausschnitt im Cache.
+    int preview_cached_board;          ///< Artboard des Cacheinhalts.
+    uint64_t preview_revision;         ///< Dokumentrevision des Cacheinhalts.
+    bool preview_cache_valid;          ///< Ob der Cacheinhalt verwendbar ist.
+    bool preview_was_dragging;         ///< Erzwingt Neuzeichnen nach abgebrochener Dokumentgeste.
+    bool preview_drag;                 ///< Laufende reine Navigationsauswahl.
+    VeRegion preview_before;           ///< Vorherige Auswahl für Escape/Fokusverlust.
+    int preview_before_board;          ///< Vorheriges Artboard für Escape/Fokusverlust.
+    bool preview_before_enabled;       ///< Vorheriger Auswahlstatus.
     SDL_Texture *texture;              ///< Besitzende SDL-Vorschautextur.
     struct NSVGrasterizer *rasterizer; ///< Interner Feldzustand.
     unsigned char *pixels;             ///< Interner Feldzustand.
@@ -66,6 +83,12 @@ void vector_draw_tools(SDL_FRect area);
 void vector_draw_canvas(void);
 /** @brief Zeichnet Artboard-/Objektbaum. */
 void vector_draw_tree(void);
+/** @brief Zeichnet die 1:1-Vorschau im übergebenen Panelbereich. */
+void vector_draw_preview(SDL_FRect area);
+/** @brief Liefert die an aktuelle Artboardgrenzen beschnittene lokale Auswahl. */
+bool vector_preview_selection(VeRegion *selection);
+/** @brief Zeichnet den Auswahlrahmen auf dem Canvas; verändert das SVG nicht. */
+void vector_draw_preview_selection(void);
 /** @brief Zeichnet kontextbezogene Eigenschaften. */
 void vector_draw_inspector(void);
 /** @brief Verarbeitet Canvas-/Werkzeugereignisse; true bedeutet verbraucht. */

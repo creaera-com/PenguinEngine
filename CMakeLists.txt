@@ -105,11 +105,13 @@ add_library(penguin_vector STATIC
  src/editor/editors/vector/svg.c
  src/editor/editors/vector/metadata.c
  src/editor/editors/vector/history.c
+ src/editor/editors/vector/preview_view.c
  src/editor/editors/vector/nanosvg.c)
 target_include_directories(penguin_vector PUBLIC src/editor PRIVATE third_party/cjson third_party/nanosvg)
 target_link_libraries(penguin_vector PUBLIC penguin)
 if(NOT MSVC)
  set_source_files_properties(src/editor/editors/vector/document.c src/editor/editors/vector/boolean.c src/editor/editors/vector/svg.c src/editor/editors/vector/metadata.c src/editor/editors/vector/history.c
+ src/editor/editors/vector/preview_view.c
   PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic")
 endif()
 include(CTest)
@@ -180,6 +182,7 @@ if(PENGUIN_BUILD_EDITOR)
   src/editor/editors/vector/actions.c
   src/editor/editors/vector/input.c
   src/editor/editors/vector/render.c
+  src/editor/editors/vector/preview.c
   src/editor/editors/vector/checkpoint.c
   src/editor/editors/vector/demo.c
   src/editor/console/view.c

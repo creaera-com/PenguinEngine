@@ -147,6 +147,9 @@ bool editor_yaml_action_active(const char *action) {
     }
 
     if (app.vector) {
+        if (!strcmp(action, "vector.preview_select")) {
+            return app.vector->view.tool == VT_PREVIEW;
+        }
         const char *tools[] = {"vector.select", "vector.rectangle", "vector.ellipse",
                                "vector.pen",    "vector.nodes",     "vector.artboard"};
         for (int i = 0; i < 6; i++) {

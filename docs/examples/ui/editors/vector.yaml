@@ -50,6 +50,15 @@ columns:
           id: vector_tool_panel
           children:
             - type: section
+              id: vector_preview_tools
+              title: "Preview"
+              icon: image
+              open: true
+              children:
+                - {type: button, id: vector_preview_select, icon: select, label: "Select area", tooltip: "Drag a rectangle inside an artboard for a 1:1 preview", action: vector.preview_select}
+                - {type: button, id: vector_preview_clear, icon: close, tooltip: "Clear preview selection", action: vector.preview_clear}
+                - {type: vector_preview, id: vector_preview, binding: vector.active, height: 190}
+            - type: section
               id: vector_transform_tools
               title: "Transform"
               icon: select

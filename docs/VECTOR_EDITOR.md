@@ -36,6 +36,16 @@ SVG definiert selbst keine Editor-Artboards. Penguin speichert deshalb jedes Art
 
 Pfadgrenzen im Inspector sind die Hülle von Ankern und Kontrollpunkten. Die exakte Bézier-Extremwertbox wird derzeit nicht berechnet. Größenänderungen skalieren die Pfadgeometrie, aber nicht automatisch die Konturbreite.
 
+## Vorschau in 1:1
+
+Im rechten **Tools**-Tab befindet sich die aufklappbare Gruppe **Preview**. **Select area** aktiviert eine rechteckige Bereichsauswahl: innerhalb eines Artboards drücken und ziehen, auch rückwärts. Die Auswahl wird auf die Grenzen dieses Artboards und auf lokale Pixelkanten begrenzt. Escape oder Fokusverlust verwirft eine laufende Auswahl und stellt die vorherige wieder her. Das X in der Gruppe löscht die Vorschauauswahl; im aktiven Auswahlwerkzeug geht das auch mit Delete. Escape nach abgeschlossener Auswahl kehrt zum Auswahlwerkzeug zurück.
+
+Die Vorschau zeigt ausschließlich das gewählte Artboard einschließlich Hintergrund, Füllung und Konturen. Ein Dokumentpixel entspricht einem Canvaspixel der Vorschau, unabhängig vom Zoom der Zeichenansicht. Kleine Bereiche werden vollständig und zentriert angezeigt. Ist der Bereich größer als das Vorschaufenster, wird ein 1:1-Ausschnitt um die Mitte der sichtbaren Zeichenansicht angezeigt und an den Auswahlgrenzen begrenzt. Beim Pannen oder Zoomen folgt dieser Ausschnitt der lokalen Ansichtsmitte; außerhalb der Auswahl bleibt er an deren nächstem Rand stehen. Es gibt keine automatische Verkleinerung. Transparente Bereiche haben ein Schachbrett als Editorhintergrund.
+
+Ein orangefarbener Rahmen zeigt den gewählten Bereich im Canvas. Auswahl und Klappzustand bleiben bei F6 und beim Wechsel zu anderen Editoren erhalten, verändern aber weder das SVG noch den Dokument-Undo-Verlauf. Artboardbewegungen nehmen die lokale Auswahl mit; nach Größenänderungen wird die Anzeige beschnitten, nach Löschen ihres Artboards deaktiviert. Neue/geladene Dokumente starten ohne alte Vorschauauswahl.
+
+Die Vorschau rendert nur den sichtbaren Ausschnitt. Ihr Rasterpuffer ist an die Größe des Vorschaufensters gebunden, nicht an die Größe der SVG-Datei oder Auswahl; Textur und Pixelpuffer werden mit dem Editor vollständig entladen. Im Leerlauf wird der Rastercache wiederverwendet. Geometrieänderungen, Undo/Redo und ein veränderter Ausschnitt aktualisieren ihn.
+
 ## Boolesche Operationen
 
 Mit Shift genau zwei Objekte **auf demselben Artboard** auswählen. Beide benötigen eine eingeschaltete Füllung. Die Reihenfolge ist die Zeichenreihenfolge: das untere Objekt ist A, das obere B.
@@ -66,10 +76,12 @@ Aktuelle Kapazitäten: 16 Artboards, 64 Objekte, 256 Pfadsegmente pro Objekt, 2.
 - `svg.c`, `metadata.c`, `history.c`: SVG-Austausch, validierte Metadaten und begrenzte Undo-/Redo-Snapshots; ohne SDL.
 - `editor.c`, `panels.c`, `fields.c`, `actions.c`, `input.c`: Lebenszyklus, Eigenschaften, Werkzeuge und Eingabeintegration.
 - `tree.c`: hierarchischer Objektbaum mit gemeinsamen Tree-Guides und Segmentauswahl.
+- `preview_view.c`, `preview.h`: SDL-freie 1:1-Ausschnittberechnung mit Unity-Tests.
+- `preview.c`: isoliertes Artboard-Rendering, begrenzter Rastercache und Auswahlrahmen.
 - `render.c`: NanoSVG-Rastercache, Lineale und Bearbeitungsgriffe.
 - `checkpoint.c`: Dokument/Verlauf und Ansicht beim vollständigen Entladen sichern und wiederherstellen.
 - `third_party/nanosvg`: vendorte C-Bibliothek für SVG-Geometrieimport und Antialiasing. Die Engine bleibt C17.
 
 Beim Wechsel zu Map oder Scripts werden Vector-Payload, Undo-Speicher, Rasterizer, Pixelpuffer und Textur freigegeben. Dokument und Verlauf bleiben im temporären Sitzungscache. Unbestätigte Texteingaben sowie laufende Drag-Gesten werden nicht unbemerkt ausgelagert. Gemeinsames Save/Undo/Redo und die Schließen-Rückfrage berücksichtigen alle drei Dokumente.
 
-Dreizehn Unity-Tests prüfen Geometrie, Füllregeln, Kurven, boolesche Sonderfälle, SVG-Rundlauf, ungültige Dateien und Verlauf. Ein Editor-Smoke bedient echte Maus-/Tastaturereignisse, direkte Felder, Knoten, Artboards, SVG und Editorwechsel einschließlich F6. Auf den nativen Desktop-Plattformen sollte zusätzlich die manuelle Bedienung getestet werden.
+Sechzehn Unity-Tests prüfen Geometrie, Füllregeln, Kurven, boolesche Sonderfälle, SVG-Rundlauf, ungültige Dateien und Verlauf. Ein Editor-Smoke bedient echte Maus-/Tastaturereignisse, direkte Felder, Knoten, Artboards, SVG und Editorwechsel einschließlich F6. Auf den nativen Desktop-Plattformen sollte zusätzlich die manuelle Bedienung getestet werden.

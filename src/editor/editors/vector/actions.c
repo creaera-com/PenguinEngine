@@ -30,6 +30,16 @@ bool vector_action(const char *action) {
         vector_zoom(zoom, v->canvas.x + v->canvas.w * .5f, v->canvas.y + v->canvas.h * .5f);
         return true;
     }
+    if (!strcmp(name, "preview_select")) {
+        v->view.tool = VT_PREVIEW;
+        editor_message("Preview: drag a region inside an artboard; Escape cancels");
+        return true;
+    }
+    if (!strcmp(name, "preview_clear")) {
+        v->view.preview_enabled = false;
+        v->preview_cache_valid = false;
+        return true;
+    }
     const char *tools[] = {"select", "rectangle", "ellipse", "pen", "nodes", "artboard"};
     for (int i = 0; i < 6; i++) {
         if (!strcmp(name, tools[i])) {
