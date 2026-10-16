@@ -99,6 +99,23 @@ if(NOT MSVC)
  target_compile_options(penguin_terminal PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 add_subdirectory(src/ui)
+add_library(penguin_vector STATIC
+ src/editor/editors/vector/document.c
+ src/editor/editors/vector/boolean.c
+ src/editor/editors/vector/svg.c
+ src/editor/editors/vector/metadata.c
+ src/editor/editors/vector/history.c
+ src/editor/editors/vector/preview_view.c
+ src/editor/editors/vector/grid_view.c
+ src/editor/editors/vector/nanosvg.c)
+target_include_directories(penguin_vector PUBLIC src/editor PRIVATE third_party/cjson third_party/nanosvg)
+target_link_libraries(penguin_vector PUBLIC penguin)
+if(NOT MSVC)
+ set_source_files_properties(src/editor/editors/vector/document.c src/editor/editors/vector/boolean.c src/editor/editors/vector/svg.c src/editor/editors/vector/metadata.c src/editor/editors/vector/history.c
+ src/editor/editors/vector/preview_view.c
+ src/editor/editors/vector/grid_view.c
+  PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic")
+endif()
 include(CTest)
 if(BUILD_TESTING)
  add_executable(penguin_terminal_tests tests/test_terminal.c)
@@ -118,6 +135,9 @@ if(BUILD_TESTING)
  target_link_libraries(penguin_hierarchy_tests PRIVATE penguin unity)
  target_include_directories(penguin_hierarchy_tests PRIVATE third_party/cjson)
  add_test(NAME hierarchy_unit_tests COMMAND penguin_hierarchy_tests)
+ add_executable(penguin_vector_tests tests/test_vector.c)
+ target_link_libraries(penguin_vector_tests PRIVATE penguin_vector unity)
+ add_test(NAME vector_unit_tests COMMAND penguin_vector_tests)
  add_executable(penguin_component_tests tests/test_components.c)
  target_link_libraries(penguin_component_tests PRIVATE penguin unity)
  target_include_directories(penguin_component_tests PRIVATE third_party/cjson)
@@ -157,6 +177,17 @@ if(PENGUIN_BUILD_EDITOR)
  target_include_directories(penguin_editor_documents PUBLIC src/editor)
  target_link_libraries(penguin_editor_documents PUBLIC penguin_editor_session penguin_sdl penguin_script penguin_ui)
  add_executable(penguin_editor
+  src/editor/editors/vector/editor.c
+  src/editor/editors/vector/tree.c
+  src/editor/editors/vector/panels.c
+  src/editor/editors/vector/fields.c
+  src/editor/editors/vector/actions.c
+  src/editor/editors/vector/input.c
+  src/editor/editors/vector/render.c
+  src/editor/editors/vector/preview.c
+  src/editor/editors/vector/grid.c
+  src/editor/editors/vector/checkpoint.c
+  src/editor/editors/vector/demo.c
   src/editor/console/view.c
   src/editor/app/main.c
   src/editor/app/state.c
@@ -186,12 +217,12 @@ if(PENGUIN_BUILD_EDITOR)
   src/editor/editors/scripts/actions.c
   src/editor/editors/scripts/panels.c)
  if(BUILD_TESTING)
-  target_sources(penguin_editor PRIVATE tests/editor_smoke.c)
+  target_sources(penguin_editor PRIVATE tests/editor_smoke.c tests/editor_vector_smoke.c)
   target_include_directories(penguin_editor PRIVATE tests)
   target_compile_definitions(penguin_editor PRIVATE PE_EDITOR_SMOKE_TESTS=1)
  endif()
- target_include_directories(penguin_editor PRIVATE src/editor)
- target_link_libraries(penguin_editor PRIVATE penguin_terminal penguin_editor_documents penguin_sdl penguin_script penguin_ui_sdl penguin_editor_session penguin_ui_layout)
+ target_include_directories(penguin_editor PRIVATE src/editor third_party/nanosvg)
+ target_link_libraries(penguin_editor PRIVATE penguin_vector penguin_terminal penguin_editor_documents penguin_sdl penguin_script penguin_ui_sdl penguin_editor_session penguin_ui_layout)
  add_executable(penguin_ui_demo examples/ui/main.c)
  target_link_libraries(penguin_ui_demo PRIVATE penguin_ui_sdl)
  add_executable(penguin_game examples/topdown/main.c)

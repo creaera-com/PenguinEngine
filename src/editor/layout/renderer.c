@@ -4,6 +4,8 @@ static UiId yaml_id(const char *name);
 static float yaml_button_width(const cJSON *n);
 static void yaml_button(const cJSON *n, SDL_FRect area);
 static int widget_state(UiId id);
+static UiRect tool_panel_areas[64];
+static int tool_panel_count;
 
 static UiId yaml_id(const char *name) {
     if (!strcmp(name, "explorer_tab")) {
@@ -82,7 +84,7 @@ const cJSON *editor_layout_entry(UiId id) {
         return NULL;
     }
 
-    const char *module = id == UI_MAP_VIEW ? "map" : "scripts";
+    const char *module = id == UI_MAP_VIEW ? "map" : id == UI_SCRIPT_VIEW ? "scripts" : "vector";
     const cJSON *entries = pe_ui_get(app.shell_layout->root, "editors");
     for (const cJSON *e = entries ? entries->child : NULL; e; e = e->next) {
         if (!strcmp(pe_ui_string(e, "module", ""), module)) {
@@ -156,8 +158,11 @@ void editor_apply_shell_layout(void) {
     UiId selected = app.loaded_view;
     const cJSON *entries = pe_ui_get(root, "editors");
     for (const cJSON *e = entries->child; e; e = e->next) {
-        items[count++] = (UiTab){
-            !strcmp(pe_ui_string(e, "module", ""), "map") ? UI_MAP_VIEW : UI_SCRIPT_VIEW, true, 0};
+        items[count++] =
+            (UiTab){!strcmp(pe_ui_string(e, "module", ""), "map")       ? UI_MAP_VIEW
+                    : !strcmp(pe_ui_string(e, "module", ""), "scripts") ? UI_SCRIPT_VIEW
+                                                                        : UI_VECTOR_VIEW,
+                    true, 0};
     }
 
     bool found = false;
@@ -224,6 +229,10 @@ int editor_yaml_tool_rows(const cJSON *list, float width) {
     float x = 8;
     int rows = 1;
     for (const cJSON *n = list ? list->child : NULL; n; n = n->next) {
+        if ((!strcmp(pe_ui_string(n, "type", ""), "vector_preview") ||
+             !strcmp(pe_ui_string(n, "type", ""), "vector_grid"))) {
+            break;
+        }
         if (!editor_yaml_boolean(pe_ui_get(n, "visible"), true)) {
             continue;
         }
@@ -248,10 +257,15 @@ void editor_draw_yaml_toolbar(SDL_FRect area) {
 void editor_draw_yaml_tool_list(const cJSON *list, SDL_FRect area, bool right_aligned) {
     const cJSON *start = list ? list->child : NULL;
     float available = fmaxf(32, area.w - 16), y = area.y + 6;
-    while (start) {
+    while (start && strcmp(pe_ui_string(start, "type", ""), "vector_preview") &&
+           strcmp(pe_ui_string(start, "type", ""), "vector_grid")) {
         float used = 0;
         const cJSON *end = start;
         for (; end; end = end->next) {
+            if ((!strcmp(pe_ui_string(end, "type", ""), "vector_preview") ||
+                 !strcmp(pe_ui_string(end, "type", ""), "vector_grid"))) {
+                break;
+            }
             if (!editor_yaml_boolean(pe_ui_get(end, "visible"), true)) {
                 continue;
             }
@@ -284,6 +298,7 @@ void editor_draw_yaml_tool_list(const cJSON *list, SDL_FRect area, bool right_al
 }
 
 void editor_draw_global_tools(void) {
+    tool_panel_count = 0;
     const cJSON *list = pe_ui_get(app.shell_layout->root, "toolbar");
     float x = 14;
     for (const cJSON *n = list->child; n; n = n->next) {
@@ -326,11 +341,136 @@ static int widget_state(UiId id) {
 
 bool editor_layout_captured(void) {
     for (int i = 0; i < app.widget_count; i++) {
-        if (app.widgets[i].kind == 1 && app.widgets[i].id == app.ui.active) {
+        if (app.widgets[i].kind != 0 && app.widgets[i].id == app.ui.active) {
             return true;
         }
     }
     return false;
+}
+
+bool editor_layout_scrolls_at(float x, float y) {
+    for (int i = 0; i < tool_panel_count; i++) {
+        if (ui_contains(tool_panel_areas[i], x, y)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static const cJSON *tool_content(const cJSON *section) {
+    const cJSON *children = pe_ui_get(section, "children");
+    for (const cJSON *child = children->child; child; child = child->next) {
+        if ((!strcmp(pe_ui_string(child, "type", ""), "vector_preview") ||
+             !strcmp(pe_ui_string(child, "type", ""), "vector_grid")) &&
+            editor_yaml_boolean(pe_ui_get(child, "visible"), true)) {
+            return child;
+        }
+    }
+    return NULL;
+}
+
+static float tool_content_height(const cJSON *section) {
+    const cJSON *content = tool_content(section);
+    return content ? (float)pe_ui_get(content, "height")->valuedouble + 12 : 0;
+}
+
+static void draw_tool_panel(const cJSON *n, SDL_FRect area, UiId id) {
+    ui_panel(app.renderer, area, UI_PANEL);
+    int state = widget_state(id);
+    if (state < 0) {
+        return;
+    }
+    app.widgets[state].kind = 2;
+    UiRect clip = {area.x + 6, area.y + 6, fmaxf(0, area.w - 24), fmaxf(0, area.h - 12)};
+    if (tool_panel_count < 64) {
+        tool_panel_areas[tool_panel_count++] = (UiRect){area.x, area.y, area.w, area.h};
+    }
+    editor_register_ui_hit((UiRect){area.x, area.y, area.w, area.h});
+    const cJSON *sections = pe_ui_get(n, "children");
+    float content = 0;
+    for (const cJSON *s = sections->child; s; s = s->next) {
+        if (!editor_yaml_boolean(pe_ui_get(s, "visible"), true)) {
+            continue;
+        }
+        int group = widget_state(yaml_id(pe_ui_string(s, "id", "")));
+        if (group < 0) {
+            continue;
+        }
+        if (app.widgets[group].open < 0) {
+            app.widgets[group].open = cJSON_IsTrue(pe_ui_get(s, "open"));
+        }
+        content += 33 + 8;
+        if (app.widgets[group].open) {
+            content += editor_yaml_tool_rows(pe_ui_get(s, "children"), clip.w) * 32 + 6 +
+                       tool_content_height(s);
+        }
+    }
+    UiScroll scroll = {app.widgets[state].scroll, content, clip.h};
+    if (!app.ui.blocked && !editor_edit_pending() && app.wheel_delta &&
+        ui_contains((UiRect){area.x, area.y, area.w, area.h}, app.mx, app.my)) {
+        ui_scroll_by(&scroll, -app.wheel_delta * 60);
+        app.wheel_delta = 0;
+    }
+    ui_scroll_clamp(&scroll);
+    UiRect track = {area.x + area.w - 14, clip.y, 8, clip.h};
+    ui_scrollbar(&app.ui, id, track, &scroll, UI_AXIS_Y);
+    app.widgets[state].scroll = scroll.offset;
+    ui_clip_push(&app.ui, clip);
+    ui_apply_clip(app.renderer, &app.ui);
+    float y = clip.y - scroll.offset;
+    for (const cJSON *s = sections->child; s; s = s->next) {
+        if (!editor_yaml_boolean(pe_ui_get(s, "visible"), true)) {
+            continue;
+        }
+        UiId group_id = yaml_id(pe_ui_string(s, "id", ""));
+        int group = widget_state(group_id);
+        if (group < 0) {
+            continue;
+        }
+        bool open = app.widgets[group].open != 0;
+        bool enabled = editor_yaml_boolean(pe_ui_get(s, "enabled"), true);
+        bool blocked = app.ui.blocked;
+        app.ui.blocked = blocked || !enabled;
+        UiRect header = {clip.x, y, clip.w, 33};
+        editor_register_ui_hit(header);
+        ui_disclosure(&app.ui, group_id, header, &open, !editor_edit_pending());
+        app.widgets[group].open = open;
+        float height = 33;
+        if (open) {
+            height += editor_yaml_tool_rows(pe_ui_get(s, "children"), clip.w) * 32 + 6 +
+                      tool_content_height(s);
+        }
+        editor_box((SDL_FRect){clip.x, y, clip.w, height}, editor_widget_background());
+        if (ui_hovered(&app.ui, header)) {
+            editor_box((SDL_FRect){clip.x, y, clip.w, 33}, UI_HOVER);
+        }
+        ui_icon(app.renderer, open ? ICON_DOWN : ICON_RIGHT, clip.x + 9, y + 10, 12, UI_MUTED);
+        ui_icon(app.renderer, editor_yaml_icon(pe_ui_string(s, "icon", "")), clip.x + 27, y + 8, 16,
+                UI_ACCENT);
+        editor_text(clip.x + 51, y + 12, pe_ui_string(s, "title", ""), UI_TEXT);
+        if (open) {
+            editor_draw_yaml_tool_list(pe_ui_get(s, "children"),
+                                       (SDL_FRect){clip.x, y + 33, clip.w, height - 33}, true);
+            const cJSON *content_widget = tool_content(s);
+            if (content_widget) {
+                float top =
+                    y + 33 + editor_yaml_tool_rows(pe_ui_get(s, "children"), clip.w) * 32 + 12;
+                float content_widget_height =
+                    (float)pe_ui_get(content_widget, "height")->valuedouble;
+                if (top + content_widget_height > clip.y && top < clip.y + clip.h) {
+                    editor_draw_yaml_node(
+                        content_widget,
+                        (SDL_FRect){clip.x + 8, top, fmaxf(0, clip.w - 16), content_widget_height},
+                        -1);
+                }
+            }
+        }
+        app.ui.blocked = blocked;
+        y += height + 8;
+    }
+    ui_clip_pop(&app.ui);
+    ui_apply_clip(app.renderer, &app.ui);
+    ui_draw_scrollbar(app.renderer, &app.ui, id, track, &scroll, UI_AXIS_Y);
 }
 
 void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
@@ -344,7 +484,9 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
     app.ui.blocked = previous_blocked || !editor_yaml_boolean(pe_ui_get(n, "enabled"), true);
     ui_clip_push(&app.ui, (UiRect){area.x, area.y, area.w, area.h});
     ui_apply_clip(app.renderer, &app.ui);
-    if (!strcmp(type, "split")) {
+    if (!strcmp(type, "tool_panel")) {
+        draw_tool_panel(n, area, id);
+    } else if (!strcmp(type, "split")) {
         int state = widget_state(id);
         if (state < 0) {
             goto done;
@@ -538,16 +680,20 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
         editor_box((SDL_FRect){area.x, area.y + 4, 1, fmaxf(0, area.h - 8)}, UI_BORDER);
     } else if (strcmp(type, "spacer")) {
         ui_panel(app.renderer, area, UI_PANEL);
-        if (strcmp(type, "map_canvas") && strcmp(type, "script_editor")) {
+        if (strcmp(type, "map_canvas") && strcmp(type, "script_editor") &&
+            strcmp(type, "vector_canvas")) {
             editor_register_ui_hit((UiRect){area.x, area.y, area.w, area.h});
         }
         app.panel_area = area;
         app.panel_top = area.y;
-        if (!strcmp(type, "map_canvas") || !strcmp(type, "script_editor")) {
+        if (!strcmp(type, "map_canvas") || !strcmp(type, "script_editor") ||
+            !strcmp(type, "vector_canvas")) {
             app.viewport = area;
             app.canvas_enabled = !app.ui.blocked;
             if (!strcmp(type, "map_canvas")) {
                 editor_draw_map_content();
+            } else if (!strcmp(type, "vector_canvas")) {
+                vector_draw_canvas();
             } else {
                 editor_draw_script_content();
             }
@@ -563,6 +709,14 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
                 app.panel_top = app.panel_area.y;
             }
             editor_draw_scene_tree();
+        } else if (!strcmp(type, "vector_tree")) {
+            vector_draw_tree();
+        } else if (!strcmp(type, "vector_grid")) {
+            vector_draw_grid_settings(area);
+        } else if (!strcmp(type, "vector_preview")) {
+            vector_draw_preview(area);
+        } else if (!strcmp(type, "vector_inspector")) {
+            vector_draw_inspector();
         } else if (!strcmp(type, "map_layers")) {
             editor_draw_map_panel();
         } else if (!strcmp(type, "tile_palette")) {

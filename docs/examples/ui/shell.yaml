@@ -54,6 +54,8 @@ editors:
   - {id: map, title: "Map", icon: grid, module: map, file: editors/map.yaml}
   - {id: scripts, title: "Scripts", icon: file, module: scripts, file: editors/scripts.yaml}
 
+  - {id: vector, title: "Vector Art", icon: edit, module: vector, file: editors/vector.yaml, separator_before: true}
+
 editor_policy: unload_on_leave
 
 statusbar:

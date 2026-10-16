@@ -93,5 +93,8 @@ int editor_yaml_toolbar_rows(float width);
 /** @brief Prüft, ob ein YAML-Splitter die Zeigerinteraktion eingefangen hat. */
 bool editor_layout_captured(void);
 
+/** @brief Prüft, ob ein YAML-Tool-Panel die Mausradposition selbst verwaltet. */
+bool editor_layout_scrolls_at(float x, float y);
+
 /** @} */
 #endif

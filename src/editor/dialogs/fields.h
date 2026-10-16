@@ -20,10 +20,25 @@ typedef enum {
     FIELD_Y,
     FIELD_W,
     FIELD_H,
-    FIELD_VX,    ///< Body-Geschwindigkeit in Weltpixeln pro Sekunde.
-    FIELD_VY,    ///< Body-Geschwindigkeit in Weltpixeln pro Sekunde.
-    FIELD_COLOR, ///< Sprite-Farbe als acht hexadezimale RGBA-Ziffern.
-    FIELD_NAME   ///< Gespeicherter Anzeigename der Entity.
+    FIELD_VX,     ///< Body-Geschwindigkeit in Weltpixeln pro Sekunde.
+    FIELD_VY,     ///< Body-Geschwindigkeit in Weltpixeln pro Sekunde.
+    FIELD_COLOR,  ///< Sprite-Farbe als acht hexadezimale RGBA-Ziffern.
+    FIELD_NAME,   ///< Gespeicherter Anzeigename der Entity.
+    FIELD_V_NAME, ///< Vector-Objekt-/Artboard-Name.
+    FIELD_V_X,
+    FIELD_V_Y,
+    FIELD_V_W,
+    FIELD_V_H,
+    FIELD_V_FILL,
+    FIELD_V_STROKE,
+    FIELD_V_STROKE_WIDTH,
+    FIELD_V_BACKGROUND,
+    FIELD_V_GRID_WIDTH,  ///< Zellbreite des Editor-Grids.
+    FIELD_V_GRID_HEIGHT, ///< Zellhöhe des Editor-Grids.
+    FIELD_V_GRID_COLOR,  ///< RGBA-Farbe des Editor-Grids.
+    FIELD_V_OPEN,
+    FIELD_V_SAVE
+
 } Field;
 
 /**

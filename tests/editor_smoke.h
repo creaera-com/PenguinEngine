@@ -43,4 +43,6 @@ bool editor_verify_selection(void);
 /** @brief Erzeugt bei --screenshot zusätzlich Dropdown-, Texteingabe- und Entity-Namen-Ansichten
  * aus der wiederhergestellten Szene. */
 void editor_capture_component_dropdown(void);
+/** @brief Prüft Vector-Zeichnung, Inspector, SVG, Undo und vollständige Editorwechsel. */
+bool vector_smoke(void);
 #endif

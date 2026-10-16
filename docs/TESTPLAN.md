@@ -70,9 +70,9 @@ Der native Sitzungscache ersetzt keine Backups und ist noch keine Crash-Recovery
 
 ## Fachliche Modultrennung
 
-- Im SDL-Build laufen insgesamt unter Linux 158 Unity-Tests und 15 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
+- Im SDL-Build laufen insgesamt unter Linux 180 Unity-Tests und 16 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
 - `tests/editor_smoke.c` verwendet weiterhin die echten Eingabehandler, Editorwechsel und F6-Reloads. Die Tests liegen außerhalb des produktiven Quellcodes und werden nur bei `BUILD_TESTING=ON` eingebunden.
-- Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die sieben SDL-freien Testgruppen verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
+- Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die acht SDL-freien Testgruppen verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
 - Für das Strukturrefactoring zusätzlich die Map-/Scripts-Aufnahmen gegen den vorherigen Stand vergleichen und einen vollständigen ASan-/UBSan-Testlauf ausführen.
 
 ## Konsolenpanel und gemeinsame Shell
@@ -135,3 +135,21 @@ Komponenten-Eigenschaften: Bezeichnung links, Wert rechts. Klick auf Bezeichnung
 Entity-Namen: im Inspector umbenennen, Scene-Anzeige und unveränderte ID prüfen. Enter/Außenklick, Escape, leere/zu lange Namen, Undo/Redo, Speichern/Laden sowie F6 und Map → Scripts → Map testen. Drei zusätzliche Engine-Tests prüfen Namen, UTF-8/Grenzen, stabile Identität, Undo und alte/ungültige JSON-Dateien.
 
 Tree-Verbindungen: Explorer-Ordner und Scene-Unterbäume öffnen/schließen. Gestrichelte Linien verbinden Parents und Kinder, enden beim letzten Kind und setzen sich für spätere Geschwister korrekt fort. Bei Scrollen bleiben sie an den Zeilen ausgerichtet, auch wenn Parent oder nächste Geschwister außerhalb des Viewports liegen. Tiefe Szenen/Spaltenresize dürfen keine Linien über das Panel hinaus zeichnen; Hover/Auswahl bleiben sichtbar. Zwei UI-Tests prüfen Geschwister, letzte Kinder, eingeklappte Listen und ungültige Indizes.
+
+## Vector Art
+
+Neunzehn SDL-freie `vector_unit_tests` prüfen primitive Formen, Bézier-Konvertierung/-Teilung, Move/Spiegeln, Artboard-Koordinaten und Grenzen, die vier booleschen Operationen, gemeinsame Kanten/Berührungen, Löcher, identische und disjunkte Konturen, große Koordinaten, Nonzero/Even-Odd, SVG-Import/Rundlauf, abgewiesene Dateien und Verlauf mit gespeicherter Revision/Eviction.
+
+`tests/editor_vector_smoke.c` verwendet echte Editor-Ereignisse für Rechteckzeichnen, Verschieben, Ctrl+Z/Y, direkte Inspector-Eingabe, Ankerziehen, Segmentteilung, Artboardverschieben und Zuordnungswechsel beim Ziehen. Der Objects-Tree wird mit echten Klicks auf Pfad-/Artboard-Pfeile und Segmentzeilen geprüft: Aufklappen, Nachfahren ausblenden, Segmentwahl ohne Dokumentänderung sowie Erhalt des Aufklappzustands beim Editorwechsel. Es speichert und öffnet ein temporäres SVG, prüft Speicherrückfragen und erhält Dokument/Verlauf über F6 sowie Vector → Map → Vector → Scripts → Map bei jeweils entladenen anderen Payloads.
+
+Manuell `--vector-demo` starten: Zoom/Pan und Pixel-Lineale, Pfad-/Kontrollpunktgriffe, Circle/Rectangle mit Shift, Artboard-Hintergrund und Konturfarben einschließlich Alpha, zwei Objekte mit Shift auswählen und Union/Intersection/Difference/XOR samt Undo prüfen. SVG aus einem anderen Programm öffnen und Grenzen des unterstützten Teilumfangs beachten. Beim Schließen mit Änderungen in allen drei Editoren Save/Discard/Cancel einschließlich erstem Save-As-Pfad prüfen. Screenshots und Bedienung: [VECTOR_EDITOR.md](VECTOR_EDITOR.md).
+
+Tools-Tab: Rechts Transform/Paths/Boolean/Objects auf- und zuklappen, Aktionen ausführen und Undo prüfen. Die Zeichen-Toolbar bleibt einzeilig. Bei schmaler Spalte brechen Aktionszeilen rechtsbündig um, bei niedriger Fensterhöhe scrollen nur die Tools (nicht Properties). Der GUI-Smoke bedient Flip X, Klappüberschrift, Mausrad, F6 und Editorwechsel; ein Unity-Schematest prüft Tool-Panel-Abschnitte und weist fremde Kindtypen ab.
+
+Artboard-Lineale: Bei `--vector-demo` besitzt jedes Artboard eigene Pixel-Lineale oben/links mit lokalem Nullpunkt. Zweites Artboard aktivieren, verschieben, zoomen und pannen: beide Skalen bleiben ihrem Artboard zugeordnet. Teilweise aus dem Canvas schieben und Fit bei großen Dimensionen prüfen; keine Lineale oder Zahlen dürfen in Nachbarpanels zeichnen. SVG speichern/erneut öffnen: Lineale sind UI, keine SVG-Geometrie.
+
+Vector-Zoom: Der GUI-Smoke prüft Mausrad-Zoom mit stabilem Weltpunkt unter dem Cursor, den Plus-Toolbarbutton mit stabilem Ansichts-Mittelpunkt, Minus/100%, 2–3200%-Grenzen und Fit für beide Demo-Artboards. Navigation verändert den Dokumentverlauf nicht. Manuell müssen die Lineale bei gleichem lokalen Pixelwert mit der Geometrie skalieren, während Leisten und Zahlen ihre Bildschirmgröße behalten.
+
+Preview: Drei zusätzliche Unity-Fälle prüfen kleine zentrierte Bereiche, übergroße Ausschnitte mit Folgebewegung/Clamping, exakt gleiche Quell-/Zielmaße und atomar abgewiesene ungültige Eingaben. Ein Schematest prüft Height-Grenzen und Modulzuordnung. Der GUI-Smoke zieht rückwärts, begrenzt auf Artboards, bricht mit Escape/Fokusverlust ab, rendert auch das zweite Artboard (bekannter RGBA-Pixel), leert die Auswahl und prüft kameraabhängiges Cropping ohne Größenänderung sowie Sitzungserhalt. Manuell 25/100/400%-Zoom und große Auswahlen mit Pan prüfen; die Vorschau bleibt 1:1 und enthält keine Lineale/Griffe.
+
+Grid: Drei zusätzliche Unity-Fälle prüfen 16-Pixel-Linien mit lokalem Ursprung und beschnittenem Pan-Bereich, 32×16-Isometrie, sichere Linienanzahl bei dichten/extremen Rastern und ungültige Eingaben. Ein Schematest prüft Modul- und Höhengrenzen. Der GUI-Smoke klickt den Toolbar-Schalter und das Breitenfeld, ändert Farbe und Typ, weist ungültige Maße/Farben ab und erhält Einstellungen über F6/Editorwechsel ohne Dokumentänderung. Manuell Standard/Isometrie, Zoom/Pan und farbige/halbtransparente Linien prüfen; SVG und Preview bleiben ohne Grid.

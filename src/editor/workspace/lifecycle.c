@@ -105,7 +105,7 @@ static bool valid_snapshot(const UiSnapshot *s) {
         if (s->widgets[i].count < 0 || s->widgets[i].count > UI_MAX_TABS ||
             !isfinite(s->widgets[i].scroll) || s->widgets[i].scroll < 0 ||
             !isfinite(s->widgets[i].extent) || s->widgets[i].extent < 0 || s->widgets[i].kind < 0 ||
-            s->widgets[i].kind > 1) {
+            s->widgets[i].kind > 2) {
             return false;
         }
     }
@@ -156,8 +156,9 @@ bool editor_checkpoint(PeSession *io, void *opaque) {
         return false;
     }
 
-    bool ok = id == UI_MAP_VIEW ? me_checkpoint(app.map, io)
-                                : se_checkpoint(app.script, app.root, app.window, io);
+    bool ok = id == UI_MAP_VIEW      ? me_checkpoint(app.map, io)
+              : id == UI_VECTOR_VIEW ? vector_checkpoint(app.vector, io)
+                                     : se_checkpoint(app.script, app.root, app.window, io);
     if (!ok) {
         return false;
     }
@@ -169,6 +170,11 @@ bool editor_checkpoint(PeSession *io, void *opaque) {
 }
 
 static void release_editor(void) {
+    if (app.vector) {
+        vector_free(app.vector);
+        free(app.vector);
+        app.vector = NULL;
+    }
     if (app.script) {
         se_focus(app.script, app.window, false);
         se_free(app.script);
@@ -225,13 +231,15 @@ bool editor_activate(UiId id, char *error, size_t size) {
         return false;
     }
 
-    int index = id == UI_MAP_VIEW ? 0 : 1;
+    int index = editor_session_index(id);
     if (index == 0) {
         app.map = calloc(1, sizeof *app.map);
+    } else if (index == 2) {
+        app.vector = calloc(1, sizeof *app.vector);
     } else {
         app.script = calloc(1, sizeof *app.script);
     }
-    if ((index == 0 && !app.map) || (index == 1 && !app.script)) {
+    if ((index == 0 && !app.map) || (index == 1 && !app.script) || (index == 2 && !app.vector)) {
         snprintf(error, size, "Out of memory loading editor");
         return false;
     }
@@ -244,6 +252,10 @@ bool editor_activate(UiId id, char *error, size_t size) {
         if (index == 0) {
             pe_history_init(&app.map->history);
             ok = pe_scene_load(&app.map->scene, app.scene_path, error, size);
+        } else if (index == 2) {
+            ok = vector_init(app.vector);
+            app.left_tabs.selected = UI_SCENE_TAB;
+            app.selected = 10000000;
         } else {
             ok = se_init(app.script, app.root);
             if (!ok) {
@@ -260,7 +272,7 @@ bool editor_activate(UiId id, char *error, size_t size) {
     editor_tree_refresh();
     if (index == 0) {
         editor_assets_sync();
-    } else {
+    } else if (index == 1) {
         se_check(app.script);
     }
 
@@ -281,14 +293,16 @@ bool editor_switch(UiId id) {
 
     UiId previous = app.loaded_view;
     if (previous) {
-        int index = previous == UI_MAP_VIEW ? 0 : 1;
+        int index = editor_session_index(previous);
         if (!pe_session_save(app.session_paths[index], previous, editor_checkpoint, &previous,
                              error, sizeof error)) {
             pe_ui_layout_free(candidate);
             editor_message(error);
             return false;
         }
-        app.session_dirty[index] = index == 0 ? editor_map_dirty() : editor_script_dirty();
+        app.session_dirty[index] = index == 0   ? editor_map_dirty()
+                                   : index == 1 ? editor_script_dirty()
+                                                : editor_vector_dirty();
         app.session_exists[index] = true;
         release_editor();
     }
@@ -330,7 +344,7 @@ bool editor_reload_layout(void) {
         return false;
     }
 
-    int index = id == UI_MAP_VIEW ? 0 : 1;
+    int index = editor_session_index(id);
     if (!pe_session_save(app.session_paths[index], id, editor_checkpoint, &id, error,
                          sizeof error)) {
         app.shell_layout = old_shell;
@@ -340,7 +354,9 @@ bool editor_reload_layout(void) {
         return false;
     }
     app.session_exists[index] = true;
-    app.session_dirty[index] = index == 0 ? editor_map_dirty() : editor_script_dirty();
+    app.session_dirty[index] = index == 0   ? editor_map_dirty()
+                               : index == 1 ? editor_script_dirty()
+                                            : editor_vector_dirty();
     PeUiLayout *old_layout = app.active_layout;
     app.active_layout = NULL;
     release_editor();

@@ -2,8 +2,8 @@
 Editor app;
 const EditorView editor_views[] = {
     {UI_MAP_VIEW, "Map", ICON_GRID, 9, editor_draw_map_tools, editor_draw_map_content},
-    {UI_SCRIPT_VIEW, "Scripts", ICON_FILE, 1, editor_draw_script_tools,
-     editor_draw_script_content}};
+    {UI_SCRIPT_VIEW, "Scripts", ICON_FILE, 1, editor_draw_script_tools, editor_draw_script_content},
+    {UI_VECTOR_VIEW, "Vector Art", ICON_EDIT, 1, vector_draw_tools, vector_draw_canvas}};
 const int editor_view_count = (int)(sizeof editor_views / sizeof editor_views[0]);
 
 bool editor_map_active(void) {
@@ -15,7 +15,8 @@ bool editor_scripts_active(void) {
 }
 
 bool editor_edit_pending(void) {
-    return app.map && app.map->history.pending != NULL;
+    return (app.map && app.map->history.pending != NULL) ||
+           (app.vector && (app.vector->dragging || app.vector->preview_drag));
 }
 
 bool editor_map_dirty(void) {
@@ -43,4 +44,12 @@ void editor_message(const char *s) {
     if (app.script) {
         memcpy(app.script->status, copy, sizeof copy);
     }
+}
+
+int editor_session_index(UiId id) {
+    return id == UI_MAP_VIEW ? 0 : id == UI_SCRIPT_VIEW ? 1 : 2;
+}
+
+bool editor_vector_dirty(void) {
+    return app.vector ? ve_dirty(&app.vector->history) : app.session_dirty[2];
 }

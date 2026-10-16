@@ -120,6 +120,9 @@ void editor_event(SDL_Event *e) {
         }
         return;
     }
+    if (vector_event(e)) {
+        return;
+    }
     switch (e->type) {
     case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
     case SDL_EVENT_QUIT:
@@ -140,7 +143,9 @@ void editor_event(SDL_Event *e) {
         break;
     case SDL_EVENT_DROP_FILE:
         if (!modal && !editor_edit_pending()) {
-            if (editor_suffix(e->drop.data, ".js")) {
+            if (editor_suffix(e->drop.data, ".svg")) {
+                editor_request(REQUEST_VECTOR_OPEN, e->drop.data);
+            } else if (editor_suffix(e->drop.data, ".js")) {
                 editor_request(REQUEST_SCRIPT_OPEN, e->drop.data);
             } else if (editor_map_active()) {
                 editor_import_png(e->drop.data);
@@ -169,6 +174,8 @@ void editor_event(SDL_Event *e) {
                 ui_tabs_scroll(&app.left_tabs, LEFT - 2 * PANEL_GAP, 112, -e->wheel.y * 56);
             } else if (app.mx > app.width - RIGHT && app.my >= TOP && app.my < SIDE_TOP) {
                 ui_tabs_scroll(&app.right_tabs, RIGHT - 2 * PANEL_GAP, 112, -e->wheel.y * 56);
+            } else if (editor_layout_scrolls_at(app.mx, app.my)) {
+                /* The YAML panel consumes wheel_delta during layout. */
             } else if (app.mx < LEFT) {
                 ui_scroll_by(app.left_tabs.selected == UI_MAP_TAB     ? &app.map_view
                              : app.left_tabs.selected == UI_SCENE_TAB ? &app.scene_view

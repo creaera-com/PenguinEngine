@@ -4,6 +4,9 @@ static bool request_dirty(Request r);
 static bool request_save(void);
 
 bool editor_save(void) {
+    if (editor_vector_active()) {
+        return vector_save();
+    }
     if (editor_scripts_active()) {
         bool ok = se_save(&(*app.script));
         editor_message((*app.script).status);
@@ -47,9 +50,12 @@ static bool request_dirty(Request r) {
         return editor_script_dirty();
     }
     if (r == REQUEST_QUIT) {
-        return editor_map_dirty() || editor_script_dirty();
+        return editor_map_dirty() || editor_script_dirty() || editor_vector_dirty();
     }
 
+    if (r == REQUEST_VECTOR_OPEN || r == REQUEST_VECTOR_NEW) {
+        return editor_vector_dirty();
+    }
     return editor_map_dirty();
 }
 
@@ -67,6 +73,12 @@ static bool request_save(void) {
                 return false;
             }
         }
+        if (editor_vector_dirty()) {
+            editor_select_workspace(UI_VECTOR_VIEW);
+            if (!editor_vector_active() || !vector_save()) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -74,6 +86,10 @@ static bool request_save(void) {
 }
 
 void editor_undo_active(bool redo) {
+    if (editor_vector_active()) {
+        vector_undo(redo);
+        return;
+    }
     if (editor_scripts_active()) {
         bool ok =
             redo ? pe_text_redo(&(*app.script).document) : pe_text_undo(&(*app.script).document);
@@ -100,7 +116,12 @@ void editor_request(Request type, const char *path) {
         editor_import_png(path);
         return;
     }
-    if (type == REQUEST_SCRIPT_OPEN) {
+    if (type == REQUEST_VECTOR_OPEN || type == REQUEST_VECTOR_NEW) {
+        editor_select_workspace(UI_VECTOR_VIEW);
+        if (!editor_vector_active()) {
+            return;
+        }
+    } else if (type == REQUEST_SCRIPT_OPEN) {
         editor_select_workspace(UI_SCRIPT_VIEW);
         if (!editor_scripts_active()) {
             return;
@@ -127,6 +148,10 @@ void editor_request(Request type, const char *path) {
     }
     if (type == REQUEST_QUIT) {
         app.running = false;
+    } else if (type == REQUEST_VECTOR_OPEN) {
+        vector_open(app.open_path);
+    } else if (type == REQUEST_VECTOR_NEW) {
+        vector_new();
     } else if (type == REQUEST_SCRIPT_OPEN) {
         if (se_open(&(*app.script), app.open_path)) {
             editor_tab_select(true);
@@ -143,6 +168,10 @@ void editor_request_finish(void) {
     app.request = REQUEST_NONE;
     if (r == REQUEST_QUIT) {
         app.running = false;
+    } else if (r == REQUEST_VECTOR_OPEN) {
+        vector_open(app.open_path);
+    } else if (r == REQUEST_VECTOR_NEW) {
+        vector_new();
     } else if (r == REQUEST_OPEN) {
         editor_load_scene(app.open_path);
     } else if (r == REQUEST_SCRIPT_OPEN) {

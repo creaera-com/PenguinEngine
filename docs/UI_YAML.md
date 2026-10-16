@@ -166,6 +166,7 @@ Die folgenden Adapter sind implementiert. Spezialisierte Typen (`file_tree`, `en
 | `separator` | Schmaler Trennstrich mit Innenabstand in Toolbar/Zeile | Vorhandene Toolbar-Darstellung |
 | `editor_switcher` | Nur Shell; `labels: false` zeigt Icons mit Titel als Tooltip | Vorhandene Bereichsauswahl |
 | `tabs` | `tabs`-Liste mit `id`, `title`, optional `icon`, genau einem `content`-Knoten | Vorhandenes Tabmodell |
+| `tool_panel` | `children` mit `section`-Knoten; darin `button`-Knoten und optional ein abschließendes `vector_preview` oder `vector_grid` | Scrollbare Werkzeugkarten in Inhaltshöhe, mit rechtsbündigem Umbruch und aufklappbaren Überschriften; nur in Editorlayouts |
 | `section` | `title`, `open` als anfänglicher Boolean, `children` | Klappbarer Container |
 | `split` | `axis`, `initial`, `minimum_first`, `minimum_second`, `gap`, `first`, `second` | Zwei verstellbare Bereiche; Details in [KONSOLE.md](KONSOLE.md) |
 | `terminal` | `binding: terminal.shared` | Gemeinsame Shell der Anwendungshülle |
@@ -241,7 +242,7 @@ Der Parser ist **libyaml 0.2.5**, im Repository mit MIT-Lizenz mitgeliefert. Der
 
 Version 1 verwendet ein begrenztes YAML-Subset: UTF-8, Mappings, Listen, Zeichenfolgen, Booleans und Zahlen. Farben und mehrdeutige Titel als Strings in Anführungszeichen schreiben; Booleans als `true`/`false`. Doppelte Schlüssel, unbekannte Felder, unbekannte Schemaversionen sowie YAML-Tags, Anchors, Aliases und Merge-Keys werden abgelehnt. Es gibt zunächst keine Templates, Includes, Vererbung oder eingebettete Scripts. Der Bezug von Shell auf Editor-Dateien ist ein eigener, ausdrücklich definierter Mechanismus.
 
-Die Grenzen betragen 256 KiB pro Datei, 2048 YAML-Knotenereignisse einschließlich Schlüssel und 32 Verschachtelungsebenen. Pro Editor sind höchstens 64 zustandsbehaftete `tabs`-/`section`-Container und ein interaktiver `map_canvas` oder `script_editor` erlaubt. `layout.gap` ist eine ganze Zahl von 0 bis 12, `tab_gap` von 0 bis 16. Container ohne eigene Scrollbar beschneiden überlaufende Inhalte; sie sind noch kein Flexbox-/Docking-System. Das bestehende Tablimit von 16 ist zu beachten; Überschreitung liefert eine Fehlermeldung statt stiller Kürzung.
+Die Grenzen betragen 256 KiB pro Datei, 2048 YAML-Knotenereignisse einschließlich Schlüssel und 32 Verschachtelungsebenen. Pro Editor sind höchstens 64 zustandsbehaftete `tabs`-/`section`-/`tool_panel`-Container und ein interaktiver `map_canvas` oder `script_editor` erlaubt. `layout.gap` ist eine ganze Zahl von 0 bis 12, `tab_gap` von 0 bis 16. Container ohne eigene Scrollbar beschneiden überlaufende Inhalte; sie sind noch kein Flexbox-/Docking-System. Das bestehende Tablimit von 16 ist zu beachten; Überschreitung liefert eine Fehlermeldung statt stiller Kürzung.
 
 Fehlermeldungen nennen Datei, Zeile/Spalte, betroffenen Schlüssel und Ursache, zum Beispiel:
 
@@ -350,3 +351,19 @@ Die Entity-Auswahl öffnet den Inspector und lässt den Layer- und Palettenzusta
 Explorer und Scene-Baum verwenden dezente alternierende Zeilenfarben aus der Theme-Surface. Die Parität folgt dem Index in der aufgeklappten Liste und bleibt beim Scrollen stabil; Hover und Auswahl überlagern die Zeilenfarbe. Dafür sind keine zusätzlichen YAML-Eigenschaften nötig.
 
 Beide Bäume zeichnen zusätzlich gestrichelte Hierarchielinien. Grundlage ist die aufgeklappte Preorder-Liste; eingeklappte Kinder erzeugen keine Verbindung. Linien enden beim letzten Kind und werden am Viewport abgeschnitten. Der Scene-Baum rückt pro Ebene 20 Pixel ein, mit begrenzter Einrückung bei tiefen Hierarchien. Dafür nutzt der Adapter die gemeinsamen C-UI-Helfer; zusätzliche YAML-Knoten sind nicht nötig.
+
+## Vector Art
+
+Die Shell registriert zusätzlich `{id: vector, title: "Vector Art", icon: edit, module: vector, file: editors/vector.yaml, separator_before: true}`. Das optionale boolesche `separator_before` reserviert im Editor-Switcher einen Abstand mit Trennstrich vor dem zugehörigen Button. Auch nach Umsortieren bleibt der Separator am betreffenden Eintrag.
+
+`document_provider: vector` verbindet das neue Layout mit seinem eigenständigen SVG-Dokument. `vector_canvas`, `vector_tree` und `vector_inspector` sind spezialisierte Vector-Widgets mit `binding: vector.active`; sie sind in anderen Modulen nicht verfügbar. Toolbar und alle drei Spalten sind in `resources/editor/ui/editors/vector.yaml` beschrieben. Die registrierten `vector.*`-Aktionen umfassen Dateioperationen, Zeichen-/Knotenwerkzeuge, Artboards, Spiegeln, boolesche Flächenoperationen, Duplizieren und Reihenfolge. Details und Grenzen stehen in [VECTOR_EDITOR.md](VECTOR_EDITOR.md).
+
+`unload_on_leave` gilt auch hier: Beim Wechsel werden Dokumentinstanz, Verlauf und Rastercache vollständig freigegeben und bei Rückkehr aus dem nativen Sitzungscache rekonstruiert. Save/Undo/Redo sowie Speicherrückfragen verwenden das aktive Dokument und berücksichtigen ungespeicherte inaktive Vector-Dokumente.
+
+### Gruppierte Werkzeuge
+
+Der Vector-Editor verwendet rechts neben Properties einen Tools-Tab mit `tool_panel`. Seine `children` sind normale `section`-Knoten mit `title`, optionalem `icon`, anfänglichem `open` und einer Buttonliste als `children` (optional mit abschließendem `vector_preview` oder `vector_grid`). Anders als eine gleichmäßig aufgeteilte `column` bemisst dieser Container jede Karte nach ihrer Werkzeugliste. Geschlossene Karten geben ihren Platz sofort frei. Kartenabstand und Hintergrund entsprechen dem Komponenten-Inspector. Scrolloffset und Klappzustände werden nach Widget-ID im entladbaren Workspace gespeichert. Die Buttons verwenden dieselben registrierten Aktionen, Bedingungen und Tooltips wie Toolbarbuttons. Das Panel unterstützt auch andere Editor-Module.
+
+`vector_preview` ist ein spezialisierter Vector-Knoten mit `binding: vector.active` und `height` von 64 bis 512 Bildschirm-Pixeln. In einer Tool-Panel-Section steht er nach allen Buttons als letztes Kind. Seine Höhe geht in die Kartenhöhe und den Scrollbereich ein. Beispiel: `{type: vector_preview, id: asset_preview, binding: vector.active, height: 190}`. Auswahlwerkzeug und Löschen sind über `vector.preview_select` und `vector.preview_clear` registriert; der C-Adapter rendert ausschließlich die 1:1-Vorschau, die Anordnung bleibt YAML.
+
+`vector_grid` liefert die drei Grid-Eingabefelder über `binding: vector.active`. Seine `height` liegt zwischen 96 und 512 Bildschirm-Pixeln (Standardlayout: 100); in einer Tool-Karte steht er als letztes Kind nach den Typ-Buttons. Die Aktionen `vector.toggle_grid`, `vector.grid_standard` und `vector.grid_isometric` werden auch für andere YAML-Anordnungen registriert. Beispiel: `{type: vector_grid, id: grid_settings, binding: vector.active, height: 100}`. Das spezialisierte Widget ist auf das Vector-Modul beschränkt und darf je Layout einmal vorkommen.
