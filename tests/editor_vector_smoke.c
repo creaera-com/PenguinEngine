@@ -127,6 +127,57 @@ static WidgetState *tool_state(const char *name) {
     return NULL;
 }
 
+static bool zoom_smoke(void) {
+    VectorEditor *v = app.vector;
+    VeView before = v->view;
+    int revision = v->history.position, count = v->history.count;
+    editor_draw();
+    float x = v->canvas.x + v->canvas.w * .3f, y = v->canvas.y + v->canvas.h * .4f;
+    float world_x = v->view.x + (x - v->canvas.x) / v->view.zoom;
+    float world_y = v->view.y + (y - v->canvas.y) / v->view.zoom;
+    pointer(SDL_EVENT_MOUSE_MOTION, x, y);
+    SDL_Event wheel = {0};
+    wheel.type = SDL_EVENT_MOUSE_WHEEL;
+    wheel.wheel.y = 3;
+    editor_event(&wheel);
+    bool ok = v->view.zoom > before.zoom &&
+              fabsf(world_x - v->view.x - (x - v->canvas.x) / v->view.zoom) < .001f &&
+              fabsf(world_y - v->view.y - (y - v->canvas.y) / v->view.zoom) < .001f;
+    editor_draw();
+    float center_x = v->view.x + v->canvas.w * .5f / v->view.zoom;
+    float center_y = v->view.y + v->canvas.h * .5f / v->view.zoom;
+    float zoom = v->view.zoom;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, v->canvas.x + 438, TOP + 21);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, v->canvas.x + 438, TOP + 21);
+    ok = ok && v->view.zoom > zoom &&
+         fabsf(center_x - v->view.x - v->canvas.w * .5f / v->view.zoom) < .001f &&
+         fabsf(center_y - v->view.y - v->canvas.h * .5f / v->view.zoom) < .001f;
+    vector_action("vector.zoom_out");
+    ok = ok && fabsf(v->view.zoom - zoom) < .001f;
+    vector_action("vector.zoom_reset");
+    ok = ok && v->view.zoom == 1;
+    vector_zoom(10000, x, y);
+    ok = ok && v->view.zoom == 32;
+    vector_zoom(0, x, y);
+    ok = ok && v->view.zoom == .02f;
+    for (int b = 0; b < 2; b++) {
+        v->view.board = b;
+        vector_action("vector.fit");
+        VeBoard *board = &v->document.boards[b];
+        ok = ok && (board->x - v->view.x) * v->view.zoom >= 30 &&
+             (board->y - v->view.y) * v->view.zoom >= 30 && board->w * v->view.zoom < v->canvas.w &&
+             board->h * v->view.zoom < v->canvas.h;
+    }
+    ok = ok && v->history.position == revision && v->history.count == count;
+    v->view = before;
+    v->render_dirty = true;
+    editor_draw();
+    if (!ok) {
+        fprintf(stderr, "Vector wheel / toolbar zoom / bounds / Fit smoke failed\n");
+    }
+    return ok;
+}
+
 static bool tools_smoke(void) {
     app.right_tabs.selected = ui_id("vector_tools_tab");
     editor_draw();
@@ -225,6 +276,7 @@ bool vector_smoke(void) {
     }
     bool interaction = interaction_smoke();
     vector_demo();
+    interaction = zoom_smoke() && interaction;
     interaction = tools_smoke() && interaction;
     interaction = tree_smoke() && interaction;
     VectorEditor *v = app.vector;

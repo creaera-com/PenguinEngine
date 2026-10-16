@@ -80,6 +80,13 @@ bool vector_save(void);
 bool vector_open(const char *path);
 /** @brief Erzeugt ein neues leeres Dokument. */
 void vector_new(void);
+/**
+ * @brief Setzt 2..3200 Prozent Zoom und erhält den Weltpunkt unter der Bildschirmposition.
+ * @param zoom Gewünschter Faktor; 1 bedeutet 100 Prozent.
+ * @param x Horizontale Bildschirmposition als Zoom-Anker.
+ * @param y Vertikale Bildschirmposition als Zoom-Anker.
+ */
+void vector_zoom(float zoom, float x, float y);
 /** @brief Undo/Redo einschließlich Navigation-Synchronisation. */
 void vector_undo(bool redo);
 /** @brief Erstellt ausschließlich für Vorschau/Tests eine Beispielzeichnung. */

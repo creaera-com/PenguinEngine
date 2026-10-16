@@ -23,6 +23,13 @@ bool vector_action(const char *action) {
         editor_field_start(FIELD_V_SAVE, *v->view.path ? v->view.path : "assets/vector.svg");
         return true;
     }
+    if (!strcmp(name, "zoom_in") || !strcmp(name, "zoom_out") || !strcmp(name, "zoom_reset")) {
+        float zoom = !strcmp(name, "zoom_reset")
+                         ? 1
+                         : v->view.zoom * (!strcmp(name, "zoom_in") ? 1.15f : 1.f / 1.15f);
+        vector_zoom(zoom, v->canvas.x + v->canvas.w * .5f, v->canvas.y + v->canvas.h * .5f);
+        return true;
+    }
     const char *tools[] = {"select", "rectangle", "ellipse", "pen", "nodes", "artboard"};
     for (int i = 0; i < 6; i++) {
         if (!strcmp(name, tools[i])) {

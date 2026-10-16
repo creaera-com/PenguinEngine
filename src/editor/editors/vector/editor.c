@@ -79,6 +79,19 @@ void vector_commit(void) {
     vector_sync();
 }
 
+void vector_zoom(float zoom, float x, float y) {
+    VectorEditor *v = app.vector;
+    if (!isfinite(zoom)) {
+        return;
+    }
+    float before_x = v->view.x + (x - v->canvas.x) / v->view.zoom;
+    float before_y = v->view.y + (y - v->canvas.y) / v->view.zoom;
+    v->view.zoom = fmaxf(.02f, fminf(32, zoom));
+    v->view.x = before_x - (x - v->canvas.x) / v->view.zoom;
+    v->view.y = before_y - (y - v->canvas.y) / v->view.zoom;
+    v->render_dirty = true;
+}
+
 void vector_undo(bool redo) {
     ve_history_step(&app.vector->history, &app.vector->document, redo);
     app.vector->view.node = -1;

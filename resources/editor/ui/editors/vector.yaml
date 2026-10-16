@@ -14,6 +14,10 @@ toolbar:
   - {type: button, id: vector_pen, icon: edit, tooltip: "Path (P); click nodes, Enter/double-click to close", action: vector.pen}
   - {type: button, id: vector_nodes, icon: entity, tooltip: "Edit anchors and Bezier handles (N)", action: vector.nodes}
   - {type: button, id: vector_board, icon: image, tooltip: "Draw artboard (A); Alt+drag to move", action: vector.artboard}
+  - {type: separator, id: vector_zoom_gap}
+  - {type: button, id: vector_zoom_out, label: "-", tooltip: "Zoom out around view center", action: vector.zoom_out}
+  - {type: button, id: vector_zoom_in, label: "+", tooltip: "Zoom in around view center", action: vector.zoom_in}
+  - {type: button, id: vector_zoom_reset, label: "100%", tooltip: "Reset view to 100 percent", action: vector.zoom_reset}
   - {type: button, id: vector_fit, icon: grid, tooltip: "Fit active artboard", action: vector.fit}
 
 columns:

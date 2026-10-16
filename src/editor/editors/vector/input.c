@@ -150,11 +150,7 @@ bool vector_event(SDL_Event *e) {
         }
     }
     if (e->type == SDL_EVENT_MOUSE_WHEEL && inside) {
-        VePoint before = world(app.mx, app.my);
-        v->view.zoom = fmaxf(.02f, fminf(32, v->view.zoom * powf(1.15f, e->wheel.y)));
-        v->view.x = before.x - (app.mx - v->canvas.x) / v->view.zoom;
-        v->view.y = before.y - (app.my - v->canvas.y) / v->view.zoom;
-        v->render_dirty = true;
+        vector_zoom(v->view.zoom * powf(1.15f, e->wheel.y), app.mx, app.my);
         return true;
     }
     if (e->type == SDL_EVENT_MOUSE_BUTTON_DOWN && inside && e->button.button == SDL_BUTTON_MIDDLE) {
