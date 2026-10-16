@@ -40,6 +40,10 @@ bool vector_action(const char *action) {
         v->preview_cache_valid = false;
         return true;
     }
+    if (!strcmp(name, "toggle_snap")) {
+        v->view.snap_enabled = !v->view.snap_enabled;
+        return true;
+    }
     if (!strcmp(name, "toggle_grid")) {
         v->view.grid_visible = !v->view.grid_visible;
         return true;

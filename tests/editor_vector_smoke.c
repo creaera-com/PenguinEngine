@@ -1,4 +1,5 @@
 #include "app/editor_internal.h"
+#include "editors/vector/internal.h"
 
 static void pointer(Uint32 type, float x, float y) {
     SDL_Event event = {0};
@@ -240,6 +241,79 @@ static bool tools_smoke(void) {
     return ok;
 }
 
+static bool snap_smoke(void) {
+    VectorEditor *v = app.vector;
+    vector_new();
+    editor_draw();
+    vector_action("vector.rectangle");
+    gesture(32, 40, 132, 100);
+    vector_action("vector.select");
+    bool ok = !v->view.snap_enabled && v->view.snap_tolerance == 5;
+    vector_action("vector.toggle_snap");
+    gesture(80, 70, 95, 91); /* Desired origin 47,61 -> 48,64. */
+    ok = ok && v->document.shapes[0].x == 48 && v->document.shapes[0].y == 64;
+    vector_undo(false);
+    ok = ok && v->document.shapes[0].x == 32 && v->document.shapes[0].y == 40;
+    vector_undo(true);
+    /* Leaving the capture radius must immediately release the snap. */
+    gesture(90, 80, 96, 86);
+    ok = ok && fabsf(v->document.shapes[0].x - 54) < .001f &&
+         fabsf(v->document.shapes[0].y - 70) < .001f;
+    /* Multiple motion events use the original pointer offset, avoiding sticky snapping. */
+    float sx = v->canvas.x + (90 - v->view.x) * v->view.zoom;
+    float sy = v->canvas.y + (90 - v->view.y) * v->view.zoom;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, sx, sy);
+    pointer(SDL_EVENT_MOUSE_MOTION, sx + 8 * v->view.zoom, sy + 8 * v->view.zoom);
+    ok = ok && v->document.shapes[0].x == 64 && v->document.shapes[0].y == 80;
+    pointer(SDL_EVENT_MOUSE_MOTION, sx, sy);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, sx, sy);
+    ok = ok && v->document.shapes[0].x == 54 && v->document.shapes[0].y == 70;
+    vector_action("vector.toggle_snap");
+    gesture(90, 90, 92, 92);
+    ok = ok && fabsf(v->document.shapes[0].x - 56) < .001f;
+    v->view.selected = 0;
+    vector_action("vector.pen");
+    vector_action("vector.toggle_snap");
+    gesture(193, 161, 193, 161);
+    int path = vector_first();
+    ok = ok && path >= 0 && v->document.shapes[path].nodes[0].p.x == 192 &&
+         v->document.shapes[path].nodes[0].p.y == 160;
+    gesture(214, 182, 214, 182); /* Outside the circular tolerance. */
+    ok = ok && fabsf(v->document.shapes[path].nodes[1].p.x - 214) < .001f;
+    /* A group follows the clicked object's origin and preserves relative offsets. */
+    vector_new();
+    int a = ve_add_shape(&v->document, 0, VE_RECT, 32, 32, 40, 40);
+    int b = ve_add_shape(&v->document, 0, VE_RECT, 96, 32, 40, 40);
+    v->view.selected = (UINT64_C(1) << a) | (UINT64_C(1) << b);
+    vector_commit();
+    vector_action("vector.select");
+    gesture(110, 45, 125, 60);
+    ok = ok && v->document.shapes[a].x == 48 && v->document.shapes[b].x == 112 &&
+         v->document.shapes[a].y == 48 && v->document.shapes[b].y == 48;
+    vector_undo(false);
+    ok = ok && v->document.shapes[a].x == 32 && v->document.shapes[b].x == 96;
+    /* The destination artboard supplies the grid origin before reparenting. */
+    ve_add_board(&v->document, 403, 0, 200, 200);
+    v->view.selected = UINT64_C(1) << a;
+    vector_commit();
+    gesture(45, 45, 462, 60);
+    ok = ok && v->document.shapes[a].board == 1 && v->document.shapes[a].x == 48 &&
+         v->document.shapes[a].y == 48;
+    editor_field_start(FIELD_V_SNAP_TOLERANCE, "-1");
+    editor_field_apply();
+    ok = ok && app.field == FIELD_V_SNAP_TOLERANCE && v->view.snap_tolerance == 5;
+    editor_field_stop();
+    editor_field_start(FIELD_V_SNAP_TOLERANCE, "8");
+    editor_field_apply();
+    ok = ok && app.field == FIELD_NONE && v->view.snap_tolerance == 8;
+    v->view.snap_tolerance = 5;
+    vector_action("vector.toggle_snap");
+    if (!ok) {
+        fprintf(stderr, "Vector grid snapping / pen / tolerance smoke failed\n");
+    }
+    return ok;
+}
+
 static bool grid_smoke(void) {
     VectorEditor *v = app.vector;
     app.right_tabs.selected = ui_id("vector_tools_tab");
@@ -253,7 +327,7 @@ static bool grid_smoke(void) {
     pointer(SDL_EVENT_MOUSE_BUTTON_UP, v->canvas.x + 582, TOP + 21);
     ok = ok && v->view.grid_visible != visible;
     vector_action("vector.toggle_grid");
-    float x = app.width - RIGHT + PANEL_GAP + 179, y = TOP + TABS + 99;
+    float x = app.width - RIGHT + PANEL_GAP + 179, y = TOP + TABS + 99 + 281;
     pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
     pointer(SDL_EVENT_MOUSE_BUTTON_UP, x, y);
     ok = ok && app.field == FIELD_V_GRID_WIDTH;
@@ -426,6 +500,7 @@ bool vector_smoke(void) {
         return false;
     }
     bool interaction = interaction_smoke();
+    interaction = snap_smoke() && interaction;
     vector_demo();
     interaction = zoom_smoke() && interaction;
     interaction = grid_smoke() && interaction;
@@ -444,6 +519,8 @@ bool vector_smoke(void) {
     bool ok = interaction && !strcmp(v->document.shapes[shape].name, original);
     vector_undo(true);
     ok = ok && !strcmp(v->document.shapes[shape].name, "Edited vector");
+    v->view.snap_enabled = true;
+    v->view.snap_tolerance = 7;
     ok = ok && editor_reload_layout();
     editor_select_workspace(UI_MAP_VIEW);
     ok = ok && !app.vector && app.map && !app.script;
@@ -453,7 +530,8 @@ bool vector_smoke(void) {
          app.vector->history.position == 1 && !app.vector->preview_texture &&
          !app.vector->preview_pixels && app.vector->view.preview_enabled &&
          app.vector->view.preview.w == 160 && app.vector->view.grid_width == 32 &&
-         app.vector->view.grid_isometric && app.vector->view.grid_color == 0x55667788 &&
+         app.vector->view.grid_isometric && app.vector->view.snap_enabled &&
+         app.vector->view.snap_tolerance == 7 && app.vector->view.grid_color == 0x55667788 &&
          app.vector->view.expanded_paths[0] == app.vector->document.shapes[shape].id &&
          app.right_tabs.selected == ui_id("vector_tools_tab") &&
          tool_state("vector_transform_tools") && !tool_state("vector_transform_tools")->open;

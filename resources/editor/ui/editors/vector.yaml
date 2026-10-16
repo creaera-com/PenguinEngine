@@ -52,15 +52,6 @@ columns:
           id: vector_tool_panel
           children:
             - type: section
-              id: vector_grid_tools
-              title: "Grid"
-              icon: grid
-              open: true
-              children:
-                - {type: button, id: vector_grid_standard, label: "Standard", tooltip: "Rectangular grid", action: vector.grid_standard}
-                - {type: button, id: vector_grid_isometric, label: "Isometric", tooltip: "Diamond grid; width / height define the full diamond", action: vector.grid_isometric}
-                - {type: vector_grid, id: vector_grid_settings, binding: vector.active, height: 100}
-            - type: section
               id: vector_preview_tools
               title: "Preview"
               icon: image
@@ -69,6 +60,16 @@ columns:
                 - {type: button, id: vector_preview_select, icon: select, label: "Select area", tooltip: "Drag a rectangle inside an artboard for a 1:1 preview", action: vector.preview_select}
                 - {type: button, id: vector_preview_clear, icon: close, tooltip: "Clear preview selection", action: vector.preview_clear}
                 - {type: vector_preview, id: vector_preview, binding: vector.active, height: 190}
+            - type: section
+              id: vector_grid_tools
+              title: "Grid"
+              icon: grid
+              open: true
+              children:
+                - {type: button, id: vector_grid_standard, label: "Standard", tooltip: "Rectangular grid", action: vector.grid_standard}
+                - {type: button, id: vector_grid_isometric, label: "Isometric", tooltip: "Diamond grid; width / height define the full diamond", action: vector.grid_isometric}
+                - {type: button, id: vector_snap_toggle, label: "Snap", tooltip: "Snap moved objects and new path points to grid intersections", action: vector.toggle_snap}
+                - {type: vector_grid, id: vector_grid_settings, binding: vector.active, height: 132}
             - type: section
               id: vector_transform_tools
               title: "Transform"

@@ -25,4 +25,17 @@ typedef struct {
  */
 int ve_grid_lines(VeRegion bounds, float width, float height, bool isometric, float zoom,
                   VeGridLine *lines, int capacity);
+/**
+ * @brief Sucht die nächste Rasterkreuzung innerhalb eines Bildschirm-Fangradius.
+ * @param point Lokaler Artboardpunkt; negative Koordinaten sind erlaubt.
+ * @param width Zellbreite in Dokumentpixeln, 1..100000.
+ * @param height Zellhöhe in Dokumentpixeln, 1..100000.
+ * @param isometric true für Rauten mit voller Breite/Höhe.
+ * @param zoom Bildschirm-Pixel je Dokumentpixel, 0.02..32.
+ * @param tolerance Radialer Fangradius in Bildschirm-Pixeln, 0..100.
+ * @param result Zielpunkt; bleibt bei fehlendem Treffer oder ungültigen Eingaben unverändert.
+ * @return true, wenn eine Rasterkreuzung getroffen wurde; unabhängig von sichtbaren Linien.
+ */
+bool ve_grid_snap(VePoint point, float width, float height, bool isometric, float zoom,
+                  float tolerance, VePoint *result);
 #endif

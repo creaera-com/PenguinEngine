@@ -63,3 +63,32 @@ int ve_grid_lines(VeRegion r, float width, float height, bool iso, float zoom, V
     }
     return count;
 }
+
+bool ve_grid_snap(VePoint point, float width, float height, bool isometric, float zoom,
+                  float tolerance, VePoint *result) {
+    if (!result || !isfinite(point.x) || !isfinite(point.y) || !isfinite(width) ||
+        !isfinite(height) || width < 1 || height < 1 || width > 100000 || height > 100000 ||
+        !isfinite(zoom) || zoom < .02f || zoom > 32 || !isfinite(tolerance) || tolerance < 0 ||
+        tolerance > 100) {
+        return false;
+    }
+    double x = round((double)point.x / width) * width;
+    double y = round((double)point.y / height) * height;
+    double distance = hypot(x - point.x, y - point.y);
+    if (isometric) {
+        /* The diamond lattice is the union of two offset rectangular lattices. */
+        double ox = (round((double)point.x / width - .5) + .5) * width;
+        double oy = (round((double)point.y / height - .5) + .5) * height;
+        double other = hypot(ox - point.x, oy - point.y);
+        if (other < distance) {
+            x = ox;
+            y = oy;
+            distance = other;
+        }
+    }
+    if (distance * zoom > tolerance) {
+        return false;
+    }
+    *result = (VePoint){(float)x, (float)y};
+    return true;
+}

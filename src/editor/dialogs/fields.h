@@ -33,9 +33,10 @@ typedef enum {
     FIELD_V_STROKE,
     FIELD_V_STROKE_WIDTH,
     FIELD_V_BACKGROUND,
-    FIELD_V_GRID_WIDTH,  ///< Zellbreite des Editor-Grids.
-    FIELD_V_GRID_HEIGHT, ///< Zellhöhe des Editor-Grids.
-    FIELD_V_GRID_COLOR,  ///< RGBA-Farbe des Editor-Grids.
+    FIELD_V_GRID_WIDTH,     ///< Zellbreite des Editor-Grids.
+    FIELD_V_GRID_HEIGHT,    ///< Zellhöhe des Editor-Grids.
+    FIELD_V_GRID_COLOR,     ///< RGBA-Farbe des Editor-Grids.
+    FIELD_V_SNAP_TOLERANCE, ///< Fangradius in Bildschirm-Pixeln.
     FIELD_V_OPEN,
     FIELD_V_SAVE
 

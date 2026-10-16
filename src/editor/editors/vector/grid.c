@@ -4,14 +4,17 @@
 void vector_draw_grid_settings(SDL_FRect area) {
     VectorEditor *v = app.vector;
     float x = area.x + 6, y = area.y + 4, w = fmaxf(0, area.w - 12);
-    const char *labels[] = {"Width px", "Height px", "RGBA"};
-    Field fields[] = {FIELD_V_GRID_WIDTH, FIELD_V_GRID_HEIGHT, FIELD_V_GRID_COLOR};
-    for (int i = 0; i < 3; i++) {
+    const char *labels[] = {"Width px", "Height px", "RGBA", "Snap px"};
+    Field fields[] = {FIELD_V_GRID_WIDTH, FIELD_V_GRID_HEIGHT, FIELD_V_GRID_COLOR,
+                      FIELD_V_SNAP_TOLERANCE};
+    for (int i = 0; i < 4; i++) {
         char text[32];
         if (i == 2) {
             snprintf(text, sizeof text, "%08X", v->view.grid_color);
         } else {
-            snprintf(text, sizeof text, "%.2f", i ? v->view.grid_height : v->view.grid_width);
+            snprintf(text, sizeof text, "%.2f",
+                     i == 3 ? v->view.snap_tolerance
+                            : (i ? v->view.grid_height : v->view.grid_width));
         }
         UiPropertyRow row = ui_property_row((UiRect){x, y, w, 25}, .42f, 8);
         editor_text(row.label.x, row.label.y + 10, labels[i], UI_MUTED);

@@ -329,8 +329,54 @@ static void test_grid_density_and_invalid_inputs_are_bounded(void) {
     TEST_ASSERT_EQUAL_FLOAT(123, lines[0].a.x);
 }
 
+static void test_grid_snap_standard_radius_and_invalid(void) {
+    VePoint result = {123, 456};
+    TEST_ASSERT_TRUE(ve_grid_snap((VePoint){13, 12}, 16, 16, false, 1, 5, &result));
+    TEST_ASSERT_EQUAL_FLOAT(16, result.x);
+    TEST_ASSERT_EQUAL_FLOAT(16, result.y);
+    TEST_ASSERT_FALSE(ve_grid_snap((VePoint){12, 12}, 16, 16, false, 1, 5, &result));
+    TEST_ASSERT_EQUAL_FLOAT(16, result.x);
+    TEST_ASSERT_TRUE(ve_grid_snap((VePoint){-14, -17}, 16, 16, false, 1, 5, &result));
+    TEST_ASSERT_EQUAL_FLOAT(-16, result.x);
+    TEST_ASSERT_EQUAL_FLOAT(-16, result.y);
+    TEST_ASSERT_FALSE(ve_grid_snap((VePoint){NAN, 0}, 16, 16, false, 1, 5, &result));
+    TEST_ASSERT_FALSE(ve_grid_snap((VePoint){0, 0}, 0, 16, false, 1, 5, &result));
+    TEST_ASSERT_FALSE(ve_grid_snap((VePoint){0, 0}, 16, 16, false, 0, 5, &result));
+    TEST_ASSERT_FALSE(ve_grid_snap((VePoint){0, 0}, 16, 16, false, 1, -1, &result));
+    TEST_ASSERT_FALSE(ve_grid_snap((VePoint){0, 0}, 16, 16, false, 1, 5, NULL));
+    TEST_ASSERT_EQUAL_FLOAT(-16, result.x);
+}
+
+static void test_grid_snap_isometric_nearest_intersection(void) {
+    VePoint result;
+    TEST_ASSERT_TRUE(ve_grid_snap((VePoint){14, 9}, 32, 16, true, 1, 5, &result));
+    TEST_ASSERT_EQUAL_FLOAT(16, result.x);
+    TEST_ASSERT_EQUAL_FLOAT(8, result.y);
+    /* Highly anisotropic diamonds: rounding transformed axes is not nearest. */
+    TEST_ASSERT_TRUE(ve_grid_snap((VePoint){1, 40}, 100, 10000, true, 1, 50, &result));
+    TEST_ASSERT_EQUAL_FLOAT(0, result.x);
+    TEST_ASSERT_EQUAL_FLOAT(0, result.y);
+    TEST_ASSERT_TRUE(ve_grid_snap((VePoint){-17, -9}, 32, 16, true, 1, 5, &result));
+    TEST_ASSERT_EQUAL_FLOAT(-16, result.x);
+    TEST_ASSERT_EQUAL_FLOAT(-8, result.y);
+}
+
+static void test_grid_snap_screen_tolerance_and_dense_grid(void) {
+    VePoint result = {0, 0};
+    TEST_ASSERT_TRUE(ve_grid_snap((VePoint){20, 16}, 16, 16, false, .5f, 5, &result));
+    TEST_ASSERT_FALSE(ve_grid_snap((VePoint){20, 16}, 16, 16, false, 2, 5, &result));
+    TEST_ASSERT_TRUE(ve_grid_snap((VePoint){3.2f, 7.1f}, 1, 1, false, .02f, 5, &result));
+    TEST_ASSERT_EQUAL_FLOAT(3, result.x);
+    TEST_ASSERT_EQUAL_FLOAT(7, result.y);
+    TEST_ASSERT_TRUE(ve_grid_snap((VePoint){16, 16}, 16, 16, false, 32, 0, &result));
+    TEST_ASSERT_FALSE(ve_grid_snap((VePoint){16.01f, 16}, 16, 16, false, 1, 0, &result));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_grid_snap_standard_radius_and_invalid);
+    RUN_TEST(test_grid_snap_isometric_nearest_intersection);
+    RUN_TEST(test_grid_snap_screen_tolerance_and_dense_grid);
     RUN_TEST(test_grid_standard_origin_and_pan);
     RUN_TEST(test_grid_isometric_diamond_and_clip);
     RUN_TEST(test_grid_density_and_invalid_inputs_are_bounded);

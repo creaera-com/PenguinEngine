@@ -1,4 +1,5 @@
 #include "app/editor_internal.h"
+#include "editors/vector/grid.h"
 #include "editors/vector/internal.h"
 
 static VePoint world(float x, float y) {
@@ -16,6 +17,16 @@ static int board_at(VePoint p) {
         }
     }
     return -1;
+}
+
+static VePoint snap(VePoint point) {
+    VeView *view = &app.vector->view;
+    VePoint result = point;
+    if (view->snap_enabled) {
+        ve_grid_snap(point, view->grid_width, view->grid_height, view->grid_isometric, view->zoom,
+                     view->snap_tolerance, &result);
+    }
+    return result;
 }
 
 static int hit(VePoint p) {
@@ -280,6 +291,19 @@ bool vector_event(SDL_Event *e) {
             s->w = fmaxf(.01f, fabsf(endx - v->start_x));
             s->h = fmaxf(.01f, fabsf(endy - v->start_y));
         } else {
+            if (v->drag_shape >= 0) {
+                VeShape *anchor = &v->document.shapes[v->drag_shape];
+                VeBoard *old = &v->document.boards[anchor->board];
+                VePoint desired = {v->drag_origin.x + p.x - v->start_x,
+                                   v->drag_origin.y + p.y - v->start_y};
+                int target = board_at((VePoint){old->x + desired.x + anchor->w * .5f,
+                                                old->y + desired.y + anchor->h * .5f});
+                VeBoard *board = target >= 0 ? &v->document.boards[target] : old;
+                VePoint local =
+                    snap((VePoint){desired.x + old->x - board->x, desired.y + old->y - board->y});
+                dx = local.x + board->x - old->x - anchor->x;
+                dy = local.y + board->y - old->y - anchor->y;
+            }
             for (int i = 0; i < VE_SHAPES; i++) {
                 if (v->view.selected & (UINT64_C(1) << i)) {
                     ve_move(&v->document.shapes[i], dx, dy);
@@ -390,8 +414,8 @@ bool vector_event(SDL_Event *e) {
             return true;
         }
         VeBoard *b = &v->document.boards[board];
-        s->nodes[s->count] =
-            (VeNode){.command = s->count ? VE_LINE : VE_MOVE, .p = {p.x - b->x, p.y - b->y}};
+        VePoint point = snap((VePoint){p.x - b->x, p.y - b->y});
+        s->nodes[s->count] = (VeNode){.command = s->count ? VE_LINE : VE_MOVE, .p = point};
         s->count++;
         ve_bounds(s);
         vector_commit();
@@ -434,6 +458,8 @@ bool vector_event(SDL_Event *e) {
                 v->view.selected = UINT64_C(1) << i;
             }
             v->dragging = v->view.tool == VT_SELECT;
+            v->drag_shape = i;
+            v->drag_origin = (VePoint){v->document.shapes[i].x, v->document.shapes[i].y};
         }
         v->view.board = v->document.shapes[i].board;
     } else {

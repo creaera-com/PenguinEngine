@@ -147,6 +147,9 @@ bool editor_yaml_action_active(const char *action) {
     }
 
     if (app.vector) {
+        if (!strcmp(action, "vector.toggle_snap")) {
+            return app.vector->view.snap_enabled;
+        }
         if (!strcmp(action, "vector.toggle_grid")) {
             return app.vector->view.grid_visible;
         }
