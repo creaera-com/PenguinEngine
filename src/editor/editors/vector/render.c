@@ -96,11 +96,12 @@ static void ruler_axis(const VeBoard *board, SDL_FRect strip, float step, int ax
         float position = screen + value * v->view.zoom;
         bool major = i % 5 == 0;
         editor_draw_color(major ? UI_MUTED : UI_DISABLED);
+        float tick = (axis ? strip.w : strip.h) * (2.f / 3.f);
         if (axis) {
-            SDL_RenderLine(app.renderer, strip.x + strip.w - (major ? 2.5f : 1), position,
-                           strip.x + strip.w, position);
+            SDL_RenderLine(app.renderer, strip.x + strip.w - tick, position, strip.x + strip.w,
+                           position);
         } else {
-            SDL_RenderLine(app.renderer, position, strip.y + strip.h - (major ? 2.5f : 1), position,
+            SDL_RenderLine(app.renderer, position, strip.y + strip.h - tick, position,
                            strip.y + strip.h);
         }
         if (major) {
