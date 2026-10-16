@@ -77,27 +77,10 @@ void vector_draw_inspector(void) {
         y += 29;
         number(x, y, w, "Border px", s->stroke_width, FIELD_V_STROKE_WIDTH, true);
         y += 37;
-        if (button(x, y, w, "Convert to path", false, s->kind != VE_PATH)) {
-            vector_action("vector.convert");
-        }
-        y += 31;
         if (s->kind == VE_PATH) {
             snprintf(label, sizeof label, "Nodes: %d | selected: %d", s->count, v->view.node);
             editor_text(x, y + 8, label, UI_MUTED);
             y += 27;
-            if (button(x, y, w, "Make segment a curve", false, v->view.node > 0)) {
-                vector_action("vector.curve");
-            }
-            y += 31;
-            if (button(x, y, w, "Split selected segment", false, v->view.node > 0)) {
-                vector_action("vector.split");
-            }
-            y += 31;
-            if (button(x, y, w, "Close path", false,
-                       s->count > 2 && s->nodes[s->count - 1].command != VE_CLOSE)) {
-                vector_action("vector.close_path");
-            }
-            y += 31;
         }
     } else {
         color_field(x, y, w, "Background", b->background, FIELD_V_BACKGROUND);

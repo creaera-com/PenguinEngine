@@ -101,9 +101,9 @@ typedef struct {
     int count;               ///< Anzahl gültiger Einträge.
     int open;                ///< Aufklappzustand eines YAML-Abschnitts.
     int dragging;            ///< Gespeicherter Dragindex der Tabgruppe.
-    float scroll;            ///< Horizontaler Tab-Scrolloffset in Pixeln.
+    float scroll;            ///< Tab- oder Tool-Panel-Scrolloffset in Pixeln.
     float extent;            ///< Gespeicherte Größe des zweiten Split-Panels.
-    int kind;                ///< 0 für Tabs/Abschnitte, 1 für Split-Container.
+    int kind;                ///< 0 für Tabs/Abschnitte, 1 für Split-Container, 2 für Tool-Panels.
 } WidgetState;
 
 /** @brief Private Anwendungsinstanz; höchstens Map oder Scripts besitzt gleichzeitig ein geladenes

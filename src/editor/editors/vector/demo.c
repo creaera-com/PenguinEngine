@@ -46,6 +46,7 @@ void vector_demo(void) {
     v->view.zoom = .85f;
     v->view.x = -36;
     v->view.y = -44;
+    app.right_tabs.selected = ui_id("vector_tools_tab");
     v->render_dirty = true;
     app.selected = p->id;
     editor_message("Vector Art | editable SVG, artboards and Bezier paths");

@@ -118,6 +118,60 @@ static bool interaction_smoke(void) {
     return ok;
 }
 
+static WidgetState *tool_state(const char *name) {
+    for (int i = 0; i < app.widget_count; i++) {
+        if (app.widgets[i].id == ui_id(name)) {
+            return &app.widgets[i];
+        }
+    }
+    return NULL;
+}
+
+static bool tools_smoke(void) {
+    app.right_tabs.selected = ui_id("vector_tools_tab");
+    editor_draw();
+    WidgetState *group = tool_state("vector_transform_tools");
+    WidgetState *panel = tool_state("vector_tool_panel");
+    if (!group || !panel || !group->open) {
+        return false;
+    }
+    float x = app.width - RIGHT + PANEL_GAP + 40, y = TOP + TABS + 18;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, app.width - 164, y + 39);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, app.width - 164, y + 39);
+    bool ok =
+        app.vector->document.shapes[2].nodes[0].p.x == 202 && app.vector->history.position == 1;
+    vector_undo(false);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, x, y);
+    editor_draw();
+    ok = ok && !group->open && app.vector->history.position == 0;
+    int height = app.height;
+    SDL_SetWindowMinimumSize(app.window, 1100, 300);
+    SDL_SetWindowSize(app.window, app.width, 360);
+    editor_draw();
+    pointer(SDL_EVENT_MOUSE_MOTION, x, 220);
+    float inspector_offset = app.inspector_view.offset;
+    SDL_Event wheel = {0};
+    wheel.type = SDL_EVENT_MOUSE_WHEEL;
+    wheel.wheel.y = -3;
+    editor_event(&wheel);
+    editor_draw();
+    ok = ok && panel->scroll > 0 && app.inspector_view.offset == inspector_offset;
+    float offset = panel->scroll;
+    ok = editor_reload_layout() && ok;
+    editor_draw();
+    panel = tool_state("vector_tool_panel");
+    group = tool_state("vector_transform_tools");
+    ok = ok && panel && group && panel->scroll == offset && !group->open;
+    SDL_SetWindowSize(app.window, app.width, height);
+    SDL_SetWindowMinimumSize(app.window, 1100, 740);
+    editor_draw();
+    if (!ok) {
+        fprintf(stderr, "Vector Tools tab / actions / collapse / scrolling smoke failed\n");
+    }
+    return ok;
+}
+
 static bool tree_smoke(void) {
     VectorEditor *v = app.vector;
     app.left_tabs.selected = UI_SCENE_TAB;
@@ -171,6 +225,7 @@ bool vector_smoke(void) {
     }
     bool interaction = interaction_smoke();
     vector_demo();
+    interaction = tools_smoke() && interaction;
     interaction = tree_smoke() && interaction;
     VectorEditor *v = app.vector;
     int shape = 2;
@@ -191,7 +246,9 @@ bool vector_smoke(void) {
     ok = ok && app.vector && !app.map && !app.script &&
          !strcmp(app.vector->document.shapes[shape].name, "Edited vector") &&
          app.vector->history.position == 1 &&
-         app.vector->view.expanded_paths[0] == app.vector->document.shapes[shape].id;
+         app.vector->view.expanded_paths[0] == app.vector->document.shapes[shape].id &&
+         app.right_tabs.selected == ui_id("vector_tools_tab") &&
+         tool_state("vector_transform_tools") && !tool_state("vector_transform_tools")->open;
     editor_select_workspace(UI_SCRIPT_VIEW);
     ok = ok && !app.vector && app.script && !app.map;
     editor_select_workspace(UI_MAP_VIEW);

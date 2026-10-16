@@ -10,7 +10,7 @@ Vector Art ist ein eigenständiger dritter Editor. Der Stift-Button in der obere
 2. Mit **R** ein Rechteck oder **C** eine Ellipse im Artboard ziehen. **Shift** erzwingt Quadrat/Kreis.
 3. Mit **V** auswählen und verschieben; **Shift+Klick** wählt mehrere Objekte. Der Objektbaum links bietet dieselbe Auswahl. Artboards und Pfade lassen sich aufklappen; unter einem Pfad stehen Move-, Line-, Bézier- und Close-Segmente mit ihren lokalen Pixelkoordinaten. Ein Klick auf ein Segment aktiviert das Knotenwerkzeug und markiert den zugehörigen Anker im Canvas. Close zeigt den Konturschluss ohne eigenen Anker. Aufklappen verändert das Dokument nicht und bleibt beim Editorwechsel erhalten.
 4. Rechts Namen, Position, Größe, Füllung und Kontur direkt bearbeiten. Farben sind acht hexadezimale RGBA-Ziffern; die letzten beiden bestimmen die Deckkraft. Konturbreiten sind Pixelwerte. Enter/Außenklick übernimmt, Escape verwirft.
-5. **Ctrl/Cmd+S** speichert. Beim ersten Speichern fragt der Editor nach einem Pfad, beispielsweise `assets/icon.svg`. Relative Pfade beziehen sich auf das Projektverzeichnis. Open und Save As liegen in der lokalen Werkzeugleiste. SVG-Dateien können auch im Explorer geöffnet oder ins Fenster gezogen werden.
+5. **Ctrl/Cmd+S** speichert. Beim ersten Speichern fragt der Editor nach einem Pfad, beispielsweise `assets/icon.svg`. Relative Pfade beziehen sich auf das Projektverzeichnis. Open und Save As liegen zusammen mit den Zeichenwerkzeugen in der lokalen Werkzeugleiste. Rechts enthält **Properties** die Eigenschaften und **Tools** die aufklappbaren Gruppen **Transform**, **Paths**, **Boolean** und **Objects**. Spiegeln, Konvertieren, Segmentwerkzeuge, Flächenoperationen, Duplizieren, Zeichenreihenfolge und Löschen liegen dort. Die Gruppen richten Aktionen rechtsbündig aus, brechen bei schmalen Spalten um und scrollen bei Platzmangel. Tab, Klappzustände und Scrollposition bleiben beim Editorwechsel erhalten. SVG-Dateien können auch im Explorer geöffnet oder ins Fenster gezogen werden.
 
 `penguin_editor --vector` startet direkt im neuen Arbeitsbereich. `--vector-demo` öffnet eine nur im Speicher angelegte Beispielzeichnung mit zwei Artboards, einer Bézierform und einem ausgeschnittenen Halbmond. Die Vorschau wird erst durch Speichern zu einer Projektdatei. Eine gespeicherte Beispielzeichnung liegt unter `examples/topdown/assets/vector-demo.svg`.
 
@@ -32,7 +32,7 @@ SVG definiert selbst keine Editor-Artboards. Penguin speichert deshalb jedes Art
 - **Make segment a curve** wandelt das am ausgewählten Endpunkt endende Liniensegment in eine kubische Kurve um. Anschließend lassen sich die Kontrollpunkte ziehen.
 - **Split selected segment** teilt Linie/Kurve bei `t = 0.5`; Bézierkurven behalten dabei ihre Form durch de Casteljau.
 - Delete löscht im Knotenwerkzeug den ausgewählten Knoten, sonst die ausgewählten Objekte. Move-Anfänge werden über diese Aktion nicht entfernt.
-- **Flip X / Flip Y** spiegeln die Auswahl um ihre gemeinsame Mitte. Duplizieren und Reihenfolge ändern sind ebenfalls über die lokale Toolbar verfügbar.
+- **Flip X / Flip Y** spiegeln die Auswahl um ihre gemeinsame Mitte. Duplizieren und Reihenfolge ändern sind ebenfalls im Tools-Tab verfügbar.
 
 Pfadgrenzen im Inspector sind die Hülle von Ankern und Kontrollpunkten. Die exakte Bézier-Extremwertbox wird derzeit nicht berechnet. Größenänderungen skalieren die Pfadgeometrie, aber nicht automatisch die Konturbreite.
 

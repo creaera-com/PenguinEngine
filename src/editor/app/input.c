@@ -174,6 +174,8 @@ void editor_event(SDL_Event *e) {
                 ui_tabs_scroll(&app.left_tabs, LEFT - 2 * PANEL_GAP, 112, -e->wheel.y * 56);
             } else if (app.mx > app.width - RIGHT && app.my >= TOP && app.my < SIDE_TOP) {
                 ui_tabs_scroll(&app.right_tabs, RIGHT - 2 * PANEL_GAP, 112, -e->wheel.y * 56);
+            } else if (editor_layout_scrolls_at(app.mx, app.my)) {
+                /* The YAML panel consumes wheel_delta during layout. */
             } else if (app.mx < LEFT) {
                 ui_scroll_by(app.left_tabs.selected == UI_MAP_TAB     ? &app.map_view
                              : app.left_tabs.selected == UI_SCENE_TAB ? &app.scene_view

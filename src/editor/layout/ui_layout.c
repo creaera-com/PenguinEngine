@@ -223,7 +223,8 @@ static bool widget(Check *c, const cJSON *v, int depth) {
     }
 
     const char *type = pe_ui_string(v, "type", "");
-    if ((!strcmp(type, "tabs") || !strcmp(type, "section") || !strcmp(type, "split")) &&
+    if ((!strcmp(type, "tabs") || !strcmp(type, "section") || !strcmp(type, "split") ||
+         !strcmp(type, "tool_panel")) &&
         ++c->stateful > 64) {
         return error_at(c, v, "maximum 64 stateful containers");
     }
@@ -255,6 +256,8 @@ static bool widget(Check *c, const cJSON *v, int depth) {
         extra = "|tabs|";
     } else if (!strcmp(type, "entity_tree")) {
         extra = "|tools|";
+    } else if (!strcmp(type, "tool_panel")) {
+        extra = "|children|";
     } else if (!strcmp(type, "section")) {
         extra = "|children||title||open|";
     } else if (!strcmp(type, "row") || !strcmp(type, "column")) {
@@ -404,6 +407,23 @@ static bool widget(Check *c, const cJSON *v, int depth) {
             }
             if (!widget(c, pe_ui_get(tab, "content"), depth + 1)) {
                 return false;
+            }
+        }
+    }
+    if (!strcmp(type, "tool_panel")) {
+        const cJSON *children = pe_ui_get(v, "children");
+        if (!c->module || !widgets(c, children, depth)) {
+            return error_at(c, v, "tool_panel requires editor section children");
+        }
+        for (const cJSON *section = children->child; section; section = section->next) {
+            if (strcmp(pe_ui_string(section, "type", ""), "section")) {
+                return error_at(c, section, "tool_panel children must be sections");
+            }
+            const cJSON *buttons = pe_ui_get(section, "children");
+            for (const cJSON *button = buttons->child; button; button = button->next) {
+                if (strcmp(pe_ui_string(button, "type", ""), "button")) {
+                    return error_at(c, button, "tool_panel sections only support buttons");
+                }
             }
         }
     }

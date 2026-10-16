@@ -105,7 +105,7 @@ static bool valid_snapshot(const UiSnapshot *s) {
         if (s->widgets[i].count < 0 || s->widgets[i].count > UI_MAX_TABS ||
             !isfinite(s->widgets[i].scroll) || s->widgets[i].scroll < 0 ||
             !isfinite(s->widgets[i].extent) || s->widgets[i].extent < 0 || s->widgets[i].kind < 0 ||
-            s->widgets[i].kind > 1) {
+            s->widgets[i].kind > 2) {
             return false;
         }
     }

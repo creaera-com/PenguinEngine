@@ -166,6 +166,7 @@ Die folgenden Adapter sind implementiert. Spezialisierte Typen (`file_tree`, `en
 | `separator` | Schmaler Trennstrich mit Innenabstand in Toolbar/Zeile | Vorhandene Toolbar-Darstellung |
 | `editor_switcher` | Nur Shell; `labels: false` zeigt Icons mit Titel als Tooltip | Vorhandene Bereichsauswahl |
 | `tabs` | `tabs`-Liste mit `id`, `title`, optional `icon`, genau einem `content`-Knoten | Vorhandenes Tabmodell |
+| `tool_panel` | `children` mit `section`-Knoten; darin nur `button`-Knoten | Scrollbare Werkzeugkarten in Inhaltshöhe, mit rechtsbündigem Umbruch und aufklappbaren Überschriften; nur in Editorlayouts |
 | `section` | `title`, `open` als anfänglicher Boolean, `children` | Klappbarer Container |
 | `split` | `axis`, `initial`, `minimum_first`, `minimum_second`, `gap`, `first`, `second` | Zwei verstellbare Bereiche; Details in [KONSOLE.md](KONSOLE.md) |
 | `terminal` | `binding: terminal.shared` | Gemeinsame Shell der Anwendungshülle |
@@ -241,7 +242,7 @@ Der Parser ist **libyaml 0.2.5**, im Repository mit MIT-Lizenz mitgeliefert. Der
 
 Version 1 verwendet ein begrenztes YAML-Subset: UTF-8, Mappings, Listen, Zeichenfolgen, Booleans und Zahlen. Farben und mehrdeutige Titel als Strings in Anführungszeichen schreiben; Booleans als `true`/`false`. Doppelte Schlüssel, unbekannte Felder, unbekannte Schemaversionen sowie YAML-Tags, Anchors, Aliases und Merge-Keys werden abgelehnt. Es gibt zunächst keine Templates, Includes, Vererbung oder eingebettete Scripts. Der Bezug von Shell auf Editor-Dateien ist ein eigener, ausdrücklich definierter Mechanismus.
 
-Die Grenzen betragen 256 KiB pro Datei, 2048 YAML-Knotenereignisse einschließlich Schlüssel und 32 Verschachtelungsebenen. Pro Editor sind höchstens 64 zustandsbehaftete `tabs`-/`section`-Container und ein interaktiver `map_canvas` oder `script_editor` erlaubt. `layout.gap` ist eine ganze Zahl von 0 bis 12, `tab_gap` von 0 bis 16. Container ohne eigene Scrollbar beschneiden überlaufende Inhalte; sie sind noch kein Flexbox-/Docking-System. Das bestehende Tablimit von 16 ist zu beachten; Überschreitung liefert eine Fehlermeldung statt stiller Kürzung.
+Die Grenzen betragen 256 KiB pro Datei, 2048 YAML-Knotenereignisse einschließlich Schlüssel und 32 Verschachtelungsebenen. Pro Editor sind höchstens 64 zustandsbehaftete `tabs`-/`section`-/`tool_panel`-Container und ein interaktiver `map_canvas` oder `script_editor` erlaubt. `layout.gap` ist eine ganze Zahl von 0 bis 12, `tab_gap` von 0 bis 16. Container ohne eigene Scrollbar beschneiden überlaufende Inhalte; sie sind noch kein Flexbox-/Docking-System. Das bestehende Tablimit von 16 ist zu beachten; Überschreitung liefert eine Fehlermeldung statt stiller Kürzung.
 
 Fehlermeldungen nennen Datei, Zeile/Spalte, betroffenen Schlüssel und Ursache, zum Beispiel:
 
@@ -358,3 +359,7 @@ Die Shell registriert zusätzlich `{id: vector, title: "Vector Art", icon: edit,
 `document_provider: vector` verbindet das neue Layout mit seinem eigenständigen SVG-Dokument. `vector_canvas`, `vector_tree` und `vector_inspector` sind spezialisierte Vector-Widgets mit `binding: vector.active`; sie sind in anderen Modulen nicht verfügbar. Toolbar und alle drei Spalten sind in `resources/editor/ui/editors/vector.yaml` beschrieben. Die registrierten `vector.*`-Aktionen umfassen Dateioperationen, Zeichen-/Knotenwerkzeuge, Artboards, Spiegeln, boolesche Flächenoperationen, Duplizieren und Reihenfolge. Details und Grenzen stehen in [VECTOR_EDITOR.md](VECTOR_EDITOR.md).
 
 `unload_on_leave` gilt auch hier: Beim Wechsel werden Dokumentinstanz, Verlauf und Rastercache vollständig freigegeben und bei Rückkehr aus dem nativen Sitzungscache rekonstruiert. Save/Undo/Redo sowie Speicherrückfragen verwenden das aktive Dokument und berücksichtigen ungespeicherte inaktive Vector-Dokumente.
+
+### Gruppierte Werkzeuge
+
+Der Vector-Editor verwendet rechts neben Properties einen Tools-Tab mit `tool_panel`. Seine `children` sind normale `section`-Knoten mit `title`, optionalem `icon`, anfänglichem `open` und einer Buttonliste als `children`. Anders als eine gleichmäßig aufgeteilte `column` bemisst dieser Container jede Karte nach ihrer Werkzeugliste. Geschlossene Karten geben ihren Platz sofort frei. Kartenabstand und Hintergrund entsprechen dem Komponenten-Inspector. Scrolloffset und Klappzustände werden nach Widget-ID im entladbaren Workspace gespeichert. Die Buttons verwenden dieselben registrierten Aktionen, Bedingungen und Tooltips wie Toolbarbuttons. Das Panel unterstützt auch andere Editor-Module.

@@ -15,18 +15,6 @@ toolbar:
   - {type: button, id: vector_nodes, icon: entity, tooltip: "Edit anchors and Bezier handles (N)", action: vector.nodes}
   - {type: button, id: vector_board, icon: image, tooltip: "Draw artboard (A); Alt+drag to move", action: vector.artboard}
   - {type: button, id: vector_fit, icon: grid, tooltip: "Fit active artboard", action: vector.fit}
-  - {type: separator, id: vector_geometry_gap}
-  - {type: button, id: vector_convert, icon: edit, label: "Path", tooltip: "Convert rectangle / ellipse to path", action: vector.convert}
-  - {type: button, id: vector_flip_x, icon: right, label: "Flip X", tooltip: "Mirror horizontally", action: vector.mirror_x}
-  - {type: button, id: vector_flip_y, icon: down, label: "Flip Y", tooltip: "Mirror vertically", action: vector.mirror_y}
-  - {type: button, id: vector_union, icon: plus, label: "Union", tooltip: "Unite two filled contours", action: vector.union}
-  - {type: button, id: vector_intersection, icon: layers, label: "Intersection", tooltip: "Intersection of two contours", action: vector.intersection}
-  - {type: button, id: vector_difference, icon: erase, label: "Difference", tooltip: "Lower object minus upper object", action: vector.difference}
-  - {type: button, id: vector_xor, icon: collision, label: "XOR", tooltip: "Exclusive areas of two contours", action: vector.xor}
-  - {type: button, id: vector_duplicate, icon: file, tooltip: "Duplicate selected objects", action: vector.duplicate}
-  - {type: button, id: vector_raise, icon: up, tooltip: "Raise object", action: vector.raise}
-  - {type: button, id: vector_lower, icon: down, tooltip: "Lower object", action: vector.lower}
-  - {type: button, id: vector_delete, icon: delete, tooltip: "Delete selected objects or active artboard", action: vector.delete}
 
 columns:
   left:
@@ -50,3 +38,48 @@ columns:
         title: "Properties"
         icon: edit
         content: {type: vector_inspector, id: vector_inspector, binding: vector.active}
+      - id: vector_tools_tab
+        title: "Tools"
+        icon: grid
+        content:
+          type: tool_panel
+          id: vector_tool_panel
+          children:
+            - type: section
+              id: vector_transform_tools
+              title: "Transform"
+              icon: select
+              open: true
+              children:
+                - {type: button, id: vector_flip_x, icon: right, label: "Flip X", tooltip: "Mirror horizontally", action: vector.mirror_x}
+                - {type: button, id: vector_flip_y, icon: down, label: "Flip Y", tooltip: "Mirror vertically", action: vector.mirror_y}
+            - type: section
+              id: vector_path_tools
+              title: "Paths"
+              icon: edit
+              open: true
+              children:
+                - {type: button, id: vector_convert, icon: edit, label: "Convert to path", tooltip: "Convert rectangle / ellipse to path", action: vector.convert}
+                - {type: button, id: vector_curve, icon: edit, label: "Curve", tooltip: "Make selected line segment a Bezier curve", action: vector.curve}
+                - {type: button, id: vector_split, icon: plus, label: "Split", tooltip: "Split selected line / curve at its midpoint", action: vector.split}
+                - {type: button, id: vector_close_path, icon: check, label: "Close path", tooltip: "Close selected path", action: vector.close_path}
+            - type: section
+              id: vector_boolean_tools
+              title: "Boolean"
+              icon: layers
+              open: true
+              children:
+                - {type: button, id: vector_union, icon: plus, label: "Union", tooltip: "Unite two filled contours", action: vector.union}
+                - {type: button, id: vector_intersection, icon: layers, label: "Intersection", tooltip: "Intersection of two contours", action: vector.intersection}
+                - {type: button, id: vector_difference, icon: erase, label: "Difference", tooltip: "Lower object minus upper object", action: vector.difference}
+                - {type: button, id: vector_xor, icon: collision, label: "XOR", tooltip: "Exclusive areas of two contours", action: vector.xor}
+            - type: section
+              id: vector_object_tools
+              title: "Objects"
+              icon: entity
+              open: true
+              children:
+                - {type: button, id: vector_duplicate, icon: file, label: "Duplicate", tooltip: "Duplicate selected objects", action: vector.duplicate}
+                - {type: button, id: vector_raise, icon: up, label: "Raise", tooltip: "Raise object", action: vector.raise}
+                - {type: button, id: vector_lower, icon: down, label: "Lower", tooltip: "Lower object", action: vector.lower}
+                - {type: button, id: vector_delete, icon: delete, label: "Delete", tooltip: "Delete selected objects or active artboard", action: vector.delete}
