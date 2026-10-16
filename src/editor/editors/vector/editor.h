@@ -18,6 +18,8 @@ typedef struct {
     float grid_width;                   ///< Zell- bzw. Rautenbreite in lokalen Pixeln.
     float grid_height;                  ///< Zell- bzw. Rautenhöhe in lokalen Pixeln.
     uint32_t grid_color;                ///< RGBA-Farbe des Editor-Grids.
+    bool snap_enabled;                  ///< Optionales Einrasten an Rasterkreuzungen.
+    float snap_tolerance;               ///< Fangradius in Bildschirm-Pixeln, 0..100.
     bool grid_visible;                  ///< Ob das Grid eingeblendet ist.
     bool grid_isometric;                ///< Rauten statt rechtwinkligem Raster.
     VeRegion preview;                   ///< Lokaler 1:1-Auswahlbereich; keine SVG-Geometrie.
@@ -69,6 +71,7 @@ typedef struct {
     int after_save;                    ///< Aufgeschobene Request-Aktion nach Save As.
     float last_x;                      ///< Letzte Zeigerkoordinate in Dokumentpixeln.
     float last_y;                      ///< Letzte Zeigerkoordinate in Dokumentpixeln.
+    VePoint drag_origin;               ///< Ungerasteter Objektursprung beim Beginn der Geste.
     float start_x;                     ///< Startkoordinate der Dokumentgeste.
     float start_y;                     ///< Startkoordinate der Dokumentgeste.
     SDL_FRect canvas;                  ///< Sichtbare Zeichenfläche ohne Lineale.

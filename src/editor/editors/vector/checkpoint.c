@@ -19,6 +19,9 @@ bool vector_checkpoint(VectorEditor *v, PeSession *io) {
         view.zoom > 32) {
         return false;
     }
+    if (!isfinite(view.snap_tolerance) || view.snap_tolerance < 0 || view.snap_tolerance > 100) {
+        return false;
+    }
     if (!isfinite(view.grid_width) || !isfinite(view.grid_height) || view.grid_width < 1 ||
         view.grid_width > 100000 || view.grid_height < 1 || view.grid_height > 100000) {
         return false;

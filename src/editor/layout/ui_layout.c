@@ -42,6 +42,7 @@ static const char *actions[] = {"document.save",
                                 "vector.preview_select",
                                 "vector.preview_clear",
                                 "vector.toggle_grid",
+                                "vector.toggle_snap",
                                 "vector.grid_standard",
                                 "vector.grid_isometric",
                                 "vector.convert",
@@ -444,7 +445,7 @@ static bool widget(Check *c, const cJSON *v, int depth) {
         }
     }
     if ((!strcmp(type, "vector_preview") || !strcmp(type, "vector_grid")) &&
-        !number(c, pe_ui_get(v, "height"), !strcmp(type, "vector_grid") ? 96 : 64, 512)) {
+        !number(c, pe_ui_get(v, "height"), !strcmp(type, "vector_grid") ? 128 : 64, 512)) {
         return false;
     }
     if (!strcmp(type, "section")) {

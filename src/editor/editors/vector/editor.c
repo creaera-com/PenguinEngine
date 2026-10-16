@@ -11,6 +11,7 @@ bool vector_init(VectorEditor *v) {
     ve_init(&v->document);
     v->view = (VeView){.board = 0, .node = -1, .zoom = 1, .x = -64, .y = -64};
     v->view.grid_width = v->view.grid_height = 16;
+    v->view.snap_tolerance = 5;
     v->view.grid_color = 0x80808060;
     memset(v->view.expanded, 1, sizeof v->view.expanded);
     v->render_dirty = true;

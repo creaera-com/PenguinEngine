@@ -36,7 +36,13 @@ SVG definiert selbst keine Editor-Artboards. Penguin speichert deshalb jedes Art
 
 Pfadgrenzen im Inspector sind die Hülle von Ankern und Kontrollpunkten. Die exakte Bézier-Extremwertbox wird derzeit nicht berechnet. Größenänderungen skalieren die Pfadgeometrie, aber nicht automatisch die Konturbreite.
 
+Die **Preview**-Karte steht im Tools-Tab immer vor den anderen Werkzeuggruppen (die Reihenfolge wird in YAML gepflegt).
+
 ## Grid
+
+**Snap** unter Tools → Grid schaltet optionales Einrasten ein und aus; standardmäßig ist es aus. **Snap px** stellt den radialen Fangradius ein (Standard: **5 Bildschirm-Pixel**, zulässig 0–100). Damit bleibt die gefühlte Toleranz bei jedem Zoom gleich. Auch ein ausgeblendetes Raster kann zum Einrasten verwendet werden.
+
+Beim Verschieben rastet die linke obere Ecke der Objektbegrenzung an der nächsten lokalen Rasterkreuzung ein. Bei Mehrfachauswahl bestimmt das angeklickte Objekt den gemeinsamen Versatz; die Abstände bleiben erhalten. Beim Wechsel auf ein anderes Artboard gilt dessen Rasterursprung. Außerhalb der Toleranz bewegt sich die Auswahl frei. Neu gesetzte Pfadpunkte des Pen-Werkzeugs rasten ebenfalls ein, sowohl im Standard- als auch im isometrischen Raster. Bestehende Anker/Griffe und Größenänderungen bleiben frei. Das Einrasten verwendet immer die eingestellte Zellgröße, auch wenn bei weitem Herauszoomen Zwischenlinien ausgeblendet sind. Bewegungen bleiben wie bisher je Geste rückgängig machbar; der Snap-Schalter und die Toleranz sind Navigationseinstellungen und bleiben beim Editorwechsel/F6 erhalten.
 
 Der zusätzliche **Grid-Button** rechts in der Zeichen-Toolbar blendet das Raster ein und aus; seine orange Markierung zeigt den aktiven Zustand. Neue Editor-Sitzungen starten mit ausgeblendetem Raster, **Standard**, **16 × 16 Pixeln** und Grau (`80808060` als RGBA, mit dezenter Deckkraft). `--vector-demo` blendet das Beispielraster direkt ein.
 
@@ -44,7 +50,7 @@ Rechts unter **Tools → Grid** wechseln die Buttons **Standard** und **Isometri
 
 Standard verwendet Rechtecke. Beim isometrischen Raster bestimmen die Maße die **volle Breite und Höhe einer Raute**: 16 × 16 ergibt Rauten mit 45°-Kanten, 32 × 16 die übliche 2:1-Isometrie. Der Wechsel verändert die eingestellten Maße nicht automatisch. [Screenshot einer 32×16-Isometrie mit angepasster Farbe](images/vector-grid-isometric.png).
 
-Das Raster beginnt je Artboard am lokalen Nullpunkt, folgt dessen Position sowie dem Canvas-Zoom und bleibt auf dessen sichtbaren Bereich beschränkt. Bei sehr dichtem Raster werden Zwischenlinien in Zweierpotenzen ausgelassen; die eingestellte Zellgröße bleibt unverändert. Die Linienberechnung und der Ausgabepuffer sind begrenzt. Es handelt sich um eine Editor-Überlagerung ohne automatisches Einrasten: SVG-Export, 1:1-Vorschau und Dokument-Undo bleiben unverändert. Sichtbarkeit, Typ, Farbe und Maße bleiben bei F6 und beim Editorwechsel erhalten.
+Das Raster beginnt je Artboard am lokalen Nullpunkt, folgt dessen Position sowie dem Canvas-Zoom und bleibt auf dessen sichtbaren Bereich beschränkt. Bei sehr dichtem Raster werden Zwischenlinien in Zweierpotenzen ausgelassen; die eingestellte Zellgröße bleibt unverändert. Die Linienberechnung und der Ausgabepuffer sind begrenzt. Es handelt sich um eine Editor-Überlagerung: SVG-Export, 1:1-Vorschau und Dokument-Undo bleiben unverändert. Sichtbarkeit, Typ, Farbe und Maße bleiben bei F6 und beim Editorwechsel erhalten.
 
 ## Vorschau in 1:1
 
