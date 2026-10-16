@@ -20,7 +20,7 @@ toolbar:
   - {type: button, id: vector_zoom_reset, label: "100%", tooltip: "Reset view to 100 percent", action: vector.zoom_reset}
   - {type: button, id: vector_fit, icon: grid, tooltip: "Fit active artboard", action: vector.fit}
   - {type: separator, id: vector_grid_gap}
-  - {type: button, id: vector_grid_toggle, icon: grid, tooltip: "Show / hide artboard grid", action: vector.toggle_grid}
+  - {type: button, id: vector_grid_toggle, icon: grid, image: "../icons/grid.png", image_padding: 4, tooltip: "Show / hide artboard grid", action: vector.toggle_grid}
 
 columns:
   left:

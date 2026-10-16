@@ -473,3 +473,18 @@ bool ui_tree_continues(const int *depths, int count, int row, int level) {
     }
     return false;
 }
+
+UiRect ui_image_fit(UiRect bounds, float width, float height, float padding) {
+    if (!isfinite(bounds.x) || !isfinite(bounds.y) || !isfinite(bounds.w) || !isfinite(bounds.h) ||
+        !isfinite(width) || !isfinite(height) || !isfinite(padding) || width <= 0 || height <= 0) {
+        return (UiRect){0};
+    }
+    padding = fmaxf(2, padding);
+    float available_w = bounds.w - 2 * padding, available_h = bounds.h - 2 * padding;
+    if (available_w <= 0 || available_h <= 0) {
+        return (UiRect){0};
+    }
+    float scale = fminf(available_w / width, available_h / height);
+    float w = width * scale, h = height * scale;
+    return (UiRect){bounds.x + (bounds.w - w) * .5f, bounds.y + (bounds.h - h) * .5f, w, h};
+}

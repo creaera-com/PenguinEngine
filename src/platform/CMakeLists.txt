@@ -1,5 +1,5 @@
 if(PENGUIN_BUILD_EDITOR)
- add_library(penguin_sdl STATIC sdl/scene_renderer.c)
+ add_library(penguin_sdl STATIC sdl/scene_renderer.c sdl/image.c)
  target_include_directories(penguin_sdl PUBLIC ${PROJECT_SOURCE_DIR}/src/platform/sdl/include PRIVATE ${PROJECT_SOURCE_DIR}/third_party/stb)
  target_link_libraries(penguin_sdl PUBLIC penguin SDL3::SDL3)
  target_sources(penguin_editor PRIVATE window/window.c)

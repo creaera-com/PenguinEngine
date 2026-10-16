@@ -259,7 +259,9 @@ static bool widget(Check *c, const cJSON *v, int depth) {
     }
 
     const char *extra = "";
-    if (!strcmp(type, "tabs")) {
+    if (!strcmp(type, "button")) {
+        extra = "|image||image_padding|";
+    } else if (!strcmp(type, "tabs")) {
         extra = "|tabs|";
     } else if (!strcmp(type, "entity_tree")) {
         extra = "|tools|";
@@ -299,6 +301,15 @@ static bool widget(Check *c, const cJSON *v, int depth) {
         return false;
     }
 
+    const cJSON *image = pe_ui_get(v, "image");
+    const cJSON *padding = pe_ui_get(v, "image_padding");
+    if (image &&
+        (!cJSON_IsString(image) || !*image->valuestring || strlen(image->valuestring) > 1023)) {
+        return error_at(c, image, "image must be a non-empty PNG path (maximum 1023 bytes)");
+    }
+    if (padding && (!image || !number(c, padding, 2, 8))) {
+        return error_at(c, padding, "image_padding requires image and a value in range 2..8");
+    }
     const cJSON *icon = pe_ui_get(v, "icon");
     if (icon && (!cJSON_IsString(icon) || !contains(icons, icon->valuestring))) {
         return error_at(c, icon, "unknown icon");

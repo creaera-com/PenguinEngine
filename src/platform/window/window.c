@@ -128,23 +128,7 @@ void editor_window_draw_controls(void) {
     const cJSON *controls = pe_ui_get(app.shell.shell_layout->root, "window_controls");
     float x = editor_window_controls_left();
     for (const cJSON *n = controls ? controls->child : NULL; n; n = n->next) {
-        const char *action = pe_ui_string(n, "action", "");
-        UiIcon icon = editor_yaml_icon(pe_ui_string(n, "icon", ""));
-        if (!strcmp(action, "window.maximize") &&
-            (SDL_GetWindowFlags(app.platform.window) & SDL_WINDOW_MAXIMIZED)) {
-            icon = ICON_RESTORE;
-        }
-        if (!strcmp(action, "window.collapse") && app.platform.window_collapsed) {
-            icon = ICON_DOWN;
-        }
-        /* Each YAML ID needs a distinct immediate-mode button ID. */
-        app.shell.widget_scope = ui_id(pe_ui_string(n, "id", ""));
-        bool clicked = editor_icon_button_impl(ui_id("window_control"), x, 12, 32, icon, "",
-                                               pe_ui_string(n, "tooltip", ""), false, true);
-        app.shell.widget_scope = 0;
-        if (clicked) {
-            editor_window_action(action);
-        }
+        editor_draw_yaml_button(n, (SDL_FRect){x, 12, 32, 25});
         x += 34;
     }
 }

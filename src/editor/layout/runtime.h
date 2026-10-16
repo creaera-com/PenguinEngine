@@ -96,5 +96,8 @@ bool editor_layout_captured(void);
 /** @brief Prüft, ob ein YAML-Tool-Panel die Mausradposition selbst verwaltet. */
 bool editor_layout_scrolls_at(float x, float y);
 
+/** @brief Zeichnet und bedient einen YAML-Button, einschließlich optionalem PNG-Bild. */
+void editor_draw_yaml_button(const cJSON *node, SDL_FRect area);
+
 /** @} */
 #endif

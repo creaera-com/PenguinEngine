@@ -2,6 +2,7 @@
  * @brief Besitz- und Zustandsbereich shell; keine globale Instanz. */
 #ifndef PENGUIN_PESHELLSTATE_H
 #define PENGUIN_PESHELLSTATE_H
+#include "editor/layout/images.h"
 #include "editor/layout/ui_layout.h"
 #include "editor/workspace/workspace.h"
 #include "penguin/ui_sdl.h"
@@ -28,6 +29,8 @@ typedef struct {
 
 /** @brief Zustand für shell; Lebensdauer wird vom Anwendungshost koordiniert. */
 typedef struct {
+    PeUiImages shell_images;      ///< Bildtexturen der globalen YAML-Shell.
+    PeUiImages editor_images;     ///< Nur solange der aktive Editor geladen ist.
     PeConsole *console;           ///< Gemeinsame Shell; unabhängig vom geladenen Editor.
     bool layout_resize_x;         ///< Horizontaler YAML-Splitter unter dem Zeiger.
     bool layout_resize_y;         ///< Vertikaler YAML-Splitter unter dem Zeiger.

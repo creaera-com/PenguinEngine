@@ -189,6 +189,7 @@ int pe_application_run(int argc, char **argv) {
         SDL_Delay(1);
     }
     editor_release_active();
+    pe_ui_images_free(&app.shell.shell_images);
     pe_ui_layout_free(app.shell.shell_layout);
     for (int i = 0; i < 3; i++) {
         remove(app.workspace.session_paths[i]);

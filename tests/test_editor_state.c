@@ -413,8 +413,31 @@ static void test_vector_grid_schema(void) {
             "unavailable");
 }
 
+static void test_button_images_schema(void) {
+    const char *valid = "schema: penguin.ui/v1\nkind: editor\nid: map\ndocument_provider: scene\n"
+                        "toolbar: [{type: button, id: custom, label: Icon, image: icons/grid.png, "
+                        "image_padding: 4}]\n"
+                        "columns:\n  left: {type: spacer, id: left}\n"
+                        "  center: {type: map_canvas, id: canvas, binding: scene.active}\n"
+                        "  right: {type: spacer, id: right}\n";
+    write_file(YAML_FILE, valid);
+    PeUiLayout *layout = pe_ui_layout_load(YAML_FILE, "editor", error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+    pe_ui_layout_free(layout);
+    char *invalid = malloc(strlen(valid) + 1);
+    TEST_ASSERT_NOT_NULL(invalid);
+    strcpy(invalid, valid);
+    *(strstr(invalid, "image_padding: 4") + 15) = '1';
+    rejects(invalid, "range");
+    strcpy(invalid, valid);
+    memcpy(strstr(invalid, "icons/grid.png"), "12345678901234", 14);
+    rejects(invalid, "path");
+    free(invalid);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_button_images_schema);
     RUN_TEST(test_vector_grid_schema);
     RUN_TEST(test_vector_preview_schema);
     RUN_TEST(test_tool_panel_schema);

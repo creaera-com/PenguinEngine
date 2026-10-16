@@ -2,7 +2,7 @@
 
 static UiId yaml_id(const char *name);
 static float yaml_button_width(const cJSON *n);
-static void yaml_button(const cJSON *n, SDL_FRect area);
+
 static int widget_state(UiId id);
 static UiRect tool_panel_areas[64];
 static int tool_panel_count;
@@ -129,6 +129,7 @@ PeUiLayout *editor_load_editor_layout(UiId id, char *error, size_t size) {
 }
 
 void editor_apply_shell_layout(void) {
+    pe_ui_images_free(&app.shell.shell_images);
     const cJSON *root = app.shell.shell_layout->root, *layout = pe_ui_get(root, "layout"),
                 *cols = pe_ui_get(layout, "columns");
     app.shell.gap = pe_ui_get(layout, "gap")->valueint;
@@ -180,10 +181,14 @@ void editor_apply_shell_layout(void) {
 
 static float yaml_button_width(const cJSON *n) {
     const char *label = pe_ui_string(n, "label", "");
-    return *label ? ui_tab_content_width(editor_yaml_icon(pe_ui_string(n, "icon", "")), label) : 32;
+    return *label ? ui_tab_content_width(pe_ui_get(n, "image")
+                                             ? ICON_IMAGE
+                                             : editor_yaml_icon(pe_ui_string(n, "icon", "")),
+                                         label)
+                  : 32;
 }
 
-static void yaml_button(const cJSON *n, SDL_FRect area) {
+void editor_draw_yaml_button(const cJSON *n, SDL_FRect area) {
     const char *action = pe_ui_string(n, "action", NULL);
     editor_register_ui_hit((UiRect){area.x, area.y, area.w, area.h});
     bool enabled =
@@ -194,14 +199,13 @@ static void yaml_button(const cJSON *n, SDL_FRect area) {
         icon = ICON_STOP;
     }
 
-    bool hover = ui_hovered(&app.shell.ui, (UiRect){area.x, area.y, area.w, area.h});
-    char buffer[256];
-    const char *label = editor_yaml_text(pe_ui_get(n, "label"), buffer, sizeof buffer);
-    ui_draw_button(app.platform.renderer, area, icon, label, active, enabled, hover);
-    if (hover) {
-        editor_tooltip = pe_ui_string(n, "tooltip", NULL);
+    if (action && !strcmp(action, "window.maximize") &&
+        (SDL_GetWindowFlags(app.platform.window) & SDL_WINDOW_MAXIMIZED)) {
+        icon = ICON_RESTORE;
     }
-
+    if (action && !strcmp(action, "window.collapse") && app.platform.window_collapsed) {
+        icon = ICON_DOWN;
+    }
     bool shell = false;
     for (int i = 0; i < app.shell.shell_layout->mark_count; i++) {
         if (app.shell.shell_layout->marks[i].value == n) {
@@ -216,6 +220,32 @@ static void yaml_button(const cJSON *n, SDL_FRect area) {
     if (!id) {
         id = 1;
     }
+
+    bool hover = ui_hovered(&app.shell.ui, (UiRect){area.x, area.y, area.w, area.h});
+    char buffer[256];
+    const char *label = editor_yaml_text(pe_ui_get(n, "label"), buffer, sizeof buffer);
+    const char *image_path = pe_ui_string(n, "image", NULL);
+    SDL_Texture *image =
+        image_path ? pe_ui_images_get(shell ? &app.shell.shell_images : &app.shell.editor_images,
+                                      app.platform.renderer,
+                                      shell ? app.shell.shell_layout : app.workspace.active_layout,
+                                      image_path)
+                   : NULL;
+    if (image) {
+        const cJSON *padding = pe_ui_get(n, "image_padding");
+        ui_draw_image_button(app.platform.renderer, area, image, label,
+                             padding ? (float)padding->valuedouble : 4, active, enabled, hover,
+                             app.shell.ui.active == id && app.shell.ui.down,
+                             app.shell.ui.focus == id);
+    } else {
+        ui_draw_button(app.platform.renderer, area,
+                       image_path && icon == ICON_NONE ? ICON_IMAGE : icon, label, active, enabled,
+                       hover);
+    }
+    if (hover) {
+        editor_tooltip = pe_ui_string(n, "tooltip", NULL);
+    }
+
     if (ui_button(&app.shell.ui, id, (UiRect){area.x, area.y, area.w, area.h}, enabled)) {
         editor_yaml_action(action);
     }
@@ -288,7 +318,7 @@ void editor_draw_yaml_tool_list(const cJSON *list, SDL_FRect area, bool right_al
             if (separator) {
                 editor_box((SDL_FRect){x + 7, y + 4, 1, 17}, UI_BORDER);
             } else {
-                yaml_button(n, (SDL_FRect){x, y, w, 25});
+                editor_draw_yaml_button(n, (SDL_FRect){x, y, w, 25});
             }
             x += w + 6;
         }
@@ -315,7 +345,7 @@ void editor_draw_global_tools(void) {
             x += 22;
         } else {
             float w = yaml_button_width(n);
-            yaml_button(n, (SDL_FRect){x, 12, w, 25});
+            editor_draw_yaml_button(n, (SDL_FRect){x, 12, w, 25});
             x += w + 6;
         }
     }
@@ -679,7 +709,8 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
         editor_text(area.x + 8, area.y + 12,
                     editor_yaml_text(pe_ui_get(n, "label"), buffer, sizeof buffer), UI_TEXT);
     } else if (!strcmp(type, "button")) {
-        yaml_button(n, (SDL_FRect){area.x, area.y, fminf(area.w, yaml_button_width(n)), 25});
+        editor_draw_yaml_button(
+            n, (SDL_FRect){area.x, area.y, fminf(area.w, yaml_button_width(n)), 25});
     } else if (!strcmp(type, "separator")) {
         editor_box((SDL_FRect){area.x, area.y + 4, 1, fmaxf(0, area.h - 8)}, UI_BORDER);
     } else if (strcmp(type, "spacer")) {

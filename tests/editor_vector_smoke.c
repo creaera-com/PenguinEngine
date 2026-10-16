@@ -371,6 +371,55 @@ static bool grid_smoke(void) {
     return ok;
 }
 
+static bool image_buttons_smoke(void) {
+    PeUiImages *cache = &app.shell.editor_images;
+    SDL_Texture *image = pe_ui_images_get(cache, app.platform.renderer, app.workspace.active_layout,
+                                          "../icons/grid.png");
+    float width = 0, height = 0;
+    bool ok = image && SDL_GetTextureSize(image, &width, &height) && width == 32 && height == 32;
+    int count = cache->count;
+    ok = ok &&
+         image == pe_ui_images_get(cache, app.platform.renderer, app.workspace.active_layout,
+                                   "../icons/grid.png") &&
+         cache->count == count;
+    const Uint32 states[] = {UI_SURFACE, UI_HOVER, UI_ACCENT, UI_PANEL, UI_ACCENT, UI_ACCENT};
+    for (int i = 0; image && i < 6; i++) {
+        SDL_SetTextureAlphaMod(image, 200);
+        ui_draw_image_button(app.platform.renderer, (SDL_FRect){20, 100, 32, 25}, image, "", 4,
+                             i == 2, i != 3, i == 1, i == 4, i == 5);
+        Uint8 alpha = 0;
+        SDL_GetTextureAlphaMod(image, &alpha);
+        ok = ok && alpha == 200;
+        SDL_Rect pixel_area = {i == 5 ? 20 : 21, i == 5 ? 100 : 101, 1, 1};
+        SDL_Surface *raw = SDL_RenderReadPixels(app.platform.renderer, &pixel_area);
+        SDL_Surface *rgba = raw ? SDL_ConvertSurface(raw, SDL_PIXELFORMAT_RGBA32) : NULL;
+        if (rgba) {
+            const unsigned char *pixel = rgba->pixels;
+            ok = ok && pixel[0] == (states[i] >> 24) && pixel[1] == ((states[i] >> 16) & 255) &&
+                 pixel[2] == ((states[i] >> 8) & 255);
+        } else {
+            ok = false;
+        }
+        SDL_DestroySurface(rgba);
+        SDL_DestroySurface(raw);
+    }
+    if (image) {
+        SDL_SetTextureAlphaMod(image, 255);
+    }
+    ok = ok && !pe_ui_images_get(cache, app.platform.renderer, app.workspace.active_layout,
+                                 "../icons/missing-smoke.png");
+    count = cache->count;
+    ok = ok &&
+         !pe_ui_images_get(cache, app.platform.renderer, app.workspace.active_layout,
+                           "../icons/missing-smoke.png") &&
+         cache->count == count;
+    editor_draw();
+    if (!ok) {
+        fprintf(stderr, "Image button texture / state margin / cache smoke failed\n");
+    }
+    return ok;
+}
+
 static bool preview_smoke(void) {
     VectorEditor *v = app.workspace.vector;
     app.shell.right_tabs.selected = ui_id("vector_tools_tab");
@@ -505,6 +554,7 @@ bool vector_smoke(void) {
     vector_demo();
     interaction = zoom_smoke() && interaction;
     interaction = grid_smoke() && interaction;
+    interaction = image_buttons_smoke() && interaction;
     interaction = preview_smoke() && interaction;
     interaction = tools_smoke() && interaction;
     interaction = tree_smoke() && interaction;
@@ -526,19 +576,19 @@ bool vector_smoke(void) {
     editor_select_workspace(UI_MAP_VIEW);
     ok = ok && !app.workspace.vector && app.workspace.map && !app.workspace.script;
     editor_select_workspace(UI_VECTOR_VIEW);
-    ok = ok && app.workspace.vector && !app.workspace.map && !app.workspace.script &&
-         !strcmp(app.workspace.vector->document.shapes[shape].name, "Edited vector") &&
-         app.workspace.vector->history.position == 1 && !app.workspace.vector->preview_texture &&
-         !app.workspace.vector->preview_pixels && app.workspace.vector->view.preview_enabled &&
-         app.workspace.vector->view.preview.w == 160 &&
-         app.workspace.vector->view.grid_width == 32 && app.workspace.vector->view.grid_isometric &&
-         app.workspace.vector->view.snap_enabled &&
-         app.workspace.vector->view.snap_tolerance == 7 &&
-         app.workspace.vector->view.grid_color == 0x55667788 &&
-         app.workspace.vector->view.expanded_paths[0] ==
-             app.workspace.vector->document.shapes[shape].id &&
-         app.shell.right_tabs.selected == ui_id("vector_tools_tab") &&
-         tool_state("vector_transform_tools") && !tool_state("vector_transform_tools")->open;
+    ok =
+        ok && app.workspace.vector && !app.workspace.map && !app.workspace.script &&
+        !strcmp(app.workspace.vector->document.shapes[shape].name, "Edited vector") &&
+        app.workspace.vector->history.position == 1 && !app.workspace.vector->preview_texture &&
+        !app.workspace.vector->preview_pixels && !app.shell.editor_images.entries &&
+        app.workspace.vector->view.preview_enabled && app.workspace.vector->view.preview.w == 160 &&
+        app.workspace.vector->view.grid_width == 32 && app.workspace.vector->view.grid_isometric &&
+        app.workspace.vector->view.snap_enabled && app.workspace.vector->view.snap_tolerance == 7 &&
+        app.workspace.vector->view.grid_color == 0x55667788 &&
+        app.workspace.vector->view.expanded_paths[0] ==
+            app.workspace.vector->document.shapes[shape].id &&
+        app.shell.right_tabs.selected == ui_id("vector_tools_tab") &&
+        tool_state("vector_transform_tools") && !tool_state("vector_transform_tools")->open;
     editor_select_workspace(UI_SCRIPT_VIEW);
     ok = ok && !app.workspace.vector && app.workspace.script && !app.workspace.map;
     editor_select_workspace(UI_MAP_VIEW);

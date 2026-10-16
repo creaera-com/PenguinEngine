@@ -145,6 +145,7 @@ bool editor_checkpoint(PeSession *io, void *opaque) {
 }
 
 void editor_release_active(void) {
+    pe_ui_images_free(&app.shell.editor_images);
     if (app.workspace.backend) {
         app.workspace.backend->destroy();
         app.workspace.backend = NULL;
