@@ -38,7 +38,7 @@ nur YAML geändert wurde. Nach Änderungen an einer Editor-YAML: bauen und F6 dr
 ## Zuständigkeiten und Verzeichnisse
 
 ```text
-app/
+apps/demo/
   editor/
     main.c              Programmeinstieg der Editor-App
     application.c       Start und Ereignis-/Zeichenschleife
@@ -68,9 +68,9 @@ editors/
   game/                 Gleiche Grundstruktur
 ```
 
-Nur [registry.c](../app/editor_host/registry.c) kennt alle konkreten Adapter. Die
-[Anwendung](../app/editor/application.c) und der [Host](../app/editor_host/host.c) benutzen
-den gemeinsamen [Editor-Vertrag](../app/editor_host/editor.h). Ein Editor bindet weder die
+Nur [registry.c](../apps/demo/editor_host/registry.c) kennt alle konkreten Adapter. Die
+[Anwendung](../apps/demo/editor/application.c) und der [Host](../apps/demo/editor_host/host.c) benutzen
+den gemeinsamen [Editor-Vertrag](../apps/demo/editor_host/editor.h). Ein Editor bindet weder die
 Interna eines anderen Editors noch die Shell oder die Anwendung ein. pengUI kennt keine
 Editoren; es stellt lediglich generische Slots und UI-Funktionen bereit.
 
@@ -93,6 +93,11 @@ besteht, braucht noch keine leere C-Datei. So bleiben die Dateien nach Aufgaben 
 
 Der Host besitzt genau eine aktive Instanz. Registrierte Definitionen sind kleine,
 konstante Beschreibungen und halten keine inaktiven Editor-Views oder Dokumente am Leben.
+Die Quellen von Host und allen drei Editoren werden derzeit gemeinsam im statischen
+CMake-Target `pengui_editor_support` aus [apps/demo/CMakeLists.txt](../apps/demo/CMakeLists.txt)
+gebaut. Einzelne Bibliotheks-Targets pro Editor sind noch nicht eingerichtet. Die Grenzen
+zwischen den Modulen werden über den Adapter-Vertrag und die Architekturprüfung eingehalten.
+
 Die Module sind statisch ins Programm gelinkt; ihre Laufzeitobjekte und UI-Ressourcen
 werden freigegeben. Dynamische Bibliotheken und deren Entladen sind hier nicht beteiligt.
 
@@ -240,8 +245,8 @@ weder die App-Schleife ändern noch Fachlogik im Host ergänzen.
 
 1. Ein eigenes Verzeichnis unter `editors/` anlegen.
 2. Adapter, private Instanz und UI-Dateien nach dem vorhandenen Muster ergänzen.
-3. Die Definition in `app/editor_host/registry.c` registrieren.
-4. Quellen und Ressourcenkopien in `app/CMakeLists.txt` ergänzen.
+3. Die Definition in `apps/demo/editor_host/registry.c` registrieren.
+4. Quellen und Ressourcenkopien in `apps/demo/CMakeLists.txt` ergänzen.
 5. Einen passenden Toolbar-Button in `resources/shell.yaml` hinzufügen.
 6. Laden, Wechseln und Fehlerfälle testen.
 

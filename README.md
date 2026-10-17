@@ -38,7 +38,7 @@ lib/pengui/
     rendering/      Text, Icons, Bilder, Theme und Zeichenprimitive
     view/           Zustand, Ereignisweiterleitung und Zeichen-Dispatch
     window.c        Rahmenlose Fensterbedienung
-app/                Beispiel-Anwendung und ihre Aktionen
+apps/demo/                Beispiel-Anwendung und ihre Aktionen
 resources/          playground.yaml und lizenzierte Schriftquelle
 tests/              Unity-Tests und App-Smoke-Test
 ```
@@ -223,7 +223,7 @@ In `resources/playground.yaml` bekommt der Button einen frei gewählten Aktionsn
 - {type: button, id: greet_button, text: Begrüßen, action: app.greet}
 ```
 
-Deine Funktion gehört in die Anwendung, zum Beispiel in `app/application.c` vor die bestehende
+Deine Funktion gehört in die Anwendung, zum Beispiel in `apps/demo/application.c` vor die bestehende
 Funktion `action()`. Größere Funktionen können später in eigene C-Dateien der App wandern.
 
 ```c
@@ -275,7 +275,7 @@ nicht auswählen. Eine geänderte Auswahl ruft die Aktion des Dropdowns mit dess
 auf. Die bisherige Callback-Signatur bleibt gleich; der neue Wert ist im Callback verfügbar:
 
 ```c
-/* Im bestehenden action()-Callback in app/application.c: */
+/* Im bestehenden action()-Callback in apps/demo/application.c: */
 } else if (!strcmp(name, "app.blend_changed")) {
     const char *value = pui_view_value(app->view, widget);
     printf("Gewählt: %s\n", value);

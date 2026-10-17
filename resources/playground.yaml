@@ -164,7 +164,7 @@ root:
               text: About pengUI
               children:
                 - {type: label, text: "Library: lib/pengui"}
-                - {type: label, text: "Example app: app"}
+                - {type: label, text: "Example app: apps/demo"}
                 - {type: label, text: "Layout: resources"}
             - type: section
               text: Popups

@@ -27,7 +27,7 @@ def core(path):
 files = [p for p in lib.rglob('*') if p.suffix in ('.c', '.h')]
 for path in files:
     for name in includes.findall(source(path)):
-        if name.startswith(('app/', 'engine/', 'editor/', 'editors/', 'penguin/')):
+        if name.startswith(('app/', 'apps/', 'engine/', 'editor/', 'editors/', 'penguin/')):
             errors.append(f'{path.relative_to(root)}: forbidden dependency {name}')
 
 pending = [p for p in files if core(p)]
@@ -45,7 +45,7 @@ while pending:
         if target and target.is_relative_to(lib):
             pending.append(target)
 
-for path in (root / 'app').rglob('*'):
+for path in (root / 'apps').rglob('*'):
     if path.suffix not in ('.c', '.h'):
         continue
     for name in includes.findall(path.read_text()):
@@ -58,11 +58,11 @@ for path in (root / 'editors').rglob('*'):
     domain = path.relative_to(root / 'editors').parts[0]
     for name in includes.findall(path.read_text()):
         if (name.startswith('editors/') and not name.startswith(f'editors/{domain}/') or
-                name.startswith(('shell/', 'editor/', 'app/')) or
+                name.startswith(('shell/', 'editor/', 'app/', 'apps/')) or
                 name.startswith('editor_host/') and name != 'editor_host/editor.h'):
             errors.append(f'{path.relative_to(root)}: editor must depend only on its own module and common contract')
-for path in (root / 'app').rglob('*.c'):
-    if path == root / 'app/editor_host/registry.c':
+for path in (root / 'apps').rglob('*.c'):
+    if path == root / 'apps/demo/editor_host/registry.c':
         continue
     for name in includes.findall(path.read_text()):
         if name.startswith('editors/'):

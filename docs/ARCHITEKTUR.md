@@ -7,7 +7,7 @@ später weitere Widgets oder eine Engine darauf aufzusetzen.
 Die [README](../README.md) enthält Build-Anweisungen und weitere YAML-Beispiele.
 Die zusätzliche [Editor-Shell](EDITOREN.md) baut darauf mit generischen Slots und getrennten
 Modulen auf. Die folgende Startbeschreibung bezieht sich auf die Widget-Demo; der Einstieg
-der Editor-App steht in `app/editor/main.c`.
+der Editor-App steht in `apps/demo/editor/main.c`.
 Die gesamte öffentliche C-Schnittstelle steht in
 [pengui.h](../lib/pengui/include/pengui/pengui.h).
 
@@ -42,12 +42,12 @@ flowchart TD
     Core --> YAML["libyaml: YAML einlesen"]
 ```
 
-Die Pfeile zeigen Abhängigkeiten. Die Bibliothek darf keine Header aus `app/` oder einer
+Die Pfeile zeigen Abhängigkeiten. Die Bibliothek darf keine Header aus `apps/demo/` oder einer
 späteren Engine einbinden. Dadurch kannst du sie für verschiedene Anwendungen verwenden.
 
 | Bereich | Aufgabe | Einstieg im Code |
 | --- | --- | --- |
-| `app/` | Start, SDL-Fenster, Ereignisschleife, App-Aktionen, Reload | [application.c](../app/application.c) |
+| `apps/demo/` | Start, SDL-Fenster, Ereignisschleife, App-Aktionen, Reload | [application.c](../apps/demo/application.c) |
 | `core/` | Zeigerzustand, Tastaturfokus, Capture, Clipping | [context.c](../lib/pengui/src/core/context.c) |
 | `widgets/` | Verhalten und Darstellung einzelner Bedienelemente | [button.c](../lib/pengui/src/widgets/button.c), [button_sdl.c](../lib/pengui/src/widgets/button_sdl.c) |
 | `layout/` | YAML validieren, Größen berechnen, Kinder anordnen | [yaml.c](../lib/pengui/src/layout/yaml.c), [layout_sdl.c](../lib/pengui/src/layout/layout_sdl.c) |
@@ -110,8 +110,8 @@ solltest du eigene IDs vergeben: Automatische Namen können sich beim Umbauen ä
 
 ## 3. Vom Programmstart zum ersten Bild
 
-Der Einstieg ist [app/main.c](../app/main.c). `main()` ruft `playground_run()` aus
-[app/application.c](../app/application.c) auf.
+Der Einstieg ist [apps/demo/main.c](../apps/demo/main.c). `main()` ruft `playground_run()` aus
+[apps/demo/application.c](../apps/demo/application.c) auf.
 
 Im erfolgreichen Fall passiert Folgendes:
 
@@ -358,7 +358,7 @@ Enter merkt eine Bestätigung vor; beim Zeichnen des Feldes wird dessen `action`
 
 Escape beendet außerhalb eines Popups zunächst die Textbearbeitung. Ohne Textfokus und
 Popup behandelt die Beispiel-App Escape als Beenden der App. Diese letzte Entscheidung
-liegt in `app/application.c` und ist keine allgemeine Widgetregel.
+liegt in `apps/demo/application.c` und ist keine allgemeine Widgetregel.
 
 ## 8. Aktionen mit deiner Anwendung verbinden
 
@@ -380,7 +380,7 @@ Die Beispiel-App übergibt ihren Callback und ihren Kontext bei jedem Zeichnen:
 pui_view_draw(app.view, &app.pui, area, action, &app);
 ```
 
-Ein Beispiel für eine Erweiterung in `app/application.c`, wo `Playground` bereits definiert
+Ein Beispiel für eine Erweiterung in `apps/demo/application.c`, wo `Playground` bereits definiert
 ist (der Text stellt hier nur eine Demo-Rückmeldung dar):
 
 ```c
@@ -564,7 +564,7 @@ Eingaben, Zustände, Clips und `pui_end_frame()` selbst.
 
 Eine sinnvolle Lesereihenfolge ist:
 
-1. [app/main.c](../app/main.c) und [app/application.c](../app/application.c): Wer besitzt was, und wann wird die UI aufgerufen?
+1. [apps/demo/main.c](../apps/demo/main.c) und [apps/demo/application.c](../apps/demo/application.c): Wer besitzt was, und wann wird die UI aufgerufen?
 2. [view/view.c](../lib/pengui/src/view/view.c) und [view/internal.h](../lib/pengui/src/view/internal.h): Welche Zustände existieren?
 3. [view/events.c](../lib/pengui/src/view/events.c) und [view/draw.c](../lib/pengui/src/view/draw.c): Wie werden Eingaben und Zeichnen verteilt?
 4. [widgets/button.c](../lib/pengui/src/widgets/button.c) und [widgets/button_sdl.c](../lib/pengui/src/widgets/button_sdl.c): Ein kleines vollständiges Widget verfolgen.
