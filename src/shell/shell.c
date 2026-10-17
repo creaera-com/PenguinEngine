@@ -2,6 +2,18 @@
 
 const char *editor_screenshot_path;
 
+/* Alle Shellzustände können aufgenommen werden, auch ohne geladenen Editor. */
+static void present_frame(void) {
+    if (editor_screenshot_path) {
+        SDL_Surface *capture = SDL_RenderReadPixels(app.platform.renderer, NULL);
+        if (!capture || !SDL_SaveBMP(capture, editor_screenshot_path)) {
+            fprintf(stderr, "Screenshot failed: %s\n", SDL_GetError());
+        }
+        SDL_DestroySurface(capture);
+    }
+    SDL_RenderPresent(app.platform.renderer);
+}
+
 static UiRect left_split(void);
 static UiRect right_split(void);
 static void layout_columns(void);
@@ -27,7 +39,8 @@ static void layout_columns(void) {
 }
 
 bool editor_ui_controls_hit(float x, float y) {
-    if (ui_contains(left_split(), x, y) || ui_contains(right_split(), x, y)) {
+    if (app.workspace.backend &&
+        (ui_contains(left_split(), x, y) || ui_contains(right_split(), x, y))) {
         return true;
     }
     for (int i = 0; i < app.shell.hit_count; i++) {
@@ -56,7 +69,7 @@ void editor_draw(void) {
     }
     app.shell.ui.blocked = (app.shell.field != FIELD_NONE && !app.shell.field_inline) ||
                            app.shell.request != REQUEST_NONE || popup;
-    if (!app.platform.window_collapsed) {
+    if (app.workspace.backend && !app.platform.window_collapsed) {
         layout_columns();
     }
     editor_draw_color(UI_CANVAS);
@@ -92,8 +105,8 @@ void editor_draw(void) {
                           width + app.shell.tab_gap +
                               (cJSON_IsTrue(pe_ui_get(entry, "separator_before")) ? 22 : 0));
         app.shell.workspaces.gap = (float)app.shell.tab_gap;
-        app.shell.workspaces.items[i].enabled =
-            !editor_edit_pending() && (item->id == UI_MAP_VIEW || !editor_playing());
+        app.shell.workspaces.items[i].enabled = *app.project.root && !editor_edit_pending() &&
+                                                (item->id == UI_MAP_VIEW || !editor_playing());
     }
     bool nav_blocked = app.shell.ui.blocked;
     for (int i = 0; i < app.shell.workspaces.count; i++) {
@@ -153,19 +166,19 @@ void editor_draw(void) {
     if (app.platform.window_collapsed) {
         ui_end_frame(&app.shell.ui);
         app.shell.click = false;
-        SDL_RenderPresent(app.platform.renderer);
+        present_frame();
         editor_process_deferred_ui();
         return;
     }
     if (!app.workspace.active_layout || !app.workspace.backend) {
-        editor_text(LEFT + 16, TOP + 40, app.shell.status, UI_TEXT);
+        app.shell.click = false;
         ui_end_frame(&app.shell.ui);
         if (modal) {
             app.shell.ui.blocked = false;
             app.shell.click = saved_click;
             editor_draw_modal();
         }
-        SDL_RenderPresent(app.platform.renderer);
+        present_frame();
         editor_process_deferred_ui();
         return;
     }
@@ -261,13 +274,6 @@ void editor_draw(void) {
     }
     ui_end_frame(&app.shell.ui);
     app.shell.click = false;
-    if (editor_screenshot_path) {
-        SDL_Surface *capture = SDL_RenderReadPixels(app.platform.renderer, NULL);
-        if (!capture || !SDL_SaveBMP(capture, editor_screenshot_path)) {
-            fprintf(stderr, "Screenshot failed: %s\n", SDL_GetError());
-        }
-        SDL_DestroySurface(capture);
-    }
-    SDL_RenderPresent(app.platform.renderer);
+    present_frame();
     editor_process_deferred_ui();
 }

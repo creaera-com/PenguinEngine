@@ -8,6 +8,9 @@ bool editor_save(void) {
 }
 
 void editor_select_workspace(UiId id) {
+    if (!*app.project.root) {
+        return;
+    }
     if (app.shell.rendering && id != app.workspace.loaded_view) {
         app.workspace.pending_view = id;
         app.shell.workspaces.selected = app.workspace.loaded_view;

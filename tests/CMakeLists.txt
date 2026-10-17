@@ -43,9 +43,9 @@ if(PENGUIN_BUILD_EDITOR)
   target_link_libraries(penguin_editor_document_tests PRIVATE penguin_editor_documents unity)
   add_test(NAME editor_document_unit_tests COMMAND penguin_editor_document_tests)
   file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/unrelated-working-directory)
-  add_test(NAME editor_default_project COMMAND penguin_editor --smoke)
+  add_test(NAME editor_empty_shell COMMAND penguin_editor --smoke)
   add_test(NAME game_default_project COMMAND penguin_game --smoke)
-  set_tests_properties(editor_default_project game_default_project PROPERTIES
+  set_tests_properties(editor_empty_shell game_default_project PROPERTIES
    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unrelated-working-directory
    ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy" TIMEOUT 20)
   add_test(NAME example_copy_preserves_edits COMMAND ${CMAKE_COMMAND}
@@ -53,10 +53,10 @@ if(PENGUIN_BUILD_EDITOR)
    -P ${CMAKE_SOURCE_DIR}/tests/test_copy_example.cmake)
   add_test(NAME ui_demo_smoke COMMAND penguin_ui_demo --smoke)
   set_tests_properties(ui_demo_smoke PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy" TIMEOUT 20)
-  add_test(NAME editor_script_smoke COMMAND penguin_editor --smoke --scripts)
+  add_test(NAME editor_script_smoke COMMAND penguin_editor --project ${CMAKE_BINARY_DIR}/example --smoke --scripts)
   set_tests_properties(editor_script_smoke PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy" TIMEOUT 20)
   # The editor smoke scenarios temporarily rewrite the same copied shell.yaml.smoke fixture.
-  set_tests_properties(editor_default_project editor_script_smoke PROPERTIES RESOURCE_LOCK editor_smoke_files)
+  set_tests_properties(editor_empty_shell editor_script_smoke PROPERTIES RESOURCE_LOCK editor_smoke_files)
   add_test(NAME editor_smoke COMMAND penguin_editor --project ${CMAKE_BINARY_DIR}/example --smoke)
   set_tests_properties(editor_smoke PROPERTIES RESOURCE_LOCK editor_smoke_files)
   add_test(NAME game_smoke COMMAND penguin_game --project ${CMAKE_BINARY_DIR}/example --smoke)

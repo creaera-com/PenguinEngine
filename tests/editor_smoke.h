@@ -11,6 +11,8 @@
  * @brief Prüft Map-Bearbeitung über dieselben Handler wie echte Eingaben.
  */
 bool editor_verify_editor(void);
+/** @brief Prüft projektlosen Shellstart, deaktivierte Dokumentaktionen und YAML-Reload. */
+bool editor_verify_empty_shell(void);
 /**
  * @brief Prüft Entladen, Zustandswiederherstellung, Fehlerbehandlung und YAML-Reload.
  */

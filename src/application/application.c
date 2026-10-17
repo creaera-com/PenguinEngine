@@ -55,7 +55,7 @@ static bool load_project(const char *root) {
     return true;
 }
 
-/* Erstellt Fenster und Renderer. Das Fenster bleibt bis zum erfolgreichen Editorstart verborgen. */
+/* Erstellt Fenster und Renderer. Das Fenster bleibt bis zur fertigen Shell verborgen. */
 static bool initialize_platform(void) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "%s\n", SDL_GetError());
@@ -96,21 +96,7 @@ static bool initialize_shell(void) {
         fprintf(stderr, "%s\n", error);
         return false;
     }
-    app.shell.gap = 3;
-    app.shell.tab_gap = 2;
-    app.shell.min_left = 192;
-    app.shell.min_right = 264;
-    app.shell.min_center = 320;
     editor_apply_shell_layout();
-    app.shell.left_width = 240;
-    app.shell.right_width = 280;
-    editor_apply_shell_layout();
-    UiTab left_tabs[] = {
-        {UI_EXPLORER_TAB, true, 0}, {UI_SCENE_TAB, true, 0}, {UI_MAP_TAB, true, 0}};
-    UiTab right_tabs[] = {
-        {UI_INSPECTOR_TAB, true, 0}, {UI_INFO_TAB, true, 0}, {UI_TILES_TAB, true, 0}};
-    ui_tabs_init(&app.shell.left_tabs, left_tabs, 3, UI_EXPLORER_TAB);
-    ui_tabs_init(&app.shell.right_tabs, right_tabs, 3, UI_INSPECTOR_TAB);
     app.platform.vertical_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NS_RESIZE);
     app.platform.resize_cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE);
     app.platform.width = 1280;
@@ -142,20 +128,20 @@ static bool initialize_sessions(void) {
 /* Bereitet den Explorer vor und aktiviert den in der Shell ausgewählten ersten Editor. */
 static bool start_editor(void) {
     char error[256];
-    app.runtime.running = true;
-    app.runtime.last_time = SDL_GetTicksNS();
     strcpy(app.shell.expanded[0], "assets");
     strcpy(app.shell.expanded[1], "scenes");
     strcpy(app.shell.expanded[2], "scripts");
     app.shell.expanded_count = 3;
     editor_tree_refresh();
     editor_message("Welcome! Select a tile, paint a map, and press F5 to play.");
+    if (!app.shell.workspaces.selected) {
+        app.shell.workspaces.selected = app.shell.workspaces.items[0].id;
+    }
     if (!editor_activate(app.shell.workspaces.selected, error, sizeof error)) {
         fprintf(stderr, "%s\n", error);
         return false;
     }
 
-    SDL_ShowWindow(app.platform.window);
     return true;
 }
 
@@ -164,18 +150,23 @@ static bool start_editor(void) {
 static int run_smoke_checks(void) {
     int exit_code = 0;
 #ifdef PE_EDITOR_SMOKE_TESTS
-    if (app.runtime.smoke &&
-        (!editor_verify_editor() || !editor_verify_script_editor() || !editor_verify_ui_layout() ||
-         !editor_verify_workspace_tools() || !editor_verify_lifecycle() ||
-         !editor_verify_console() || !editor_verify_window() || !editor_verify_scene_graph() ||
-         !editor_verify_components() || !editor_verify_map_panels() || !editor_verify_selection() ||
-         !vector_smoke())) {
+    if (app.runtime.smoke && !*app.project.root) {
+        if (!editor_verify_empty_shell()) {
+            app.runtime.running = false;
+            exit_code = 1;
+        }
+    } else if (app.runtime.smoke &&
+               (!editor_verify_editor() || !editor_verify_script_editor() ||
+                !editor_verify_ui_layout() || !editor_verify_workspace_tools() ||
+                !editor_verify_lifecycle() || !editor_verify_console() || !editor_verify_window() ||
+                !editor_verify_scene_graph() || !editor_verify_components() ||
+                !editor_verify_map_panels() || !editor_verify_selection() || !vector_smoke())) {
         app.runtime.running = false;
         exit_code = 1;
     }
 
     /* Die zusätzliche Aufnahme setzt erfolgreiche Prüfungen und einen Ausgabepfad voraus. */
-    if (app.runtime.smoke && exit_code == 0 && editor_screenshot_path) {
+    if (app.runtime.smoke && app.workspace.backend && exit_code == 0 && editor_screenshot_path) {
         editor_capture_component_dropdown();
     }
 #endif
@@ -184,6 +175,9 @@ static int run_smoke_checks(void) {
 
 /* Wendet optionale Startansichten erst nach Aktivierung und Smoke-Prüfungen an. */
 static void select_start_view(void) {
+    if (!app.workspace.backend) {
+        return;
+    }
     if (start_vector) {
         editor_select_workspace(UI_VECTOR_VIEW);
         if (vector_preview && app.workspace.backend->startup) {
@@ -234,7 +228,9 @@ static void shutdown_application(void) {
     pe_ui_images_free(&app.shell.shell_images);
     pe_ui_layout_free(app.shell.shell_layout);
     for (int i = 0; i < editor_view_count; i++) {
-        remove(app.workspace.session_paths[i]);
+        if (*app.workspace.session_paths[i]) {
+            remove(app.workspace.session_paths[i]);
+        }
     }
     pe_console_free(app.shell.console);
     SDL_DestroyCursor(app.platform.vertical_cursor);
@@ -248,10 +244,20 @@ static void shutdown_application(void) {
  * Durch || wird nach dem ersten fehlgeschlagenen Schritt nicht weiter initialisiert. */
 int pe_application_run(int argc, char **argv) {
     const char *root = NULL;
-    if (!parse_arguments(argc, argv, &root) || !load_project(root) || !initialize_platform() ||
-        !initialize_shell() || !initialize_sessions() || !start_editor()) {
+    if (!parse_arguments(argc, argv, &root) || !initialize_platform() || !initialize_shell()) {
         return 1;
     }
+
+    /* Nur ein ausdrücklich übergebenes Projekt öffnet einen Editor. Ohne --project bleibt
+     * die Shell leer; es gibt keine automatische Suche nach einem Beispielprojekt. */
+    if (root && (!load_project(root) || !initialize_sessions() || !start_editor())) {
+        shutdown_application();
+        return 1;
+    }
+
+    app.runtime.running = true;
+    app.runtime.last_time = SDL_GetTicksNS();
+    SDL_ShowWindow(app.platform.window);
 
     int exit_code = run_smoke_checks();
     select_start_view();
