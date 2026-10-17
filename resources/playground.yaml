@@ -79,47 +79,67 @@ root:
               children:
                 - {type: label, text: "Drag these tabs."}
                 - {type: label, text: "Scroll when space is tight."}
-        - type: tabs
+        - type: split
+          id: center_split
+          axis: vertical
+          flex: first
+          initial_last: 150
+          minimum_first: 300
+          minimum_second: 100
+          gap: 9
           children:
-            - type: tab
-              id: controls_tab
-              text: Controls
-              icon: grid
-              padding: 0
+            - type: tabs
               children:
-                - type: panel
-                  text: YOUR UI FRAMEWORK
-                  padding: 16
-                  gap: 12
+                - type: tab
+                  id: controls_tab
+                  text: Controls
+                  icon: grid
+                  padding: 0
                   children:
-                    - {type: label, text: "A small foundation for your own applications.", height: 30}
-                    - {type: label, text: "This entire layout comes from playground.yaml."}
-                    - type: section
-                      id: button_section
-                      text: Buttons
-                      gap: 8
+                    - type: panel
+                      text: YOUR UI FRAMEWORK
+                      padding: 16
+                      gap: 12
                       children:
-                        - {type: button, id: primary, text: Try an action, icon: plus, action: demo.click}
-                        - {type: button, id: secondary, text: Another action, icon: check, action: demo.confirm}
-                        - {type: button, id: image_button, text: Image icon, image: icons/grid.png, image_padding: 4, action: demo.image}
-                        - {type: button, id: disabled, text: Disabled button, icon: save, enabled: false}
-                    - type: section
-                      id: text_section
-                      text: Text editing
-                      gap: 8
-                      children:
-                        - {type: label, text: "Click to edit. Enter dispatches an app action."}
-                        - {type: input, id: name, text: My first pengUI app, action: demo.submit}
-                    - {type: label, id: status, text: "Ready. Click a button or a tree entry.", height: 28}
-                    - {type: spacer}
-            - type: tab
-              id: layout_tab
-              text: Layout
-              icon: settings
+                        - {type: label, text: "A small foundation for your own applications.", height: 30}
+                        - {type: label, text: "This entire layout comes from playground.yaml."}
+                        - type: section
+                          id: button_section
+                          text: Buttons
+                          gap: 8
+                          children:
+                            - {type: button, id: primary, text: Try an action, icon: plus, action: demo.click}
+                            - {type: button, id: secondary, text: Another action, icon: check, action: demo.confirm}
+                            - {type: button, id: image_button, text: Image icon, image: icons/grid.png, image_padding: 4, action: demo.image}
+                            - {type: button, id: disabled, text: Disabled button, icon: save, enabled: false}
+                        - type: section
+                          id: text_section
+                          text: Text editing
+                          gap: 8
+                          children:
+                            - {type: label, text: "Click to edit. Enter dispatches an app action."}
+                            - {type: input, id: name, text: My first pengUI app, action: demo.submit}
+                        - {type: label, id: status, text: "Ready. Click a button or a tree entry.", height: 28}
+                        - {type: spacer}
+                - type: tab
+                  id: layout_tab
+                  text: Layout
+                  icon: settings
+                  children:
+                    - {type: label, text: "Drag panel grips to resize the columns."}
+                    - {type: label, text: "Edit YAML and press F6 to reload."}
+                    - {type: label, text: "Invalid YAML keeps the current UI alive."}
+            - type: tabs
               children:
-                - {type: label, text: "Drag panel grips to resize the columns."}
-                - {type: label, text: "Edit YAML and press F6 to reload."}
-                - {type: label, text: "Invalid YAML keeps the current UI alive."}
+                - type: tab
+                  id: output_tab
+                  text: Output
+                  padding: 0
+                  children:
+                    - type: panel
+                      padding: 12
+                      children:
+                        - {type: label, text: "Space for your own tools. No terminal is running."}
         - type: panel
           text: PLAYGROUND
           padding: 12
@@ -139,5 +159,28 @@ root:
                 - {type: label, text: "F6: reload YAML"}
                 - {type: label, text: "Ctrl+A / C / X / V"}
                 - {type: label, text: "Enter: activate"}
+            - type: section
+              id: properties
+              text: Properties
+              children:
+                - type: row
+                  height: 30
+                  padding: 0
+                  gap: 8
+                  children:
+                    - {type: label, text: "X", width: 70}
+                    - {type: input, id: property_x, text: "64"}
+                - type: row
+                  height: 30
+                  padding: 0
+                  gap: 8
+                  children:
+                    - {type: label, text: "Y", width: 70}
+                    - {type: input, id: property_y, text: "128"}
             - {type: spacer}
-    - {type: label, text: "pengUI  |  Standalone widget playground  |  F6 reloads the YAML layout", height: 24}
+    - type: panel
+      id: footer
+      height: 24
+      padding: 0
+      children:
+        - {type: label, text: "pengUI  |  Standalone widget playground  |  F6 reloads the YAML layout", height: 24}
