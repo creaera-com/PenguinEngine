@@ -9,7 +9,7 @@
 
 typedef struct {
     yaml_document_t *document;
-    UiLayout *layout;
+    PUILayout *layout;
     char *error;
     size_t capacity;
     bool failed;
@@ -113,7 +113,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     static const char *types[] = {"column", "row",       "panel", "toolbar", "button",
                                   "label",  "separator", "tabs",  "tab",     "section",
                                   "input",  "tree",      "item",  "split",   "spacer"};
-    if (depth >= UI_LAYOUT_DEPTH || r->layout->count >= UI_LAYOUT_NODES) {
+    if (depth >= PUI_LAYOUT_DEPTH || r->layout->count >= PUI_LAYOUT_NODES) {
         fail(r, yaml, "layout depth/node limit exceeded");
         return -1;
     }
@@ -123,7 +123,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
         return -1;
     }
     int index = r->layout->count++;
-    UiNode *out = &r->layout->nodes[index];
+    PUINode *out = &r->layout->nodes[index];
     out->child = out->next = -1;
     const char *type = scalar(r, get(r, yaml, "type"));
     int kind = -1;
@@ -136,10 +136,10 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
         fail(r, yaml, "unknown widget type");
         return -1;
     }
-    out->type = (UiNodeType)kind;
+    out->type = (PUINodeType)kind;
     snprintf(out->name, sizeof out->name, "_node_%d", index);
     string(r, yaml, "id", out->name, sizeof out->name);
-    out->id = ui_id(out->name);
+    out->id = pui_id(out->name);
     for (int i = 0; i < index; i++) {
         if (out->id == r->layout->nodes[i].id) {
             fail(r, yaml, "duplicate widget id");
@@ -166,7 +166,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
         if (strcmp(value, "horizontal") && strcmp(value, "vertical")) {
             fail(r, axis, "axis must be horizontal or vertical");
         }
-        out->axis = !strcmp(value, "vertical") ? UI_AXIS_Y : UI_AXIS_X;
+        out->axis = !strcmp(value, "vertical") ? PUI_AXIS_Y : PUI_AXIS_X;
     }
     yaml_node_t *children = get(r, yaml, "children");
     int count = 0, previous = -1;
@@ -186,30 +186,31 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
             } else {
                 r->layout->nodes[previous].next = child;
             }
-            UiNodeType child_type = r->layout->nodes[child].type;
-            if ((out->type == UI_NODE_TABS && child_type != UI_NODE_TAB) ||
-                ((out->type == UI_NODE_TREE || out->type == UI_NODE_ITEM) &&
-                 child_type != UI_NODE_ITEM) ||
-                (child_type == UI_NODE_TAB && out->type != UI_NODE_TABS) ||
-                (child_type == UI_NODE_ITEM && out->type != UI_NODE_TREE &&
-                 out->type != UI_NODE_ITEM)) {
+            PUINodeType child_type = r->layout->nodes[child].type;
+            if ((out->type == PUI_NODE_TABS && child_type != PUI_NODE_TAB) ||
+                ((out->type == PUI_NODE_TREE || out->type == PUI_NODE_ITEM) &&
+                 child_type != PUI_NODE_ITEM) ||
+                (child_type == PUI_NODE_TAB && out->type != PUI_NODE_TABS) ||
+                (child_type == PUI_NODE_ITEM && out->type != PUI_NODE_TREE &&
+                 out->type != PUI_NODE_ITEM)) {
                 fail(r, children, "invalid child widget for this parent");
             }
             previous = child;
             count++;
         }
     }
-    if ((out->type == UI_NODE_SPLIT && count != 2) ||
-        (out->type == UI_NODE_TABS && (count < 1 || count > UI_MAX_TABS)) ||
-        ((out->type == UI_NODE_BUTTON || out->type == UI_NODE_LABEL || out->type == UI_NODE_INPUT ||
-          out->type == UI_NODE_SPACER || out->type == UI_NODE_SEPARATOR) &&
+    if ((out->type == PUI_NODE_SPLIT && count != 2) ||
+        (out->type == PUI_NODE_TABS && (count < 1 || count > PUI_MAX_TABS)) ||
+        ((out->type == PUI_NODE_BUTTON || out->type == PUI_NODE_LABEL ||
+          out->type == PUI_NODE_INPUT || out->type == PUI_NODE_SPACER ||
+          out->type == PUI_NODE_SEPARATOR) &&
          count)) {
         fail(r, yaml, "invalid child count");
     }
     return r->failed ? -1 : index;
 }
 
-UiLayout *ui_layout_parse(const char *text, size_t length, char *error, size_t capacity) {
+PUILayout *pui_layout_parse(const char *text, size_t length, char *error, size_t capacity) {
     if (error && capacity) {
         *error = 0;
     }
@@ -233,7 +234,7 @@ UiLayout *ui_layout_parse(const char *text, size_t length, char *error, size_t c
         yaml_parser_delete(&parser);
         return NULL;
     }
-    UiLayout *layout = calloc(1, sizeof *layout);
+    PUILayout *layout = calloc(1, sizeof *layout);
     if (!layout) {
         yaml_document_delete(&document);
         yaml_parser_delete(&parser);
@@ -279,8 +280,8 @@ UiLayout *ui_layout_parse(const char *text, size_t length, char *error, size_t c
         }
         if (!r.failed) {
             layout->root = node(&r, get(&r, root, "root"), 0);
-            if (layout->root >= 0 && (layout->nodes[layout->root].type == UI_NODE_TAB ||
-                                      layout->nodes[layout->root].type == UI_NODE_ITEM)) {
+            if (layout->root >= 0 && (layout->nodes[layout->root].type == PUI_NODE_TAB ||
+                                      layout->nodes[layout->root].type == PUI_NODE_ITEM)) {
                 fail(&r, root, "tab/item requires its container");
             }
         }
@@ -304,7 +305,7 @@ UiLayout *ui_layout_parse(const char *text, size_t length, char *error, size_t c
     return layout;
 }
 
-UiLayout *ui_layout_load(const char *path, char *error, size_t capacity) {
+PUILayout *pui_layout_load(const char *path, char *error, size_t capacity) {
     if (!path) {
         return NULL;
     }
@@ -323,7 +324,7 @@ UiLayout *ui_layout_load(const char *path, char *error, size_t capacity) {
     size_t size = fread(buffer, 1, 256 * 1024 + 1, file);
     bool read_error = ferror(file) != 0;
     fclose(file);
-    UiLayout *layout = read_error ? NULL : ui_layout_parse(buffer, size, error, capacity);
+    PUILayout *layout = read_error ? NULL : pui_layout_parse(buffer, size, error, capacity);
     free(buffer);
     if (layout) {
         const char *slash = strrchr(path, '/'), *back = strrchr(path, '\\');
@@ -332,7 +333,7 @@ UiLayout *ui_layout_load(const char *path, char *error, size_t capacity) {
         }
         size_t length = slash ? (size_t)(slash - path + 1) : 0;
         if (length >= sizeof layout->directory) {
-            ui_layout_free(layout);
+            pui_layout_free(layout);
             return NULL;
         }
         memcpy(layout->directory, path, length);
@@ -340,6 +341,6 @@ UiLayout *ui_layout_load(const char *path, char *error, size_t capacity) {
     return layout;
 }
 
-void ui_layout_free(UiLayout *layout) {
+void pui_layout_free(PUILayout *layout) {
     free(layout);
 }

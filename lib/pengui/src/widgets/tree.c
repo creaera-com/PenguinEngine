@@ -2,7 +2,7 @@
 #include "core/internal.h"
 #include <string.h>
 
-bool ui_tree_continues(const int *depths, int count, int row, int level) {
+bool pui_tree_continues(const int *depths, int count, int row, int level) {
     if (!depths || row < 0 || row >= count || level < 0 || level > depths[row]) {
         return false;
     }

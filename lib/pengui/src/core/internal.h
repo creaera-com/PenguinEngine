@@ -1,13 +1,13 @@
 /** @file @brief Private shared capture and geometry helpers; no SDL required. */
-#ifndef PENGUI_CORE_INTERNAL_H
-#define PENGUI_CORE_INTERNAL_H
+#ifndef PUI_CORE_INTERNAL_H
+#define PUI_CORE_INTERNAL_H
 #include "pengui/pengui.h"
 #include <math.h>
 
-static inline float ui_clamp(float value, float low, float high) {
+static inline float pui_clamp(float value, float low, float high) {
     return fmaxf(low, fminf(high, value));
 }
 
-bool ui_context_visible(const UiContext *context, float x, float y);
-bool ui_context_acquire(UiContext *context, UiId id, UiRect area);
+bool pui_context_visible(const PUIContext *context, float x, float y);
+bool pui_context_acquire(PUIContext *context, PUIId id, PUIRect area);
 #endif

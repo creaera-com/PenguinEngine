@@ -3,15 +3,15 @@
 #include <math.h>
 #include <string.h>
 
-void ui_draw_scrollbar(SDL_Renderer *r, const UiContext *c, UiId id, UiRect track,
-                       const UiScroll *s, UiAxis axis) {
-    if (ui_scroll_max(s) <= 0) {
+void pui_draw_scrollbar(SDL_Renderer *r, const PUIContext *c, PUIId id, PUIRect track,
+                        const PUIScroll *s, PUIAxis axis) {
+    if (pui_scroll_max(s) <= 0) {
         return;
     }
-    ui_panel(r, (SDL_FRect){track.x, track.y, track.w, track.h}, UI_CANVAS);
-    UiRect thumb = ui_scroll_thumb(s, track, axis);
-    ui_panel(r, (SDL_FRect){thumb.x, thumb.y, thumb.w, thumb.h},
-             c->active == id        ? UI_ACCENT
-             : ui_hovered(c, thumb) ? UI_HOVER
-                                    : UI_BORDER);
+    pui_panel(r, (SDL_FRect){track.x, track.y, track.w, track.h}, PUI_CANVAS);
+    PUIRect thumb = pui_scroll_thumb(s, track, axis);
+    pui_panel(r, (SDL_FRect){thumb.x, thumb.y, thumb.w, thumb.h},
+              c->active == id         ? PUI_ACCENT
+              : pui_hovered(c, thumb) ? PUI_HOVER
+                                      : PUI_BORDER);
 }

@@ -23,7 +23,7 @@ static size_t next(const char *text, size_t pos) {
     return pos;
 }
 
-static void normalize(UiTextEdit *edit, const char *text) {
+static void normalize(PUITextEdit *edit, const char *text) {
     edit->cursor = boundary(text, edit->cursor);
     edit->anchor = boundary(text, edit->anchor);
 }
@@ -59,11 +59,11 @@ static bool single_line_utf8(const unsigned char *p) {
     return true;
 }
 
-void ui_text_edit_init(UiTextEdit *edit, const char *text, bool select_all) {
-    *edit = (UiTextEdit){strlen(text), select_all ? 0 : strlen(text), 0};
+void pui_text_edit_init(PUITextEdit *edit, const char *text, bool select_all) {
+    *edit = (PUITextEdit){strlen(text), select_all ? 0 : strlen(text), 0};
 }
 
-bool ui_text_edit_insert(UiTextEdit *edit, char *text, size_t capacity, const char *inserted) {
+bool pui_text_edit_insert(PUITextEdit *edit, char *text, size_t capacity, const char *inserted) {
     normalize(edit, text);
     size_t a = edit->cursor < edit->anchor ? edit->cursor : edit->anchor;
     size_t b = edit->cursor > edit->anchor ? edit->cursor : edit->anchor;
@@ -78,20 +78,20 @@ bool ui_text_edit_insert(UiTextEdit *edit, char *text, size_t capacity, const ch
     return true;
 }
 
-bool ui_text_edit_key(UiTextEdit *edit, char *text, UiTextKey key, bool shift) {
+bool pui_text_edit_key(PUITextEdit *edit, char *text, PUITextKey key, bool shift) {
     normalize(edit, text);
     size_t a = edit->cursor < edit->anchor ? edit->cursor : edit->anchor;
     size_t b = edit->cursor > edit->anchor ? edit->cursor : edit->anchor;
-    if (key == UI_TEXT_SELECT_ALL) {
+    if (key == PUI_TEXT_SELECT_ALL) {
         edit->anchor = 0;
         edit->cursor = strlen(text);
         return false;
     }
-    if (key == UI_TEXT_BACKSPACE || key == UI_TEXT_DELETE) {
+    if (key == PUI_TEXT_BACKSPACE || key == PUI_TEXT_DELETE) {
         if (a == b) {
-            if (key == UI_TEXT_BACKSPACE && a) {
+            if (key == PUI_TEXT_BACKSPACE && a) {
                 a = boundary(text, a - 1);
-            } else if (key == UI_TEXT_DELETE) {
+            } else if (key == PUI_TEXT_DELETE) {
                 b = next(text, b);
             }
         }
@@ -99,13 +99,13 @@ bool ui_text_edit_key(UiTextEdit *edit, char *text, UiTextKey key, bool shift) {
         edit->cursor = edit->anchor = a;
         return a != b;
     }
-    if (key == UI_TEXT_LEFT) {
+    if (key == PUI_TEXT_LEFT) {
         edit->cursor = !shift && a != b ? a : edit->cursor ? boundary(text, edit->cursor - 1) : 0;
-    } else if (key == UI_TEXT_RIGHT) {
+    } else if (key == PUI_TEXT_RIGHT) {
         edit->cursor = !shift && a != b ? b : next(text, edit->cursor);
-    } else if (key == UI_TEXT_HOME) {
+    } else if (key == PUI_TEXT_HOME) {
         edit->cursor = 0;
-    } else if (key == UI_TEXT_END) {
+    } else if (key == PUI_TEXT_END) {
         edit->cursor = strlen(text);
     }
     if (!shift) {
@@ -114,7 +114,7 @@ bool ui_text_edit_key(UiTextEdit *edit, char *text, UiTextKey key, bool shift) {
     return false;
 }
 
-void ui_text_edit_click(UiTextEdit *edit, const char *text, size_t column, bool shift) {
+void pui_text_edit_click(PUITextEdit *edit, const char *text, size_t column, bool shift) {
     size_t pos = 0;
     while (column-- && text[pos]) {
         pos = next(text, pos);
@@ -125,7 +125,7 @@ void ui_text_edit_click(UiTextEdit *edit, const char *text, size_t column, bool 
     }
 }
 
-size_t ui_text_edit_column(const char *text, size_t offset) {
+size_t pui_text_edit_column(const char *text, size_t offset) {
     offset = boundary(text, offset);
     size_t column = 0;
     for (size_t i = 0; i < offset; i = next(text, i)) {

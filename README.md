@@ -32,7 +32,7 @@ resources/          playground.yaml und lizenzierte Schriftquelle
 tests/              Unity-Tests und App-Smoke-Test
 ```
 
-Die App kennt ausschließlich öffentliche pengUI-Header. Die Bibliothek kennt die App nicht. Es gibt keine globale Anwendungsinstanz. Jede `UiView` besitzt ihre Eingabe-, Tab-, Tree- und Textzustände. Das aus der bisherigen UI übernommene Theme ist vorerst global; mehrere gleichzeitige unterschiedliche View-Themes sind noch kein unterstützter Vertrag.
+Die App kennt ausschließlich öffentliche pengUI-Header. Die Bibliothek kennt die App nicht. Es gibt keine globale Anwendungsinstanz. Jede `PUIView` besitzt ihre Eingabe-, Tab-, Tree- und Textzustände. Das aus der bisherigen UI übernommene Theme ist vorerst global; mehrere gleichzeitige unterschiedliche View-Themes sind noch kein unterstützter Vertrag.
 
 CMake-Targets:
 
@@ -65,7 +65,7 @@ root:
     - {type: button, id: greet, text: Begrüßen, action: app.greet}
 ```
 
-`ui_layout_load()` liefert eine geprüfte, besitzende Beschreibung; `ui_view_new()` erzeugt daraus Widgetzustände. Die Anwendung hält Layout und Renderer am Leben, bis sie die View mit `ui_view_free()` freigibt. Aktionen werden über einen Callback mit Anwendungs-Kontext, Aktionsname und Widget-ID ausgelöst. `ui_view_text()` liest Eingaben, `ui_view_set_text()` ändert Eingabe- oder Labeltexte. Callbacks dürfen die aktive View nicht freigeben; die Beispiel-App verschiebt Reload deshalb ans Frame-Ende.
+`pui_layout_load()` liefert eine geprüfte, besitzende Beschreibung; `pui_view_new()` erzeugt daraus Widgetzustände. Die Anwendung hält Layout und Renderer am Leben, bis sie die View mit `pui_view_free()` freigibt. Aktionen werden über einen Callback mit Anwendungs-Kontext, Aktionsname und Widget-ID ausgelöst. `pui_view_text()` liest Eingaben, `pui_view_set_text()` ändert Eingabe- oder Labeltexte. Callbacks dürfen die aktive View nicht freigeben; die Beispiel-App verschiebt Reload deshalb ans Frame-Ende.
 
 Unterstützte Knoten: `row`, `column`, `panel`, `toolbar`, `button`, `label`, `separator`, `spacer`, `tabs` mit `tab`, `section`, `input`, `tree` mit `item` und `split` mit genau zwei Kindern. Gemeinsame Eigenschaften sind unter anderem `id`, `text`, `enabled`, `width`, `height`, `padding`, `gap`; `open` steuert anfangs geöffnete Bereiche. Breite/Höhe 0 verteilt freien Platz unter flexiblen Kindern. Splitter verwenden `axis`, `initial` (Größe des ersten Bereichs), `minimum_first` und `minimum_second`. Tabs passen sich ihren Beschriftungen an, lassen sich verschieben und per Mausrad horizontal scrollen. Trees scrollen, klappen auf und haben abwechselnde Zeilenfarben sowie Verbindungslinien.
 
@@ -73,7 +73,7 @@ Buttons akzeptieren `icon`, `image` (PNG relativ zur YAML-Datei) und `image_padd
 
 YAML v1 ist absichtlich klein: höchstens 128 Knoten, 12 Ebenen und 256 KiB Eingabe. Unbekannte Eigenschaften/Widgets, doppelte IDs/Schlüssel, fehlerhafte Zahlen und ungültige Kindstrukturen werden abgelehnt. Es gibt noch keine Bindingsprache, kein Docking und keine Undo-Verwaltung. Fachliche Aktionen und Dokumentmodelle gehören später in die jeweilige Anwendung.
 
-Einzelne Widgets lassen sich auch direkt in C über `pengui/pengui.h` nutzen, ohne YAML oder `UiView`.
+Einzelne Widgets lassen sich auch direkt in C über `pengui/pengui.h` nutzen, ohne YAML oder `PUIView`.
 
 ## Prüfungen und Abhängigkeiten
 
@@ -83,9 +83,9 @@ Enthaltene Fremdsoftware: libyaml (MIT), stb_image (MIT/Public Domain), Unity (M
 
 ## Eigene Fensterbuttons
 
-Die Playground-Toolbar enthält rechts `window.minimize`, `window.maximize` und `window.close`. Maximieren wechselt bei maximiertem Fenster zu Wiederherstellen, einschließlich Symbolwechsel. Die Anwendung reicht diese Aktionen an `ui_window_action()` weiter. Schließen erzeugt eine SDL-Schließanfrage; die Anwendung entscheidet, ob sie tatsächlich beendet wird.
+Die Playground-Toolbar enthält rechts `window.minimize`, `window.maximize` und `window.close`. Maximieren wechselt bei maximiertem Fenster zu Wiederherstellen, einschließlich Symbolwechsel. Die Anwendung reicht diese Aktionen an `pui_window_action()` weiter. Schließen erzeugt eine SDL-Schließanfrage; die Anwendung entscheidet, ob sie tatsächlich beendet wird.
 
-`draggable: true` markiert in YAML einen Bereich, dessen freie Fläche das Fenster verschieben darf. Buttons und Eingabefelder bleiben bedienbar; die Fensterränder erlauben Größenänderungen. `ui_window_attach()` installiert den Hit-Test und entfernt den nativen Rahmen. Falls das SDL-Backend Hit-Tests nicht unterstützt, bleibt der native Rahmen als bedienbare Rückfalllösung erhalten. Der `UiWindow`-Kontext muss stabil bleiben; nach YAML-Reload wird sein View-Zeiger aktualisiert, vor Freigabe wird `ui_window_detach()` aufgerufen.
+`draggable: true` markiert in YAML einen Bereich, dessen freie Fläche das Fenster verschieben darf. Buttons und Eingabefelder bleiben bedienbar; die Fensterränder erlauben Größenänderungen. `pui_window_attach()` installiert den Hit-Test und entfernt den nativen Rahmen. Falls das SDL-Backend Hit-Tests nicht unterstützt, bleibt der native Rahmen als bedienbare Rückfalllösung erhalten. Der `PUIWindow`-Kontext muss stabil bleiben; nach YAML-Reload wird sein View-Zeiger aktualisiert, vor Freigabe wird `pui_window_detach()` aufgerufen.
 
 ## Ein öffentlicher Header
 
@@ -93,7 +93,7 @@ Die Playground-Toolbar enthält rechts `window.minimize`, `window.maximize` und 
 #include <pengui/pengui.h>
 ```
 
-`pengUI::core` stellt über diesen Header Widgets, Geometrie und YAML ohne SDL bereit. Beim Verlinken von `pengUI::sdl` setzt CMake für die Bibliothek und ihre Verbraucher zusätzlich `PENGUI_WITH_SDL=1`; dann enthält derselbe Header auch Darstellung, View und Fensterbedienung. Ohne CMake muss das Makro für SDL-Verbraucher beim Kompilieren gesetzt und gegen die SDL-Komponente sowie SDL3 verlinkt werden. Die Implementierung bleibt intern auf mehrere Dateien verteilt.
+`pengUI::core` stellt über diesen Header Widgets, Geometrie und YAML ohne SDL bereit. Beim Verlinken von `pengUI::sdl` setzt CMake für die Bibliothek und ihre Verbraucher zusätzlich `PUI_WITH_SDL=1`; dann enthält derselbe Header auch Darstellung, View und Fensterbedienung. Ohne CMake muss das Makro für SDL-Verbraucher beim Kompilieren gesetzt und gegen die SDL-Komponente sowie SDL3 verlinkt werden. Die Implementierung bleibt intern auf mehrere Dateien verteilt.
 
 ## Wo gehört Widget-Code hin?
 

@@ -7,7 +7,7 @@
 #define STBI_NO_LINEAR
 #include "stb_image.h"
 
-SDL_Texture *ui_image_load(SDL_Renderer *renderer, const char *path) {
+SDL_Texture *pui_image_load(SDL_Renderer *renderer, const char *path) {
     int width, height, channels;
     if (!renderer || !path || !stbi_info(path, &width, &height, &channels) || width < 1 ||
         height < 1 || width > 1024 || height > 1024) {

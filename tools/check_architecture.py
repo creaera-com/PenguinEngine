@@ -13,7 +13,7 @@ def source(path):
     text = path.read_text()
     if path.name == 'pengui.h':
         # The public header exposes SDL only when its target enables that section.
-        text = text.split('#if defined(PENGUI_WITH_SDL) && PENGUI_WITH_SDL', 1)[0]
+        text = text.split('#if defined(PUI_WITH_SDL) && PUI_WITH_SDL', 1)[0]
     return text
 
 

@@ -7,18 +7,18 @@ void setUp(void) {}
 
 void tearDown(void) {}
 
-static UiLayout *parse(const char *body, char *error) {
-    return ui_layout_parse(body, strlen(body), error, 256);
+static PUILayout *parse(const char *body, char *error) {
+    return pui_layout_parse(body, strlen(body), error, 256);
 }
 
 static void test_actual_playground_is_generic_and_bounded(void) {
     char error[256];
-    UiLayout *layout = ui_layout_load(PENGUI_LAYOUT_FILE, error, sizeof error);
+    PUILayout *layout = pui_layout_load(PENGUI_LAYOUT_FILE, error, sizeof error);
     TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
     TEST_ASSERT_EQUAL_INT(1280, layout->width);
-    TEST_ASSERT_TRUE(layout->count > 30 && layout->count < UI_LAYOUT_NODES);
-    TEST_ASSERT_EQUAL_INT(UI_NODE_COLUMN, layout->nodes[layout->root].type);
-    ui_layout_free(layout);
+    TEST_ASSERT_TRUE(layout->count > 30 && layout->count < PUI_LAYOUT_NODES);
+    TEST_ASSERT_EQUAL_INT(PUI_NODE_COLUMN, layout->nodes[layout->root].type);
+    pui_layout_free(layout);
 }
 
 static void test_duplicate_ids_and_properties_are_rejected(void) {
@@ -65,7 +65,7 @@ static void test_alias_cycles_and_node_limits_are_bounded(void) {
     char error[256];
     TEST_ASSERT_NULL(parse("schema: pengui/v1\nroot: &loop {type: row, children: [*loop]}", error));
     char yaml[12000] = "schema: pengui/v1\nroot:\n  type: column\n  children:\n";
-    for (int i = 0; i < UI_LAYOUT_NODES + 1; i++) {
+    for (int i = 0; i < PUI_LAYOUT_NODES + 1; i++) {
         strcat(yaml, "    - {type: label}\n");
     }
     TEST_ASSERT_NULL(parse(yaml, error));
@@ -77,19 +77,19 @@ static void test_empty_multiple_and_broken_documents_are_rejected(void) {
     TEST_ASSERT_NULL(parse("", error));
     TEST_ASSERT_NULL(parse("schema: pengui/v1\nroot: [broken", error));
     TEST_ASSERT_NULL(parse("schema: pengui/v1\nroot: {type: label}\n---\nextra: document", error));
-    TEST_ASSERT_NULL(ui_layout_load("missing-layout-file.yaml", error, sizeof error));
+    TEST_ASSERT_NULL(pui_layout_load("missing-layout-file.yaml", error, sizeof error));
 }
 
 static void test_theme_and_defaults_are_read_without_sdl(void) {
     char error[256];
-    UiLayout *layout = parse(
+    PUILayout *layout = parse(
         "schema: pengui/v1\ntheme: {accent: '#112233'}\nroot: {type: input, id: name, text: Hello}",
         error);
     TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
     TEST_ASSERT_EQUAL_HEX32(0x112233ff, layout->colors[4]);
     TEST_ASSERT_EQUAL_STRING("Hello", layout->nodes[0].text);
     TEST_ASSERT_TRUE(layout->nodes[0].enabled);
-    ui_layout_free(layout);
+    pui_layout_free(layout);
 }
 
 int main(void) {

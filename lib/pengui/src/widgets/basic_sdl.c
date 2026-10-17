@@ -3,31 +3,32 @@
 #include <math.h>
 #include <string.h>
 
-void ui_widget_basic_draw(UiView *v, UiContext *ui, int i, UiRect area, UiAction action,
-                          void *context) {
-    (void)ui;
+void pui_widget_basic_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
+                           void *context) {
+    (void)pui;
     (void)action;
     (void)context;
-    const UiNode *n = &v->layout->nodes[i];
+    const PUINode *n = &v->layout->nodes[i];
     Widget *s = &v->state[i];
-    if (n->type == UI_NODE_LABEL) {
-        ui_text(v->renderer, area.x + 4, area.y + fmaxf(0, (area.h - 16) / 2), s->text, UI_TEXT);
-    } else if (n->type == UI_NODE_SEPARATOR) {
-        ui_panel(v->renderer, (SDL_FRect){area.x + area.w / 2, area.y + 4, 1, fmaxf(0, area.h - 8)},
-                 UI_BORDER);
+    if (n->type == PUI_NODE_LABEL) {
+        pui_text(v->renderer, area.x + 4, area.y + fmaxf(0, (area.h - 16) / 2), s->text, PUI_TEXT);
+    } else if (n->type == PUI_NODE_SEPARATOR) {
+        pui_panel(v->renderer,
+                  (SDL_FRect){area.x + area.w / 2, area.y + 4, 1, fmaxf(0, area.h - 8)},
+                  PUI_BORDER);
     }
 }
 
 /* A section owns its disclosure header; child placement stays with layout. */
-void ui_widget_section_draw(UiView *v, UiContext *ui, int i, UiRect area, UiAction action,
-                            void *context) {
-    const UiNode *n = &v->layout->nodes[i];
+void pui_widget_section_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
+                             void *context) {
+    const PUINode *n = &v->layout->nodes[i];
     Widget *s = &v->state[i];
-    ui_panel(v->renderer, ui_frect(area), UI_SURFACE);
-    UiRect header = {area.x, area.y, area.w, 28};
-    ui_disclosure(ui, n->id, header, &s->open, !ui->blocked);
-    ui_draw_button(v->renderer, ui_frect(header), s->open ? ICON_DOWN : ICON_RIGHT, n->text, false,
-                   !ui->blocked, ui_hovered(ui, header));
+    pui_panel(v->renderer, pui_frect(area), PUI_SURFACE);
+    PUIRect header = {area.x, area.y, area.w, 28};
+    pui_disclosure(pui, n->id, header, &s->open, !pui->blocked);
+    pui_draw_button(v->renderer, pui_frect(header), s->open ? ICON_DOWN : ICON_RIGHT, n->text,
+                    false, !pui->blocked, pui_hovered(pui, header));
     area.y += 30;
     area.h -= 30;
     area.x += n->padding;
@@ -35,6 +36,6 @@ void ui_widget_section_draw(UiView *v, UiContext *ui, int i, UiRect area, UiActi
     area.w = fmaxf(0, area.w - 2 * n->padding);
     area.h = fmaxf(0, area.h - 2 * n->padding);
     if (s->open) {
-        ui_view_draw_children(v, ui, i, area, false, action, context);
+        pui_view_draw_children(v, pui, i, area, false, action, context);
     }
 }

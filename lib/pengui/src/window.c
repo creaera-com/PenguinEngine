@@ -2,7 +2,7 @@
 #include "view/internal.h"
 #include <string.h>
 
-SDL_HitTestResult ui_window_hit_test(const UiWindow *chrome, int x, int y) {
+SDL_HitTestResult pui_window_hit_test(const PUIWindow *chrome, int x, int y) {
     int width, height;
     SDL_GetWindowSize(chrome->window, &width, &height);
     if (!(SDL_GetWindowFlags(chrome->window) & SDL_WINDOW_MAXIMIZED)) {
@@ -33,18 +33,18 @@ SDL_HitTestResult ui_window_hit_test(const UiWindow *chrome, int x, int y) {
             return SDL_HITTEST_RESIZE_BOTTOM;
         }
     }
-    if (!chrome->view || !chrome->ui || chrome->ui->active || chrome->ui->down) {
+    if (!chrome->view || !chrome->pui || chrome->pui->active || chrome->pui->down) {
         return SDL_HITTEST_NORMAL;
     }
-    const UiView *view = chrome->view;
+    const PUIView *view = chrome->view;
     bool draggable = false;
     for (int i = 0; i < view->layout->count; i++) {
-        if (!view->visible[i] || !ui_contains(view->hit[i], (float)x, (float)y)) {
+        if (!view->visible[i] || !pui_contains(view->hit[i], (float)x, (float)y)) {
             continue;
         }
-        const UiNode *node = &view->layout->nodes[i];
-        if (node->type == UI_NODE_BUTTON || node->type == UI_NODE_INPUT ||
-            node->type == UI_NODE_TABS || node->type == UI_NODE_TREE) {
+        const PUINode *node = &view->layout->nodes[i];
+        if (node->type == PUI_NODE_BUTTON || node->type == PUI_NODE_INPUT ||
+            node->type == PUI_NODE_TABS || node->type == PUI_NODE_TREE) {
             return SDL_HITTEST_NORMAL;
         }
         draggable = draggable || node->draggable;
@@ -54,25 +54,25 @@ SDL_HitTestResult ui_window_hit_test(const UiWindow *chrome, int x, int y) {
 
 static SDL_HitTestResult SDLCALL hit(SDL_Window *window, const SDL_Point *point, void *context) {
     (void)window;
-    return ui_window_hit_test(context, point->x, point->y);
+    return pui_window_hit_test(context, point->x, point->y);
 }
 
-bool ui_window_attach(UiWindow *chrome, SDL_Window *window, const UiView *view,
-                      const UiContext *ui) {
-    *chrome = (UiWindow){window, view, ui};
+bool pui_window_attach(PUIWindow *chrome, SDL_Window *window, const PUIView *view,
+                       const PUIContext *pui) {
+    *chrome = (PUIWindow){window, view, pui};
     bool supported = SDL_SetWindowHitTest(window, hit, chrome);
     SDL_SetWindowBordered(window, !supported);
     return supported;
 }
 
-void ui_window_detach(UiWindow *chrome) {
+void pui_window_detach(PUIWindow *chrome) {
     if (chrome->window) {
         SDL_SetWindowHitTest(chrome->window, NULL, NULL);
     }
-    *chrome = (UiWindow){0};
+    *chrome = (PUIWindow){0};
 }
 
-bool ui_window_action(SDL_Window *window, const char *action) {
+bool pui_window_action(SDL_Window *window, const char *action) {
     if (!window || !action) {
         return false;
     }

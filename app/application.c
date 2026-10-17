@@ -6,10 +6,10 @@
 typedef struct {
     SDL_Window *window;
     SDL_Renderer *renderer;
-    UiLayout *layout;
-    UiView *view;
-    UiContext ui;
-    UiWindow chrome;
+    PUILayout *layout;
+    PUIView *view;
+    PUIContext pui;
+    PUIWindow chrome;
     bool running, smoke, reload;
     int clicks;
     const char *screenshot;
@@ -20,7 +20,7 @@ typedef struct {
 static void action(void *context, const char *name, const char *widget) {
     Playground *app = context;
     (void)widget;
-    if (ui_window_action(app->window, name)) {
+    if (pui_window_action(app->window, name)) {
         return;
     }
     if (!strcmp(name, "app.quit")) {
@@ -30,30 +30,30 @@ static void action(void *context, const char *name, const char *widget) {
     } else {
         char message[256];
         snprintf(message, sizeof message, "Action: %s | Clicks: %d", name, ++app->clicks);
-        ui_view_set_text(app->view, "status", message);
+        pui_view_set_text(app->view, "status", message);
     }
 }
 
 /* Validate and construct the replacement before releasing the currently usable layout. */
 static bool load_layout(Playground *app) {
     char error[256] = {0};
-    UiLayout *layout = ui_layout_load(app->path, error, sizeof error);
+    PUILayout *layout = pui_layout_load(app->path, error, sizeof error);
     if (!layout) {
         fprintf(stderr, "%s: %s\n", app->path, *error ? error : "out of memory");
         return false;
     }
-    UiView *view = ui_view_new(layout, app->renderer);
+    PUIView *view = pui_view_new(layout, app->renderer);
     if (!view) {
-        ui_layout_free(layout);
+        pui_layout_free(layout);
         return false;
     }
     app->chrome.view = view;
-    ui_view_free(app->view);
-    ui_layout_free(app->layout);
+    pui_view_free(app->view);
+    pui_layout_free(app->layout);
     app->view = view;
     app->layout = layout;
-    ui_init(&app->ui);
-    ui_view_apply_theme(layout);
+    pui_init(&app->pui);
+    pui_view_apply_theme(layout);
     SDL_SetWindowTitle(app->window, layout->title);
     return true;
 }
@@ -80,7 +80,7 @@ static bool parse_arguments(Playground *app, int argc, char **argv) {
 static void events(Playground *app) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
-        bool consumed = ui_view_event(app->view, &app->ui, app->window, &event);
+        bool consumed = pui_view_event(app->view, &app->pui, app->window, &event);
         if (event.type == SDL_EVENT_QUIT || event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
             app->running = false;
         } else if (!consumed && event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat) {
@@ -120,7 +120,7 @@ int playground_run(int argc, char **argv) {
     SDL_SetWindowMinimumSize(app.window, 800, 600);
     SDL_SetWindowSize(app.window, app.layout->width, app.layout->height);
     SDL_SetRenderVSync(app.renderer, 1);
-    ui_window_attach(&app.chrome, app.window, app.view, &app.ui);
+    pui_window_attach(&app.chrome, app.window, app.view, &app.pui);
     SDL_ShowWindow(app.window);
     app.running = true;
     result = 0;
@@ -129,8 +129,8 @@ int playground_run(int argc, char **argv) {
         events(&app);
         int width, height;
         SDL_GetWindowSize(app.window, &width, &height);
-        ui_panel(app.renderer, (SDL_FRect){0, 0, (float)width, (float)height}, UI_CANVAS);
-        ui_view_draw(app.view, &app.ui, (UiRect){3, 3, width - 6.f, height - 6.f}, action, &app);
+        pui_panel(app.renderer, (SDL_FRect){0, 0, (float)width, (float)height}, PUI_CANVAS);
+        pui_view_draw(app.view, &app.pui, (PUIRect){3, 3, width - 6.f, height - 6.f}, action, &app);
         if (!screenshot(&app)) {
             result = 1;
             break;
@@ -147,9 +147,9 @@ int playground_run(int argc, char **argv) {
         SDL_Delay(1);
     }
 cleanup:
-    ui_window_detach(&app.chrome);
-    ui_view_free(app.view);
-    ui_layout_free(app.layout);
+    pui_window_detach(&app.chrome);
+    pui_view_free(app.view);
+    pui_layout_free(app.layout);
     SDL_DestroyRenderer(app.renderer);
     SDL_DestroyWindow(app.window);
     SDL_Quit();

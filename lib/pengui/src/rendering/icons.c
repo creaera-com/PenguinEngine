@@ -20,8 +20,8 @@ static void lines(SDL_Renderer *r, float x, float y, float size, const Line *v, 
         lines(r, x, y, s, v, (int)(sizeof v / sizeof v[0]));                                       \
     } while (0)
 
-void ui_icon(SDL_Renderer *r, UiIcon icon, float x, float y, float s, Uint32 c) {
-    ui_render_color(r, c);
+void pui_icon(SDL_Renderer *r, PUIIcon icon, float x, float y, float s, Uint32 c) {
+    pui_render_color(r, c);
     switch (icon) {
     case ICON_MINIMIZE:
         DRAW({3, 12, 13, 12});
@@ -161,10 +161,10 @@ void ui_icon(SDL_Renderer *r, UiIcon icon, float x, float y, float s, Uint32 c) 
     }
 }
 
-UiIcon ui_icon_from_name(const char *name) {
+PUIIcon pui_icon_from_name(const char *name) {
     static const struct {
         const char *name;
-        UiIcon value;
+        PUIIcon value;
     } icons[] = {
         {"minimize", ICON_MINIMIZE}, {"maximize", ICON_MAXIMIZE}, {"restore", ICON_RESTORE},
         {"menu", ICON_MENU},         {"save", ICON_SAVE},         {"undo", ICON_UNDO},
