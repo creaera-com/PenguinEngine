@@ -1,0 +1,228 @@
+schema: pengui/v1
+window: {title: "pengUI - Widget Playground", width: 1280, height: 800}
+theme:
+  background: "#101010"
+  panel: "#202020"
+  surface: "#292929"
+  hover: "#393939"
+  accent: "#C28E5C"
+  text: "#E9E9E9"
+  muted: "#A2A2A2"
+root:
+  type: column
+  padding: 0
+  gap: 3
+  children:
+    - type: toolbar
+      draggable: true
+      height: 44
+      padding: 8
+      gap: 6
+      children:
+        - {type: button, id: menu, icon: menu, action: demo.menu, width: 32}
+        - {type: separator}
+        - {type: label, text: pengUI, width: 110}
+        - {type: button, id: reload, icon: refresh, text: Reload YAML, action: app.reload, width: 150}
+        - {type: button, id: disabled_save, icon: save, enabled: false, width: 32}
+        - {type: spacer}
+        - {type: label, text: "C17 / SDL3", width: 110}
+        - {type: separator}
+        - {type: button, id: window_minimize, icon: minimize, action: window.minimize, width: 32}
+        - {type: button, id: window_maximize, icon: maximize, action: window.maximize, width: 32}
+        - {type: button, id: window_close, icon: close, action: window.close, width: 32}
+    - type: split
+      id: main_split
+      axis: horizontal
+      flex: middle
+      initial: 245
+      initial_last: 280
+      minimum_first: 190
+      minimum_second: 360
+      minimum_last: 260
+      gap: 9
+      children:
+        - type: tabs
+          children:
+            - type: tab
+              id: explorer_tab
+              text: Widgets
+              icon: folder
+              padding: 0
+              children:
+                - type: panel
+                  text: WIDGET CATALOG
+                  children:
+                    - type: tree
+                      id: catalog
+                      children:
+                        - type: item
+                          text: Layout
+                          children:
+                            - {type: item, text: Rows and columns, icon: grid, action: demo.layout}
+                            - {type: item, text: Resizable panels, icon: settings}
+                            - {type: item, text: Draggable tabs, icon: file}
+                        - type: item
+                          text: Controls
+                          children:
+                            - {type: item, text: Buttons and icons, icon: edit}
+                            - {type: item, text: Text inputs, icon: file}
+                            - {type: item, text: Collapsible sections, icon: folder}
+                        - type: item
+                          text: Appearance
+                          children:
+                            - {type: item, text: Dark theme, icon: grid}
+                            - {type: item, text: JetBrains Mono, icon: file}
+                            - {type: item, text: Tree guide lines, icon: folder}
+            - type: tab
+              id: notes_tab
+              text: Notes
+              children:
+                - {type: label, text: "Drag these tabs."}
+                - {type: label, text: "Scroll when space is tight."}
+        - type: split
+          id: center_split
+          axis: vertical
+          flex: first
+          initial_last: 150
+          minimum_first: 300
+          minimum_second: 100
+          gap: 9
+          children:
+            - type: tabs
+              children:
+                - type: tab
+                  id: controls_tab
+                  text: Controls
+                  icon: grid
+                  padding: 0
+                  children:
+                    - type: panel
+                      text: YOUR UI FRAMEWORK
+                      padding: 16
+                      gap: 12
+                      children:
+                        - {type: label, text: "A small foundation for your own applications.", height: 30}
+                        - {type: label, text: "This entire layout comes from playground.yaml."}
+                        - type: section
+                          id: button_section
+                          text: Buttons
+                          gap: 8
+                          children:
+                            - {type: button, id: primary, text: Try an action, icon: plus, action: demo.click}
+                            - {type: button, id: secondary, text: Another action, icon: check, action: demo.confirm}
+                            - {type: button, id: image_button, text: Image icon, image: icons/grid.png, image_padding: 4, action: demo.image}
+                            - {type: button, id: disabled, text: Disabled button, icon: save, enabled: false}
+                        - type: section
+                          id: text_section
+                          text: Text editing
+                          gap: 8
+                          children:
+                            - {type: label, text: "Click to edit. Enter dispatches an app action."}
+                            - {type: input, id: name, text: My first pengUI app, action: demo.submit}
+                        - {type: label, id: status, text: "Ready. Click a button or a tree entry.", height: 28}
+                        - {type: spacer}
+                - type: tab
+                  id: layout_tab
+                  text: Layout
+                  icon: settings
+                  children:
+                    - {type: label, text: "Drag panel grips to resize the columns."}
+                    - {type: label, text: "Edit YAML and press F6 to reload."}
+                    - {type: label, text: "Invalid YAML keeps the current UI alive."}
+            - type: tabs
+              children:
+                - type: tab
+                  id: output_tab
+                  text: Output
+                  padding: 0
+                  children:
+                    - type: panel
+                      padding: 12
+                      children:
+                        - {type: label, text: "Toggle, checkbox and exclusive button groups"}
+                        - type: row
+                          height: 30
+                          padding: 0
+                          gap: 12
+                          children:
+                            - {type: toggle, id: grid_toggle, text: Grid, icon: grid, checked: true, action: demo.grid, width: 150}
+                            - {type: checkbox, id: snap_checkbox, text: Snap to grid, checked: true, action: demo.snap}
+                        - type: button_group
+                          id: tool_group
+                          gap: 2
+                          children:
+                            - {type: button, id: select_tool, text: Select, action: demo.select}
+                            - {type: button, id: draw_tool, text: Draw, checked: true, action: demo.draw}
+                            - {type: button, id: erase_tool, text: Erase, action: demo.erase}
+        - type: panel
+          text: PLAYGROUND
+          padding: 12
+          gap: 8
+          children:
+            - type: section
+              id: about
+              text: About pengUI
+              children:
+                - {type: label, text: "Library: lib/pengui"}
+                - {type: label, text: "Example app: apps/demo"}
+                - {type: label, text: "Layout: resources"}
+            - type: section
+              text: Popups
+              children:
+                - type: dropdown
+                  id: blend_mode
+                  action: demo.blend
+                  value: normal
+                  children:
+                    - {type: option, text: Normal, value: normal}
+                    - {type: option, text: Multiply, value: multiply}
+                    - {type: option, text: Screen, value: screen}
+                - type: popup_button
+                  id: brush_settings
+                  text: Brush settings
+                  icon: settings
+                  placement: below
+                  popup_width: 250
+                  popup_height: 190
+                  children:
+                    - type: panel
+                      text: BRUSH SETTINGS
+                      padding: 12
+                      gap: 8
+                      children:
+                        - {type: label, text: Brush size}
+                        - {type: input, id: brush_size, text: "16"}
+                        - {type: checkbox, id: smooth_edges, text: Smooth edges, checked: true}
+                        - {type: button, text: Apply, action: demo.brush}
+            - type: section
+              id: hints
+              text: Keyboard
+              children:
+                - {type: label, text: "F6: reload YAML"}
+                - {type: label, text: "Ctrl+A / C / X / V"}
+                - {type: label, text: "Enter: activate"}
+            - type: section
+              id: properties
+              text: Properties
+              children:
+                - type: row
+                  height: 30
+                  padding: 0
+                  gap: 8
+                  children:
+                    - {type: label, text: "X", width: 70}
+                    - {type: input, id: property_x, text: "64"}
+                - type: row
+                  height: 30
+                  padding: 0
+                  gap: 8
+                  children:
+                    - {type: label, text: "Y", width: 70}
+                    - {type: input, id: property_y, text: "128"}
+            - {type: spacer}
+    - type: panel
+      id: footer
+      height: 24
+      padding: 0
+      children:
+        - {type: label, text: "pengUI  |  Standalone widget playground  |  F6 reloads the YAML layout", height: 24}

@@ -1,0 +1,9 @@
+schema: pengui/v1
+root:
+  type: panel
+  padding: 12
+  gap: 8
+  children:
+    - {type: label, text: "Game Inspector"}
+    - {type: label, text: "No document selected."}
+    - {type: spacer}

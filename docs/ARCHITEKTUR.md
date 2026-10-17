@@ -1,124 +1,616 @@
-# Architektur und Weiterentwicklung
+# pengUI verstehen: Architektur und Programmablauf
 
-Diese Anleitung beschreibt die implementierte Struktur. Am besten zuerst [PROJEKTSTRUKTUR.md](PROJEKTSTRUKTUR.md) lesen und danach eine konkrete Funktion vom YAML-Button bis zur Dokumentoperation verfolgen.
+Diese Anleitung beschreibt den aktuellen Stand der eigenständigen pengUI-Bibliothek und
+der Beispiel-App. Sie soll dir helfen, den Code zu lesen, eigene Oberflächen zu bauen und
+später weitere Widgets oder eine Engine darauf aufzusetzen.
 
-## Verantwortlichkeiten und Abhängigkeiten
+Die [README](../README.md) enthält Build-Anweisungen und weitere YAML-Beispiele.
+Die zusätzliche [Editor-Shell](EDITOREN.md) baut darauf mit generischen Slots und getrennten
+Modulen auf. Die folgende Startbeschreibung bezieht sich auf die Widget-Demo; der Einstieg
+der Editor-App steht in `apps/demo/editor/main.c`.
+Die gesamte öffentliche C-Schnittstelle steht in
+[pengui.h](../lib/pengui/include/pengui/pengui.h).
 
-Die Anwendung verbindet die Module. Fachliche Dokumentoperationen kennen keine Toolbar, kein Fenster und keinen aktiven Tab. Die Engine kennt keine Editor-Anwendung. Die UI-Bibliothek kennt weder Szenen noch SVG-Dokumente.
+## Inhalt
+
+- [1. Aufbau und Verantwortlichkeiten](#1-aufbau-und-verantwortlichkeiten)
+- [2. Beschreibung, Zustand und Eingabekontext](#2-beschreibung-zustand-und-eingabekontext)
+- [3. Vom Programmstart zum ersten Bild](#3-vom-programmstart-zum-ersten-bild)
+- [4. Was in einem Frame passiert](#4-was-in-einem-frame-passiert)
+- [5. Layout und sichtbare Bereiche](#5-layout-und-sichtbare-bereiche)
+- [6. Maus, Fokus und Auswahl](#6-maus-fokus-und-auswahl)
+- [7. Textfelder und Tab-Navigation](#7-textfelder-und-tab-navigation)
+- [8. Aktionen mit deiner Anwendung verbinden](#8-aktionen-mit-deiner-anwendung-verbinden)
+- [9. Popups und Dropdowns](#9-popups-und-dropdowns)
+- [10. Cursor, Darstellung und Fenster](#10-cursor-darstellung-und-fenster)
+- [11. Lebensdauer und YAML-Reload](#11-lebensdauer-und-yaml-reload)
+- [12. Ein neues Widget entwickeln](#12-ein-neues-widget-entwickeln)
+- [13. Den Code gezielt lesen und Fehler finden](#13-den-code-gezielt-lesen-und-fehler-finden)
+- [14. Aktuelle Grenzen](#14-aktuelle-grenzen)
+
+## 1. Aufbau und Verantwortlichkeiten
+
+pengUI besteht aus einem SDL-freien Kern und einer darauf aufbauenden SDL3-Darstellung.
+Die Beispiel-App benutzt die öffentliche Schnittstelle und übernimmt den Programmablauf
+sowie die fachlichen Aktionen.
 
 ```mermaid
 flowchart TD
-    Application[application: Start und Registrierung] --> Shell[shell: gemeinsame Oberfläche]
-    Application --> Workspace[editor: Workspace und Verträge]
-    Application --> Editors[editors: Map / Vector / Script]
-    Shell --> Workspace
-    Workspace --> Contract[PeEditorBackend / PeDocument]
-    Editors --> Contract
-    Editors --> Models[Eigene Dokumentmodelle]
-    Editors --> UI[ui: wiederverwendbare Widgets]
-    Models --> Engine[engine: Laufzeit und Modelle]
-    Engine --> Services[services: JSON / Sprachparser]
-    Shell --> Platform[platform: Fenster und Prozesse]
+    App["Beispiel-App: Fenster, Schleife, eigene Aktionen"] --> SDL["pengUI::sdl: View, Widgets, Darstellung, Fensterbedienung"]
+    SDL --> Core["pengUI::core: Eingabe, Widgetlogik, Geometrie, YAML"]
+    SDL --> SDL3["SDL3: Ereignisse und Zeichnen"]
+    Core --> YAML["libyaml: YAML einlesen"]
 ```
 
-Der Pfeil bezeichnet eine verwendete Schnittstelle. Ein konkreter Backend-Adapter implementiert den Vertrag; der Workspace ruft ihn über seine Operationstabelle auf. Neue Dokumenttypen erfordern deshalb keine zusätzlichen Undo-/Redo-Sonderfälle in den gemeinsamen YAML-Bindings.
+Die Pfeile zeigen Abhängigkeiten. Die Bibliothek darf keine Header aus `apps/demo/` oder einer
+späteren Engine einbinden. Dadurch kannst du sie für verschiedene Anwendungen verwenden.
 
-`tools/check_architecture.py` prüft direkte Modulgrenzen und verfolgt Includes der SDL-freien Modelle transitiv. Engine, UI und Dienste dürfen keine Anwendung oder konkreten Editoren einbinden. Anwendung, Shell und Workspace dürfen keine konkreten Editorzustände interpretieren oder Modellheader einbinden. Nur `application/editors.c` darf die öffentlichen `adapter.h`-Einstiegspunkte registrieren. Konkrete Editoren dürfen keine Header oder Instanzzugriffe anderer Editoren und nicht den Composition Root einbinden. Frontends verwenden ihren eigenen privaten `internal.h` und den gemeinsamen `editor/host.h`. Diese Prüfung läuft als CTest auch auf GitHub.
+| Bereich | Aufgabe | Einstieg im Code |
+| --- | --- | --- |
+| `apps/demo/` | Start, SDL-Fenster, Ereignisschleife, App-Aktionen, Reload | [application.c](../apps/demo/application.c) |
+| `core/` | Zeigerzustand, Tastaturfokus, Capture, Clipping | [context.c](../lib/pengui/src/core/context.c) |
+| `widgets/` | Verhalten und Darstellung einzelner Bedienelemente | [button.c](../lib/pengui/src/widgets/button.c), [button_sdl.c](../lib/pengui/src/widgets/button_sdl.c) |
+| `layout/` | YAML validieren, Größen berechnen, Kinder anordnen | [yaml.c](../lib/pengui/src/layout/yaml.c), [layout_sdl.c](../lib/pengui/src/layout/layout_sdl.c) |
+| `view/` | Widgetzustände besitzen, Ereignisse verteilen, Zeichnen koordinieren | [view.c](../lib/pengui/src/view/view.c), [draw.c](../lib/pengui/src/view/draw.c) |
+| `rendering/` | Text, eingebautes Icon, PNG, Farben und Zeichenprimitive | [text.c](../lib/pengui/src/rendering/text.c), [primitives.c](../lib/pengui/src/rendering/primitives.c) |
+| Fensterbedienung | Hit-Test, Verschieben, Größenänderung, Fensteraktionen | [window.c](../lib/pengui/src/window.c) |
 
-## Dokumentvertrag: Was kann die gemeinsame Oberfläche tun?
+Die Bibliothekspfade in dieser Tabelle liegen unter `lib/pengui/src/`.
+`*_sdl.c` enthält die SDL-Darstellung und die Verbindung zur YAML-View. Beispielsweise
+entscheidet `button.c`, ob ein Klick gültig war; `button_sdl.c` zeichnet den Button und ruft
+gegebenenfalls deine App-Aktion auf. Verwandte Widgets können Logik teilen: Checkbox und
+Toggle benutzen beide `pui_toggle()` aus `widgets/toggle.c`.
 
-`src/editor/document/document.h` enthält ausschließlich Standard-C-Typen. `PeDocument` ist ein geliehener Kontextzeiger mit einer statischen `PeDocumentOps`-Tabelle:
+Du bindest immer denselben öffentlichen Header ein:
 
-- `status`: geladen, verändert, bereits gespeichert, offene Geste, Undo-/Redo-Verfügbarkeit.
-- `save`: Speichern einschließlich des vom Editor vorgesehenen Save-As-Ablaufs.
-- `undo`: Undo oder Redo im jeweiligen Dokumentmodell.
-- `describe`: Statusdetails wie Zoom, Textposition oder Verlauf.
+```c
+#include <pengui/pengui.h>
+```
 
-Die öffentlichen Hilfsfunktionen prüfen leere Bindungen und verhindern Speichern/Undo während offener Bearbeitungen. Die Shell berücksichtigt zusätzlich Play-Modus und modale Eingaben. Ein Statusaufruf muss ohne Seiteneffekte bleiben. `save` liefert false bei Fehlern oder einem noch nicht abgeschlossenen Speichern-Dialog.
+`pengUI::core` stellt die SDL-freien Teile bereit. Das CMake-Target `pengUI::sdl` setzt
+zusätzlich `PUI_WITH_SDL=1`, wodurch auch die SDL-Deklarationen im Header verfügbar sind.
+Private Header wie `view/internal.h` sind für die Implementierung der Bibliothek bestimmt.
 
-Eine Bindung gilt nur für den gerade aktiven Payload. Sie darf nicht über einen Editorwechsel, F6-Reload oder das Ersetzen eines Dokuments hinaus gespeichert werden. Deshalb wird sie unmittelbar vor jedem Befehl über `editor_active_document()` abgefragt.
+## 2. Beschreibung, Zustand und Eingabekontext
 
-Die Unity-Tests in `tests/test_document_contract.c` verwenden zwei unabhängige Fake-Dokumente. Sie prüfen den Vertrag ohne SDL, globale Anwendung oder konkrete Editorimplementierung.
+Drei Strukturen tragen unterschiedliche Informationen:
 
-## Editorvertrag: Wer besitzt das Dokument?
+| Struktur | Enthält | Lebensdauer |
+| --- | --- | --- |
+| `PUILayout` | Geprüften YAML-Baum, Beschriftungen, IDs, Anfangswerte, Größen und Aktionsnamen | Von `pui_layout_load()` / `pui_layout_parse()` bis `pui_layout_free()` |
+| `PUIView` | Veränderliche Texte, Textauswahl, Checkboxwerte, Tabreihenfolgen, Tree-Auswahl, Scrollpositionen, Splitgrößen, Popups und Ressourcen | Von `pui_view_new()` bis `pui_view_free()` |
+| `PUIContext` | Aktuelle Mausposition, Druck-/Loslassflanken, aktive Interaktion, Tastaturfokus und Clip-Stack | Von der Anwendung angelegt; über Frames hinweg wiederverwenden |
 
-`src/editor/module.h` definiert `PeEditorBackend`. Jeder Editor implementiert ihn in seinem `adapter.c`:
+**Beispiel:** In YAML steht `text: "64"`. Das ist der Anfangswert. Wenn du anschließend
+`128` eingibst, steht dieser Text im Zustand der View. Die YAML-Datei wird dadurch nicht
+verändert. `pui_view_text(view, "position_x")` liest den aktuellen Wert.
 
-| Rückruf | Verantwortung |
+Die View zeichnet jeden Frame neu und wertet dabei viele Interaktionen aus. Die
+YAML-Beschreibung und die Widgetzustände werden über Frames hinweg aufbewahrt. Deshalb
+wird der Baum nicht bei jedem Bild erneut geparst.
+
+### Wie der Baum gespeichert wird
+
+`PUILayout` besitzt ein begrenztes Array von `PUINode`-Einträgen. Jeder Knoten enthält
+`child` als Index des ersten Kindes und `next` als Index des nächsten Geschwisters.
+`-1` bedeutet, dass es keinen solchen Eintrag gibt. Die View besitzt dazu passende
+Zustands- und Geometrie-Arrays mit denselben Indizes.
+
+Ein Knotenindex ist nur innerhalb dieses Layouts sinnvoll. Die YAML-ID ist der Name für
+deine App:
+
+```yaml
+- {type: input, id: position_x, text: "64"}
+```
+
+Aus `position_x` bildet `pui_id()` eine numerische `PUIId`. IDs müssen innerhalb des
+Layouts eindeutig sein; der Parser prüft auch Kollisionen der numerischen IDs. Ohne
+explizite ID entsteht ein Name wie `_node_7`. Für Elemente, auf die deine App zugreift,
+solltest du eigene IDs vergeben: Automatische Namen können sich beim Umbauen ändern.
+
+## 3. Vom Programmstart zum ersten Bild
+
+Der Einstieg ist [apps/demo/main.c](../apps/demo/main.c). `main()` ruft `playground_run()` aus
+[apps/demo/application.c](../apps/demo/application.c) auf.
+
+Im erfolgreichen Fall passiert Folgendes:
+
+1. Die App liest Argumente wie `--layout`, `--smoke` und `--screenshot`.
+2. Sie initialisiert SDL und erzeugt ein zunächst verstecktes Fenster mit Renderer.
+3. `load_layout()` lädt die YAML-Datei mit `pui_layout_load()`.
+4. Der YAML-Parser prüft Schema, Eigenschaften, IDs und gültige Eltern-Kind-Beziehungen.
+5. `pui_view_new()` erzeugt die View, initialisiert Widgetzustände und lädt Bildtexturen.
+6. Die App setzt Theme und Fenstertitel. Beim ersten Start übernimmt sie außerdem die
+   YAML-Fenstergröße und richtet Mindestgröße, VSync sowie die eigene Fensterbedienung ein.
+7. Sie zeigt das Fenster und startet die Ereignis-/Zeichenschleife.
+
+Ohne `--layout` sucht die App `playground.yaml` neben der Programmdatei. Die Quelldatei
+liegt unter [resources/playground.yaml](../resources/playground.yaml); CMake kopiert sie
+bei jedem App-Build ins Ausgabeverzeichnis. Das Arbeitsverzeichnis muss deshalb nicht das
+Repository sein.
+
+Ein Projekt oder eine Engine wird dabei nicht geöffnet. Die App startet ausschließlich
+mit ihrer UI-Beschreibung.
+
+## 4. Was in einem Frame passiert
+
+```mermaid
+flowchart TD
+    Events["SDL-Ereignisse in Reihenfolge lesen"] --> Input["pui_view_event: Eingaben und Textänderungen verarbeiten"]
+    Input --> Shortcuts["Nicht verbrauchte App-Tastenkürzel behandeln"]
+    Shortcuts --> Background["Fensterhintergrund zeichnen"]
+    Background --> View["pui_view_draw: Layout, Widgets, Aktionen und Popups"]
+    View --> End["Kurzlebige Eingaben zurücksetzen und Mauszeiger anwenden"]
+    End --> Present["SDL_RenderPresent"]
+    Present --> Reload["Gegebenenfalls YAML am Frame-Ende neu laden"]
+    Reload --> Events
+```
+
+### Ereignisphase
+
+`pui_view_event()` in [view/events.c](../lib/pengui/src/view/events.c) leitet an die
+zuständigen Teile weiter: zuerst an offene Popups, anschließend unter anderem an
+Mauszustand, Textfelder oder scrollbare Widgets. Text kann bereits in dieser Phase geändert
+werden. Ein Druck und das Loslassen dürfen vor dem nächsten Zeichnen eintreffen;
+`PUIContext` merkt sich beide Übergänge und deren Positionen.
+
+Der Rückgabewert `true` bedeutet, dass zum Beispiel Textbearbeitung oder ein Popup das
+Ereignis verbraucht hat. Die App soll darauf nicht zusätzlich ein eigenes Tastenkürzel
+ausführen. **`false` bedeutet nicht, dass die UI das Ereignis ignoriert hat:** Viele
+Mausereignisse aktualisieren den Kontext und werden erst beim Zeichnen ausgewertet.
+
+### Zeichen- und Interaktionsphase
+
+`pui_view_draw()` in [view/draw.c](../lib/pengui/src/view/draw.c) setzt die Sichtbarkeit
+für den neuen Frame zurück, behandelt gegebenenfalls Popup-Schließklicks und zeichnet den
+Wurzelknoten. `pui_view_draw_node()` ermittelt den Widgettyp und ruft dessen Implementierung
+auf. Container berechnen die Kinderrechtecke und gehen rekursiv weiter.
+
+Dabei passieren auch Interaktionen: Ein Button fragt `pui_button()` ab; eine Checkbox
+ändert über `pui_toggle()` ihren Zustand. Wenn eine Aktion fällig ist, wird dein Callback
+während dieses Aufrufs ausgeführt. Die App muss deshalb während `pui_view_draw()` ihre
+View und deren Layout am Leben lassen.
+
+Danach zeichnet pengUI offene Popups über die Grundoberfläche, prüft den Textfokus,
+beendet den Eingabeframe und setzt den gewünschten Systemcursor. `pui_end_frame()`
+entfernt kurzlebige Flanken wie `pressed`, `released` und `activate`; dauerhafte
+Widgetwerte bleiben erhalten. Die View ruft diese Funktion bereits selbst auf.
+
+## 5. Layout und sichtbare Bereiche
+
+Die Größenverteilung steht in
+[layout/layout_sdl.c](../lib/pengui/src/layout/layout_sdl.c). Maße sind Pixelwerte.
+
+| Element/Eigenschaft | Wirkung |
 | --- | --- |
-| `create` | Einen leeren Payload reservieren; Fehler in den Aufruferpuffer schreiben |
-| `initialize` | Ein neues/default Dokument anlegen, wenn kein Checkpoint existiert |
-| `checkpoint` | Eigenes Dokument und Verlauf speichern oder in den leeren Payload laden |
-| `ready` | Nach Neuinitialisierung und Wiederherstellung flüchtige Caches aufbauen |
-| `destroy` | Modell, Verlauf und Caches freigeben; auch nach Teilinitialisierung sicher |
-| `document` | Die kurzlebige gemeinsame Dokumentbindung liefern |
-| `action` | Einen bekannten fachlichen Werkzeugbefehl ausführen |
-| `action_enabled` / `action_active` | Voraussetzungen und Auswahlzustand von Werkzeugen liefern |
-| `boolean_binding` | Editorbezogene YAML-Bools auflösen |
-| `message` / `playing` | Editorbezogene Meldung und Play-Modus ohne fremde Modellzugriffe lesen |
-| `apply_field` / `field_stopped` | Eingabepuffer fachlich übernehmen und eigene Dialogzustände aufräumen |
-| `draw_node` / `canvas_type` | Eigene YAML-Inhalte zeichnen und den interaktiven Canvas kennzeichnen |
-| `event` / `pointer` / `key` | Fachliche Eingaben und Tastenkürzel bearbeiten |
-| `overlay_event` / `overlay_open` / `draw_overlay` | Fachliche Popups betreiben |
-| `focus` / `blur` / `text_focus` | Textfokus beim Editorwechsel oder Konsolenklick übernehmen/abgeben |
-| `controls_hit` / `panel_scroll` / `zoom` | Fachliche Bedienflächen, Scrollpositionen und Zoom liefern |
-| `request` | Registrierte Öffnen-/Neu-/Importbefehle ausführen |
-| `update` / `startup` / `notify` / `begin_frame` | Laufzeit, Startansicht, Meldungen und flüchtige Frame-Daten behandeln |
+| `column` | Ordnet beliebig viele Kinder untereinander an |
+| `row` | Ordnet beliebig viele Kinder nebeneinander an |
+| `panel` | Zeichnet Panelgrau und ordnet Kinder untereinander an; `text` ergänzt eine Überschrift |
+| `toolbar` | Zeichnet Panelgrau und ordnet Kinder nebeneinander an |
+| `padding` | Innenabstand des Containers |
+| `gap` | Abstand zwischen seinen Kindern |
+| `width` / `height` | Explizite Breite in einer Row bzw. Höhe in einer Column |
+| `spacer` | Nimmt freien Platz ein |
+| `split` | Teilt in zwei oder drei Bereiche mit ziehbaren Greifern |
 
-Der Workspace kennt damit das Lebenszyklusprotokoll, aber keine interne Undo-Struktur. Die CMake-Targets der Dokumentmodelle bleiben unabhängig von der UI-Anwendung.
+In einer Row werden zunächst die expliziten Breiten reserviert. Normale `button`-Knoten
+bekommen ohne Breitenangabe ihre berechnete Inhaltsbreite. Die verbleibende Fläche teilen
+sich flexible Kinder gleichmäßig. In einer Column gilt das entsprechend für Höhen;
+Textfelder und Buttons haben beispielsweise eine Standardhöhe von 30 Pixeln, Labels 24.
 
-Beim Wechsel validiert der Workspace zuerst das Ziellayout. Danach schreibt er einen Checkpoint, merkt sich den Dirty-Status und zerstört den bisherigen Payload vollständig. Anschließend lädt er den Ziel-Editor neu. Schlägt das fehl, versucht er den bisherigen Editor aus dessen Checkpoint wiederherzustellen. Wechsel aus einem Render-Callback werden bis nach dem Frame verschoben, damit die gerade gelesenen YAML-Knoten gültig bleiben.
+Eine Row hat bisher **keine automatisch aus ihren Kindern berechnete Höhe**. Gib einer
+kompakten Eigenschaftenzeile deshalb `height: 30`:
 
-Die gemeinsame Konsole besitzt die Shell. Sie wird beim Editorwechsel nicht zerstört. Die Sitzungsdateien sind native, temporäre Laufzeitsicherung und kein portables Projektformat oder Crash-Recovery. Nach einer inkompatiblen Programmversion werden alte temporäre Sitzungsdateien nicht übernommen. Szenen, SVG und Projektmanifeste bleiben die dauerhaften Dateien.
+```yaml
+- type: row
+  height: 30
+  padding: 0
+  gap: 8
+  children:
+    - {type: label, text: X, width: 70}
+    - {type: input, id: position_x, text: "64"}
+```
 
-## Zustand und Besitz
+Ohne diese Höhe ist die Row in einer Column flexibel. Das ist passend, wenn sie zum
+Beispiel eine senkrechte Werkzeugleiste und einen Canvas über die verfügbare Höhe verteilt.
+Ein `panel` innerhalb dieser Row kann links mit fester Breite seine Buttons untereinander
+anordnen. Ein allgemeines YAML-Grid gibt es bisher nicht.
 
-Die private Anwendungsinstanz verbindet fünf Zustandsbereiche:
+Bei Splits bedeutet `axis: horizontal` Spalten und `axis: vertical` Zeilen. `flex` legt
+fest, welcher Bereich Fenstergrößenänderungen aufnimmt. Die anderen behalten ihre
+Wunschgrößen. Greifer ändern diese Wunschgrößen; Platzmangel begrenzt die tatsächlich
+angezeigten Größen, ohne die Wunschwerte zu vergessen. Die [README](../README.md#split-mit-zwei-oder-drei-bereichen)
+zeigt die vollständigen Eigenschaften.
 
-| Bereich | Besitzer und Lebensdauer |
+### Austauschbare Slots
+
+`slot` stellt die zugeteilte Fläche für einen separat geladenen UI-Baum bereit.
+`pui_layout_compose()` erzeugt eine neue zusammengesetzte Beschreibung;
+`pui_view_replace_slot()` ersetzt den Inhalt einer bestehenden View zwischen Frames.
+Die entstehende Oberfläche besitzt weiterhin einen gemeinsamen Fokus- und Eingabekontext.
+Explizite IDs sind im Gesamtbaum eindeutig; Bildpfade behalten ihr jeweiliges Quellverzeichnis.
+Die Details zum Erhalt von Zuständen und zum Zurücksetzen des Fokus stehen in der
+[Editor-Dokumentation](EDITOREN.md#einen-teilbereich-zur-laufzeit-austauschen).
+
+### Clipping und Hit-Tests
+
+Clipping begrenzt, wo ein Widget zeichnen und Mausaktionen annehmen darf. Der Clip-Stack
+schneidet jeden neuen Bereich mit dem bisherigen Elternbereich. So zeichnet ein
+scrollender Inhalt nicht über den Rand seines Widgets hinaus.
+
+Die View merkt sich pro gezeichnetem Knoten `rect` (zugeteiltes Rechteck), `hit` (sichtbaren
+Ausschnitt), `visible` und `enabled`. Ereignisse und Tab-Navigation nutzen diese Daten aus
+dem letzten gezeichneten Frame. Vor dem ersten Zeichnen sind deshalb noch keine gültigen
+Eingabefeld-Trefferbereiche vorhanden.
+
+Bei inaktiven Tabs und zugeklappten Sections werden die Inhalte nicht gezeichnet.
+**Ihre Zustände bleiben trotzdem in der View gespeichert.** Ein Tabwechsel entlädt keine
+separate Anwendung und gibt die dortigen Widgetressourcen nicht automatisch frei.
+
+## 6. Maus, Fokus und Auswahl
+
+Diese Begriffe beschreiben verschiedene Zustände:
+
+| Begriff | Bedeutung | Beispiel |
+| --- | --- | --- |
+| Hover | Die Maus liegt gerade im sichtbaren Widgetbereich | Ein Button wird beim Darüberfahren heller |
+| Aktive Mausinteraktion / Capture | Ein Widget hat den begonnenen Mausdruck übernommen | Ein Splitter wird weiterhin gezogen, obwohl die Maus den Greifer verlassen hat |
+| Tastaturfokus | Die ID, an die eine allgemeine Tastaturaktivierung gerichtet ist | Ein angeklickter Button lässt sich danach mit Leertaste aktivieren |
+| Textfokus | Das Eingabefeld, das Text und Bearbeitungstasten erhält | In einem Textfeld blinkt die Einfügemarke |
+| Auswahl / gespeicherter Wert | Ein dauerhafter Widgetzustand | Tree-Zeile, aktiver Tab, Checkbox oder Dropdown-Wert |
+
+### Wie ein Buttonklick entsteht
+
+Die Kernlogik liegt in [widgets/button.c](../lib/pengui/src/widgets/button.c) und
+[core/context.c](../lib/pengui/src/core/context.c).
+
+1. `pui_pointer()` speichert beim Drücken Position und Druckflanke.
+2. `pui_button()` prüft Bedienbarkeit, Clip und ursprüngliche Druckposition.
+3. Ein getroffenes Widget übernimmt `PUIContext.active` und bekommt `PUIContext.focus`.
+4. Beim Loslassen wird geprüft, ob die Loslassposition ebenfalls im gültigen Button liegt.
+5. Nur dann liefert `pui_button()` `true`; seine SDL-Implementierung kann die Aktion aufrufen.
+
+Ein Druck außerhalb mit anschließendem Loslassen innerhalb erzeugt keinen Buttonklick.
+Ein einmal übernommener Mausdruck steht anderen Widgets nicht gleichzeitig zur Verfügung.
+Falls das aktive Widget aus der Verarbeitung verschwindet, kann `pui_end_frame()` die
+verwaiste Interaktion anhand von `active_seen` lösen.
+
+Das ist die interne pengUI-Zuordnung einer Mausinteraktion. Wie Mausereignisse außerhalb
+des nativen Fensters zugestellt werden, hängt zusätzlich von SDL und dem Betriebssystem ab.
+
+### Gespeicherte Auswahl ist unabhängig vom Fokus
+
+Die Tree-Auswahl steht im Tree-Zustand, der aktive Tab in `PUITabs.selected` und ein
+Checkboxwert in `Widget.checked`. Wenn du danach in ein Textfeld klickst, bleibt die
+Tree-Zeile ausgewählt. Die vollständige orange Zeile zeigt diese Auswahl an.
+
+## 7. Textfelder und Tab-Navigation
+
+Die SDL-Anbindung steht in
+[widgets/text_input_sdl.c](../lib/pengui/src/widgets/text_input_sdl.c), die SDL-freie
+Textbearbeitung in [widgets/text_input.c](../lib/pengui/src/widgets/text_input.c).
+
+### Zwei Stellen für den Fokus
+
+`PUIContext.focus` enthält die allgemeine numerische Widget-ID. Zusätzlich enthält
+`PUIView.focused` den Index des Textfeldes, das gerade bearbeitet wird; `-1` bedeutet
+kein Textfeld. Das sind interne Details, die erklären, warum ein Button und ein Textfeld
+unterschiedliche Eingaben benötigen.
+
+`pui_focus()` allein setzt nur die allgemeine ID. Es startet keine SDL-Texteingabe und
+aktiviert nicht automatisch ein YAML-Textfeld. Eine öffentliche Funktion zum gezielten
+Setzen des Textfokus über eine YAML-ID gibt es derzeit nicht.
+
+### Fokus durch Mausklick
+
+Beim Drücken der linken Maustaste sucht die View ein sichtbares, bedienbares Textfeld
+unter dem Zeiger. Ein bisheriges Feld verliert gegebenenfalls den Textfokus. Für das
+getroffene Feld werden beide Fokusangaben gesetzt und `SDL_StartTextInput()` aufgerufen.
+Die Einfügeposition ergibt sich aus der Klickposition und dem horizontalen Textscroll.
+
+Mit gedrückter linker Maustaste kannst du vom gesetzten Startpunkt aus Text markieren.
+Das Feld übernimmt dafür die Mausinteraktion und behält den Auswahlanker beim Ziehen bei.
+Bewegungen und das Loslassen werden schon in der Ereignisphase ausgewertet, sodass auch
+schnelle Auswahlbewegungen zwischen zwei Bildern funktionieren. Beim Halten über dem
+linken oder rechten Feldrand scrollt langer Text während des Zeichnens weiter. Der Textcursor
+bleibt während des Ziehens sichtbar, auch außerhalb des Feldes. Loslassen über einem anderen
+Widget aktiviert dieses nicht. Neue Eingabe ersetzt den markierten Text; die bestehenden
+Kopier-, Ausschneide- und Löschtasten arbeiten auf derselben Auswahl.
+
+Ein Doppelklick markiert das Wort unter der Maus. Beim anschließenden Ziehen wird die
+Auswahl in ganzen Wörtern erweitert. Ein Dreifachklick markiert das komplette einzeilige
+Textfeld. SDL liefert die Klickanzahl mit; pengUI benötigt dafür keinen eigenen Timer.
+Die Wortgrenzen werden derzeit durch ASCII-Buchstaben, Ziffern, Unterstriche und
+Nicht-ASCII-Zeichen gebildet. Leerzeichen und ASCII-Satzzeichen bilden eigene Gruppen;
+eine vollständige sprachabhängige Unicode-Wortsegmentierung ist noch nicht implementiert.
+Strg+A bzw. Cmd+A markiert ebenfalls den gesamten Text.
+
+Ein Klick außerhalb eines Textfelds beendet den Textfokus mit `SDL_StopTextInput()`.
+Ein unsichtbar oder nicht bedienbar gewordenes Feld verliert ihn nach dem Zeichnen
+ebenfalls. Fenster-Fokusverlust beendet die Textbearbeitung und aktive Mausinteraktionen.
+
+### Fokus mit Tab
+
+- Tab sucht das nächste sichtbare und bedienbare `input` in YAML-Knotenreihenfolge.
+- Umschalt+Tab sucht rückwärts. Am Ende beginnt die Suche wieder auf der anderen Seite.
+- Ohne bisherigen Textfokus startet Tab beim ersten, Umschalt+Tab beim letzten Feld.
+- Inaktive Tabs, eingeklappte Sections, deaktivierte Eltern und vollständig weggeclippte
+  Felder werden übersprungen.
+- Beim Wechsel zu einem anderen Feld wird dessen Text vollständig markiert. Neue Eingabe
+  kann ihn dadurch direkt ersetzen.
+- Bei nur einem geeigneten Feld bleibt der Fokus dort. Wiederholte Key-Down-Ereignisse
+  einer gehaltenen Tab-Taste lösen keine weiteren Sprünge aus.
+
+Diese Navigation umfasst bisher Textfelder. Buttons, Checkboxen und Dropdown-Auslöser
+werden damit nicht durchlaufen. Die Reihenfolge folgt der YAML-Struktur; sie ist nicht
+als allgemeine räumliche Navigation implementiert.
+
+### Texteingabe und Bestätigung
+
+`SDL_EVENT_TEXT_INPUT` liefert den eingegebenen Text; Key-Down-Ereignisse behandeln
+beispielsweise Pfeile, Backspace und Tastenkürzel. Cursor und Auswahl arbeiten mit
+UTF-8-Bytepositionen und halten gültige Codepoint-Grenzen ein.
+
+Unterstützt sind unter anderem Pfeile, Home/End, Umschalt-Auswahl sowie Strg/Cmd+A/C/X/V.
+Enter merkt eine Bestätigung vor; beim Zeichnen des Feldes wird dessen `action` ausgelöst.
+**Nicht jeder Tastendruck und auch nicht der reine Fokusverlust lösen eine Aktion aus.**
+`pui_view_text()` liefert dennoch den bereits veränderten aktuellen Text.
+
+Escape beendet außerhalb eines Popups zunächst die Textbearbeitung. Ohne Textfokus und
+Popup behandelt die Beispiel-App Escape als Beenden der App. Diese letzte Entscheidung
+liegt in `apps/demo/application.c` und ist keine allgemeine Widgetregel.
+
+## 8. Aktionen mit deiner Anwendung verbinden
+
+YAML enthält Aktionsnamen als Strings. Deine App entscheidet, welche C-Funktion dazu gehört:
+
+```yaml
+- {type: button, id: save_button, text: Speichern, action: app.save}
+```
+
+Der Callback-Typ ist:
+
+```c
+typedef void (*PUIAction)(void *context, const char *action, const char *widget);
+```
+
+Die Beispiel-App übergibt ihren Callback und ihren Kontext bei jedem Zeichnen:
+
+```c
+pui_view_draw(app.view, &app.pui, area, action, &app);
+```
+
+Ein Beispiel für eine Erweiterung in `apps/demo/application.c`, wo `Playground` bereits definiert
+ist (der Text stellt hier nur eine Demo-Rückmeldung dar):
+
+```c
+static void save_requested(Playground *app) {
+    pui_view_set_text(app->view, "status", "Speichern angefordert");
+    /* Hier später das eigene Dokumentmodell speichern. */
+}
+```
+
+In die bestehende `action()`-Funktion kommt vor dem abschließenden `else` ein weiterer Zweig:
+
+```c
+} else if (!strcmp(name, "app.save")) {
+    save_requested(app);
+}
+```
+
+`name` ist hier `app.save`, `widget` wäre `save_button`. Die Zuordnung ersetzt eine
+Registrierung jeder einzelnen Funktion. Der Callback erhält geliehene Strings; wenn du
+sie für eine spätere Verarbeitung brauchst, kopiere sie in deinen eigenen Speicher.
+
+### Werte lesen und setzen
+
+| API | Verwendung |
 | --- | --- |
-| `platform` | Fenster, Renderer, Cursor und Fenstergröße; gesamte Anwendung |
-| `shell` | UI-Fokus, Navigation, Panel-Scrollpositionen, Eingabefelder und gemeinsame Konsole |
-| `workspace` | Aktiver Backend-Vertrag, opaque Payload-Zeiger, Layout und Sitzungsmetadaten |
-| `project` | Projektwurzel und Szenenpfad der geöffneten Anwendung |
-| `runtime` | Hauptschleife, Zeitmessung und Smoke-Modus |
+| `pui_view_text(view, id)` | Aktuellen Eingabetext lesen; `NULL` bei ungültigem Feld |
+| `pui_view_set_text(view, id, text)` | Text eines Inputs oder Labels ändern |
+| `pui_view_checked(view, id)` | Toggle-, Checkbox- oder Gruppenbuttonwert lesen |
+| `pui_view_set_checked(view, id, checked)` | Booleschen Wert setzen; Gruppenauswahl bleibt exklusiv |
+| `pui_view_value(view, id)` | Gewählten Dropdown-String lesen; `NULL` bei ungültigem Dropdown |
+| `pui_view_set_value(view, id, value)` | Eine bedienbare Dropdown-Option auswählen |
 
-Kamera, Tile-Werkzeug, Ebenenwahl, Map-Scrollpositionen, Play- und Gestenzustand gehören jetzt zu `MapPayload.view`. Sie leben und sterben mit der Map. Der Map-Checkpoint sichert Navigation, aber keine laufende Mausgeste oder Play-Simulation. Vector besitzt seine Navigation in `VeView`, Script seine Textansicht in `PeScriptEditor`.
+Setter lösen selbst keine Aktion aus. Sie liefern `false`, wenn eine Änderung ungültig
+ist. `pui_view_checked()` liefert auch bei einer ungültigen ID `false`; dieser Rückgabewert
+allein unterscheidet daher nicht zwischen „ausgeschaltet“ und „nicht vorhanden“.
+Geliehene Textzeiger solltest du bei Bedarf kopieren, bevor der Wert geändert oder die
+View bzw. das Layout freigegeben wird.
 
-`application/internal.h` enthält keine Editor-Modellheader mehr. Der Workspace besitzt genau einen undurchsichtigen `void *instance` plus dessen Backend. Er deklariert weder `MapPayload` noch `VectorEditor` noch `PeScriptEditor`. Nur die konkrete Domäne interpretiert den Zeiger. Ihre privaten Frontends benutzen dafür `pe_map_active_instance()`, `pe_vector_active_instance()` beziehungsweise `pe_script_active_instance()`. Diese Funktionen prüfen das zugehörige Backend und liefern bei einer anderen aktiven Domäne NULL. Nach einem Wechsel dürfen zuvor geliehene Zeiger nicht weiterverwendet werden.
+Toggle und Checkbox melden Zustandsänderungen, die Buttongruppe den neu aktivierten
+Gruppenbutton. Ein Dropdown meldet seine eigene Aktion und Widget-ID; der neue Wert ist
+bereits mit `pui_view_value(view, widget)` lesbar. Die erneute Auswahl desselben
+Gruppenbuttons oder Dropdown-Werts löst keine Änderungsaktion aus.
 
-Jede Domäne veröffentlicht in ihrem kleinen `adapter.h` eine `EditorView`-Beschreibung. `application/editors.c` registriert nur deren Adressen. Modulname, Zeichenfunktionen, Backend und Dokumentbefehle gehören zur Beschreibung. `editor/registry.c` sucht IDs, YAML-Modulnamen und Befehlsbesitzer ohne eingebaute Map-/Script-/Vector-Fallunterscheidung. Unity prüft dies mit erfundenen Dialog- und Animationseditoren. Sitzungspositionen folgen der Registrierung, die Kapazität ist `UI_MAX_TABS`.
+### UI-Zustand und dein Dokumentmodell
 
-Die gemeinsame Darstellung verwaltet Geometrie, Clipping, Standardwidgets und die Konsole. Fachliche YAML-Knoten delegiert sie an `draw_node`. Die Shell fragt Popup-, Fokus- und Eingabeverhalten über den Vertrag ab. Öffnen/Neu sowie das Speichern aller veränderten Dokumente beim Beenden laufen über Registrierung und Dokumentvertrag.
+Die UI besitzt bearbeitete Texte und sichtbare Auswahlen. Deine App sollte die fachlichen
+Daten besitzen: beispielsweise Pinselparameter, ein Bild oder später eine Spielszene.
+Bei einer Aktion liest und validierst du UI-Werte und übernimmst sie in dieses Modell.
+Beim Öffnen eines Dokuments kannst du umgekehrt die passenden Setter benutzen.
 
-**Verbleibende Kopplung:** Die bestehenden Frontends und Adapter verwenden weiterhin den globalen `editor/host.h` mit `app`, gemeinsamen UI-Diensten und Shellzustand. Die Backend-Rückrufe erhalten noch keinen expliziten Instanz-/Dienstkontext. Die privaten Instanzzugriffe sind deshalb ein abgesicherter Übergang, keine vollständige Isolation oder Mehrfenster-Unterstützung. Auch YAML-Schema, Datei-Endungszuordnung und einige Standard-Tab-IDs kennen die eingebauten Editoren weiterhin. Ein weiterer Schritt wäre ein expliziter Hostkontext mit kleinen Diensten und parameterisierten Frontends. Reine Modelle, Dokumentvertrag und Checkpoint-Codecs arbeiten bereits mit expliziten Kontexten.
+Der Callback läuft synchron während des Zeichnens. Er darf Werte ändern oder zum Beispiel
+`app.reload = true` setzen. Er darf die gerade benutzte View und das Layout nicht freigeben.
+Schon gezeichnete Elemente zeigen eine Änderung gegebenenfalls erst im nächsten Frame.
 
-## Beispiel: Ein neues Vector-Werkzeug
+## 9. Popups und Dropdowns
 
-1. Die eigentliche Operation in `editors/graphics/vector/document/` implementieren. Dokument als Parameter, boolescher Erfolg, bei Fehlern keine halben Änderungen. Einen sinnvollen Unity-Fall ergänzen.
-2. In `tools/actions.c` die Werkzeugaktion anbinden. Laufende Gesten gehören nach `tools/input.c`. Dokumentänderungen über `vector_commit()` als einen Undo-Schritt übernehmen.
-3. Einen Button in `resources/editor/ui/editors/vector.yaml` eintragen. Den Aktionsnamen in `editor/layout/ui_layout.c` registrieren; eigene YAML-Aktionen werden beim Laden geprüft.
-4. Falls nötig Auswahlzustand und Enabled-Regel im Vector-Adapter ergänzen. Die Shell bekommt keine Kenntnis der neuen Pfad-/Formoperation.
-5. Neue C-Dateien in der lokalen `CMakeLists.txt` eintragen. YAML-Beispiel unter `docs/examples/` mitpflegen, Architekturprüfung, Formatierung und Tests ausführen.
+Die gemeinsame Überlagerungslogik steht in
+[view/popup.c](../lib/pengui/src/view/popup.c), die Geometrie in
+[layout/popup.c](../lib/pengui/src/layout/popup.c).
 
-Für ein zusätzliches Eigenschaftenfeld bleiben Cursor, Fokus und Texteingabe beim gemeinsamen Feld-Widget. Zahlenbereich, Objektänderung und Undo liegen im konkreten Editor.
+Ein `popup_button` enthält genau ein `panel`. Ein `dropdown` enthält `option`-Knoten mit
+Beschriftung und eindeutigem `value`. Das Dropdown merkt sich seine Auswahl, während die
+geöffnete Liste vorübergehend über dem normalen Layout liegt.
 
-## Beispiel: Einen neuen Editor registrieren
+Die View verwaltet einen Stack geöffneter Popups. So kann ein Panel selbst weitere
+Dropdowns oder Popup-Buttons enthalten. Die Grundoberfläche wird zuerst gezeichnet,
+anschließend die geöffneten Ebenen. Nur die oberste Ebene nimmt normale Eingaben an.
 
-1. Eine Domäne unter `src/editors/` anlegen, etwa `game/dialogue/`. Keine leeren Unterverzeichnisse auf Vorrat erzeugen.
-2. Dokumentmodell und seine Tests zuerst erstellen. UI-unabhängige Header dürfen `editor/host.h` nicht einbinden.
-3. Payload, privaten Frontend-Header und `adapter.c/.h` implementieren. Alle Pflichtoperationen des Backend-Vertrags bereitstellen; nicht benötigte optionale Rückrufe auf NULL setzen.
-4. Eine öffentliche `EditorView`-Beschreibung mit stabiler ID, YAML-Modulname, Backend und benötigten Dokumentbefehlen veröffentlichen. Nur deren Adresse in `application/editors.c` registrieren. Der generische Workspace benötigt keinen neuen Payload-Typ.
-5. Der Sitzungsslot wird aus der Registrierung ermittelt. Die Anzahl darf `UI_MAX_TABS` nicht überschreiten; ein Compile-Time-Check sichert dies ab.
-6. YAML-Modul, Schema-Registrierung und Layoutdatei ergänzen. Die YAML-Dateien enthalten Anordnung und Aktionen, keine fachliche Dokumentlogik.
-7. Öffnen-/Neu-/Importbefehle in der Beschreibung registrieren und im eigenen `request` behandeln. Die Datei-Endungszuordnung und YAML-Schemavalidierung bei Bedarf ergänzen. Dirty-Abfrage, Speichern beim Beenden und Undo laufen automatisch über die bestehenden Verträge.
-8. Erzeugen, Speichern, Undo/Redo, Checkpoint, F6, Wechsel zu einem anderen Editor und vollständige Freigabe testen.
+Dafür wird die darunterliegende Oberfläche mit einer inaktiven Kopie des Eingabekontexts
+verarbeitet. Sie bleibt sichtbar, erhält aber keine Mausflanken oder Tastaturaktivierung.
+Vor jeder darüberliegenden Ebene werden die Eingabefreigaben neu aufgebaut. Dadurch
+beschränkt sich auch die Textfeld-Navigation auf das oberste Panel.
 
-## Arbeitsregeln
+Beim Öffnen endet ein bisheriger Textfokus; die allgemeine Fokus-ID zeigt auf den Auslöser.
+Beim Schließen wird diese ID wieder auf den geschlossenen Auslöser gesetzt. Ein zuvor
+bearbeitetes Textfeld erhält seinen Textfokus nicht automatisch zurück.
 
-- Öffentliche Header beschreiben Besitz, Lebensdauer, Koordinatensysteme und Fehlerverhalten. Private Helfer bleiben `static` oder im eigenen `internal.h`.
-- Jeder Zugriff auf freigebbare Modelle setzt den passenden aktiven Editor voraus. Nach Wechsel oder Reload Zeiger neu abfragen.
-- UI- und Navigationseinstellungen gehören nicht automatisch in den Dokument-Undo-Verlauf. Inhaltliche Änderungen müssen wiederherstellbar bleiben.
-- `if` hat immer geschweifte Klammern. Formatierung erfolgt mit `tools/format_code.py`.
-- Ein neues allgemeines Widget benötigt keine Engine-Abhängigkeit. Ein neuer Dienst braucht eine konkrete Aufgabe; `services/` und `core/` sind keine Ablage für unklare Zuständigkeiten.
-- Zuerst passende Modelltests ausführen, danach bei Integrationsänderungen die vollständigen CTest-Smokes und Sanitizer. Für UI-Änderungen zusätzlich einen echten Screenshot erstellen.
+Escape oder ein Klick außerhalb schließen zunächst das oberste Popup. Der Klick wird
+verbraucht und aktiviert kein Widget dahinter. Fenster-Fokusverlust schließt alle Ebenen.
+Verschwindet ein Auslöser aus der gezeichneten Oberfläche, schließt die View sein Popup.
+
+`placement: below` öffnet unterhalb, `right` daneben. Bei Platzmangel wechselt pengUI auf
+die Gegenseite und begrenzt das Rechteck auf die View. Dropdowns haben bei Bedarf eigene
+Scrollbar und Mausradbedienung; allgemeine Popup-Panels werden nicht automatisch scrollbar.
+
+Im geöffneten Dropdown bewegen Pfeile und Home/End die hervorgehobene Option. Enter oder
+Leertaste bestätigen, Escape verwirft die unbestätigte Wahl. Deaktivierte Optionen werden
+übersprungen. Tastatureingaben werden von der geöffneten Liste abgefangen; darunterliegende
+App-Tastenkürzel werden dann nicht zusätzlich ausgeführt.
+
+Vollständige Beispiele stehen in der [README](../README.md#dropdown-mit-werten).
+
+## 10. Cursor, Darstellung und Fenster
+
+Der native Mauszeiger und die gezeichnete Einfügemarke im Textfeld sind unterschiedliche
+Dinge. [view/cursor.c](../lib/pengui/src/view/cursor.c) verwaltet die SDL-Systemcursor.
+
+Pro Frame startet die View mit dem Standardzeiger. Widgets können einen anderen anfordern:
+Textfelder den Textcursor, Split-Greifer einen horizontalen oder vertikalen Größenänderungszeiger.
+Ein laufender Split-Drag hat dabei Vorrang vor normalem Hover. So bleibt der Ziehcursor auch
+über einem Textfeld erhalten, bis die Interaktion endet.
+
+Systemcursor werden bei Bedarf erzeugt und von der View wieder freigegeben. Bei einem
+Backend ohne Unterstützung bleibt der Standardcursor erhalten. `pui_view_cursor()` gibt
+den angeforderten Typ zurück, auch wenn das Backend ihn nicht darstellen kann.
+SDL-Bildaufnahmen der gezeichneten Oberfläche enthalten den nativen Mauszeiger nicht.
+
+Text verwendet den eingebetteten JetBrains-Mono-Atlas, Icons überwiegend einfache
+Zeichenprimitive und Bildbuttons PNG-Texturen. Die sieben YAML-Themewerte setzen eine
+aktuell globale Palette. Mehrere Views können unabhängige Widgetzustände haben; verschiedene
+gleichzeitige Themes pro View sind bisher nicht sauber getrennt.
+
+Die eigene Fensterbedienung in `window.c` ergänzt SDL-Hit-Tests für Größenänderung und
+freie Bereiche mit `draggable: true`. Interaktive Widgets und Popup-Flächen verhindern
+dort versehentliches Ziehen. Fensterbuttons lösen die Aktionen `window.minimize`,
+`window.maximize` und `window.close` aus. Die App reicht diese an `pui_window_action()`
+weiter; `window.close` erzeugt eine SDL-Schließanfrage für die Ereignisschleife.
+
+## 11. Lebensdauer und YAML-Reload
+
+| Ressource | Besitzer / Verantwortung |
+| --- | --- |
+| Fenster und Renderer | Anwendung |
+| `PUILayout` | Aufrufer von `pui_layout_load()`; in der Demo die Anwendung |
+| `PUIView` | Anwendung; die View leiht sich Layout und Renderer |
+| Widgetzustände, Bildtexturen und Systemcursor der View | View |
+| Schrifttextur | Wird am SDL-Renderer zwischengespeichert und mit dessen Texturen abgebaut |
+| `PUIContext` und `PUIWindow` | Anwendung; während der Benutzung stabil halten |
+| Fachliche Dokumentdaten | Anwendung |
+
+Die Freigabereihenfolge in der Demo ist:
+
+```text
+Fenster-Hit-Test lösen
+→ View freigeben
+→ Layout freigeben
+→ Renderer zerstören
+→ Fenster zerstören
+→ SDL beenden
+```
+
+Die View muss vor ihrem Layout und Renderer verschwinden, weil sie beim Aufräumen noch
+auf beide angewiesen ist. Der Fenster-Hit-Test darf keine freigegebene View referenzieren.
+
+`load_layout()` baut beim Reload erst ein neues Layout und eine neue View auf. Scheitert
+das, bleibt die bisherige Oberfläche erhalten. Bei Erfolg wird der Fensterbedienung die
+neue View zugeordnet, bevor die alte freigegeben wird. Anschließend werden Eingabekontext,
+Theme und Fenstertitel aktualisiert. Die YAML-Fenstergröße wird in der Demo nur beim
+Programmstart auf das Fenster angewendet.
+
+Erfolgreicher Reload setzt UI-Zustände zurück: eingegebene Texte, Auswahl, Tabreihenfolge,
+Scrollpositionen, Splitgrößen und Popups werden nicht automatisch übertragen. Speichere
+dauerhafte fachliche Werte daher in der App. F6 und der Reload-Button verschieben den
+Austausch ans Frame-Ende, damit kein Callback noch mit freigegebenen Knoten arbeitet.
+
+## 12. Ein neues Widget entwickeln
+
+Für ein größeres Widget kannst du diese Schritte als Arbeitsliste benutzen:
+
+1. Entscheide, welche Daten zur Anwendung und welche zum UI-Zustand gehören.
+2. Ergänze benötigte öffentliche Typen und Funktionen in `pengui.h`.
+3. Lege SDL-freie Interaktions- oder Geometrielogik in `widgets/<name>.c` bzw. `layout/` ab.
+4. Implementiere Darstellung und View-Anbindung in `widgets/<name>_sdl.c`.
+5. Ergänze bei Bedarf den privaten `Widget`-Zustand und dessen Initialisierung/Freigabe.
+6. Ergänze einen YAML-Knotentyp und die Prüfung seiner Eigenschaften und Kinder in `layout/yaml.c`.
+7. Verbinde den Typ mit `view/draw.c`; ergänze natürliche Größen in `layout/layout_sdl.c`.
+8. Ergänze native Spezialereignisse über eine Widgetfunktion, an die `view/events.c` weiterleitet.
+9. Berücksichtige deaktivierte Eltern, Clipping, Fokus, Popups, Cursor und Ressourcenlebensdauer.
+10. Trage neue Quellen in CMake ein und ergänze Unity-Tests sowie ein kleines YAML-Beispiel.
+
+Ein Widget darf eine Aktion melden. Es sollte selbst weder eine Spielszene noch ein
+Bilddokument oder eine globale App-Instanz kennen. Wiederverwendbare Eingaberegeln gehören
+in die Bibliothek, deren fachliche Bedeutung in deine Anwendung.
+
+Wenn du Widgets direkt ohne YAML verwendest, gehören ihre Werte und die Zeichenaufrufe
+in deinen C-Code. Du verwendest dann beispielsweise `pui_button()` oder `pui_toggle()`
+und zeichnest mit den öffentlichen Zeichenfunktionen. Bei diesem Weg koordinierst du
+Eingaben, Zustände, Clips und `pui_end_frame()` selbst.
+
+## 13. Den Code gezielt lesen und Fehler finden
+
+Eine sinnvolle Lesereihenfolge ist:
+
+1. [apps/demo/main.c](../apps/demo/main.c) und [apps/demo/application.c](../apps/demo/application.c): Wer besitzt was, und wann wird die UI aufgerufen?
+2. [view/view.c](../lib/pengui/src/view/view.c) und [view/internal.h](../lib/pengui/src/view/internal.h): Welche Zustände existieren?
+3. [view/events.c](../lib/pengui/src/view/events.c) und [view/draw.c](../lib/pengui/src/view/draw.c): Wie werden Eingaben und Zeichnen verteilt?
+4. [widgets/button.c](../lib/pengui/src/widgets/button.c) und [widgets/button_sdl.c](../lib/pengui/src/widgets/button_sdl.c): Ein kleines vollständiges Widget verfolgen.
+5. [widgets/text_input_sdl.c](../lib/pengui/src/widgets/text_input_sdl.c): Textfokus und Tab-Wechsel verstehen.
+6. [view/popup.c](../lib/pengui/src/view/popup.c): Mehrere Eingabeebenen nachvollziehen.
+
+| Beobachtung | Zuerst prüfen |
+| --- | --- |
+| YAML-Änderung wird nicht sichtbar | Richtige Datei geladen? App neu gebaut oder `--layout` benutzt? Reload erfolgreich? |
+| Row ist zu hoch | Fehlt die gewünschte feste `height` in einer Column? |
+| Textfeld bekommt keine Eingaben | Sichtbar, bedienbar und im obersten Popup? Gab es schon einen gezeichneten Frame? |
+| Ein Button reagiert nicht | Aktionsname im App-Callback behandelt? Druck und Loslassen im gültigen Bereich? |
+| Eingabe erzeugt keine Aktion | Ein Input meldet seine Aktion bei Enter; aktuelle Werte sind vorher schon lesbar |
+| Eine Auswahl bleibt orange | Dauerhafte Auswahl mit Hover oder Tastaturfokus verwechselt? |
+| App-Tastenkürzel stört die Texteingabe | Rückgabewert von `pui_view_event()` berücksichtigt? |
+| Nach Reload fehlen Werte | UI-Zustand wurde neu angelegt; fachliche Werte in der App erhalten und neu setzen |
+
+Die Tests dienen ebenfalls als ausführbare Beispiele:
+
+| Datei | Schwerpunkt |
+| --- | --- |
+| [test_ui.c](../tests/test_ui.c) | SDL-freie Interaktion, Textbearbeitung und Geometrie |
+| [test_layout.c](../tests/test_layout.c) | YAML-Schema, Grenzen und Fehlerfälle |
+| [test_view.c](../tests/test_view.c) | SDL-Ereignisse, Fokus, Cursor, Auswahl und Darstellung |
+| [test_popup.c](../tests/test_popup.c) | Dropdown-Werte, verschachtelte Panels und Schutz vor Klicks auf darunterliegende Widgets |
+| [test_splitter.c](../tests/test_splitter.c) | Split-Geometrie und Größenverhalten |
+| [check_architecture.py](../tools/check_architecture.py) | Abhängigkeitsgrenzen zwischen App, Core und SDL |
+
+## 14. Aktuelle Grenzen
+
+Die folgenden Punkte beschreiben den jetzigen Ausbauzustand und helfen bei der Planung:
+
+- YAML ist eine statische Beschreibung ohne Datenbindung, Ausdrücke oder Datei-Includes.
+- Höchstens 128 Knoten, 12 Beschreibungsebenen und 256 KiB YAML werden geladen.
+- Die allgemeine Tab-Navigation umfasst Textfelder; ein vollständiges Tastatur- und
+  Accessibility-System für alle Widgets ist noch nicht vorhanden.
+- Texteingaben sind einzeilig und haben im View-Zustand 256 Byte einschließlich Abschlussbyte.
+  Die UTF-8-Bearbeitung ist codepointbasiert; der aktuelle Schriftatlas deckt nur einen
+  begrenzten Zeichensatz bis Codepoint 255 ab. Unbekannte Zeichen erscheinen als `?`.
+- Es gibt keine allgemeine Content-Auto-Größenberechnung, kein YAML-Grid und keinen
+  automatischen Scrollcontainer für beliebig große Panels.
+- Es gibt keine automatische Persistenz, Undo-Verwaltung oder dynamische Dokumentbindung.
+- Die globale Theme-Palette und die SDL-Texteingabe benötigen besondere Koordination,
+  falls später mehrere Fenster bzw. Views gleichzeitig aktiv werden sollen.
+- Native Ereignisverarbeitung, SDL-Zeichnen und View-Benutzung gehören auf den Hauptthread.
+
+Wenn du später eine Engine aufsetzt, kann deren Dokument- und Szenenmodell außerhalb von
+pengUI bleiben. Die Bibliothek übernimmt weiterhin Darstellung und Bedienung; deine App
+verbindet UI-Aktionen mit den fachlichen Funktionen.
