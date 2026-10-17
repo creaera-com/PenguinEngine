@@ -32,7 +32,7 @@ Beim Bereichswechsel wird der bisherige Editor vollständig entladen. Ungespeich
 
 ## Projektstruktur
 
-Produktiver C-Code liegt unter `src/`, geordnet nach Engine, Editor, UI und Plattform. Map und Scripts gehören zu `src/editor/editors/`. YAML-Layouts und Schriftdateien liegen unter `resources/`; Beispiele, Tests und Fremdbibliotheken bleiben getrennt. Die [Strukturanleitung](docs/PROJEKTSTRUKTUR.md) erklärt die Ordner, Schnittstellen und Abhängigkeiten.
+Produktiver C-Code liegt unter `src/`, geordnet nach Engine, Editor, UI und Plattform. Die konkreten Editoren liegen unter `src/editors/game/map/`, `graphics/vector/` und `script/`. YAML-Layouts und Schriftdateien liegen unter `resources/`; Beispiele, Tests und Fremdbibliotheken bleiben getrennt. Die [Strukturanleitung](docs/PROJEKTSTRUKTUR.md) erklärt die Ordner; die [Architektur-Anleitung](docs/ARCHITEKTUR.md) erklärt Schnittstellen, Besitzregeln und Erweiterungen.
 
 ## Codestil und API-Dokumentation
 
@@ -164,7 +164,7 @@ QuickJS-ng prüft echte JavaScript-/ES-Modulsyntax, **führt den Code aber nicht
 - [Bedienung, Architektur und Erweiterungen](docs/IMPLEMENTIERUNG.md)
 - [Ursprüngliches Konzept und Entwicklungsplan](docs/ENGINE_KONZEPT.md)
 - [Manueller Prüfablauf](docs/TESTPLAN.md)
-- [Abhängigkeiten und Lizenzen](third_party/README.md)
+- [Abhängigkeiten und Lizenzen](https://github.com/creaera-com/PenguinEngine/blob/main/third_party/README.md)
 
 Die Engine ist eine ausbaubare Basis. Sprite-Entities werden zunächst als farbige Rechtecke dargestellt; Bildausschnitte werden bei Tilemaps unterstützt. Die Undo-Historie liegt im Speicher und umfasst maximal 64 Änderungen. Importierte Dateien bleiben beim Undo erhalten. Weitere Grenzen und Abweichungen vom ursprünglichen Konzept beschreibt die Implementierungsdokumentation.
 

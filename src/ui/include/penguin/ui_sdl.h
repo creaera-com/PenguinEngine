@@ -263,4 +263,19 @@ void ui_draw_scrollbar(SDL_Renderer *renderer, const UiContext *context, UiId id
  */
 void ui_apply_clip(SDL_Renderer *renderer, const UiContext *context);
 /** @} */
+/** @brief Zeichnet einen Bildbutton mit sichtbarem Zustandsrand und optionaler Beschriftung.
+ * @param renderer Geliehener Renderer der Textur.
+ * @param rect Buttonbereich in UI-Pixeln.
+ * @param image Geliehene Bildtextur; Farbe und Alpha werden nach dem Zeichnen wiederhergestellt.
+ * @param label Optionaler nullterminierter Text.
+ * @param padding Innenabstand in Pixeln, mindestens 2; empfohlen 4.
+ * @param active Ausgewähltes Werkzeug.
+ * @param enabled Bedienbarkeit; deaktivierte Bilder werden abgeschwächt.
+ * @param hover Zeiger über dem Button.
+ * @param pressed Laufender Tastendruck.
+ * @param focused Tastaturfokus; zeichnet einen Akzentrahmen.
+ */
+void ui_draw_image_button(SDL_Renderer *renderer, SDL_FRect rect, SDL_Texture *image,
+                          const char *label, float padding, bool active, bool enabled, bool hover,
+                          bool pressed, bool focused);
 #endif

@@ -14,15 +14,15 @@
  * Laden, Editorwechsel oder Dokumentersatz nicht weiterverwenden.
  *
  * @section editor_lifecycle Editor-Lebenszyklus
- * Die Editor-UI verwendet eine private Anwendungsinstanz. Nur ein Map- oder
+ * Die Editor-UI verwendet eine private Anwendungsinstanz. Nur ein Map-, Vector- oder
  * Scriptdokument ist gleichzeitig geladen. Temporäre Checkpoints sichern
  * Dokument und Undo/Redo beim Wechsel; sie sind kein portables Projektformat.
  * Die Dokument-Codecs erhalten ihren Kontext explizit.
  *
  * @section navigation Einstieg
- * Die Modulübersicht gruppiert die APIs nach Zuständigkeit. Die zusätzliche
- * Anleitung docs/PROJEKTSTRUKTUR.md im Repository erklärt den Aufbau und
- * docs/UI_YAML.md die deklarative Oberfläche.
+ * Das @subpage handbook bündelt die Markdown-Anleitungen in der Seitennavigation.
+ * Für den Einstieg zuerst @ref docs/PROJEKTSTRUKTUR.md und danach
+ * @ref docs/ARCHITEKTUR.md lesen. Die Modulübersicht beschreibt die C-Schnittstellen.
  */
 
 /** @defgroup engine_api Engine und SDL-Szenenrenderer
@@ -36,4 +36,28 @@
  */
 /** @defgroup shared_api Gemeinsame Hilfsfunktionen
  *  @brief Fachlich unabhängige JSON-Datei- und Validierungshelfer.
+ */
+
+/**
+ * @page handbook Handbuch
+ *
+ * @section handbook_start Einstieg und Architektur
+ * - @subpage README.md
+ * - @subpage docs/PROJEKTSTRUKTUR.md
+ * - @subpage docs/PROGRAMMABLAUF.md
+ * - @subpage docs/ARCHITEKTUR.md
+ * - @subpage docs/ENGINE_KONZEPT.md
+ * - @subpage docs/IMPLEMENTIERUNG.md
+ *
+ * @section handbook_ui Oberfläche und Werkzeuge
+ * - @subpage docs/UI_YAML.md
+ * - @subpage docs/UI_BIBLIOTHEK.md
+ * - @subpage docs/VECTOR_EDITOR.md
+ * - @subpage docs/SCENE_GRAPH.md
+ * - @subpage docs/COMPONENTS.md
+ * - @subpage docs/KONSOLE.md
+ *
+ * @section handbook_development Entwicklung und Prüfung
+ * - @subpage docs/CODESTIL_UND_API_DOKU.md
+ * - @subpage docs/TESTPLAN.md
  */

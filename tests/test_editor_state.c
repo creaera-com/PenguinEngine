@@ -1,6 +1,6 @@
-#include "layout/ui_layout.h"
+#include "editor/layout/ui_layout.h"
+#include "editor/workspace/session.h"
 #include "unity.h"
-#include "workspace/session.h"
 #include <stdlib.h>
 #include <string.h>
 #define CACHE "editor-state-test.session"
@@ -413,8 +413,70 @@ static void test_vector_grid_schema(void) {
             "unavailable");
 }
 
+static void test_button_images_schema(void) {
+    const char *valid = "schema: penguin.ui/v1\nkind: editor\nid: map\ndocument_provider: scene\n"
+                        "toolbar: [{type: button, id: custom, label: Icon, image: icons/grid.png, "
+                        "image_padding: 4}]\n"
+                        "columns:\n  left: {type: spacer, id: left}\n"
+                        "  center: {type: map_canvas, id: canvas, binding: scene.active}\n"
+                        "  right: {type: spacer, id: right}\n";
+    write_file(YAML_FILE, valid);
+    PeUiLayout *layout = pe_ui_layout_load(YAML_FILE, "editor", error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+    pe_ui_layout_free(layout);
+    char *invalid = malloc(strlen(valid) + 1);
+    TEST_ASSERT_NOT_NULL(invalid);
+    strcpy(invalid, valid);
+    *(strstr(invalid, "image_padding: 4") + 15) = '1';
+    rejects(invalid, "range");
+    strcpy(invalid, valid);
+    memcpy(strstr(invalid, "icons/grid.png"), "12345678901234", 14);
+    rejects(invalid, "path");
+    free(invalid);
+}
+
+static void test_shell_editor_image_schema(void) {
+    PeUiLayout *source = pe_ui_layout_load(PE_SOURCE_DIR "/resources/editor/ui/shell.yaml", "shell",
+                                           error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(source, error);
+    cJSON *entry = cJSON_GetArrayItem(cJSON_GetObjectItem(source->root, "editors"), 0);
+    cJSON_DeleteItemFromObject(entry, "icon");
+    cJSON_DeleteItemFromObject(entry, "image");
+    cJSON_DeleteItemFromObject(entry, "image_padding");
+    cJSON_AddStringToObject(entry, "image", "icons/grid.png");
+    cJSON_AddNumberToObject(entry, "image_padding", 6);
+    for (int mode = 0; mode < 4; mode++) {
+        if (mode == 1) {
+            cJSON_SetNumberValue(cJSON_GetObjectItem(entry, "image_padding"), 1);
+        } else if (mode == 2) {
+            cJSON_DeleteItemFromObject(entry, "image");
+            cJSON_AddNumberToObject(entry, "image", 12);
+        } else if (mode == 3) {
+            cJSON_DeleteItemFromObject(entry, "image");
+            cJSON_DeleteItemFromObject(entry, "image_padding");
+        }
+        char *text = cJSON_PrintUnformatted(source->root);
+        TEST_ASSERT_NOT_NULL(text);
+        write_file(YAML_FILE, text);
+        free(text);
+        PeUiLayout *layout = pe_ui_layout_load(YAML_FILE, "shell", error, sizeof error);
+        if (!mode) {
+            TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+        } else {
+            TEST_ASSERT_NULL(layout);
+            TEST_ASSERT_NOT_NULL(strstr(error, mode == 1   ? "range"
+                                               : mode == 2 ? "path"
+                                                           : "editor entry"));
+        }
+        pe_ui_layout_free(layout);
+    }
+    pe_ui_layout_free(source);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_shell_editor_image_schema);
+    RUN_TEST(test_button_images_schema);
     RUN_TEST(test_vector_grid_schema);
     RUN_TEST(test_vector_preview_schema);
     RUN_TEST(test_tool_panel_schema);

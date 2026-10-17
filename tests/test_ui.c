@@ -453,8 +453,26 @@ static void test_tree_guides_invalid_and_clipped_lists(void) {
     TEST_ASSERT_FALSE(ui_tree_continues(depths, 5, 1, 2));
 }
 
+static void test_image_fit_preserves_aspect_and_state_margin(void) {
+    UiRect fit = ui_image_fit((UiRect){10, 20, 32, 24}, 64, 32, 4);
+    TEST_ASSERT_EQUAL_FLOAT(24, fit.w);
+    TEST_ASSERT_EQUAL_FLOAT(12, fit.h);
+    TEST_ASSERT_EQUAL_FLOAT(14, fit.x);
+    TEST_ASSERT_EQUAL_FLOAT(26, fit.y);
+    fit = ui_image_fit((UiRect){0, 0, 32, 24}, 16, 64, 4);
+    TEST_ASSERT_EQUAL_FLOAT(4, fit.w);
+    TEST_ASSERT_EQUAL_FLOAT(16, fit.h);
+    TEST_ASSERT_EQUAL_FLOAT(4, fit.y);
+    fit = ui_image_fit((UiRect){0, 0, 10, 10}, 1, 1, 0);
+    TEST_ASSERT_EQUAL_FLOAT(2, fit.x);
+    TEST_ASSERT_EQUAL_FLOAT(6, fit.w);
+    TEST_ASSERT_EQUAL_FLOAT(0, ui_image_fit((UiRect){0, 0, 4, 4}, 1, 1, 4).w);
+    TEST_ASSERT_EQUAL_FLOAT(0, ui_image_fit((UiRect){0, 0, 32, 24}, NAN, 1, 4).w);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_image_fit_preserves_aspect_and_state_margin);
     RUN_TEST(test_tree_guides_follow_siblings_and_last_children);
     RUN_TEST(test_tree_guides_invalid_and_clipped_lists);
     RUN_TEST(test_text_input_insert_at_cursor);

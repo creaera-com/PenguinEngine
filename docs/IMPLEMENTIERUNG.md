@@ -12,20 +12,20 @@ Die [Projektstruktur](PROJEKTSTRUKTUR.md) erklärt die Domänen unter `src/` und
 | `src/engine/scene/scene.c` | Initialisierung des Szenenmodells. |
 | `src/engine/ecs/`, `tilemap/`, `history/`, `camera/`, `collision/`, `runtime/` | Getrennte Implementierungen für Entities, Tile-Werkzeuge, Undo/Redo, Kamera, Bewegung/Kollision und Laufzeitaktualisierung. |
 | `src/engine/project/manifest.c` | Validiertes Laden des Projektmanifests. |
-| `src/shared/json/` | Gemeinsame JSON-Datei- und Validierungshelfer. |
+| `src/services/json/` | Gemeinsame JSON-Datei- und Validierungshelfer. |
 | `src/engine/scripting/text.c` | UTF-8-Textpuffer, Auswahl, Undo/Redo und sichere Script-Dateioperationen. |
 | `src/engine/scripting/javascript.c` | QuickJS-ng-Syntaxprüfung, lexikalisches Highlighting und einfache Vervollständigung. |
-| `src/editor/editors/scripts/script_editor.c` | Textansicht, Eingaben, Zeilennummern, Vorschläge und Fehleranzeige. |
+| `src/editors/script/script_editor.c` | Textansicht, Eingaben, Zeilennummern, Vorschläge und Fehleranzeige. |
 | `src/engine/project/project.c` | Projektsuche relativ zur Programmdatei und explizite Projektpfade. |
 | `src/engine/scene/serialization.c` | Validiertes JSON-Laden und Speichern von Szenen. |
 | `src/platform/sdl/include/penguin/render.h` | SDL-Rendering und Textur-Lebenszyklus. |
 | `src/platform/sdl/scene_renderer.c` | PNG-Laden, Tile-Zeichnung, Entity-Darstellung, Raster und Kollisionsanzeige. |
 | `src/ui/core/core.c`, `src/ui/rendering/sdl.c` und öffentliche UI-Header | Gemeinsame Widget-Logik, Flat-Rendering, Icons und Themes für Editor und Spiele. |
-| `src/editor/editors/map/map_editor.h` | Interne Map-Datentypen und Verträge für die Map-Module im selben Verzeichnis. |
-| `src/editor/app/main.c` | Programmargumente, Initialisierung und Hauptschleife. |
-| `src/editor/app/shell.c`, `input.c` | Anwendungshülle und Eingabeverteilung. |
-| `src/editor/editors/map/` | Map-Bearbeitung, Dokumentoperationen, Eingaben, Panels, Canvas, Play und Dokument-Checkpoint. |
-| `src/editor/browser/`, `dialogs/`, `layout/`, `workspace/` | Dateibaum, modale Eingaben, YAML-UI sowie Dokumentaktionen und Editorwechsel. |
+| `src/editors/game/map/map_editor.h` | Interne Map-Datentypen und Verträge für die Map-Module im selben Verzeichnis. |
+| `src/application/application.c` | Programmargumente, Initialisierung und Hauptschleife. |
+| `src/shell/shell.c`, `input.c` | Anwendungshülle und Eingabeverteilung. |
+| `src/editors/game/map/` | Map-Bearbeitung, Dokumentoperationen, Eingaben, Panels, Canvas, Play und Dokument-Checkpoint. |
+| `src/shell/explorer/`, `shell/dialogs/`, `layout/`, `workspace/` | Dateibaum, modale Eingaben, YAML-UI sowie Dokumentaktionen und Editorwechsel. |
 | `tests/editor_smoke.c`, `test_editor_documents.c` | Editor-Integrationstests und eigenständige Dokument-Checkpoint-Tests. |
 | `examples/topdown/main.c` | Eigenständige Spielruntime ohne Editor. |
 | `tests/test_engine.c` | Unity-Tests der Kernregeln. |
@@ -189,7 +189,7 @@ Unter Linux 146 Unity-Tests sowie die Editor-Smokes prüfen Loader, Checkpointfe
 Die gemeinsame [Shell-Konsole](KONSOLE.md) wird vom Editor-Lebenszyklus nicht entladen. YAML-Splitter teilen den mittleren Bereich in Editor und kontextbezogene Tooltabs. libvterm verarbeitet VT-Steuersequenzen; der Shellprozess ist über einen separaten Plattformvertrag angebunden.
 
 
-Der Scene-Graph liegt fachlich in `src/engine/ecs/hierarchy.c`, seine Editor-Bedienung in `src/editor/editors/map/scene_tree.c`. Details zu Parent-IDs, lokalen Positionen und Dateiversionen stehen in [SCENE_GRAPH.md](SCENE_GRAPH.md).
+Der Scene-Graph liegt fachlich in `src/engine/ecs/hierarchy.c`, seine Editor-Bedienung in `src/editors/game/map/scene_tree.c`. Details zu Parent-IDs, lokalen Positionen und Dateiversionen stehen in [SCENE_GRAPH.md](SCENE_GRAPH.md).
 
 
 Die Map-Bedienung ist fachlich getrennt: `map_panel.c` verwaltet Layer im linken Map-Tab, `tiles_panel.c` verwaltet Tileset und Palette im rechten Tiles-Tab, `panels.c` enthält den Entity-Inspector und Szeneninformationen. YAML-Adapter und unabhängige Scrollzustände beschreiben diese Panels; Details in [UI_YAML.md](UI_YAML.md).

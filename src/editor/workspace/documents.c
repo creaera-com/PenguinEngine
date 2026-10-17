@@ -1,43 +1,30 @@
-#include "app/editor_internal.h"
+#include "application/internal.h"
 
 static bool request_dirty(Request r);
 static bool request_save(void);
 
 bool editor_save(void) {
-    if (editor_vector_active()) {
-        return vector_save();
-    }
-    if (editor_scripts_active()) {
-        bool ok = se_save(&(*app.script));
-        editor_message((*app.script).status);
-        return ok;
-    }
-
-    return editor_save_scene();
+    return pe_document_save(editor_active_document());
 }
 
 void editor_select_workspace(UiId id) {
-    if (app.rendering && id != app.loaded_view) {
-        app.pending_view = id;
-        app.workspaces.selected = app.loaded_view;
+    if (app.shell.rendering && id != app.workspace.loaded_view) {
+        app.workspace.pending_view = id;
+        app.shell.workspaces.selected = app.workspace.loaded_view;
         return;
     }
-    if (editor_edit_pending() || (app.playing && id != UI_MAP_VIEW)) {
-        app.workspaces.selected = app.loaded_view;
+    if (editor_edit_pending() || (editor_playing() && id != UI_MAP_VIEW)) {
+        app.shell.workspaces.selected = app.workspace.loaded_view;
         return;
     }
-    if (!editor_switch(editor_view(id)->id)) {
-        app.workspaces.selected = app.loaded_view;
-        ui_focus(&app.ui, app.script ? UI_SCRIPT_DOCUMENT : 0);
-        if (app.script) {
-            se_focus(app.script, app.window, true);
-        }
-        return;
+    bool switched = editor_switch(editor_view(id)->id);
+    app.shell.workspaces.selected = app.workspace.loaded_view;
+    ui_focus(&app.shell.ui, 0);
+    if (app.workspace.backend && app.workspace.backend->focus) {
+        app.workspace.backend->focus();
     }
-    app.workspaces.selected = app.loaded_view;
-    ui_focus(&app.ui, editor_scripts_active() ? UI_SCRIPT_DOCUMENT : 0);
-    if (app.script) {
-        se_focus(app.script, app.window, !app.playing);
+    if (!switched) {
+        return;
     }
 }
 
@@ -45,161 +32,118 @@ void editor_tab_select(bool scripts) {
     editor_select_workspace(scripts ? UI_SCRIPT_VIEW : UI_MAP_VIEW);
 }
 
-static bool request_dirty(Request r) {
-    if (r == REQUEST_SCRIPT_OPEN) {
-        return editor_script_dirty();
+static const EditorView *request_owner(Request command) {
+    if (command == REQUEST_QUIT) {
+        return NULL;
     }
-    if (r == REQUEST_QUIT) {
-        return editor_map_dirty() || editor_script_dirty() || editor_vector_dirty();
-    }
+    return pe_editor_registry_request(editor_registry, (int)command);
+}
 
-    if (r == REQUEST_VECTOR_OPEN || r == REQUEST_VECTOR_NEW) {
-        return editor_vector_dirty();
+static bool request_dirty(Request r) {
+    if (r == REQUEST_QUIT) {
+        for (int i = 0; i < editor_view_count; i++) {
+            if (editor_document_dirty(editor_views[i]->id)) {
+                return true;
+            }
+        }
+        return false;
     }
-    return editor_map_dirty();
+    const EditorView *owner = request_owner(r);
+    return owner && editor_document_dirty(owner->id);
 }
 
 static bool request_save(void) {
-    if (app.request == REQUEST_QUIT) {
-        if (editor_map_dirty()) {
-            editor_select_workspace(UI_MAP_VIEW);
-            if (!editor_map_active() || !editor_save_scene()) {
-                return false;
-            }
-        }
-        if (editor_script_dirty()) {
-            editor_select_workspace(UI_SCRIPT_VIEW);
-            if (!editor_scripts_active() || !editor_save()) {
-                return false;
-            }
-        }
-        if (editor_vector_dirty()) {
-            editor_select_workspace(UI_VECTOR_VIEW);
-            if (!editor_vector_active() || !vector_save()) {
-                return false;
+    if (app.shell.request == REQUEST_QUIT) {
+        for (int i = 0; i < editor_view_count; i++) {
+            UiId id = editor_views[i]->id;
+            if (editor_document_dirty(id)) {
+                editor_select_workspace(id);
+                if (app.workspace.loaded_view != id || !editor_save()) {
+                    return false;
+                }
             }
         }
         return true;
     }
-
     return editor_save();
 }
 
-void editor_undo_active(bool redo) {
-    if (editor_vector_active()) {
-        vector_undo(redo);
+static void perform_request(Request command) {
+    if (command == REQUEST_QUIT) {
+        app.runtime.running = false;
         return;
     }
-    if (editor_scripts_active()) {
-        bool ok =
-            redo ? pe_text_redo(&(*app.script).document) : pe_text_undo(&(*app.script).document);
-        if (ok) {
-            se_changed(&(*app.script), app.viewport, false);
-        }
-    } else {
-        if (redo) {
-            pe_redo(&app.map->history, &app.map->scene);
-        } else {
-            pe_undo(&app.map->history, &app.map->scene);
-        }
-        editor_selection_sync();
+    const EditorView *owner = request_owner(command);
+    if (owner && owner->id == app.workspace.loaded_view && owner->backend->request) {
+        owner->backend->request(command, app.shell.open_path);
     }
+}
+
+void editor_undo_active(bool redo) {
+    pe_document_undo(editor_active_document(), redo);
 }
 
 void editor_request(Request type, const char *path) {
-    if (app.rendering) {
-        app.deferred_request = type;
-        snprintf(app.deferred_path, sizeof app.deferred_path, "%s", path ? path : "");
+    if (app.shell.rendering) {
+        app.shell.deferred_request = type;
+        snprintf(app.shell.deferred_path, sizeof app.shell.deferred_path, "%s", path ? path : "");
         return;
     }
-    if (type == REQUEST_IMPORT) {
-        editor_import_png(path);
+    const EditorView *owner = request_owner(type);
+    if (owner && (int)type == owner->import_request) {
+        if (owner->id == app.workspace.loaded_view && owner->backend->request) {
+            owner->backend->request(type, path);
+        }
         return;
     }
-    if (type == REQUEST_VECTOR_OPEN || type == REQUEST_VECTOR_NEW) {
-        editor_select_workspace(UI_VECTOR_VIEW);
-        if (!editor_vector_active()) {
+    if (owner) {
+        editor_select_workspace(owner->id);
+        if (app.workspace.loaded_view != owner->id) {
             return;
         }
-    } else if (type == REQUEST_SCRIPT_OPEN) {
-        editor_select_workspace(UI_SCRIPT_VIEW);
-        if (!editor_scripts_active()) {
-            return;
-        }
-    } else if (type == REQUEST_OPEN) {
-        editor_select_workspace(UI_MAP_VIEW);
-        if (!editor_map_active()) {
-            return;
-        }
+    } else if (type != REQUEST_QUIT) {
+        return;
     }
-    if (app.playing) {
+    if (editor_playing()) {
         return;
     }
     if (path) {
-        if (strlen(path) >= sizeof app.open_path) {
+        if (strlen(path) >= sizeof app.shell.open_path) {
             editor_message("Path too long");
             return;
         }
-        snprintf(app.open_path, sizeof app.open_path, "%s", path);
+        snprintf(app.shell.open_path, sizeof app.shell.open_path, "%s", path);
     }
     if (request_dirty(type)) {
-        app.request = type;
+        app.shell.request = type;
         return;
     }
-    if (type == REQUEST_QUIT) {
-        app.running = false;
-    } else if (type == REQUEST_VECTOR_OPEN) {
-        vector_open(app.open_path);
-    } else if (type == REQUEST_VECTOR_NEW) {
-        vector_new();
-    } else if (type == REQUEST_SCRIPT_OPEN) {
-        if (se_open(&(*app.script), app.open_path)) {
-            editor_tab_select(true);
-        } else {
-            editor_message((*app.script).status);
-        }
-    } else {
-        editor_load_scene(app.open_path);
-    }
+    perform_request(type);
 }
 
 void editor_request_finish(void) {
-    Request r = app.request;
-    app.request = REQUEST_NONE;
-    if (r == REQUEST_QUIT) {
-        app.running = false;
-    } else if (r == REQUEST_VECTOR_OPEN) {
-        vector_open(app.open_path);
-    } else if (r == REQUEST_VECTOR_NEW) {
-        vector_new();
-    } else if (r == REQUEST_OPEN) {
-        editor_load_scene(app.open_path);
-    } else if (r == REQUEST_SCRIPT_OPEN) {
-        if (se_open(&(*app.script), app.open_path)) {
-            editor_tab_select(true);
-        } else {
-            editor_message((*app.script).status);
-        }
-    }
+    Request command = app.shell.request;
+    app.shell.request = REQUEST_NONE;
+    perform_request(command);
 }
 
 void editor_process_deferred_ui(void) {
-    app.wheel_delta = 0;
-    app.rendering = false;
-    if (app.deferred_save) {
-        app.deferred_save = false;
+    app.shell.wheel_delta = 0;
+    app.shell.rendering = false;
+    if (app.shell.deferred_save) {
+        app.shell.deferred_save = false;
         if (request_save()) {
             editor_request_finish();
         }
     }
-    if (app.deferred_request != REQUEST_NONE) {
-        Request r = app.deferred_request;
-        app.deferred_request = REQUEST_NONE;
-        editor_request(r, *app.deferred_path ? app.deferred_path : NULL);
+    if (app.shell.deferred_request != REQUEST_NONE) {
+        Request r = app.shell.deferred_request;
+        app.shell.deferred_request = REQUEST_NONE;
+        editor_request(r, *app.shell.deferred_path ? app.shell.deferred_path : NULL);
     }
-    if (app.pending_view) {
-        UiId id = app.pending_view;
-        app.pending_view = 0;
+    if (app.workspace.pending_view) {
+        UiId id = app.workspace.pending_view;
+        app.workspace.pending_view = 0;
         editor_select_workspace(id);
     }
 }

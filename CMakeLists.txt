@@ -9,220 +9,42 @@ set(CMAKE_C_EXTENSIONS OFF)
 option(PENGUIN_BUILD_EDITOR "Build SDL3 editor and game" ON)
 option(PENGUIN_FETCH_SDL "Download pinned SDL3 if not installed" ON)
 option(PENGUIN_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
-add_library(penguin STATIC
- src/engine/scene/scene.c
- src/engine/ecs/entities.c
- src/engine/ecs/names.c
- src/engine/ecs/components.c
- src/engine/ecs/hierarchy.c
- src/engine/tilemap/tilemap.c
- src/engine/history/history.c
- src/engine/camera/camera.c
- src/engine/collision/collision.c
- src/engine/runtime/update.c
- src/engine/scene/serialization.c
- src/engine/project/project.c
- src/engine/project/manifest.c
- src/shared/json/json_io.c
- third_party/cjson/cJSON.c)
-target_include_directories(penguin PUBLIC src/engine/include PRIVATE src third_party/cjson)
-if(NOT MSVC)
- target_compile_options(penguin PRIVATE -Wall -Wextra -Wpedantic)
- target_link_libraries(penguin PUBLIC m)
-endif()
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 if(PENGUIN_SANITIZERS AND NOT MSVC)
  add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)
  add_link_options(-fsanitize=address,undefined)
- target_compile_options(penguin PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
-endif()
-# Vendored QuickJS-ng: parser only, no CLI or OS modules.
-find_package(Threads REQUIRED)
-add_library(penguin_js_parser STATIC
- third_party/quickjs-ng/quickjs.c third_party/quickjs-ng/cutils.c
- third_party/quickjs-ng/libregexp.c third_party/quickjs-ng/libunicode.c
- third_party/quickjs-ng/xsum.c)
-set_target_properties(penguin_js_parser PROPERTIES C_STANDARD 11 C_EXTENSIONS ON)
-target_include_directories(penguin_js_parser PUBLIC third_party/quickjs-ng)
-target_compile_definitions(penguin_js_parser PRIVATE _GNU_SOURCE)
-target_link_libraries(penguin_js_parser PUBLIC Threads::Threads ${CMAKE_DL_LIBS})
-if(MSVC)
- target_compile_options(penguin_js_parser PRIVATE /experimental:c11atomics /J)
- target_compile_definitions(penguin_js_parser PRIVATE WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0601)
-else()
- target_link_libraries(penguin_js_parser PUBLIC m)
- target_compile_options(penguin_js_parser PRIVATE -funsigned-char)
-endif()
-add_library(penguin_script STATIC src/engine/scripting/text.c src/engine/scripting/javascript.c)
-target_include_directories(penguin_script PUBLIC src/engine/include)
-target_link_libraries(penguin_script PRIVATE penguin_js_parser)
-if(NOT MSVC)
- target_compile_options(penguin_script PRIVATE -Wall -Wextra -Wpedantic)
-endif()
-add_library(penguin_yaml STATIC third_party/libyaml/src/api.c third_party/libyaml/src/reader.c
- third_party/libyaml/src/scanner.c third_party/libyaml/src/parser.c third_party/libyaml/src/loader.c
- third_party/libyaml/src/writer.c third_party/libyaml/src/emitter.c third_party/libyaml/src/dumper.c)
-target_include_directories(penguin_yaml PUBLIC third_party/libyaml/include)
-target_compile_definitions(penguin_yaml PUBLIC YAML_DECLARE_STATIC PRIVATE
- YAML_VERSION_MAJOR=0 YAML_VERSION_MINOR=2 YAML_VERSION_PATCH=5 YAML_VERSION_STRING="0.2.5")
-if(MSVC)
- target_compile_definitions(penguin_yaml PRIVATE strdup=_strdup)
-else()
- target_compile_definitions(penguin_yaml PRIVATE _POSIX_C_SOURCE=200809L)
-endif()
-add_library(penguin_ui_layout STATIC src/editor/layout/ui_layout.c)
-target_include_directories(penguin_ui_layout PUBLIC src/editor third_party/cjson)
-target_link_libraries(penguin_ui_layout PUBLIC penguin PRIVATE penguin_yaml)
-if(NOT MSVC)
- target_compile_options(penguin_ui_layout PRIVATE -Wall -Wextra -Wpedantic)
-endif()
-add_library(penguin_editor_session STATIC src/editor/workspace/session.c)
-target_include_directories(penguin_editor_session PUBLIC src/editor)
-if(NOT MSVC)
- target_compile_options(penguin_editor_session PRIVATE -Wall -Wextra -Wpedantic)
-endif()
-add_library(penguin_vterm STATIC
- third_party/libvterm/src/encoding.c third_party/libvterm/src/keyboard.c
- third_party/libvterm/src/mouse.c third_party/libvterm/src/parser.c
- third_party/libvterm/src/pen.c third_party/libvterm/src/screen.c
- third_party/libvterm/src/state.c third_party/libvterm/src/unicode.c third_party/libvterm/src/vterm.c)
-target_include_directories(penguin_vterm PUBLIC third_party/libvterm/include)
-add_library(penguin_terminal STATIC src/editor/console/terminal.c)
-target_include_directories(penguin_terminal PUBLIC src/editor)
-target_link_libraries(penguin_terminal PRIVATE penguin_vterm)
-if(UNIX)
- target_sources(penguin_terminal PRIVATE src/platform/terminal/posix.c)
-else()
- target_sources(penguin_terminal PRIVATE src/platform/terminal/unavailable.c)
-endif()
-target_include_directories(penguin_terminal PUBLIC src)
-if(NOT MSVC)
- target_compile_options(penguin_terminal PRIVATE -Wall -Wextra -Wpedantic)
-endif()
-add_subdirectory(src/ui)
-add_library(penguin_vector STATIC
- src/editor/editors/vector/document.c
- src/editor/editors/vector/boolean.c
- src/editor/editors/vector/svg.c
- src/editor/editors/vector/metadata.c
- src/editor/editors/vector/history.c
- src/editor/editors/vector/preview_view.c
- src/editor/editors/vector/grid_view.c
- src/editor/editors/vector/nanosvg.c)
-target_include_directories(penguin_vector PUBLIC src/editor PRIVATE third_party/cjson third_party/nanosvg)
-target_link_libraries(penguin_vector PUBLIC penguin)
-if(NOT MSVC)
- set_source_files_properties(src/editor/editors/vector/document.c src/editor/editors/vector/boolean.c src/editor/editors/vector/svg.c src/editor/editors/vector/metadata.c src/editor/editors/vector/history.c
- src/editor/editors/vector/preview_view.c
- src/editor/editors/vector/grid_view.c
-  PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic")
 endif()
 include(CTest)
-if(BUILD_TESTING)
- add_executable(penguin_terminal_tests tests/test_terminal.c)
- target_link_libraries(penguin_terminal_tests PRIVATE penguin_terminal unity)
- if(UNIX)
-  target_compile_definitions(penguin_terminal_tests PRIVATE _POSIX_C_SOURCE=200809L)
- endif()
- add_test(NAME terminal_unit_tests COMMAND penguin_terminal_tests)
- set_tests_properties(terminal_unit_tests PROPERTIES TIMEOUT 15)
- add_library(unity STATIC third_party/unity/unity.c)
- target_include_directories(unity PUBLIC third_party/unity)
- add_executable(penguin_tests tests/test_engine.c)
- target_link_libraries(penguin_tests PRIVATE penguin unity)
- target_include_directories(penguin_tests PRIVATE third_party/cjson)
- add_test(NAME engine_unit_tests COMMAND penguin_tests)
- add_executable(penguin_hierarchy_tests tests/test_hierarchy.c)
- target_link_libraries(penguin_hierarchy_tests PRIVATE penguin unity)
- target_include_directories(penguin_hierarchy_tests PRIVATE third_party/cjson)
- add_test(NAME hierarchy_unit_tests COMMAND penguin_hierarchy_tests)
- add_executable(penguin_vector_tests tests/test_vector.c)
- target_link_libraries(penguin_vector_tests PRIVATE penguin_vector unity)
- add_test(NAME vector_unit_tests COMMAND penguin_vector_tests)
- add_executable(penguin_component_tests tests/test_components.c)
- target_link_libraries(penguin_component_tests PRIVATE penguin unity)
- target_include_directories(penguin_component_tests PRIVATE third_party/cjson)
- add_test(NAME component_unit_tests COMMAND penguin_component_tests)
- add_executable(penguin_script_tests tests/test_script.c)
- target_link_libraries(penguin_script_tests PRIVATE penguin_script unity)
- add_test(NAME script_unit_tests COMMAND penguin_script_tests)
- add_executable(penguin_ui_tests tests/test_ui.c)
- target_link_libraries(penguin_ui_tests PRIVATE penguin_ui unity)
- add_test(NAME ui_unit_tests COMMAND penguin_ui_tests)
- add_executable(penguin_editor_state_tests tests/test_editor_state.c)
- target_link_libraries(penguin_editor_state_tests PRIVATE penguin_editor_session penguin_ui_layout unity)
- target_compile_definitions(penguin_editor_state_tests PRIVATE PE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
- add_test(NAME editor_state_unit_tests COMMAND penguin_editor_state_tests)
+include(cmake/Dependencies.cmake)
+if(PENGUIN_BUILD_EDITOR)
+ add_executable(penguin_editor src/main.c)
+ target_include_directories(penguin_editor PRIVATE src third_party/nanosvg)
+endif()
+add_subdirectory(src/services)
+add_subdirectory(src/engine)
+add_subdirectory(src/ui)
+if(PENGUIN_BUILD_EDITOR)
+ penguin_ui_add_sdl()
+endif()
+add_subdirectory(src/platform)
+add_subdirectory(src/editor)
+add_subdirectory(src/editors/game/map)
+add_subdirectory(src/editors/graphics/vector)
+add_subdirectory(src/editors/script)
+add_subdirectory(src/shell)
+add_subdirectory(src/application)
+if(NOT MSVC)
+ foreach(target penguin_json penguin_document)
+  target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+ endforeach()
 endif()
 if(PENGUIN_BUILD_EDITOR)
- find_package(SDL3 3.2 CONFIG QUIET)
- if(NOT SDL3_FOUND)
-  if(NOT PENGUIN_FETCH_SDL)
-   message(FATAL_ERROR "SDL3 >= 3.2 required. Install SDL3 or enable PENGUIN_FETCH_SDL.")
-  endif()
-  include(FetchContent)
-  set(SDL_SHARED OFF CACHE BOOL "" FORCE)
-  set(SDL_STATIC ON CACHE BOOL "" FORCE)
-  set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
-  set(SDL_TESTS OFF CACHE BOOL "" FORCE)
-  FetchContent_Declare(SDL3 URL https://github.com/libsdl-org/SDL/releases/download/release-3.2.10/SDL3-3.2.10.tar.gz URL_HASH SHA256=f87be7b4dec66db4098e9c167b2aa34e2ca10aeb5443bdde95ae03185ed513e0)
-  FetchContent_MakeAvailable(SDL3)
- endif()
- penguin_ui_add_sdl()
- add_library(penguin_sdl STATIC src/platform/sdl/scene_renderer.c)
- target_include_directories(penguin_sdl PUBLIC src/platform/sdl/include PRIVATE third_party/stb)
- target_link_libraries(penguin_sdl PUBLIC penguin SDL3::SDL3)
- add_library(penguin_editor_documents STATIC
-  src/editor/editors/map/checkpoint.c
-  src/editor/editors/scripts/checkpoint.c)
- target_include_directories(penguin_editor_documents PUBLIC src/editor)
- target_link_libraries(penguin_editor_documents PUBLIC penguin_editor_session penguin_sdl penguin_script penguin_ui)
- add_executable(penguin_editor
-  src/editor/editors/vector/editor.c
-  src/editor/editors/vector/tree.c
-  src/editor/editors/vector/panels.c
-  src/editor/editors/vector/fields.c
-  src/editor/editors/vector/actions.c
-  src/editor/editors/vector/input.c
-  src/editor/editors/vector/render.c
-  src/editor/editors/vector/preview.c
-  src/editor/editors/vector/grid.c
-  src/editor/editors/vector/checkpoint.c
-  src/editor/editors/vector/demo.c
-  src/editor/console/view.c
-  src/editor/app/main.c
-  src/editor/app/state.c
-  src/editor/app/input.c
-  src/editor/app/shell.c
-  src/editor/app/window.c
-  src/editor/app/ui_helpers.c
-  src/editor/browser/file_tree.c
-  src/editor/dialogs/fields.c
-  src/editor/layout/bindings.c
-  src/editor/layout/renderer.c
-  src/editor/workspace/documents.c
-  src/editor/workspace/lifecycle.c
-  src/editor/editors/map/actions.c
-  src/editor/editors/map/fields.c
-  src/editor/editors/map/runtime.c
-  src/editor/editors/map/input.c
-  src/editor/editors/map/document.c
-  src/editor/editors/map/tools.c
-  src/editor/editors/map/panels.c
-  src/editor/editors/map/map_panel.c
-  src/editor/editors/map/tiles_panel.c
-  src/editor/editors/map/components.c
-  src/editor/editors/map/scene_tree.c
-  src/editor/editors/map/canvas.c
-  src/editor/editors/scripts/script_editor.c
-  src/editor/editors/scripts/actions.c
-  src/editor/editors/scripts/panels.c)
+ target_link_libraries(penguin_editor PRIVATE penguin_document penguin_vector penguin_terminal penguin_editor_documents penguin_sdl penguin_script penguin_ui_sdl penguin_editor_session penguin_ui_layout)
  if(BUILD_TESTING)
   target_sources(penguin_editor PRIVATE tests/editor_smoke.c tests/editor_vector_smoke.c)
   target_include_directories(penguin_editor PRIVATE tests)
   target_compile_definitions(penguin_editor PRIVATE PE_EDITOR_SMOKE_TESTS=1)
  endif()
- target_include_directories(penguin_editor PRIVATE src/editor third_party/nanosvg)
- target_link_libraries(penguin_editor PRIVATE penguin_vector penguin_terminal penguin_editor_documents penguin_sdl penguin_script penguin_ui_sdl penguin_editor_session penguin_ui_layout)
  add_executable(penguin_ui_demo examples/ui/main.c)
  target_link_libraries(penguin_ui_demo PRIVATE penguin_ui_sdl)
  add_executable(penguin_game examples/topdown/main.c)
@@ -243,28 +65,8 @@ if(PENGUIN_BUILD_EDITOR)
  add_dependencies(penguin_editor copy_editor_ui)
  add_dependencies(penguin_editor copy_example)
  add_dependencies(penguin_game copy_example)
- if(BUILD_TESTING)
-  add_executable(penguin_editor_document_tests tests/test_editor_documents.c)
-  target_link_libraries(penguin_editor_document_tests PRIVATE penguin_editor_documents unity)
-  add_test(NAME editor_document_unit_tests COMMAND penguin_editor_document_tests)
-  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/unrelated-working-directory)
-  add_test(NAME editor_default_project COMMAND penguin_editor --smoke)
-  add_test(NAME game_default_project COMMAND penguin_game --smoke)
-  set_tests_properties(editor_default_project game_default_project PROPERTIES
-   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unrelated-working-directory
-   ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy" TIMEOUT 20)
-  add_test(NAME example_copy_preserves_edits COMMAND ${CMAKE_COMMAND}
-   -DSOURCE=${CMAKE_SOURCE_DIR} -DBINARY=${CMAKE_BINARY_DIR}
-   -P ${CMAKE_SOURCE_DIR}/tests/test_copy_example.cmake)
-  add_test(NAME ui_demo_smoke COMMAND penguin_ui_demo --smoke)
-  set_tests_properties(ui_demo_smoke PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy" TIMEOUT 20)
-  add_test(NAME editor_script_smoke COMMAND penguin_editor --smoke --scripts)
-  set_tests_properties(editor_script_smoke PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy" TIMEOUT 20)
-  add_test(NAME editor_smoke COMMAND penguin_editor --project ${CMAKE_BINARY_DIR}/example --smoke)
-  add_test(NAME game_smoke COMMAND penguin_game --project ${CMAKE_BINARY_DIR}/example --smoke)
-  set_tests_properties(editor_smoke game_smoke PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy" TIMEOUT 20)
- endif()
 endif()
+add_subdirectory(tests)
 
 # API documentation is optional; normal builds never require Doxygen.
 find_package(Doxygen QUIET)

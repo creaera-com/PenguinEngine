@@ -435,3 +435,36 @@ void ui_draw_tree_guides(SDL_Renderer *r, const int *depths, int count, int row,
                       phase);
     }
 }
+
+void ui_draw_image_button(SDL_Renderer *renderer, SDL_FRect rect, SDL_Texture *image,
+                          const char *label, float padding, bool active, bool enabled, bool hover,
+                          bool pressed, bool focused) {
+    bool selected = active || (enabled && pressed);
+    ui_draw_button(renderer, rect, ICON_NONE, NULL, selected, enabled, hover);
+    bool text = label && *label;
+    float width, height;
+    if (image && SDL_GetTextureSize(image, &width, &height)) {
+        UiRect slot = {text ? rect.x + 5 : rect.x, rect.y, text ? 24 : rect.w, rect.h};
+        UiRect fit = ui_image_fit(slot, width, height, padding);
+        SDL_FRect target = {fit.x, fit.y, fit.w, fit.h};
+        Uint8 alpha;
+        SDL_GetTextureAlphaMod(image, &alpha);
+        if (!enabled) {
+            SDL_SetTextureAlphaMod(image, alpha / 2);
+        }
+        if (fit.w > 0 && fit.h > 0) {
+            SDL_RenderTexture(renderer, image, NULL, &target);
+        }
+        SDL_SetTextureAlphaMod(image, alpha);
+    }
+    if (text) {
+        Uint32 foreground = !enabled   ? ui_theme.disabled
+                            : selected ? ui_theme.canvas
+                                       : ui_theme.text;
+        ui_text(renderer, rect.x + 31, rect.y + (rect.h - UI_FONT_HEIGHT) * .5f, label, foreground);
+    }
+    if (enabled && focused) {
+        color(renderer, ui_theme.accent);
+        SDL_RenderRect(renderer, &rect);
+    }
+}

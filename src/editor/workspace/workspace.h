@@ -9,8 +9,8 @@
  */
 #ifndef PENGUIN_WORKSPACE_WORKSPACE_H
 #define PENGUIN_WORKSPACE_WORKSPACE_H
+#include "editor/workspace/session.h"
 #include "penguin/ui.h"
-#include "workspace/session.h"
 
 /** @brief Aufgeschobene Datei-/Beendenanfrage mit möglicher Speichern-Rückfrage. */
 typedef enum {

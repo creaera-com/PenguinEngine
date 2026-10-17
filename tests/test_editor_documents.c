@@ -1,6 +1,7 @@
-#include "editors/map/checkpoint.h"
-#include "editors/scripts/checkpoint.h"
+#include "editors/game/map/checkpoint.h"
+#include "editors/script/checkpoint.h"
 #include "unity.h"
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -50,6 +51,9 @@ static void test_map_checkpoint_preserves_independent_undo_and_redo(void) {
     map_target = calloc(1, sizeof *map_target);
     TEST_ASSERT_NOT_NULL(map_source);
     TEST_ASSERT_NOT_NULL(map_target);
+    map_source->view =
+        (PeMapViewState){.camera = {12, 24, 1.5f}, .tile = 3, .tool = SELECT, .grid = true};
+    map_source->view.map_view.offset = 14;
     pe_scene_init(&map_source->scene, 8, 8, 16);
     pe_history_init(&map_source->history);
     PeEntity parent = pe_entity_create(&map_source->scene, PE_TRANSFORM);
@@ -76,6 +80,13 @@ static void test_map_checkpoint_preserves_independent_undo_and_redo(void) {
     TEST_ASSERT_EQUAL_UINT32(map_source->component_ids[parent.index],
                              map_target->component_ids[parent.index]);
     TEST_ASSERT_EQUAL_UINT32(PE_TRANSFORM, map_target->component_closed[parent.index]);
+    TEST_ASSERT_EQUAL_FLOAT(1.5f, map_target->view.camera.zoom);
+    TEST_ASSERT_EQUAL_FLOAT(12, map_target->view.camera.x);
+    TEST_ASSERT_EQUAL_INT(3, map_target->view.tile);
+    TEST_ASSERT_EQUAL_INT(SELECT, map_target->view.tool);
+    TEST_ASSERT_TRUE(map_target->view.grid);
+    TEST_ASSERT_EQUAL_FLOAT(14, map_target->view.map_view.offset);
+    TEST_ASSERT_FALSE(map_target->view.playing);
     TEST_ASSERT_EQUAL_INT(1, map_target->collapsed_count);
     TEST_ASSERT_EQUAL_UINT32(map_source->collapsed[0], map_target->collapsed[0]);
     float x, y;
@@ -130,8 +141,35 @@ static void test_script_checkpoint_preserves_utf8_history_and_view_state(void) {
     TEST_ASSERT_FALSE(pe_text_dirty(&script_target->document));
 }
 
+static void test_map_navigation_rejects_invalid_values_and_drops_transient_gestures(void) {
+    map_source = calloc(1, sizeof *map_source);
+    map_target = calloc(1, sizeof *map_target);
+    TEST_ASSERT_NOT_NULL(map_source);
+    TEST_ASSERT_NOT_NULL(map_target);
+    pe_scene_init(&map_source->scene, 8, 8, 16);
+    pe_history_init(&map_source->history);
+    map_source->view.camera.zoom = NAN;
+    TEST_ASSERT_FALSE(pe_session_save(CACHE, 1, map_codec, map_source, error, sizeof error));
+    map_source->view.camera.zoom = 1;
+    map_source->view.tool = 99;
+    TEST_ASSERT_FALSE(pe_session_save(CACHE, 1, map_codec, map_source, error, sizeof error));
+    map_source->view.tool = BRUSH;
+    map_source->view.painting = map_source->view.panning = map_source->view.dragging = true;
+    map_source->view.playing = true;
+    map_source->view.accumulator = .5;
+    TEST_ASSERT_TRUE(pe_session_save(CACHE, 1, map_codec, map_source, error, sizeof error));
+    TEST_ASSERT_TRUE(pe_session_load(CACHE, 1, map_codec, map_target, error, sizeof error));
+    TEST_ASSERT_FALSE(map_target->view.painting);
+    TEST_ASSERT_FALSE(map_target->view.panning);
+    TEST_ASSERT_FALSE(map_target->view.dragging);
+    TEST_ASSERT_FALSE(map_target->view.playing);
+    TEST_ASSERT_TRUE(map_target->view.accumulator == 0);
+    TEST_ASSERT_TRUE(map_source->view.playing);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_map_navigation_rejects_invalid_values_and_drops_transient_gestures);
     RUN_TEST(test_map_checkpoint_preserves_independent_undo_and_redo);
     RUN_TEST(test_script_checkpoint_preserves_utf8_history_and_view_state);
     return UNITY_END();

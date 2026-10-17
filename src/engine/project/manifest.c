@@ -1,5 +1,5 @@
 #include "penguin/engine.h"
-#include "shared/json/json_io.h"
+#include "services/json/json_io.h"
 #include <stdio.h>
 
 bool pe_project_load(const char *root, char *scene_path, size_t size, char *error,

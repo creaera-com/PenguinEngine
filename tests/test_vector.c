@@ -1,6 +1,6 @@
-#include "editors/vector/document.h"
-#include "editors/vector/grid.h"
-#include "editors/vector/preview.h"
+#include "editors/graphics/vector/document/document.h"
+#include "editors/graphics/vector/viewport/grid.h"
+#include "editors/graphics/vector/viewport/preview.h"
 #include "unity.h"
 #include <math.h>
 #include <stdio.h>

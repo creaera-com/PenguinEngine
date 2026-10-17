@@ -408,4 +408,12 @@ UiSplit ui_split_rects(UiRect area, UiAxis axis, float second_size, float minimu
                        float minimum_second, float gap);
 
 /** @} */
+/** @brief Passt ein Bild proportional in einen Bereich mit sichtbarem Innenabstand ein.
+ * @param bounds Verfügbarer Bereich in UI-Pixeln.
+ * @param width Positive Quellbreite.
+ * @param height Positive Quellhöhe.
+ * @param padding Innenabstand je Seite; wird auf mindestens 2 Pixel begrenzt.
+ * @return Zentrierter Bildbereich; leer bei ungültigen oder zu kleinen Abmessungen.
+ */
+UiRect ui_image_fit(UiRect bounds, float width, float height, float padding);
 #endif

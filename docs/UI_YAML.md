@@ -255,10 +255,10 @@ Die Positionsangabe ist ein Beispiel. Validiert wird vor Aktivierung einer neuen
 ## Implementierung und Erweiterungsstellen
 
 - `src/editor/layout/ui_layout.c`: YAML → Knotenmodell, Quellpositionen, Schema, Typ-/Aktions-/Binding-Prüfung.
-- `src/editor/app/main.c`: Start und Hauptschleife; `app/shell.c` zeichnet die Anwendungshülle.
+- `src/application/application.c`: Start und Hauptschleife; `shell/shell.c` zeichnet die Anwendungshülle.
 - `src/editor/layout/renderer.c` und `bindings.c`: YAML-Darstellung sowie Bindings und Aktionsverteilung. Map-/Script-Aktionen liegen bei den jeweiligen Editoren.
 - `src/editor/workspace/lifecycle.c`: Editorwechsel, UI-Snapshots und F6-Reload. Wechsel aus einem UI-Callback werden bis zum Frameende aufgeschoben, damit keine gerade benutzten YAML-Knoten freigegeben werden.
-- `src/editor/editors/map/checkpoint.c` und `scripts/checkpoint.c`: Dokument- und Undo-Codecs ohne Abhängigkeit vom globalen Editorzustand.
+- `src/editors/game/map/checkpoint.c` und `scripts/checkpoint.c`: Dokument- und Undo-Codecs ohne Abhängigkeit vom globalen Editorzustand.
 - `src/editor/workspace/session.c`: begrenzter Checkpoint-Stream, Prüfsumme und atomarer Austausch. Dokument-/Undo-Codec und UI-Snapshots werden vom Editor bereitgestellt.
 - `src/editor/layout/ui_layout.h` und `src/editor/workspace/session.h`: interne C-Schnittstellen für Loader und Checkpoints, unabhängig von SDL testbar.
 - `src/ui/`: wiederverwendbare Eingabe-/Layoutbausteine und SDL-Darstellung; das Theme kann zur Laufzeit gesetzt werden.
@@ -296,7 +296,7 @@ Freie Flächen der oberen Leiste verschieben das Fenster über den Betriebssyste
 
 Schließen durchläuft denselben Ablauf für ungespeicherte Dokumente wie das native Schließen. Minimieren verwendet die Betriebssystemfunktion und kann über die Taskleiste bzw. das Dock rückgängig gemacht werden.
 
-Die Fensterlogik liegt in `src/editor/app/window.c`; die UI-Lib stellt die Icons bereit. Die SDL-Dummy-Smokes prüfen die Fensterbutton-Anordnung, die Hit-Test-Zonen und die Größenwiederherstellung. Fensterbewegung, Snap-Verhalten und Darstellung mit einem echten Window-Manager müssen zusätzlich manuell auf der Zielplattform geprüft werden.
+Die Fensterlogik liegt in `src/platform/window/window.c`; die UI-Lib stellt die Icons bereit. Die SDL-Dummy-Smokes prüfen die Fensterbutton-Anordnung, die Hit-Test-Zonen und die Größenwiederherstellung. Fensterbewegung, Snap-Verhalten und Darstellung mit einem echten Window-Manager müssen zusätzlich manuell auf der Zielplattform geprüft werden.
 
 
 ## Werkzeuge des Scene-Graphs
@@ -367,3 +367,42 @@ Der Vector-Editor verwendet rechts neben Properties einen Tools-Tab mit `tool_pa
 `vector_preview` ist ein spezialisierter Vector-Knoten mit `binding: vector.active` und `height` von 64 bis 512 Bildschirm-Pixeln. In einer Tool-Panel-Section steht er nach allen Buttons als letztes Kind. Seine Höhe geht in die Kartenhöhe und den Scrollbereich ein. Beispiel: `{type: vector_preview, id: asset_preview, binding: vector.active, height: 190}`. Auswahlwerkzeug und Löschen sind über `vector.preview_select` und `vector.preview_clear` registriert; der C-Adapter rendert ausschließlich die 1:1-Vorschau, die Anordnung bleibt YAML.
 
 `vector_grid` liefert die vier Grid-Eingabefelder (Breite, Höhe, RGBA und Snap-Toleranz) über `binding: vector.active`. Seine `height` liegt zwischen 128 und 512 Bildschirm-Pixeln (Standardlayout: 132); in einer Tool-Karte steht er als letztes Kind nach den Typ-Buttons. Die Aktionen `vector.toggle_grid`, `vector.grid_standard`, `vector.grid_isometric` und `vector.toggle_snap` werden auch für andere YAML-Anordnungen registriert. Beispiel: `{type: vector_grid, id: grid_settings, binding: vector.active, height: 132}`. Das spezialisierte Widget ist auf das Vector-Modul beschränkt und darf je Layout einmal vorkommen.
+
+## PNG-Bilder in Buttons
+
+Buttons können statt eines eingebauten Symbols ein eigenes PNG verwenden:
+
+```yaml
+- type: button
+  id: my_grid_button
+  image: "../icons/grid.png"
+  image_padding: 4
+  icon: grid
+  tooltip: "Raster ein-/ausblenden"
+  action: vector.toggle_grid
+```
+
+`image` ist ein Pfad relativ zu der YAML-Datei, in der der Button steht. Absolute Pfade sind ebenfalls möglich; relative Pfade halten das Layout portabel. Das Beispiel in `resources/editor/ui/editors/vector.yaml` lädt damit `resources/editor/ui/icons/grid.png`. Der Ressourcen-Kopierschritt übernimmt die Icons zusammen mit dem YAML in das Build-Verzeichnis.
+
+`image_padding` ist optional (Standard **4**, erlaubt **2–8 Bildschirm-Pixel**). Der Button behält seine normale Größe; das Bild wird proportional eingepasst, niemals verzerrt oder als vollflächiger Hintergrund verwendet. Der freibleibende Rand zeigt Normal-, Hover-, gedrückten und ausgewählten Zustand, ein Rahmen den Tastaturfokus. Deaktivierte Bilder werden abgeschwächt. Ein zusätzliches `label` wird rechts neben dem Bild angezeigt.
+
+Ein angegebenes `icon` dient als Ersatz, wenn die Datei fehlt oder nicht geladen werden kann. Ohne Ersatz wird das eingebaute Bildsymbol gezeichnet. Fehler werden einmal je Cacheeintrag protokolliert. PNGs sind auf 1024×1024 Pixel begrenzt. Je Shell bzw. aktivem Editor werden maximal 64 Bildpfade einschließlich Fehlern zwischengespeichert. Änderungen an Bilddateien werden nach **F6** neu geladen; der Editorcache wird bei jedem Editorwechsel vollständig freigegeben, die globalen Shellbilder bleiben bis Reload/Beenden erhalten. YAML-Schema und Dokumentformate bleiben `penguin.ui/v1`.
+
+Die UI-Bibliothek stellt `ui_image_fit()` und `ui_draw_image_button()` für Spiele und Editor bereit. Dateiladen liegt in `platform/sdl/image.c`, Cache und YAML-Pfadauflösung in `editor/layout/images.c`; die wiederverwendbaren Widgets kennen kein Dateisystem.
+
+### Bilder in der Editor-Auswahl der shell.yaml
+
+Auch die Einträge unter `editors:` unterstützen `image` und `image_padding`:
+
+```yaml
+editors:
+  - id: map
+    title: "Map"
+    module: map
+    file: editors/map.yaml
+    image: "icons/grid.png"
+    image_padding: 4
+    icon: grid
+```
+
+Hier ist der Bildpfad relativ zur **shell.yaml**, nicht zur Editor-YAML. `icon` ist optional und dient als Ersatzsymbol bei Ladefehlern. Ohne `icon` erscheint bei Fehlern das eingebaute Bildsymbol. Innenabstand und Bilddarstellung entsprechen normalen Buttons; mit `labels: true` am `editor_switcher` steht der Titel neben dem Bild. Diese Bilder liegen im Shellcache und bleiben bei Editorwechseln geladen; **F6** lädt sie erneut.
