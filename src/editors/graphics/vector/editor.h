@@ -126,4 +126,9 @@ void vector_zoom(float zoom, float x, float y);
 void vector_undo(bool redo);
 /** @brief Erstellt ausschließlich für Vorschau/Tests eine Beispielzeichnung. */
 void vector_demo(void);
+/** @brief Privater Zugriff des Frontends auf die eigene aktive Instanz; NULL bei fremdem Backend.
+ * Der Zeiger bleibt nur bis zum nächsten Editorwechsel gültig. Modelle verwenden explizite
+ * Kontexte.
+ */
+VectorEditor *pe_vector_active_instance(void);
 #endif

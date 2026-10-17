@@ -2,7 +2,7 @@
 #include "editors/graphics/vector/internal.h"
 
 void vector_draw_grid_settings(SDL_FRect area) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     float x = area.x + 6, y = area.y + 4, w = fmaxf(0, area.w - 12);
     const char *labels[] = {"Width px", "Height px", "RGBA", "Snap px"};
     Field fields[] = {FIELD_V_GRID_WIDTH, FIELD_V_GRID_HEIGHT, FIELD_V_GRID_COLOR,
@@ -24,7 +24,7 @@ void vector_draw_grid_settings(SDL_FRect area) {
 }
 
 void vector_draw_grid(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     if (!v->view.grid_visible) {
         return;
     }

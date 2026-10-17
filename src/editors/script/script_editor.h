@@ -99,4 +99,9 @@ bool se_scroll_hit(PeScriptEditor *editor, float x, float y, SDL_FRect area);
 void se_draw(PeScriptEditor *editor, SDL_Renderer *renderer, UiContext *context, SDL_FRect area,
              float mx, float my, bool click);
 /** @} */
+/** @brief Privater Zugriff des Frontends auf die eigene aktive Instanz; NULL bei fremdem Backend.
+ * Der Zeiger bleibt nur bis zum nächsten Editorwechsel gültig. Modelle verwenden explizite
+ * Kontexte.
+ */
+PeScriptEditor *pe_script_active_instance(void);
 #endif

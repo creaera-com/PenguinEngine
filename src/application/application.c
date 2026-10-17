@@ -109,7 +109,7 @@ int pe_application_run(int argc, char **argv) {
         fprintf(stderr, "Cannot create session directory: %s\n", SDL_GetError());
         return 1;
     }
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < editor_view_count; i++) {
         snprintf(app.workspace.session_paths[i], sizeof app.workspace.session_paths[i],
                  "%s%08x-%llx-%d.session", pref, ui_id(app.project.root),
                  (unsigned long long)SDL_GetPerformanceCounter(), i);
@@ -148,23 +148,16 @@ int pe_application_run(int argc, char **argv) {
 #endif
     if (start_vector) {
         editor_select_workspace(UI_VECTOR_VIEW);
-        if (vector_preview && app.workspace.vector) {
-            vector_demo();
+        if (vector_preview && app.workspace.backend->startup) {
+            app.workspace.backend->startup("demo");
         }
     } else if (start_scripts) {
         editor_tab_select(true);
-    } else if (start_map_tools) {
-        app.shell.left_tabs.selected = UI_MAP_TAB;
-        app.shell.right_tabs.selected = UI_TILES_TAB;
-    } else if (start_scene_tree) {
-        app.shell.left_tabs.selected = UI_SCENE_TAB;
-        for (int i = 0; i < PE_ENTITIES; i++) {
-            if (app.workspace.map->scene.objects[i].alive) {
-                app.shell.selected = app.workspace.map->scene.objects[i].stable_id;
-                editor_inspect_entity();
-                app.workspace.map->view.tool = SELECT;
-                break;
-            }
+    } else if (app.workspace.backend->startup) {
+        if (start_map_tools) {
+            app.workspace.backend->startup("tools");
+        } else if (start_scene_tree) {
+            app.workspace.backend->startup("scene-tree");
         }
     }
 
@@ -181,7 +174,9 @@ int pe_application_run(int argc, char **argv) {
             elapsed = .1;
         }
         pe_console_tick(app.shell.console);
-        editor_map_update(elapsed);
+        if (app.workspace.backend && app.workspace.backend->update) {
+            app.workspace.backend->update(elapsed);
+        }
         editor_draw();
         if (app.runtime.smoke && ++frames >= 3) {
             app.runtime.running = false;
@@ -191,7 +186,7 @@ int pe_application_run(int argc, char **argv) {
     editor_release_active();
     pe_ui_images_free(&app.shell.shell_images);
     pe_ui_layout_free(app.shell.shell_layout);
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < editor_view_count; i++) {
         remove(app.workspace.session_paths[i]);
     }
     pe_console_free(app.shell.console);

@@ -17,41 +17,42 @@ bool editor_edit_pending(void) {
     return pe_document_status(editor_active_document()).pending;
 }
 
+bool editor_document_dirty(UiId id) {
+    if (app.workspace.loaded_view == id) {
+        return pe_document_status(editor_active_document()).dirty;
+    }
+    int index = editor_session_index(id);
+    return index >= 0 && app.workspace.session_dirty[index];
+}
+
 bool editor_map_dirty(void) {
-    return app.workspace.map ? pe_history_dirty(&app.workspace.map->history)
-                             : app.workspace.session_dirty[0];
+    return editor_document_dirty(UI_MAP_VIEW);
 }
 
 bool editor_script_dirty(void) {
-    return app.workspace.script ? se_dirty(app.workspace.script) : app.workspace.session_dirty[1];
+    return editor_document_dirty(UI_SCRIPT_VIEW);
 }
 
 const EditorView *editor_view(UiId id) {
-    for (int i = 0; i < editor_view_count; i++) {
-        if (editor_views[i].id == id) {
-            return &editor_views[i];
-        }
-    }
-
-    return &editor_views[0];
+    const EditorView *view = pe_editor_registry_find(editor_registry, id);
+    return view ? view : editor_views[0];
 }
 
 void editor_message(const char *s) {
     char copy[256] = {0};
     snprintf(copy, sizeof copy, "%s", s);
     memcpy(app.shell.status, copy, sizeof copy);
-    if (app.workspace.script) {
-        memcpy(app.workspace.script->status, copy, sizeof copy);
+    if (app.workspace.backend && app.workspace.backend->notify) {
+        app.workspace.backend->notify(copy);
     }
 }
 
 int editor_session_index(UiId id) {
-    return id == UI_MAP_VIEW ? 0 : id == UI_SCRIPT_VIEW ? 1 : 2;
+    return pe_editor_registry_index(editor_registry, id);
 }
 
 bool editor_vector_dirty(void) {
-    return app.workspace.vector ? ve_dirty(&app.workspace.vector->history)
-                                : app.workspace.session_dirty[2];
+    return editor_document_dirty(UI_VECTOR_VIEW);
 }
 
 bool editor_playing(void) {

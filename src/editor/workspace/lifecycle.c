@@ -149,6 +149,7 @@ void editor_release_active(void) {
     if (app.workspace.backend) {
         app.workspace.backend->destroy();
         app.workspace.backend = NULL;
+        app.workspace.instance = NULL;
     }
     ui_cancel(&app.shell.ui);
     ui_focus(&app.shell.ui, 0);
@@ -179,6 +180,10 @@ static void default_editor_ui(bool scripts) {
 }
 
 bool editor_activate(UiId id, char *error, size_t size) {
+    if (!pe_editor_registry_find(editor_registry, id)) {
+        snprintf(error, size, "Unknown editor ID");
+        return false;
+    }
     if (!app.workspace.active_layout) {
         app.workspace.active_layout = editor_load_editor_layout(id, error, size);
     }
@@ -188,8 +193,11 @@ bool editor_activate(UiId id, char *error, size_t size) {
 
     int index = editor_session_index(id);
     const PeEditorBackend *backend = editor_view(id)->backend;
+    app.workspace.backend = backend;
     if (!backend->create(error, size)) {
         backend->destroy();
+        app.workspace.backend = NULL;
+        app.workspace.instance = NULL;
         pe_ui_layout_free(app.workspace.active_layout);
         app.workspace.active_layout = NULL;
         return false;
@@ -220,6 +228,10 @@ bool editor_activate(UiId id, char *error, size_t size) {
 }
 
 bool editor_switch(UiId id) {
+    if (!pe_editor_registry_find(editor_registry, id)) {
+        editor_message("Unknown editor ID");
+        return false;
+    }
     if (id == app.workspace.loaded_view) {
         return true;
     }
@@ -240,9 +252,7 @@ bool editor_switch(UiId id) {
             editor_message(error);
             return false;
         }
-        app.workspace.session_dirty[index] = index == 0   ? editor_map_dirty()
-                                             : index == 1 ? editor_script_dirty()
-                                                          : editor_vector_dirty();
+        app.workspace.session_dirty[index] = pe_document_status(editor_active_document()).dirty;
         app.workspace.session_exists[index] = true;
         editor_release_active();
     }
@@ -294,9 +304,7 @@ bool editor_reload_layout(void) {
         return false;
     }
     app.workspace.session_exists[index] = true;
-    app.workspace.session_dirty[index] = index == 0   ? editor_map_dirty()
-                                         : index == 1 ? editor_script_dirty()
-                                                      : editor_vector_dirty();
+    app.workspace.session_dirty[index] = pe_document_status(editor_active_document()).dirty;
     PeUiLayout *old_layout = app.workspace.active_layout;
     app.workspace.active_layout = NULL;
     editor_release_active();

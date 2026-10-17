@@ -39,6 +39,6 @@ void editor_draw_script_tools(SDL_FRect area) {
 }
 
 void editor_draw_script_content(void) {
-    se_draw(&(*app.workspace.script), app.platform.renderer, &app.shell.ui, app.shell.viewport,
-            app.shell.mx, app.shell.my, app.shell.click);
+    se_draw(&(*pe_script_active_instance()), app.platform.renderer, &app.shell.ui,
+            app.shell.viewport, app.shell.mx, app.shell.my, app.shell.click);
 }

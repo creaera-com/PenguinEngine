@@ -16,6 +16,7 @@
 #include "editor/layout/runtime.h"
 #include "editor/layout/ui_layout.h"
 #include "editor/module.h"
+#include "editor/registry.h"
 #include "editor/workspace/session.h"
 #include "editor/workspace/state.h"
 #include "editor/workspace/workspace.h"
@@ -65,6 +66,8 @@ typedef struct {
 } Editor;
 
 /* Private integration state. Engine and reusable UI never include this header. */
+/** @brief Änderungszustand einer registrierten aktiven oder ausgelagerten Sitzung. */
+bool editor_document_dirty(UiId id);
 /** @brief Stabiler Index der drei Dokument-/Editor-Sitzungen. */
 int editor_session_index(UiId id);
 /** @brief Dirty-Zustand des aktiven oder ausgelagerten Vector-Dokuments. */
@@ -73,10 +76,12 @@ bool editor_vector_dirty(void);
 extern Editor app;
 
 /** @brief Registrierte Editoradapter; Reihenfolge ist keine Dokumentidentität. */
-extern const EditorView editor_views[];
+extern const EditorView *const editor_views[];
 
 /** @brief Anzahl registrierter Editoradapter. */
 extern const int editor_view_count;
+/** @brief Geliehene Registrierung der Anwendung. */
+extern const PeEditorRegistry editor_registry;
 
 /** @brief Geliehener Tooltipzeiger für den aktuellen Frame. */
 extern const char *editor_tooltip;

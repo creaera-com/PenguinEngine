@@ -1,4 +1,5 @@
 #include "application/internal.h"
+
 const char *editor_tooltip;
 
 Uint32 editor_widget_background(void) {

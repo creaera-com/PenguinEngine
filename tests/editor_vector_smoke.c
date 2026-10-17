@@ -1,5 +1,8 @@
 #include "application/internal.h"
+#include "editors/game/map/map_editor.h"
+#include "editors/graphics/vector/editor.h"
 #include "editors/graphics/vector/internal.h"
+#include "editors/script/script_editor.h"
 
 static void pointer(Uint32 type, float x, float y) {
     SDL_Event event = {0};
@@ -17,7 +20,7 @@ static void pointer(Uint32 type, float x, float y) {
 }
 
 static void gesture(float x, float y, float endx, float endy) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     float sx = v->canvas.x + (x - v->view.x) * v->view.zoom,
           sy = v->canvas.y + (y - v->view.y) * v->view.zoom;
     float ex = v->canvas.x + (endx - v->view.x) * v->view.zoom,
@@ -28,7 +31,7 @@ static void gesture(float x, float y, float endx, float endy) {
 }
 
 static bool interaction_smoke(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     vector_new();
     editor_draw();
     vector_action("vector.rectangle");
@@ -130,7 +133,7 @@ static WidgetState *tool_state(const char *name) {
 }
 
 static bool zoom_smoke(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     VeView before = v->view;
     int revision = v->history.position, count = v->history.count;
     editor_draw();
@@ -201,13 +204,13 @@ static bool tools_smoke(void) {
     float x = app.platform.width - RIGHT + PANEL_GAP + 40, y = TOP + TABS + 18 + 82;
     pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, app.platform.width - 164, y + 39);
     pointer(SDL_EVENT_MOUSE_BUTTON_UP, app.platform.width - 164, y + 39);
-    bool ok = app.workspace.vector->document.shapes[2].nodes[0].p.x == 202 &&
-              app.workspace.vector->history.position == 1;
+    bool ok = pe_vector_active_instance()->document.shapes[2].nodes[0].p.x == 202 &&
+              pe_vector_active_instance()->history.position == 1;
     vector_undo(false);
     pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
     pointer(SDL_EVENT_MOUSE_BUTTON_UP, x, y);
     editor_draw();
-    ok = ok && !group->open && app.workspace.vector->history.position == 0;
+    ok = ok && !group->open && pe_vector_active_instance()->history.position == 0;
     int height = app.platform.height;
     SDL_SetWindowMinimumSize(app.platform.window, 1100, 300);
     SDL_SetWindowSize(app.platform.window, app.platform.width, 360);
@@ -243,7 +246,7 @@ static bool tools_smoke(void) {
 }
 
 static bool snap_smoke(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     vector_new();
     editor_draw();
     vector_action("vector.rectangle");
@@ -316,7 +319,7 @@ static bool snap_smoke(void) {
 }
 
 static bool grid_smoke(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     app.shell.right_tabs.selected = ui_id("vector_tools_tab");
     editor_draw();
     int revision = v->history.position;
@@ -421,7 +424,7 @@ static bool image_buttons_smoke(void) {
 }
 
 static bool preview_smoke(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     app.shell.right_tabs.selected = ui_id("vector_tools_tab");
     editor_draw();
     int revision = v->history.position;
@@ -499,7 +502,7 @@ static bool preview_smoke(void) {
 }
 
 static bool tree_smoke(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     app.shell.left_tabs.selected = UI_SCENE_TAB;
     app.shell.scene_view.offset = 0;
     editor_draw();
@@ -546,7 +549,7 @@ static bool tree_smoke(void) {
 
 bool vector_smoke(void) {
     editor_select_workspace(UI_VECTOR_VIEW);
-    if (!app.workspace.vector || app.workspace.map || app.workspace.script) {
+    if (!pe_vector_active_instance() || pe_map_active_instance() || pe_script_active_instance()) {
         return false;
     }
     bool interaction = interaction_smoke();
@@ -558,7 +561,7 @@ bool vector_smoke(void) {
     interaction = preview_smoke() && interaction;
     interaction = tools_smoke() && interaction;
     interaction = tree_smoke() && interaction;
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     int shape = 2;
     char original[64];
     snprintf(original, sizeof original, "%s", v->document.shapes[shape].name);
@@ -574,23 +577,29 @@ bool vector_smoke(void) {
     v->view.snap_tolerance = 7;
     ok = ok && editor_reload_layout();
     editor_select_workspace(UI_MAP_VIEW);
-    ok = ok && !app.workspace.vector && app.workspace.map && !app.workspace.script;
+    ok = ok && !pe_vector_active_instance() && pe_map_active_instance() &&
+         !pe_script_active_instance();
     editor_select_workspace(UI_VECTOR_VIEW);
-    ok =
-        ok && app.workspace.vector && !app.workspace.map && !app.workspace.script &&
-        !strcmp(app.workspace.vector->document.shapes[shape].name, "Edited vector") &&
-        app.workspace.vector->history.position == 1 && !app.workspace.vector->preview_texture &&
-        !app.workspace.vector->preview_pixels && !app.shell.editor_images.entries &&
-        app.workspace.vector->view.preview_enabled && app.workspace.vector->view.preview.w == 160 &&
-        app.workspace.vector->view.grid_width == 32 && app.workspace.vector->view.grid_isometric &&
-        app.workspace.vector->view.snap_enabled && app.workspace.vector->view.snap_tolerance == 7 &&
-        app.workspace.vector->view.grid_color == 0x55667788 &&
-        app.workspace.vector->view.expanded_paths[0] ==
-            app.workspace.vector->document.shapes[shape].id &&
-        app.shell.right_tabs.selected == ui_id("vector_tools_tab") &&
-        tool_state("vector_transform_tools") && !tool_state("vector_transform_tools")->open;
+    ok = ok && pe_vector_active_instance() && !pe_map_active_instance() &&
+         !pe_script_active_instance() &&
+         !strcmp(pe_vector_active_instance()->document.shapes[shape].name, "Edited vector") &&
+         pe_vector_active_instance()->history.position == 1 &&
+         !pe_vector_active_instance()->preview_texture &&
+         !pe_vector_active_instance()->preview_pixels && !app.shell.editor_images.entries &&
+         pe_vector_active_instance()->view.preview_enabled &&
+         pe_vector_active_instance()->view.preview.w == 160 &&
+         pe_vector_active_instance()->view.grid_width == 32 &&
+         pe_vector_active_instance()->view.grid_isometric &&
+         pe_vector_active_instance()->view.snap_enabled &&
+         pe_vector_active_instance()->view.snap_tolerance == 7 &&
+         pe_vector_active_instance()->view.grid_color == 0x55667788 &&
+         pe_vector_active_instance()->view.expanded_paths[0] ==
+             pe_vector_active_instance()->document.shapes[shape].id &&
+         app.shell.right_tabs.selected == ui_id("vector_tools_tab") &&
+         tool_state("vector_transform_tools") && !tool_state("vector_transform_tools")->open;
     editor_select_workspace(UI_SCRIPT_VIEW);
-    ok = ok && !app.workspace.vector && app.workspace.script && !app.workspace.map;
+    ok = ok && !pe_vector_active_instance() && pe_script_active_instance() &&
+         !pe_map_active_instance();
     editor_select_workspace(UI_MAP_VIEW);
     if (!ok) {
         fprintf(stderr, "Vector lifecycle smoke failed\n");

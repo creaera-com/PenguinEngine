@@ -1,7 +1,7 @@
 #include "editors/graphics/vector/internal.h"
 
 void vector_demo(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     vector_new();
     snprintf(v->document.boards[0].name, 64, "Game icons");
     v->document.boards[0].w = 448;

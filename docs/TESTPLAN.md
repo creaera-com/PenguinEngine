@@ -70,7 +70,7 @@ Der native Sitzungscache ersetzt keine Backups und ist noch keine Crash-Recovery
 
 ## Fachliche Modultrennung
 
-- Im SDL-Build laufen insgesamt unter Linux 192 Unity-Tests und 18 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
+- Im SDL-Build laufen insgesamt unter Linux 196 Unity-Tests und 18 CTest-Prüfungen. `editor_document_unit_tests` prüft Map- und Script-Checkpoints ohne Anwendungssingleton oder geöffnetes Fenster: Text/Tile-Zustand, UTF-8, Undo/Redo, gespeicherte Revisionen und unabhängige Dokumentkopien bleiben erhalten.
 - `tests/editor_smoke.c` verwendet weiterhin die echten Eingabehandler, Editorwechsel und F6-Reloads. Die Tests liegen außerhalb des produktiven Quellcodes und werden nur bei `BUILD_TESTING=ON` eingebunden.
 - Mit `PENGUIN_BUILD_EDITOR=OFF` bleiben die zehn SDL-freien Testgruppen verfügbar. `BUILD_TESTING=OFF` muss ebenfalls bauen; `penguin_editor --smoke` führt dann nur den kurzen Start-/Rendercheck aus.
 - Für das Strukturrefactoring zusätzlich die Map-/Scripts-Aufnahmen gegen den vorherigen Stand vergleichen und einen vollständigen ASan-/UBSan-Testlauf ausführen.
@@ -161,3 +161,7 @@ Architekturrefactoring: `document_contract_unit_tests` prüft fünf SDL-freie Ve
 Bildbuttons: Unity prüft proportionalen Fit, Mindestabstand, ungültige Größen und YAML-Bildpfade/Padding. Der GUI-Smoke lädt ein echtes PNG, prüft Cache-Treffer, fehlende Dateien, unveränderte Textur-Alpha-Einstellung sowie die Pixel des sichtbaren Buttonrands in Normal/Hover/Aktiv/Deaktiviert und die Freigabe beim Editorwechsel. Manuell PNG mit Transparenz, Beschriftung und Tastaturfokus prüfen; F6 lädt ersetzte Bilddateien nach.
 
 Editor-Auswahlbilder: Der Shell-Schematest akzeptiert `image`/`image_padding` auch ohne eingebautes `icon` und lehnt falsche Typen, fehlendes Bild/Symbol und unzulässiges Padding ab. Der GUI-Smoke prüft das tatsächliche, relativ zur shell.yaml geladene PNG und den Erhalt der Shell-Textur beim Wechsel von Map zu Scripts.
+
+## Editorgrenzen und Registrierung
+
+`editor_registry_unit_tests` verwendet zwei erfundene Editoren statt der eingebauten Domänen. Vier Unity-Fälle prüfen stabile IDs trotz anderer Reihenfolge, YAML-Modulnamen, Öffnen/Neu/Import und leere/unbekannte Registrierungen. Die Architekturprüfung verhindert Modellheader und konkrete Instanzzugriffe in Application, Shell und Workspace. Die SDL-Smokes prüfen weiterhin Editorwechsel, Checkpoint-Rollback, Fokus, Komponenten-Dropdown, YAML-Reload und Dokumentoperationen über die gemeinsamen Handler.

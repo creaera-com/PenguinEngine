@@ -7,8 +7,8 @@ typedef struct {
 } SceneRow;
 
 static bool collapsed(uint32_t id) {
-    for (int i = 0; i < app.workspace.map->collapsed_count; i++) {
-        if (app.workspace.map->collapsed[i] == id) {
+    for (int i = 0; i < pe_map_active_instance()->collapsed_count; i++) {
+        if (pe_map_active_instance()->collapsed[i] == id) {
             return true;
         }
     }
@@ -16,11 +16,12 @@ static bool collapsed(uint32_t id) {
 }
 
 static void expand(uint32_t id) {
-    for (int i = 0; i < app.workspace.map->collapsed_count; i++) {
-        if (app.workspace.map->collapsed[i] == id) {
-            memmove(&app.workspace.map->collapsed[i], &app.workspace.map->collapsed[i + 1],
-                    (size_t)(app.workspace.map->collapsed_count - i - 1) * sizeof(uint32_t));
-            app.workspace.map->collapsed_count--;
+    for (int i = 0; i < pe_map_active_instance()->collapsed_count; i++) {
+        if (pe_map_active_instance()->collapsed[i] == id) {
+            memmove(&pe_map_active_instance()->collapsed[i],
+                    &pe_map_active_instance()->collapsed[i + 1],
+                    (size_t)(pe_map_active_instance()->collapsed_count - i - 1) * sizeof(uint32_t));
+            pe_map_active_instance()->collapsed_count--;
             return;
         }
     }
@@ -31,14 +32,14 @@ static void collect(SceneRow *rows, int *count, uint32_t parent, int depth) {
         return;
     }
     for (uint32_t i = 0; i < PE_ENTITIES && *count < PE_ENTITIES; i++) {
-        const PeObject *o = &app.workspace.map->scene.objects[i];
+        const PeObject *o = &pe_map_active_instance()->scene.objects[i];
         if (!o->alive || o->parent_id != parent) {
             continue;
         }
         bool children = false;
         for (int j = 0; j < PE_ENTITIES; j++) {
-            if (app.workspace.map->scene.objects[j].alive &&
-                app.workspace.map->scene.objects[j].parent_id == o->stable_id) {
+            if (pe_map_active_instance()->scene.objects[j].alive &&
+                pe_map_active_instance()->scene.objects[j].parent_id == o->stable_id) {
                 children = true;
                 break;
             }
@@ -51,11 +52,11 @@ static void collect(SceneRow *rows, int *count, uint32_t parent, int depth) {
 }
 
 void editor_scene_add(int relation) {
-    if (!editor_map_active() || app.workspace.map->view.playing || editor_edit_pending() ||
+    if (!editor_map_active() || pe_map_active_instance()->view.playing || editor_edit_pending() ||
         relation < 0 || relation > 2) {
         return;
     }
-    PeScene *s = &app.workspace.map->scene;
+    PeScene *s = &pe_map_active_instance()->scene;
     PeObject *selected = pe_entity_get(s, pe_entity_find(s, app.shell.selected));
     if (relation && !selected) {
         return;
@@ -71,14 +72,14 @@ void editor_scene_add(int relation) {
     PeEntity entity = pe_entity_create(s, PE_TRANSFORM | PE_SPRITE | PE_BODY);
     PeObject *o = pe_entity_get(s, entity);
     if (!o) {
-        pe_history_cancel(&app.workspace.map->history, s);
+        pe_history_cancel(&pe_map_active_instance()->history, s);
         editor_message("Entity limit reached");
         return;
     }
     o->x = x;
     o->y = y;
     if (parent_id && !pe_entity_set_parent(s, entity, pe_entity_find(s, parent_id), false)) {
-        pe_history_cancel(&app.workspace.map->history, s);
+        pe_history_cancel(&pe_map_active_instance()->history, s);
         editor_message("Cannot create child: parent requires a valid transform");
         return;
     }
@@ -86,7 +87,7 @@ void editor_scene_add(int relation) {
     editor_commit();
     if (pe_entity_valid(s, pe_entity_find(s, id))) {
         app.shell.selected = id;
-        app.workspace.map->view.tool = SELECT;
+        pe_map_active_instance()->view.tool = SELECT;
         app.shell.left_tabs.selected = UI_SCENE_TAB;
         editor_inspect_entity();
         PeEntity ancestor = pe_entity_find(s, parent_id);
@@ -99,17 +100,18 @@ void editor_scene_add(int relation) {
 }
 
 void editor_scene_delete(void) {
-    if (!editor_map_active() || app.workspace.map->view.playing || editor_edit_pending()) {
+    if (!editor_map_active() || pe_map_active_instance()->view.playing || editor_edit_pending()) {
         return;
     }
-    PeEntity entity = pe_entity_find(&app.workspace.map->scene, app.shell.selected);
-    PeObject *o = pe_entity_get(&app.workspace.map->scene, entity);
+    PeEntity entity = pe_entity_find(&pe_map_active_instance()->scene, app.shell.selected);
+    PeObject *o = pe_entity_get(&pe_map_active_instance()->scene, entity);
     if (o && editor_begin()) {
         uint32_t parent = o->parent_id;
-        pe_entity_destroy(&app.workspace.map->scene, entity);
+        pe_entity_destroy(&pe_map_active_instance()->scene, entity);
         editor_commit();
-        if (!pe_entity_valid(&app.workspace.map->scene,
-                             pe_entity_find(&app.workspace.map->scene, app.shell.selected))) {
+        if (!pe_entity_valid(
+                &pe_map_active_instance()->scene,
+                pe_entity_find(&pe_map_active_instance()->scene, app.shell.selected))) {
             app.shell.selected = parent;
         }
     }
@@ -132,11 +134,11 @@ static bool row_button(UiId id, UiRect rect, UiIcon icon, const char *label, con
 
 void editor_draw_scene_tree(void) {
     /* Drop obsolete navigation state after deletion/replacing a document. */
-    for (int i = app.workspace.map->collapsed_count - 1; i >= 0; i--) {
-        if (!pe_entity_valid(
-                &app.workspace.map->scene,
-                pe_entity_find(&app.workspace.map->scene, app.workspace.map->collapsed[i]))) {
-            expand(app.workspace.map->collapsed[i]);
+    for (int i = pe_map_active_instance()->collapsed_count - 1; i >= 0; i--) {
+        if (!pe_entity_valid(&pe_map_active_instance()->scene,
+                             pe_entity_find(&pe_map_active_instance()->scene,
+                                            pe_map_active_instance()->collapsed[i]))) {
+            expand(pe_map_active_instance()->collapsed[i]);
         }
     }
     SceneRow rows[PE_ENTITIES];
@@ -160,9 +162,9 @@ void editor_draw_scene_tree(void) {
     if (!count) {
         editor_text(body.x + 8, body.y + 12, "No entities in scene.", UI_MUTED);
     }
-    bool enabled = !app.workspace.map->view.playing && !editor_edit_pending();
+    bool enabled = !pe_map_active_instance()->view.playing && !editor_edit_pending();
     for (int i = 0; i < count; i++) {
-        const PeObject *o = pe_entity_get(&app.workspace.map->scene, rows[i].entity);
+        const PeObject *o = pe_entity_get(&pe_map_active_instance()->scene, rows[i].entity);
         float y = body.y + 4 + i * 26 - app.shell.scene_view.offset;
         Uint32 background = editor_tree_row_background(i);
         editor_box((SDL_FRect){body.x + 4, y, fmaxf(0, body.w - 20), 26}, background);
@@ -175,7 +177,8 @@ void editor_draw_scene_tree(void) {
                        open ? ICON_DOWN : ICON_RIGHT, "", "Expand / collapse", false,
                        !editor_edit_pending(), background)) {
             if (open) {
-                app.workspace.map->collapsed[app.workspace.map->collapsed_count++] = o->stable_id;
+                pe_map_active_instance()->collapsed[pe_map_active_instance()->collapsed_count++] =
+                    o->stable_id;
             } else {
                 expand(o->stable_id);
             }
@@ -185,7 +188,7 @@ void editor_draw_scene_tree(void) {
                        (UiRect){x + 22, y, fmaxf(0, body.w - indent - 42), 25}, ICON_ENTITY, label,
                        "Select entity", app.shell.selected == o->stable_id, enabled, background)) {
             app.shell.selected = o->stable_id;
-            app.workspace.map->view.tool = SELECT;
+            pe_map_active_instance()->view.tool = SELECT;
             editor_inspect_entity();
         }
         ui_draw_tree_guides(app.platform.renderer, depths, count, i,

@@ -7,6 +7,7 @@ static void keyboard(SDL_KeyboardEvent *key) {
         return;
     }
 
+    const PeEditorBackend *backend = app.workspace.backend;
     SDL_Keycode k = key->key;
     bool ctrl = (key->mod & (SDL_KMOD_CTRL | SDL_KMOD_GUI)) != 0,
          shift = (key->mod & SDL_KMOD_SHIFT) != 0;
@@ -18,10 +19,11 @@ static void keyboard(SDL_KeyboardEvent *key) {
     }
     if (k == SDLK_ESCAPE) {
         if (editor_edit_pending()) {
-            pe_history_cancel(&app.workspace.map->history, &app.workspace.map->scene);
-            app.workspace.map->view.painting = app.workspace.map->view.dragging = false;
+            if (app.workspace.backend && app.workspace.backend->cancel) {
+                app.workspace.backend->cancel();
+            }
         } else if (editor_playing()) {
-            editor_play_toggle();
+            editor_yaml_action("scene.toggle_play");
         }
         return;
     }
@@ -30,8 +32,8 @@ static void keyboard(SDL_KeyboardEvent *key) {
         return;
     }
     if (k == SDLK_F5) {
-        if (editor_map_active()) {
-            editor_play_toggle();
+        if (backend && backend->playing) {
+            editor_yaml_action("scene.toggle_play");
         }
         return;
     }
@@ -44,8 +46,8 @@ static void keyboard(SDL_KeyboardEvent *key) {
         editor_undo_active(true);
     } else if (ctrl && k == SDLK_Z) {
         editor_undo_active(false);
-    } else if (!ctrl && editor_map_active()) {
-        editor_map_key(k);
+    } else if (!ctrl && backend && backend->key) {
+        backend->key(k);
     }
 }
 
@@ -66,7 +68,8 @@ void editor_event(SDL_Event *e) {
     if (editor_field_event(e)) {
         return;
     }
-    if (editor_component_popup_event(e)) {
+    const PeEditorBackend *backend = app.workspace.backend;
+    if (backend && backend->overlay_event && backend->overlay_event(e)) {
         return;
     }
     if (e->type == SDL_EVENT_MOUSE_MOTION) {
@@ -82,8 +85,10 @@ void editor_event(SDL_Event *e) {
                          !modal && !editor_edit_pending())) {
         if (pe_console_focused(app.shell.console)) {
             ui_focus(&app.shell.ui, 0x10010u);
-            if (app.workspace.script && app.workspace.script->focused) {
-                se_focus(app.workspace.script, app.platform.window, false);
+            if (backend && backend->text_focus && backend->text_focus()) {
+                if (backend->blur) {
+                    backend->blur();
+                }
                 SDL_StartTextInput(app.platform.window);
             }
         }
@@ -103,8 +108,8 @@ void editor_event(SDL_Event *e) {
     if (!modal && e->type == SDL_EVENT_MOUSE_BUTTON_DOWN && e->button.button == SDL_BUTTON_LEFT &&
         editor_ui_controls_hit(app.shell.mx, app.shell.my)) {
         app.shell.click = true;
-        if (app.workspace.script) {
-            se_focus(app.workspace.script, app.platform.window, false);
+        if (backend && backend->blur) {
+            backend->blur();
         }
         return;
     }
@@ -114,17 +119,10 @@ void editor_event(SDL_Event *e) {
     }
     if (e->type == SDL_EVENT_KEY_DOWN && !e->key.repeat &&
         (e->key.key == SDLK_RETURN || e->key.key == SDLK_SPACE) && app.shell.field == FIELD_NONE &&
-        !(editor_scripts_active() && (*app.workspace.script).focused)) {
+        !(backend && backend->text_focus && backend->text_focus())) {
         ui_activate(&app.shell.ui);
     }
-    if (editor_scripts_active() && app.shell.canvas_enabled && !modal &&
-        se_event(&(*app.workspace.script), app.platform.window, e, app.shell.viewport)) {
-        if (e->type == SDL_EVENT_MOUSE_BUTTON_DOWN && (*app.workspace.script).focused) {
-            ui_focus(&app.shell.ui, UI_SCRIPT_DOCUMENT);
-        }
-        return;
-    }
-    if (vector_event(e)) {
+    if (backend && backend->event && backend->event(e, modal)) {
         return;
     }
     switch (e->type) {
@@ -134,11 +132,12 @@ void editor_event(SDL_Event *e) {
             editor_window_action("window.collapse");
         }
         if (editor_playing()) {
-            editor_play_toggle();
+            editor_yaml_action("scene.toggle_play");
         }
         if (editor_edit_pending()) {
-            pe_history_cancel(&app.workspace.map->history, &app.workspace.map->scene);
-            app.workspace.map->view.painting = app.workspace.map->view.dragging = false;
+            if (app.workspace.backend && app.workspace.backend->cancel) {
+                app.workspace.backend->cancel();
+            }
         }
         editor_request(REQUEST_QUIT, NULL);
         break;
@@ -151,19 +150,20 @@ void editor_event(SDL_Event *e) {
                 editor_request(REQUEST_VECTOR_OPEN, e->drop.data);
             } else if (editor_suffix(e->drop.data, ".js")) {
                 editor_request(REQUEST_SCRIPT_OPEN, e->drop.data);
-            } else if (editor_map_active()) {
-                editor_import_png(e->drop.data);
+            } else if (backend && backend->drop) {
+                backend->drop(e->drop.data);
             }
         }
         break;
     case SDL_EVENT_WINDOW_FOCUS_LOST:
         ui_cancel(&app.shell.ui);
         if (editor_edit_pending()) {
-            pe_history_cancel(&app.workspace.map->history, &app.workspace.map->scene);
-            app.workspace.map->view.painting = app.workspace.map->view.dragging = false;
+            if (app.workspace.backend && app.workspace.backend->cancel) {
+                app.workspace.backend->cancel();
+            }
         }
-        if (app.workspace.map) {
-            app.workspace.map->view.panning = false;
+        if (backend && backend->cancel) {
+            backend->cancel();
         }
         break;
     case SDL_EVENT_MOUSE_WHEEL:
@@ -175,8 +175,8 @@ void editor_event(SDL_Event *e) {
                     fmaxf(0, editor_window_controls_left() - app.shell.global_nav_x - 12), 112,
                     -e->wheel.y * 56);
             } else if (editor_inside(app.shell.mx, app.shell.my, app.shell.viewport) &&
-                       app.shell.canvas_enabled && editor_map_active()) {
-                editor_map_zoom(e->wheel.y);
+                       app.shell.canvas_enabled && backend && backend->zoom) {
+                backend->zoom(e->wheel.y);
             } else if (app.shell.mx < LEFT && app.shell.my >= TOP && app.shell.my < SIDE_TOP) {
                 ui_tabs_scroll(&app.shell.left_tabs, LEFT - 2 * PANEL_GAP, 112, -e->wheel.y * 56);
             } else if (app.shell.mx > app.platform.width - RIGHT && app.shell.my >= TOP &&
@@ -185,14 +185,18 @@ void editor_event(SDL_Event *e) {
             } else if (editor_layout_scrolls_at(app.shell.mx, app.shell.my)) {
                 /* The YAML panel consumes wheel_delta during layout. */
             } else if (app.shell.mx < LEFT) {
-                ui_scroll_by(app.workspace.map && app.shell.left_tabs.selected == UI_MAP_TAB
-                                 ? &app.workspace.map->view.map_view
+                UiScroll *scroll = backend && backend->panel_scroll
+                                       ? backend->panel_scroll(app.shell.left_tabs.selected)
+                                       : NULL;
+                ui_scroll_by(scroll                                         ? scroll
                              : app.shell.left_tabs.selected == UI_SCENE_TAB ? &app.shell.scene_view
                                                                             : &app.shell.tree_view,
                              -e->wheel.y * 69);
             } else if (app.shell.mx > app.platform.width - RIGHT) {
-                ui_scroll_by(app.workspace.map && app.shell.right_tabs.selected == UI_TILES_TAB
-                                 ? &app.workspace.map->view.tiles_view
+                UiScroll *scroll = backend && backend->panel_scroll
+                                       ? backend->panel_scroll(app.shell.right_tabs.selected)
+                                       : NULL;
+                ui_scroll_by(scroll ? scroll
                              : app.shell.right_tabs.selected == UI_INFO_TAB
                                  ? &app.shell.info_view
                                  : &app.shell.inspector_view,
@@ -201,7 +205,9 @@ void editor_event(SDL_Event *e) {
         }
         break;
     default:
-        editor_map_pointer(e, modal);
+        if (backend && backend->pointer) {
+            backend->pointer(e, modal);
+        }
         break;
     }
 }

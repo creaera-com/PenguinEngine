@@ -33,7 +33,7 @@ void vector_free(VectorEditor *v) {
 }
 
 void vector_sync(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     v->preview_cache_valid = false;
     if (v->view.preview_enabled &&
         (v->view.preview_board < 0 || v->view.preview_board >= VE_BOARDS ||
@@ -79,7 +79,7 @@ void vector_sync(void) {
 }
 
 void vector_commit(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     bool valid = ve_valid(&v->document);
     if (!valid || !ve_history_commit(&v->history, &v->document)) {
         char error[256];
@@ -92,7 +92,7 @@ void vector_commit(void) {
 }
 
 void vector_zoom(float zoom, float x, float y) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     if (!isfinite(zoom)) {
         return;
     }
@@ -105,14 +105,15 @@ void vector_zoom(float zoom, float x, float y) {
 }
 
 void vector_undo(bool redo) {
-    ve_history_step(&app.workspace.vector->history, &app.workspace.vector->document, redo);
-    app.workspace.vector->view.node = -1;
+    ve_history_step(&pe_vector_active_instance()->history, &pe_vector_active_instance()->document,
+                    redo);
+    pe_vector_active_instance()->view.node = -1;
     vector_sync();
 }
 
 int vector_first(void) {
     for (int i = 0; i < VE_SHAPES; i++) {
-        if (app.workspace.vector->view.selected & (UINT64_C(1) << i)) {
+        if (pe_vector_active_instance()->view.selected & (UINT64_C(1) << i)) {
             return i;
         }
     }
@@ -122,7 +123,7 @@ int vector_first(void) {
 int vector_selected_count(void) {
     int n = 0;
     for (int i = 0; i < VE_SHAPES; i++) {
-        n += (app.workspace.vector->view.selected & (UINT64_C(1) << i)) != 0;
+        n += (pe_vector_active_instance()->view.selected & (UINT64_C(1) << i)) != 0;
     }
     return n;
 }
@@ -137,7 +138,7 @@ bool vector_resolve_path(const char *path, char *out, size_t size) {
 }
 
 bool vector_open(const char *path) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     VeDocument *next = malloc(sizeof *next);
     VeHistory history;
     char full[1024], error[256];
@@ -173,7 +174,7 @@ bool vector_open(const char *path) {
 }
 
 void vector_new(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     ve_history_free(&v->history);
     ve_init(&v->document);
     ve_history_init(&v->history, &v->document);
@@ -191,7 +192,7 @@ void vector_new(void) {
 }
 
 bool vector_save(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     if (!*v->view.path) {
         v->after_save = app.shell.request;
         app.shell.request = REQUEST_NONE;

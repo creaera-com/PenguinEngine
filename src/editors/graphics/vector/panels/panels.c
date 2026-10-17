@@ -22,7 +22,7 @@ static void color_field(float x, float y, float w, const char *key, uint32_t rgb
 }
 
 void vector_draw_inspector(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     float x = app.shell.panel_area.x + 9,
           y = app.shell.panel_area.y + 12 - app.shell.inspector_view.offset,
           w = app.shell.panel_area.w - 32;

@@ -25,8 +25,21 @@ def check(root=SRC):
         if path.suffix not in ('.c', '.h'):
             continue
         relative = path.relative_to(SRC).as_posix()
+        shared = relative.startswith(('application/', 'shell/', 'editor/'))
+        if shared:
+            content = path.read_text(encoding='utf-8')
+            if re.search(r'\b(MapPayload|VectorEditor|PeScriptEditor)\b|workspace\.(map|script|vector)\b|pe_(map|script|vector)_active_instance', content):
+                errors.append(f'{relative}: shared integration must not interpret concrete editor state')
+        if relative.startswith('editors/'):
+            own_key = 'vector' if relative.startswith('editors/graphics/vector/') else 'map' if relative.startswith('editors/game/map/') else 'script'
+            for key in re.findall(r'pe_(map|script|vector)_active_instance', path.read_text(encoding='utf-8')):
+                if key != own_key:
+                    errors.append(f'{relative}: foreign editor instance access {key}')
         for name, target in includes(path):
             location = target.relative_to(SRC).as_posix() if target and target.is_relative_to(SRC) else ''
+            if shared and location.startswith('editors/'):
+                if relative != 'application/editors.c' or not name.endswith('/adapter.h'):
+                    errors.append(f'{relative}: shared integration may only register public editor entry headers')
             if relative.startswith(('engine/', 'ui/', 'services/')):
                 if location.startswith(('application/', 'shell/', 'editor/', 'editors/')):
                     errors.append(f'{relative}: forbidden application dependency {name}')

@@ -75,7 +75,7 @@ editors:
 
 `module: map` wird der internen ID `UI_MAP_VIEW` zugeordnet. Die Auswahl landet in `app.shell.workspaces.selected`. **Ausgewählt** bedeutet hier zunächst nur: Dieser Editor soll geladen werden. `app.workspace.loaded_view` bleibt bis zur erfolgreichen Aktivierung 0.
 
-Die YAML-Datei beschreibt die Oberfläche und verweist auf ein Editorlayout. Sie enthält keine C-Funktionszeiger. Die Zuordnung zum ausführbaren Editor-Code ist separat in `src/application/editors.c` festgelegt:
+Die YAML-Datei beschreibt die Oberfläche und verweist auf ein Editorlayout. Sie enthält keine C-Funktionszeiger. Die Domäne veröffentlicht ihre Beschreibung `pe_map_view` in `src/editors/game/map/adapter.c`. `src/application/editors.c` registriert nur deren Adresse; `editor/registry.c` ordnet den YAML-Modulnamen dieser Beschreibung zu:
 
 ```text
 UI_MAP_VIEW
@@ -93,7 +93,7 @@ Vor der Aktivierung ergänzt die Anwendung noch die gemeinsame Umgebung:
 - Sie initialisiert die linken und rechten Tabgruppen.
 - Sie erzeugt die Resize-Cursor, setzt Fenstermaße und ruft `editor_window_init()` für die eigene Fensterbedienung auf.
 - Sie legt einen vorläufigen Canvasbereich in `app.shell.viewport` fest. Beim Zeichnen wird dessen genaue Geometrie neu berechnet.
-- Über `SDL_GetPrefPath()` ermittelt sie das Verzeichnis für temporäre Sitzungsdateien und erzeugt darin drei Laufzeitpfade für Map, Script und Vector.
+- Über `SDL_GetPrefPath()` ermittelt sie das Verzeichnis für temporäre Sitzungsdateien und erzeugt darin einen Laufzeitpfad je registriertem Editor.
 - Sie setzt `app.runtime.running` und den ersten Zeitstempel.
 - Sie bereitet aufgeklappte Projektordner vor, aktualisiert den Dateibaum und setzt die Willkommensmeldung.
 
@@ -130,7 +130,7 @@ Damit existieren nun zwei verschiedene YAML-Modelle:
 
 Der Workspace ruft `backend->create(error, size)` auf. Bei Map zeigt dieser Rückruf auf die dateilokale Funktion `create()` in `src/editors/game/map/adapter.c`.
 
-Diese Funktion reserviert mit `calloc()` einen leeren `MapPayload` und speichert ihn unter `app.workspace.map`. Anschließend merkt sich der Workspace die Operationstabelle in `app.workspace.backend`.
+Der Workspace setzt zunächst `app.workspace.backend`, damit die konkrete Domäne ihren Instanzzugriff prüfen kann. `create()` reserviert mit `calloc()` einen leeren `MapPayload` und hinterlegt ihn unter `app.workspace.instance`. Nur der Map-Adapter und seine privaten Frontends interpretieren diesen undurchsichtigen Zeiger; der gemeinsame Workspace kennt dessen Typ nicht.
 
 Ein Payload ist hier die besitzende Datenstruktur des konkreten Editors: Die Map wird darin Szene, Verlauf, Navigation und Darstellungscaches verwalten. Die gemeinsame Lebenszyklussteuerung verwendet zum Erzeugen und Freigeben den Backend-Vertrag.
 
@@ -149,7 +149,7 @@ initialize()
   -> pe_scene_load(&map->scene, app.project.scene_path, ...)
 ```
 
-**Erst hier wird die in Schritt 2 bestimmte Startszene tatsächlich eingelesen.** Das Szenenmodell befindet sich anschließend in `app.workspace.map->scene`; der Undo-/Redo-Verlauf ist initialisiert.
+**Erst hier wird die in Schritt 2 bestimmte Startszene tatsächlich eingelesen.** Das Szenenmodell befindet sich anschließend in `pe_map_active_instance()->scene`; der Undo-/Redo-Verlauf ist initialisiert.
 
 Bei einem späteren Wechsel zu einem bereits verwendeten Editor wäre die Alternative `pe_session_load()` mit dem jeweiligen `checkpoint`-Rückruf. Beim hier beschriebenen Erststart wird dieser Zweig nicht genommen.
 
@@ -177,7 +177,7 @@ while (app.runtime.running)
   -> SDL_PollEvent() und editor_event()
   -> vergangene Zeit berechnen und auf 0.1 Sekunden begrenzen
   -> pe_console_tick()
-  -> editor_map_update()
+  -> backend->update(elapsed)  [bei Map: editor_map_update()]
   -> editor_draw()
   -> SDL_Delay(1)
 ```
@@ -245,7 +245,7 @@ Zum Nachvollziehen ohne Testumwege ohne `--smoke` starten. Diese Haltepunkte fü
 | 3 | `pe_project_load()` | Projektwurzel und berechneter Start-Szenenpfad |
 | 4 | `editor_apply_shell_layout()` | `workspaces.selected` wird beim Erststart auf den ersten YAML-Eintrag gesetzt |
 | 5 | `editor_activate()` | Erstes Editorlayout und ausgewählter Backend-Zeiger |
-| 6 | `create()` im **Map-Adapter** | `app.workspace.map` wird reserviert |
+| 6 | `create()` im **Map-Adapter** | `app.workspace.instance` wird als Map-Payload reserviert |
 | 7 | `initialize()` im **Map-Adapter** | Navigation, Verlauf und Szene werden angelegt |
 | 8 | `editor_assets_sync()` | Tileset und SDL-Texturen werden vorbereitet |
 | 9 | `editor_draw()` | Aktive ID, Panelgeometrie und erste sichtbare Ausgabe |
@@ -258,9 +258,10 @@ Nach Rückkehr aus `editor_activate()` sind beim normalen Map-Start besonders di
 app.shell.workspaces.selected == UI_MAP_VIEW
 app.workspace.loaded_view    == UI_MAP_VIEW
 app.workspace.backend        == &pe_map_backend
-app.workspace.map            != NULL
-app.workspace.script         == NULL
-app.workspace.vector         == NULL
+app.workspace.instance       != NULL
+pe_map_active_instance()     != NULL
+pe_script_active_instance()  == NULL
+pe_vector_active_instance()  == NULL
 app.workspace.active_layout  != NULL
 ```
 

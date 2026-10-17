@@ -3,7 +3,7 @@
 #include "nanosvgrast.h"
 
 bool vector_preview_selection(VeRegion *r) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     if (!v->view.preview_enabled || v->view.preview_board < 0 ||
         v->view.preview_board >= VE_BOARDS) {
         return false;
@@ -18,7 +18,7 @@ bool vector_preview_selection(VeRegion *r) {
 }
 
 void vector_draw_preview_selection(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     VeRegion r;
     if (!vector_preview_selection(&r)) {
         return;
@@ -37,7 +37,7 @@ static bool same_region(VeRegion a, VeRegion b) {
 }
 
 static bool raster(VeRegion source) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     int w = (int)source.w, h = (int)source.h;
     if (w < 1 || h < 1 || w > 4096 || h > 4096 || (size_t)w * h > 4 * 1024 * 1024) {
         return false;
@@ -110,7 +110,7 @@ static bool raster(VeRegion source) {
 }
 
 void vector_draw_preview(SDL_FRect area) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     editor_box(area, UI_CANVAS);
     VeRegion selected;
     if (!vector_preview_selection(&selected)) {

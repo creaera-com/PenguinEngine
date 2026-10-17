@@ -12,35 +12,35 @@ static const struct {
 void editor_inspect_entity(void) {
     app.shell.right_tabs.selected = UI_INSPECTOR_TAB;
     app.shell.inspector_view.offset = 0;
-    app.workspace.map->component_add_open = false;
-    app.workspace.map->reveal_selected = true;
+    pe_map_active_instance()->component_add_open = false;
+    pe_map_active_instance()->reveal_selected = true;
 }
 
 bool editor_component_change(uint32_t bit, bool add) {
-    if (!editor_map_active() || app.workspace.map->view.playing || editor_edit_pending() ||
+    if (!editor_map_active() || pe_map_active_instance()->view.playing || editor_edit_pending() ||
         app.shell.field != FIELD_NONE || app.shell.request != REQUEST_NONE) {
         return false;
     }
-    PeEntity entity = pe_entity_find(&app.workspace.map->scene, app.shell.selected);
-    if (!pe_entity_valid(&app.workspace.map->scene, entity) || !editor_begin()) {
+    PeEntity entity = pe_entity_find(&pe_map_active_instance()->scene, app.shell.selected);
+    if (!pe_entity_valid(&pe_map_active_instance()->scene, entity) || !editor_begin()) {
         return false;
     }
-    bool changed = add ? pe_entity_add_component(&app.workspace.map->scene, entity, bit)
-                       : pe_entity_remove_component(&app.workspace.map->scene, entity, bit);
+    bool changed = add ? pe_entity_add_component(&pe_map_active_instance()->scene, entity, bit)
+                       : pe_entity_remove_component(&pe_map_active_instance()->scene, entity, bit);
     if (!changed) {
-        pe_history_cancel(&app.workspace.map->history, &app.workspace.map->scene);
+        pe_history_cancel(&pe_map_active_instance()->history, &pe_map_active_instance()->scene);
         return false;
     }
-    uint64_t revision = app.workspace.map->history.revision;
+    uint64_t revision = pe_map_active_instance()->history.revision;
     editor_commit();
-    if (app.workspace.map->history.revision == revision) {
+    if (pe_map_active_instance()->history.revision == revision) {
         return false;
     }
     if (add) {
-        app.workspace.map->reveal_selected = true;
+        pe_map_active_instance()->reveal_selected = true;
     }
-    app.workspace.map->component_closed[entity.index] &= ~bit;
-    app.workspace.map->component_add_open = false;
+    pe_map_active_instance()->component_closed[entity.index] &= ~bit;
+    pe_map_active_instance()->component_add_open = false;
     return true;
 }
 
@@ -68,16 +68,16 @@ static void number_field(float x, float y, float w, const char *name, float valu
 }
 
 static float component_card(PeEntity entity, int index, float x, float y, float w, bool enabled) {
-    PeObject *o = pe_entity_get(&app.workspace.map->scene, entity);
+    PeObject *o = pe_entity_get(&pe_map_active_instance()->scene, entity);
     uint32_t bit = components[index].bit;
     app.shell.widget_scope = ui_id("component") ^ o->stable_id * 31u ^ bit;
-    bool open = !(app.workspace.map->component_closed[entity.index] & bit);
+    bool open = !(pe_map_active_instance()->component_closed[entity.index] & bit);
     UiRect header = {x + 4, y + 4, fmaxf(0, w - 26), 25};
     ui_disclosure(&app.shell.ui, app.shell.widget_scope, header, &open, !editor_edit_pending());
     if (open) {
-        app.workspace.map->component_closed[entity.index] &= ~bit;
+        pe_map_active_instance()->component_closed[entity.index] &= ~bit;
     } else {
-        app.workspace.map->component_closed[entity.index] |= bit;
+        pe_map_active_instance()->component_closed[entity.index] |= bit;
     }
     float content = bit == PE_TRANSFORM ? 4 * 29.f + (o->parent_id ? 22 : 0)
                     : bit == PE_BODY    ? 2 * 29.f
@@ -91,7 +91,7 @@ static float component_card(PeEntity entity, int index, float x, float y, float 
     ui_icon(app.platform.renderer, open ? ICON_DOWN : ICON_RIGHT, x + 9, y + 10, 12, UI_MUTED);
     ui_icon(app.platform.renderer, components[index].icon, x + 27, y + 8, 16, UI_ACCENT);
     editor_text(x + 51, y + 12, components[index].name, UI_TEXT);
-    bool removable = pe_entity_component_removable(&app.workspace.map->scene, entity, bit);
+    bool removable = pe_entity_component_removable(&pe_map_active_instance()->scene, entity, bit);
     const char *hint = removable        ? "Remove component"
                        : bit == PE_BODY ? "Remove Player first"
                                         : "Required by components or hierarchy";
@@ -145,39 +145,41 @@ static float component_card(PeEntity entity, int index, float x, float y, float 
 }
 
 float editor_draw_components(float x, float y, float width) {
-    PeEntity entity = pe_entity_find(&app.workspace.map->scene, app.shell.selected);
-    PeObject *o = pe_entity_get(&app.workspace.map->scene, entity);
+    PeEntity entity = pe_entity_find(&pe_map_active_instance()->scene, app.shell.selected);
+    PeObject *o = pe_entity_get(&pe_map_active_instance()->scene, entity);
     if (!o) {
         return y;
     }
-    if (app.workspace.map->component_ids[entity.index] != o->stable_id) {
-        app.workspace.map->component_ids[entity.index] = o->stable_id;
-        app.workspace.map->component_closed[entity.index] = 0;
-        app.workspace.map->component_add_open = false;
+    if (pe_map_active_instance()->component_ids[entity.index] != o->stable_id) {
+        pe_map_active_instance()->component_ids[entity.index] = o->stable_id;
+        pe_map_active_instance()->component_closed[entity.index] = 0;
+        pe_map_active_instance()->component_add_open = false;
     }
-    bool enabled = !app.workspace.map->view.playing && !editor_edit_pending();
+    bool enabled = !pe_map_active_instance()->view.playing && !editor_edit_pending();
     float button_width = fminf(width, ui_tab_content_width(ICON_PLUS, "Add component") + 20);
     float button_x = x + width - button_width;
-    app.workspace.map->component_anchor = (SDL_FRect){button_x, y, button_width, 25};
-    app.workspace.map->component_anchor_seen = true;
+    pe_map_active_instance()->component_anchor = (SDL_FRect){button_x, y, button_width, 25};
+    pe_map_active_instance()->component_anchor_seen = true;
     if (icon_button(button_x, y, button_width, ICON_PLUS, "Add component", "Choose a component",
-                    app.workspace.map->component_add_open, enabled)) {
-        app.workspace.map->component_add_open = !app.workspace.map->component_add_open;
-        app.workspace.map->component_owner = o->stable_id;
-        app.workspace.map->component_pressed = -1;
-        app.workspace.map->component_choice = -1;
+                    pe_map_active_instance()->component_add_open, enabled)) {
+        pe_map_active_instance()->component_add_open =
+            !pe_map_active_instance()->component_add_open;
+        pe_map_active_instance()->component_owner = o->stable_id;
+        pe_map_active_instance()->component_pressed = -1;
+        pe_map_active_instance()->component_choice = -1;
         for (int i = 0; i < 4; i++) {
             if (!(o->mask & components[i].bit)) {
-                app.workspace.map->component_choice = i;
+                pe_map_active_instance()->component_choice = i;
                 break;
             }
         }
-        if (app.workspace.map->component_add_open) {
+        if (pe_map_active_instance()->component_add_open) {
             app.shell.ui.blocked = true;
         }
     }
-    ui_icon(app.platform.renderer, app.workspace.map->component_add_open ? ICON_UP : ICON_DOWN,
-            x + width - 20, y + 6, 12, enabled ? UI_TEXT : UI_DISABLED);
+    ui_icon(app.platform.renderer,
+            pe_map_active_instance()->component_add_open ? ICON_UP : ICON_DOWN, x + width - 20,
+            y + 6, 12, enabled ? UI_TEXT : UI_DISABLED);
     y += 33;
     for (int i = 0; i < 4; i++) {
         if (o->mask & components[i].bit) {
@@ -189,33 +191,34 @@ float editor_draw_components(float x, float y, float width) {
 }
 
 static void close_popup(void) {
-    app.workspace.map->component_add_open = false;
-    app.workspace.map->component_pressed = -1;
+    pe_map_active_instance()->component_add_open = false;
+    pe_map_active_instance()->component_pressed = -1;
     app.shell.needs_layout = true;
     ui_cancel(&app.shell.ui);
 }
 
 void editor_draw_component_popup(void) {
-    if (!app.workspace.map || !app.workspace.map->component_add_open) {
+    if (!pe_map_active_instance() || !pe_map_active_instance()->component_add_open) {
         return;
     }
-    PeObject *o = pe_entity_get(&app.workspace.map->scene,
-                                pe_entity_find(&app.workspace.map->scene, app.shell.selected));
-    if (!o || o->stable_id != app.workspace.map->component_owner ||
-        !app.workspace.map->component_anchor_seen || app.workspace.map->view.playing ||
-        app.platform.window_collapsed || app.shell.field != FIELD_NONE ||
-        app.shell.request != REQUEST_NONE) {
+    PeObject *o =
+        pe_entity_get(&pe_map_active_instance()->scene,
+                      pe_entity_find(&pe_map_active_instance()->scene, app.shell.selected));
+    if (!o || o->stable_id != pe_map_active_instance()->component_owner ||
+        !pe_map_active_instance()->component_anchor_seen ||
+        pe_map_active_instance()->view.playing || app.platform.window_collapsed ||
+        app.shell.field != FIELD_NONE || app.shell.request != REQUEST_NONE) {
         close_popup();
         return;
     }
-    SDL_FRect anchor = app.workspace.map->component_anchor;
+    SDL_FRect anchor = pe_map_active_instance()->component_anchor;
     SDL_FRect popup = {fmaxf(4, fminf(anchor.x, app.platform.width - anchor.w - 4)),
                        anchor.y + anchor.h + 4, anchor.w, 120};
     if (popup.y + popup.h > app.platform.height - BOTTOM - 4) {
         popup.y = anchor.y - popup.h - 4;
     }
     popup.y = fmaxf(TOP + 4, popup.y);
-    app.workspace.map->component_popup = popup;
+    pe_map_active_instance()->component_popup = popup;
     editor_box((SDL_FRect){popup.x + 3, popup.y + 3, popup.w, popup.h}, UI_CANVAS);
     editor_box(popup, UI_BORDER);
     editor_box((SDL_FRect){popup.x + 1, popup.y + 1, popup.w - 2, popup.h - 2},
@@ -223,7 +226,7 @@ void editor_draw_component_popup(void) {
     for (int i = 0; i < 4; i++) {
         bool present = (o->mask & components[i].bit) != 0;
         SDL_FRect row = {popup.x + 4, popup.y + 4 + i * 28, popup.w - 8, 28};
-        if (!present && app.workspace.map->component_choice == i) {
+        if (!present && pe_map_active_instance()->component_choice == i) {
             editor_box(row, UI_HOVER);
         }
         ui_icon(app.platform.renderer, components[i].icon, row.x + 7, row.y + 6, 16,
@@ -236,7 +239,7 @@ void editor_draw_component_popup(void) {
 }
 
 bool editor_component_popup_event(const SDL_Event *e) {
-    if (!app.workspace.map || !app.workspace.map->component_add_open) {
+    if (!pe_map_active_instance() || !pe_map_active_instance()->component_add_open) {
         return false;
     }
     if (e->type == SDL_EVENT_QUIT || e->type == SDL_EVENT_WINDOW_CLOSE_REQUESTED ||
@@ -244,9 +247,10 @@ bool editor_component_popup_event(const SDL_Event *e) {
         close_popup();
         return false;
     }
-    PeObject *o = pe_entity_get(&app.workspace.map->scene,
-                                pe_entity_find(&app.workspace.map->scene, app.shell.selected));
-    if (!o || o->stable_id != app.workspace.map->component_owner) {
+    PeObject *o =
+        pe_entity_get(&pe_map_active_instance()->scene,
+                      pe_entity_find(&pe_map_active_instance()->scene, app.shell.selected));
+    if (!o || o->stable_id != pe_map_active_instance()->component_owner) {
         close_popup();
         return false;
     }
@@ -258,19 +262,19 @@ bool editor_component_popup_event(const SDL_Event *e) {
             close_popup();
         } else if (e->key.key == SDLK_DOWN || e->key.key == SDLK_UP) {
             int direction = e->key.key == SDLK_DOWN ? 1 : -1;
-            int choice = app.workspace.map->component_choice;
+            int choice = pe_map_active_instance()->component_choice;
             if (choice < 0) {
                 choice = direction > 0 ? 3 : 0;
             }
             for (int i = 0; i < 4; i++) {
                 choice = (choice + direction + 4) % 4;
                 if (!(o->mask & components[choice].bit)) {
-                    app.workspace.map->component_choice = choice;
+                    pe_map_active_instance()->component_choice = choice;
                     break;
                 }
             }
         } else if (e->key.key == SDLK_RETURN || e->key.key == SDLK_SPACE) {
-            int choice = app.workspace.map->component_choice;
+            int choice = pe_map_active_instance()->component_choice;
             if (choice >= 0 && choice < 4 && !(o->mask & components[choice].bit)) {
                 editor_component_change(components[choice].bit, true);
                 close_popup();
@@ -282,26 +286,26 @@ bool editor_component_popup_event(const SDL_Event *e) {
         e->type == SDL_EVENT_MOUSE_BUTTON_UP) {
         float x = e->type == SDL_EVENT_MOUSE_MOTION ? e->motion.x : e->button.x;
         float y = e->type == SDL_EVENT_MOUSE_MOTION ? e->motion.y : e->button.y;
-        SDL_FRect p = app.workspace.map->component_popup;
+        SDL_FRect p = pe_map_active_instance()->component_popup;
         int row = editor_inside(x, y, p) ? (int)floorf((y - p.y - 4) / 28) : -1;
         if (row < 0 || row >= 4 || (o->mask & components[row].bit)) {
             row = -1;
         }
         if (row >= 0) {
-            app.workspace.map->component_choice = row;
+            pe_map_active_instance()->component_choice = row;
         }
         if (e->type == SDL_EVENT_MOUSE_BUTTON_DOWN && e->button.button == SDL_BUTTON_LEFT) {
             if (!editor_inside(x, y, p)) {
                 close_popup();
             } else {
-                app.workspace.map->component_pressed = row;
+                pe_map_active_instance()->component_pressed = row;
             }
         } else if (e->type == SDL_EVENT_MOUSE_BUTTON_UP && e->button.button == SDL_BUTTON_LEFT) {
-            if (row >= 0 && row == app.workspace.map->component_pressed) {
+            if (row >= 0 && row == pe_map_active_instance()->component_pressed) {
                 editor_component_change(components[row].bit, true);
                 close_popup();
             } else {
-                app.workspace.map->component_pressed = -1;
+                pe_map_active_instance()->component_pressed = -1;
             }
         }
         return true;

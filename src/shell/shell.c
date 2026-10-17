@@ -1,4 +1,5 @@
 #include "application/internal.h"
+
 const char *editor_screenshot_path;
 
 static UiRect left_split(void);
@@ -35,7 +36,8 @@ bool editor_ui_controls_hit(float x, float y) {
         }
     }
 
-    return app.workspace.script && se_scroll_hit(app.workspace.script, x, y, app.shell.viewport);
+    return app.workspace.backend && app.workspace.backend->controls_hit &&
+           app.workspace.backend->controls_hit(x, y);
 }
 
 void editor_draw(void) {
@@ -47,9 +49,10 @@ void editor_draw(void) {
     app.shell.hit_count = 0;
     app.shell.field_seen = false;
     app.shell.canvas_enabled = false;
-    bool popup = app.workspace.map && app.workspace.map->component_add_open;
-    if (app.workspace.map) {
-        app.workspace.map->component_anchor_seen = false;
+    const PeEditorBackend *backend = app.workspace.backend;
+    bool popup = backend && backend->overlay_open && backend->overlay_open();
+    if (backend && backend->begin_frame) {
+        backend->begin_frame();
     }
     app.shell.ui.blocked = (app.shell.field != FIELD_NONE && !app.shell.field_inline) ||
                            app.shell.request != REQUEST_NONE || popup;
@@ -154,8 +157,7 @@ void editor_draw(void) {
         editor_process_deferred_ui();
         return;
     }
-    if (!app.workspace.active_layout ||
-        (!app.workspace.map && !app.workspace.script && !app.workspace.vector)) {
+    if (!app.workspace.active_layout || !app.workspace.backend) {
         editor_text(LEFT + 16, TOP + 40, app.shell.status, UI_TEXT);
         ui_end_frame(&app.shell.ui);
         if (modal) {
@@ -222,8 +224,11 @@ void editor_draw(void) {
     }
     ui_clip_pop(&app.shell.ui);
     ui_apply_clip(app.platform.renderer, &app.shell.ui);
-    editor_draw_component_popup();
-    if (editor_tooltip && !modal && !(app.workspace.map && app.workspace.map->component_add_open)) {
+    if (backend && backend->draw_overlay) {
+        backend->draw_overlay();
+    }
+    if (editor_tooltip && !modal &&
+        !(backend && backend->overlay_open && backend->overlay_open())) {
         float width = (float)strlen(editor_tooltip) * 8 + 20;
         float tx = fminf(app.shell.mx + 12, app.platform.width - width - 8),
               ty = fminf(app.shell.my + 30, app.platform.height - 28.f);

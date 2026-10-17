@@ -1,7 +1,7 @@
 #include "editors/graphics/vector/internal.h"
 
 void vector_apply_field(int value) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     Field field = (Field)value;
     if (field == FIELD_V_OPEN) {
         char path[1024];

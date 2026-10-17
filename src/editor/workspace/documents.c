@@ -17,18 +17,14 @@ void editor_select_workspace(UiId id) {
         app.shell.workspaces.selected = app.workspace.loaded_view;
         return;
     }
-    if (!editor_switch(editor_view(id)->id)) {
-        app.shell.workspaces.selected = app.workspace.loaded_view;
-        ui_focus(&app.shell.ui, app.workspace.script ? UI_SCRIPT_DOCUMENT : 0);
-        if (app.workspace.script) {
-            se_focus(app.workspace.script, app.platform.window, true);
-        }
-        return;
-    }
+    bool switched = editor_switch(editor_view(id)->id);
     app.shell.workspaces.selected = app.workspace.loaded_view;
-    ui_focus(&app.shell.ui, editor_scripts_active() ? UI_SCRIPT_DOCUMENT : 0);
-    if (app.workspace.script) {
-        se_focus(app.workspace.script, app.platform.window, !editor_playing());
+    ui_focus(&app.shell.ui, 0);
+    if (app.workspace.backend && app.workspace.backend->focus) {
+        app.workspace.backend->focus();
+    }
+    if (!switched) {
+        return;
     }
 }
 
@@ -36,44 +32,51 @@ void editor_tab_select(bool scripts) {
     editor_select_workspace(scripts ? UI_SCRIPT_VIEW : UI_MAP_VIEW);
 }
 
-static bool request_dirty(Request r) {
-    if (r == REQUEST_SCRIPT_OPEN) {
-        return editor_script_dirty();
+static const EditorView *request_owner(Request command) {
+    if (command == REQUEST_QUIT) {
+        return NULL;
     }
-    if (r == REQUEST_QUIT) {
-        return editor_map_dirty() || editor_script_dirty() || editor_vector_dirty();
-    }
+    return pe_editor_registry_request(editor_registry, (int)command);
+}
 
-    if (r == REQUEST_VECTOR_OPEN || r == REQUEST_VECTOR_NEW) {
-        return editor_vector_dirty();
+static bool request_dirty(Request r) {
+    if (r == REQUEST_QUIT) {
+        for (int i = 0; i < editor_view_count; i++) {
+            if (editor_document_dirty(editor_views[i]->id)) {
+                return true;
+            }
+        }
+        return false;
     }
-    return editor_map_dirty();
+    const EditorView *owner = request_owner(r);
+    return owner && editor_document_dirty(owner->id);
 }
 
 static bool request_save(void) {
     if (app.shell.request == REQUEST_QUIT) {
-        if (editor_map_dirty()) {
-            editor_select_workspace(UI_MAP_VIEW);
-            if (!editor_map_active() || !editor_save_scene()) {
-                return false;
-            }
-        }
-        if (editor_script_dirty()) {
-            editor_select_workspace(UI_SCRIPT_VIEW);
-            if (!editor_scripts_active() || !editor_save()) {
-                return false;
-            }
-        }
-        if (editor_vector_dirty()) {
-            editor_select_workspace(UI_VECTOR_VIEW);
-            if (!editor_vector_active() || !vector_save()) {
-                return false;
+        for (int i = 0; i < editor_view_count; i++) {
+            UiId id = editor_views[i]->id;
+            if (editor_document_dirty(id)) {
+                editor_select_workspace(id);
+                if (app.workspace.loaded_view != id || !editor_save()) {
+                    return false;
+                }
             }
         }
         return true;
     }
-
     return editor_save();
+}
+
+static void perform_request(Request command) {
+    if (command == REQUEST_QUIT) {
+        app.runtime.running = false;
+        return;
+    }
+    const EditorView *owner = request_owner(command);
+    if (owner && owner->id == app.workspace.loaded_view && owner->backend->request) {
+        owner->backend->request(command, app.shell.open_path);
+    }
 }
 
 void editor_undo_active(bool redo) {
@@ -86,25 +89,20 @@ void editor_request(Request type, const char *path) {
         snprintf(app.shell.deferred_path, sizeof app.shell.deferred_path, "%s", path ? path : "");
         return;
     }
-    if (type == REQUEST_IMPORT) {
-        editor_import_png(path);
+    const EditorView *owner = request_owner(type);
+    if (owner && (int)type == owner->import_request) {
+        if (owner->id == app.workspace.loaded_view && owner->backend->request) {
+            owner->backend->request(type, path);
+        }
         return;
     }
-    if (type == REQUEST_VECTOR_OPEN || type == REQUEST_VECTOR_NEW) {
-        editor_select_workspace(UI_VECTOR_VIEW);
-        if (!editor_vector_active()) {
+    if (owner) {
+        editor_select_workspace(owner->id);
+        if (app.workspace.loaded_view != owner->id) {
             return;
         }
-    } else if (type == REQUEST_SCRIPT_OPEN) {
-        editor_select_workspace(UI_SCRIPT_VIEW);
-        if (!editor_scripts_active()) {
-            return;
-        }
-    } else if (type == REQUEST_OPEN) {
-        editor_select_workspace(UI_MAP_VIEW);
-        if (!editor_map_active()) {
-            return;
-        }
+    } else if (type != REQUEST_QUIT) {
+        return;
     }
     if (editor_playing()) {
         return;
@@ -120,41 +118,13 @@ void editor_request(Request type, const char *path) {
         app.shell.request = type;
         return;
     }
-    if (type == REQUEST_QUIT) {
-        app.runtime.running = false;
-    } else if (type == REQUEST_VECTOR_OPEN) {
-        vector_open(app.shell.open_path);
-    } else if (type == REQUEST_VECTOR_NEW) {
-        vector_new();
-    } else if (type == REQUEST_SCRIPT_OPEN) {
-        if (se_open(&(*app.workspace.script), app.shell.open_path)) {
-            editor_tab_select(true);
-        } else {
-            editor_message((*app.workspace.script).status);
-        }
-    } else {
-        editor_load_scene(app.shell.open_path);
-    }
+    perform_request(type);
 }
 
 void editor_request_finish(void) {
-    Request r = app.shell.request;
+    Request command = app.shell.request;
     app.shell.request = REQUEST_NONE;
-    if (r == REQUEST_QUIT) {
-        app.runtime.running = false;
-    } else if (r == REQUEST_VECTOR_OPEN) {
-        vector_open(app.shell.open_path);
-    } else if (r == REQUEST_VECTOR_NEW) {
-        vector_new();
-    } else if (r == REQUEST_OPEN) {
-        editor_load_scene(app.shell.open_path);
-    } else if (r == REQUEST_SCRIPT_OPEN) {
-        if (se_open(&(*app.workspace.script), app.shell.open_path)) {
-            editor_tab_select(true);
-        } else {
-            editor_message((*app.workspace.script).status);
-        }
-    }
+    perform_request(command);
 }
 
 void editor_process_deferred_ui(void) {

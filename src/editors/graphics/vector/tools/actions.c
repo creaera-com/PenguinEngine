@@ -7,7 +7,7 @@ bool vector_action(const char *action) {
     if (!editor_vector_active()) {
         return true;
     }
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     const char *name = action + 7;
     int selected = vector_first();
     if (!strcmp(name, "new")) {

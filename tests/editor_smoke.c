@@ -1,20 +1,23 @@
 #include "editor_smoke.h"
 #include "application/internal.h"
+#include "editors/game/map/map_editor.h"
+#include "editors/graphics/vector/editor.h"
+#include "editors/script/script_editor.h"
 
 static void smoke_pointer(Uint32 type, float x, float y);
 static void smoke_click(float x, float y);
 
 bool editor_verify_editor(void) {
     editor_draw();
-    PeScene baseline = app.workspace.map->scene;
-    app.workspace.map->view.tile = 4;
-    app.workspace.map->view.tool = BRUSH;
-    float sx = app.shell.viewport.x +
-               (2 * app.workspace.map->scene.tile_size + 2 - app.workspace.map->view.camera.x) *
-                   app.workspace.map->view.camera.zoom;
-    float sy = app.shell.viewport.y +
-               (2 * app.workspace.map->scene.tile_size + 2 - app.workspace.map->view.camera.y) *
-                   app.workspace.map->view.camera.zoom;
+    PeScene baseline = pe_map_active_instance()->scene;
+    pe_map_active_instance()->view.tile = 4;
+    pe_map_active_instance()->view.tool = BRUSH;
+    float sx = app.shell.viewport.x + (2 * pe_map_active_instance()->scene.tile_size + 2 -
+                                       pe_map_active_instance()->view.camera.x) *
+                                          pe_map_active_instance()->view.camera.zoom;
+    float sy = app.shell.viewport.y + (2 * pe_map_active_instance()->scene.tile_size + 2 -
+                                       pe_map_active_instance()->view.camera.y) *
+                                          pe_map_active_instance()->view.camera.zoom;
     SDL_Event e = {0};
     e.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
     e.button.button = SDL_BUTTON_LEFT;
@@ -22,37 +25,40 @@ bool editor_verify_editor(void) {
     e.button.y = sy;
     editor_event(&e);
     e.type = SDL_EVENT_MOUSE_MOTION;
-    e.motion.x = sx + app.workspace.map->scene.tile_size * app.workspace.map->view.camera.zoom;
+    e.motion.x =
+        sx + pe_map_active_instance()->scene.tile_size * pe_map_active_instance()->view.camera.zoom;
     e.motion.y = sy;
     e.motion.state = SDL_BUTTON_LMASK;
     editor_event(&e);
     e.type = SDL_EVENT_MOUSE_BUTTON_UP;
     e.button.button = SDL_BUTTON_LEFT;
-    e.button.x = sx + app.workspace.map->scene.tile_size * app.workspace.map->view.camera.zoom;
+    e.button.x =
+        sx + pe_map_active_instance()->scene.tile_size * pe_map_active_instance()->view.camera.zoom;
     e.button.y = sy;
     editor_event(&e);
-    bool ok = app.workspace.map->history.count == 1 &&
-              pe_tile_get(&app.workspace.map->scene, 0, 2, 2) == 4 &&
-              pe_tile_get(&app.workspace.map->scene, 0, 3, 2) == 4;
+    bool ok = pe_map_active_instance()->history.count == 1 &&
+              pe_tile_get(&pe_map_active_instance()->scene, 0, 2, 2) == 4 &&
+              pe_tile_get(&pe_map_active_instance()->scene, 0, 3, 2) == 4;
     e.type = SDL_EVENT_KEY_DOWN;
     e.key.key = SDLK_Z;
     e.key.mod = SDL_KMOD_CTRL;
     editor_event(&e);
-    ok = ok && !memcmp(&app.workspace.map->scene, &baseline, sizeof baseline);
+    ok = ok && !memcmp(&pe_map_active_instance()->scene, &baseline, sizeof baseline);
     e.key.mod = SDL_KMOD_CTRL | SDL_KMOD_SHIFT;
     editor_event(&e);
-    ok = ok && pe_tile_get(&app.workspace.map->scene, 0, 3, 2) == 4;
-    PeScene edited = app.workspace.map->scene;
+    ok = ok && pe_tile_get(&pe_map_active_instance()->scene, 0, 3, 2) == 4;
+    PeScene edited = pe_map_active_instance()->scene;
     e.key.key = SDLK_F5;
     e.key.mod = 0;
     editor_event(&e);
-    pe_update(&app.workspace.map->runtime, 1, 0, 1.f / 60);
-    ok = ok && editor_playing() && !memcmp(&app.workspace.map->scene, &edited, sizeof edited);
+    pe_update(&pe_map_active_instance()->runtime, 1, 0, 1.f / 60);
+    ok =
+        ok && editor_playing() && !memcmp(&pe_map_active_instance()->scene, &edited, sizeof edited);
     editor_event(&e);
     ok = ok && !editor_playing();
-    app.workspace.map->scene = baseline;
-    pe_history_free(&app.workspace.map->history);
-    app.workspace.map->view.tile = 1;
+    pe_map_active_instance()->scene = baseline;
+    pe_history_free(&pe_map_active_instance()->history);
+    pe_map_active_instance()->view.tile = 1;
     if (!ok) {
         fprintf(stderr, "Editor interaction smoke test failed\n");
     }
@@ -61,14 +67,14 @@ bool editor_verify_editor(void) {
 }
 
 bool editor_verify_script_editor(void) {
-    PeScene scene_before = app.workspace.map->scene;
+    PeScene scene_before = pe_map_active_instance()->scene;
     editor_tab_select(true);
-    if (!app.workspace.script || app.workspace.map) {
+    if (!pe_script_active_instance() || pe_map_active_instance()) {
         return false;
     }
 
-    PeText original = (*app.workspace.script).document;
-    pe_text_init(&(*app.workspace.script).document, "");
+    PeText original = (*pe_script_active_instance()).document;
+    pe_text_init(&(*pe_script_active_instance()).document, "");
     editor_tab_select(true);
     SDL_Event e = {0};
     e.type = SDL_EVENT_TEXT_INPUT;
@@ -79,20 +85,20 @@ bool editor_verify_script_editor(void) {
     e.key.key = SDLK_SPACE;
     e.key.mod = SDL_KMOD_CTRL;
     editor_event(&e);
-    bool ok = (*app.workspace.script).show_completion;
+    bool ok = (*pe_script_active_instance()).show_completion;
     editor_draw();
-    ok = ok && (*app.workspace.script).popup.w > 0;
+    ok = ok && (*pe_script_active_instance()).popup.w > 0;
     e.key.key = SDLK_RETURN;
     e.key.mod = 0;
     editor_event(&e);
-    ok = ok && !strcmp((*app.workspace.script).document.text, "const");
+    ok = ok && !strcmp((*pe_script_active_instance()).document.text, "const");
     e.key.key = SDLK_Z;
     e.key.mod = SDL_KMOD_CTRL;
     editor_event(&e);
-    ok = ok && !strcmp((*app.workspace.script).document.text, "cons");
+    ok = ok && !strcmp((*pe_script_active_instance()).document.text, "cons");
     e.key.mod = SDL_KMOD_CTRL | SDL_KMOD_SHIFT;
     editor_event(&e);
-    ok = ok && !strcmp((*app.workspace.script).document.text, "const");
+    ok = ok && !strcmp((*pe_script_active_instance()).document.text, "const");
     e.key.key = SDLK_BACKSPACE;
     e.key.mod = 0;
     editor_event(&e);
@@ -100,10 +106,10 @@ bool editor_verify_script_editor(void) {
     memset(&e, 0, sizeof e);
     e.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
     e.button.button = SDL_BUTTON_LEFT;
-    e.button.x = (*app.workspace.script).popup.x + 8;
-    e.button.y = (*app.workspace.script).popup.y + 8;
+    e.button.x = (*pe_script_active_instance()).popup.x + 8;
+    e.button.y = (*pe_script_active_instance()).popup.y + 8;
     editor_event(&e);
-    ok = ok && !strcmp((*app.workspace.script).document.text, "const");
+    ok = ok && !strcmp((*pe_script_active_instance()).document.text, "const");
     e.type = SDL_EVENT_MOUSE_BUTTON_UP;
     editor_event(&e);
     memset(&e, 0, sizeof e);
@@ -114,21 +120,21 @@ bool editor_verify_script_editor(void) {
     e.type = SDL_EVENT_KEY_DOWN;
     e.key.key = SDLK_F7;
     editor_event(&e);
-    ok = ok && !(*app.workspace.script).diagnostic.valid &&
-         (*app.workspace.script).diagnostic.line == 1;
+    ok = ok && !(*pe_script_active_instance()).diagnostic.valid &&
+         (*pe_script_active_instance()).diagnostic.line == 1;
     editor_request(REQUEST_QUIT, NULL);
     ok = ok && app.shell.request == REQUEST_QUIT && app.runtime.running;
     app.shell.request = REQUEST_NONE;
-    se_free(&(*app.workspace.script));
-    (*app.workspace.script).document = original;
-    (*app.workspace.script).highlighted_revision = UINT64_MAX;
-    (*app.workspace.script).checked_revision = UINT64_MAX;
-    (*app.workspace.script).show_completion = false;
-    (*app.workspace.script).top_line = (*app.workspace.script).left_column = 0;
-    se_check(&(*app.workspace.script));
+    se_free(&(*pe_script_active_instance()));
+    (*pe_script_active_instance()).document = original;
+    (*pe_script_active_instance()).highlighted_revision = UINT64_MAX;
+    (*pe_script_active_instance()).checked_revision = UINT64_MAX;
+    (*pe_script_active_instance()).show_completion = false;
+    (*pe_script_active_instance()).top_line = (*pe_script_active_instance()).left_column = 0;
+    se_check(&(*pe_script_active_instance()));
     editor_tab_select(false);
-    ok = ok && app.workspace.map && !app.workspace.script &&
-         !memcmp(&scene_before, &app.workspace.map->scene, sizeof scene_before);
+    ok = ok && pe_map_active_instance() && !pe_script_active_instance() &&
+         !memcmp(&scene_before, &pe_map_active_instance()->scene, sizeof scene_before);
     if (!ok) {
         fprintf(stderr, "Script editor interaction smoke test failed\n");
     }
@@ -153,7 +159,7 @@ static void smoke_pointer(Uint32 type, float x, float y) {
 }
 
 bool editor_verify_ui_layout(void) {
-    PeScene original = app.workspace.map->scene;
+    PeScene original = pe_map_active_instance()->scene;
     editor_tab_select(false);
     ui_cancel(&app.shell.ui);
     editor_draw();
@@ -172,7 +178,7 @@ bool editor_verify_ui_layout(void) {
     float header_x = 30, header_y = SIDE_TOP + 20;
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, header_x, header_y);
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, header_x, header_y);
-    ok = ok && !app.workspace.map->view.layers_open;
+    ok = ok && !pe_map_active_instance()->view.layers_open;
     float tab_x = GLOBAL_NAV_X + 16, tab_y = 24;
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, tab_x, tab_y);
     smoke_pointer(SDL_EVENT_MOUSE_MOTION, tab_x + 60, tab_y);
@@ -191,56 +197,58 @@ bool editor_verify_ui_layout(void) {
     ok = ok && app.shell.left_tabs.selected == UI_SCENE_TAB &&
          app.shell.right_tabs.selected == UI_INFO_TAB && editor_map_active();
     uint32_t saved_selected = app.shell.selected;
-    int saved_tool = app.workspace.map->view.tool;
+    int saved_tool = pe_map_active_instance()->view.tool;
     for (int i = 0; i < PE_ENTITIES; i++) {
-        if (!app.workspace.map->scene.objects[i].alive) {
+        if (!pe_map_active_instance()->scene.objects[i].alive) {
             continue;
         }
         smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 60, SIDE_TOP + 58);
         smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, 60, SIDE_TOP + 58);
-        ok = ok && app.shell.selected == app.workspace.map->scene.objects[i].stable_id &&
+        ok = ok && app.shell.selected == pe_map_active_instance()->scene.objects[i].stable_id &&
              app.shell.right_tabs.selected == UI_INSPECTOR_TAB;
         break;
     }
     app.shell.selected = saved_selected;
-    app.workspace.map->view.tool = saved_tool;
+    pe_map_active_instance()->view.tool = saved_tool;
     app.shell.left_tabs.selected = UI_EXPLORER_TAB;
     app.shell.right_tabs.selected = UI_INSPECTOR_TAB;
     editor_tab_select(true);
-    PeText saved = (*app.workspace.script).document;
+    PeText saved = (*pe_script_active_instance()).document;
     char lines[4096] = "";
     for (int i = 0; i < 100; i++) {
         strcat(lines, "// scrollable line\n");
     }
-    pe_text_init(&(*app.workspace.script).document, lines);
-    (*app.workspace.script).extent_revision = (*app.workspace.script).highlighted_revision =
-        (*app.workspace.script).checked_revision = UINT64_MAX;
-    (*app.workspace.script).top_line = 0;
+    pe_text_init(&(*pe_script_active_instance()).document, lines);
+    (*pe_script_active_instance()).extent_revision =
+        (*pe_script_active_instance()).highlighted_revision =
+            (*pe_script_active_instance()).checked_revision = UINT64_MAX;
+    (*pe_script_active_instance()).top_line = 0;
     editor_tab_select(true);
     editor_draw();
     float scroll_x = app.shell.viewport.x + app.shell.viewport.w - 8,
-          scroll_y = (*app.workspace.script).body.y + 8;
+          scroll_y = (*pe_script_active_instance()).body.y + 8;
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, scroll_x, scroll_y);
     smoke_pointer(SDL_EVENT_MOUSE_MOTION, scroll_x, scroll_y + 120);
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, scroll_x, scroll_y + 120);
-    ok = ok && (*app.workspace.script).top_line > 0 &&
-         !strcmp((*app.workspace.script).document.text, lines) &&
-         (*app.workspace.script).document.count == 0;
-    se_free(&(*app.workspace.script));
-    (*app.workspace.script).document = saved;
-    (*app.workspace.script).extent_revision = (*app.workspace.script).highlighted_revision =
-        (*app.workspace.script).checked_revision = UINT64_MAX;
-    (*app.workspace.script).top_line = (*app.workspace.script).left_column = 0;
-    se_check(&(*app.workspace.script));
+    ok = ok && (*pe_script_active_instance()).top_line > 0 &&
+         !strcmp((*pe_script_active_instance()).document.text, lines) &&
+         (*pe_script_active_instance()).document.count == 0;
+    se_free(&(*pe_script_active_instance()));
+    (*pe_script_active_instance()).document = saved;
+    (*pe_script_active_instance()).extent_revision =
+        (*pe_script_active_instance()).highlighted_revision =
+            (*pe_script_active_instance()).checked_revision = UINT64_MAX;
+    (*pe_script_active_instance()).top_line = (*pe_script_active_instance()).left_column = 0;
+    se_check(&(*pe_script_active_instance()));
     editor_tab_select(false);
-    ok = ok && !memcmp(&original, &app.workspace.map->scene, sizeof original);
+    ok = ok && !memcmp(&original, &pe_map_active_instance()->scene, sizeof original);
     app.shell.left_width = 240;
     app.shell.right_width = 280;
-    app.workspace.map->view.layers_open = app.workspace.map->view.palette_open = true;
+    pe_map_active_instance()->view.layers_open = pe_map_active_instance()->view.palette_open = true;
     app.shell.tree_view.offset = app.shell.inspector_view.offset = 0;
     UiTab tabs[UI_MAX_TABS];
     for (int i = 0; i < editor_view_count; i++) {
-        tabs[i] = (UiTab){editor_views[i].id, true, 0};
+        tabs[i] = (UiTab){editor_views[i]->id, true, 0};
     }
     ui_tabs_init(&app.shell.workspaces, tabs, editor_view_count, UI_MAP_VIEW);
     ui_cancel(&app.shell.ui);
@@ -259,15 +267,15 @@ static void smoke_click(float x, float y) {
 }
 
 bool editor_verify_workspace_tools(void) {
-    PeScene original = app.workspace.map->scene;
-    int history_cursor = app.workspace.map->history.cursor;
+    PeScene original = pe_map_active_instance()->scene;
+    int history_cursor = pe_map_active_instance()->history.cursor;
     uint64_t revision = 0;
     editor_draw();
     SDL_Texture *nav_image = pe_ui_images_get(&app.shell.shell_images, app.platform.renderer,
                                               app.shell.shell_layout, "icons/grid.png");
     PeUiImageEntry *shared_images = app.shell.shell_images.entries;
-    bool grid = app.workspace.map->view.grid;
-    PeCamera camera = app.workspace.map->view.camera;
+    bool grid = pe_map_active_instance()->view.grid;
+    PeCamera camera = pe_map_active_instance()->view.camera;
     editor_tab_select(false);
     editor_draw();
     float action_y = TOP + PANEL_GAP + 18;
@@ -279,39 +287,41 @@ bool editor_verify_workspace_tools(void) {
               nav_image == pe_ui_images_get(&app.shell.shell_images, app.platform.renderer,
                                             app.shell.shell_layout, "icons/grid.png") &&
               editor_yaml_action_enabled(NULL) && menu_unchanged && editor_scripts_active() &&
-              !app.workspace.map;
-    if (!app.workspace.script) {
+              !pe_map_active_instance();
+    if (!pe_script_active_instance()) {
         return false;
     }
-    revision = (*app.workspace.script).document.revision;
-    (*app.workspace.script).checked_revision = UINT64_MAX;
+    revision = (*pe_script_active_instance()).document.revision;
+    (*pe_script_active_instance()).checked_revision = UINT64_MAX;
     smoke_click(LEFT + PANEL_GAP + 8 + 16, action_y);
-    ok = ok && editor_scripts_active() && (*app.workspace.script).checked_revision == revision;
+    ok = ok && editor_scripts_active() &&
+         (*pe_script_active_instance()).checked_revision == revision;
     /* Global Undo/Redo must operate on the active script, never the scene. */
-    PeText saved_document = (*app.workspace.script).document;
-    pe_text_init(&(*app.workspace.script).document, "// toolbar test");
-    pe_text_insert(&(*app.workspace.script).document, "// edited\n");
-    se_changed(&(*app.workspace.script), app.shell.viewport, false);
+    PeText saved_document = (*pe_script_active_instance()).document;
+    pe_text_init(&(*pe_script_active_instance()).document, "// toolbar test");
+    pe_text_insert(&(*pe_script_active_instance()).document, "// edited\n");
+    se_changed(&(*pe_script_active_instance()), app.shell.viewport, false);
     editor_draw();
     smoke_click(150, 24);
-    ok = ok && (*app.workspace.script).document.position == 0 &&
-         !strcmp((*app.workspace.script).document.text, "// toolbar test");
+    ok = ok && (*pe_script_active_instance()).document.position == 0 &&
+         !strcmp((*pe_script_active_instance()).document.text, "// toolbar test");
     smoke_click(188, 24);
-    ok = ok && (*app.workspace.script).document.position == 1 &&
-         strstr((*app.workspace.script).document.text, "edited") != NULL;
-    pe_text_free(&(*app.workspace.script).document);
-    (*app.workspace.script).document = saved_document;
-    (*app.workspace.script).extent_revision = (*app.workspace.script).highlighted_revision =
-        (*app.workspace.script).checked_revision = UINT64_MAX;
-    se_check(&(*app.workspace.script));
+    ok = ok && (*pe_script_active_instance()).document.position == 1 &&
+         strstr((*pe_script_active_instance()).document.text, "edited") != NULL;
+    pe_text_free(&(*pe_script_active_instance()).document);
+    (*pe_script_active_instance()).document = saved_document;
+    (*pe_script_active_instance()).extent_revision =
+        (*pe_script_active_instance()).highlighted_revision =
+            (*pe_script_active_instance()).checked_revision = UINT64_MAX;
+    se_check(&(*pe_script_active_instance()));
     SDL_Event f5 = {0};
     f5.type = SDL_EVENT_KEY_DOWN;
     f5.key.key = SDLK_F5;
     editor_event(&f5);
     ok = ok && !editor_playing();
-    bool document_unchanged = (*app.workspace.script).document.revision == revision;
+    bool document_unchanged = (*pe_script_active_instance()).document.revision == revision;
     smoke_click(GLOBAL_NAV_X + 16, 24);
-    ok = ok && editor_map_active() && !app.workspace.script && document_unchanged;
+    ok = ok && editor_map_active() && !pe_script_active_instance() && document_unchanged;
     /* Narrow the center until the last map actions wrap to a second row. */
     app.shell.left_width = 400;
     app.shell.right_width = app.platform.width - app.shell.left_width - app.shell.min_center;
@@ -321,11 +331,11 @@ bool editor_verify_workspace_tools(void) {
     int grid_index = editor_view(UI_MAP_VIEW)->action_count - 1;
     smoke_click(LEFT + PANEL_GAP + 8 + (grid_index % columns) * 38 + 16,
                 action_y + (grid_index / columns) * 32);
-    ok = ok && app.workspace.map->view.grid != grid &&
-         !memcmp(&original, &app.workspace.map->scene, sizeof original) &&
-         app.workspace.map->history.cursor == history_cursor &&
-         !memcmp(&camera, &app.workspace.map->view.camera, sizeof camera);
-    app.workspace.map->view.grid = grid;
+    ok = ok && pe_map_active_instance()->view.grid != grid &&
+         !memcmp(&original, &pe_map_active_instance()->scene, sizeof original) &&
+         pe_map_active_instance()->history.cursor == history_cursor &&
+         !memcmp(&camera, &pe_map_active_instance()->view.camera, sizeof camera);
+    pe_map_active_instance()->view.grid = grid;
     app.shell.left_width = 240;
     app.shell.right_width = 280;
     ui_cancel(&app.shell.ui);
@@ -351,31 +361,31 @@ bool editor_verify_lifecycle(void) {
     UiId id = UI_MAP_VIEW;
     editor_tab_select(false);
     editor_draw();
-    if (!app.workspace.map ||
+    if (!pe_map_active_instance() ||
         !pe_session_save(map_backup, id, editor_checkpoint, &id, error, sizeof error)) {
         return false;
     }
 
     bool ok = editor_begin();
     if (ok) {
-        pe_tile_set(&app.workspace.map->scene, 0, 1, 1, 7);
+        pe_tile_set(&pe_map_active_instance()->scene, 0, 1, 1, 7);
         editor_commit();
     }
-    app.workspace.map->view.camera = (PeCamera){11, -7, 2.5f};
-    PeScene edited = app.workspace.map->scene;
-    uint64_t map_revision = app.workspace.map->history.revision;
+    pe_map_active_instance()->view.camera = (PeCamera){11, -7, 2.5f};
+    PeScene edited = pe_map_active_instance()->scene;
+    uint64_t map_revision = pe_map_active_instance()->history.revision;
     char original_cache[1200];
     snprintf(original_cache, sizeof original_cache, "%s", app.workspace.session_paths[0]);
     snprintf(app.workspace.session_paths[0], sizeof app.workspace.session_paths[0],
              "missing-session-directory/map.cache");
     editor_select_workspace(UI_SCRIPT_VIEW);
-    ok = ok && editor_map_active() && app.workspace.map && !app.workspace.script &&
-         app.workspace.map->history.revision == map_revision;
+    ok = ok && editor_map_active() && pe_map_active_instance() && !pe_script_active_instance() &&
+         pe_map_active_instance()->history.revision == map_revision;
     snprintf(app.workspace.session_paths[0], sizeof app.workspace.session_paths[0], "%s",
              original_cache);
     editor_select_workspace(UI_SCRIPT_VIEW);
     editor_draw();
-    if (!app.workspace.script || app.workspace.map) {
+    if (!pe_script_active_instance() || pe_map_active_instance()) {
         return false;
     }
     ok = ok && app.workspace.session_dirty[0];
@@ -383,23 +393,24 @@ bool editor_verify_lifecycle(void) {
     if (!pe_session_save(script_backup, id, editor_checkpoint, &id, error, sizeof error)) {
         return false;
     }
-    pe_text_insert(&app.workspace.script->document, "// unsaved lifecycle test\n");
-    se_changed(app.workspace.script, app.shell.viewport, false);
-    uint64_t script_revision = app.workspace.script->document.revision;
-    int script_position = app.workspace.script->document.position;
+    pe_text_insert(&pe_script_active_instance()->document, "// unsaved lifecycle test\n");
+    se_changed(pe_script_active_instance(), app.shell.viewport, false);
+    uint64_t script_revision = pe_script_active_instance()->document.revision;
+    int script_position = pe_script_active_instance()->document.position;
     editor_select_workspace(UI_MAP_VIEW);
     editor_draw();
-    if (!app.workspace.map || app.workspace.script) {
+    if (!pe_map_active_instance() || pe_script_active_instance()) {
         return false;
     }
     ok = ok && app.workspace.session_dirty[1] &&
-         !memcmp(&edited, &app.workspace.map->scene, sizeof edited) &&
-         app.workspace.map->history.revision == map_revision &&
-         app.workspace.map->view.camera.x == 11 && app.workspace.map->view.camera.zoom == 2.5f;
+         !memcmp(&edited, &pe_map_active_instance()->scene, sizeof edited) &&
+         pe_map_active_instance()->history.revision == map_revision &&
+         pe_map_active_instance()->view.camera.x == 11 &&
+         pe_map_active_instance()->view.camera.zoom == 2.5f;
     editor_undo_active(false);
-    ok = ok && pe_tile_get(&app.workspace.map->scene, 0, 1, 1) != 7;
+    ok = ok && pe_tile_get(&pe_map_active_instance()->scene, 0, 1, 1) != 7;
     editor_undo_active(true);
-    ok = ok && pe_tile_get(&app.workspace.map->scene, 0, 1, 1) == 7;
+    ok = ok && pe_tile_get(&pe_map_active_instance()->scene, 0, 1, 1) == 7;
     /* Corrupt a target checkpoint: the source must be restored, never discarded. */
     FILE *f = fopen(app.workspace.session_paths[1], "r+b");
     if (!f) {
@@ -411,8 +422,8 @@ bool editor_verify_lifecycle(void) {
     fputc(byte ^ 255, f);
     fclose(f);
     editor_select_workspace(UI_SCRIPT_VIEW);
-    ok = ok && editor_map_active() && app.workspace.map && !app.workspace.script &&
-         app.workspace.map->history.revision == map_revision;
+    ok = ok && editor_map_active() && pe_map_active_instance() && !pe_script_active_instance() &&
+         pe_map_active_instance()->history.revision == map_revision;
     f = fopen(app.workspace.session_paths[1], "r+b");
     if (!f) {
         return false;
@@ -422,15 +433,15 @@ bool editor_verify_lifecycle(void) {
     fclose(f);
     editor_select_workspace(UI_SCRIPT_VIEW);
     editor_draw();
-    if (!app.workspace.script || app.workspace.map) {
+    if (!pe_script_active_instance() || pe_map_active_instance()) {
         return false;
     }
-    ok = ok && app.workspace.script->document.revision == script_revision &&
-         app.workspace.script->document.position == script_position;
+    ok = ok && pe_script_active_instance()->document.revision == script_revision &&
+         pe_script_active_instance()->document.position == script_position;
     editor_undo_active(false);
-    ok = ok && app.workspace.script->document.position == script_position - 1;
+    ok = ok && pe_script_active_instance()->document.position == script_position - 1;
     editor_undo_active(true);
-    ok = ok && app.workspace.script->document.position == script_position;
+    ok = ok && pe_script_active_instance()->document.position == script_position;
     editor_request(REQUEST_QUIT, NULL);
     ok = ok && app.shell.request == REQUEST_QUIT && app.runtime.running;
     app.shell.request = REQUEST_NONE;
@@ -454,36 +465,37 @@ bool editor_verify_lifecycle(void) {
     free(json);
     snprintf(app.shell.ui_path, sizeof app.shell.ui_path, "%s", test_ui);
     ok = editor_reload_layout() && ok;
-    ok = ok && UI_ACCENT == 0xb08968ffu && app.shell.gap == 2 && app.workspace.map &&
-         app.workspace.map->history.revision == map_revision;
-    MapPayload *before = app.workspace.map;
+    ok = ok && UI_ACCENT == 0xb08968ffu && app.shell.gap == 2 && pe_map_active_instance() &&
+         pe_map_active_instance()->history.revision == map_revision;
+    MapPayload *before = pe_map_active_instance();
     f = fopen(test_ui, "wb");
     if (!f) {
         return false;
     }
     fputs("broken: [", f);
     fclose(f);
-    ok = ok && !editor_reload_layout() && app.workspace.map == before && UI_ACCENT == 0xb08968ffu;
+    ok = ok && !editor_reload_layout() && pe_map_active_instance() == before &&
+         UI_ACCENT == 0xb08968ffu;
     snprintf(app.shell.ui_path, sizeof app.shell.ui_path, "%s", original_ui);
     ok = editor_reload_layout() && ok;
     remove(test_ui);
     /* Restore the test baseline without writing any project files. */
     editor_select_workspace(UI_SCRIPT_VIEW);
-    if (!app.workspace.script) {
+    if (!pe_script_active_instance()) {
         return false;
     }
-    se_free(app.workspace.script);
-    memset(app.workspace.script, 0, sizeof *app.workspace.script);
+    se_free(pe_script_active_instance());
+    memset(pe_script_active_instance(), 0, sizeof *pe_script_active_instance());
     id = UI_SCRIPT_VIEW;
     ok = pe_session_load(script_backup, id, editor_checkpoint, &id, error, sizeof error) && ok;
-    se_check(app.workspace.script);
+    se_check(pe_script_active_instance());
     editor_select_workspace(UI_MAP_VIEW);
-    if (!app.workspace.map) {
+    if (!pe_map_active_instance()) {
         return false;
     }
-    pe_assets_free(&app.workspace.map->assets);
-    pe_history_free(&app.workspace.map->history);
-    memset(app.workspace.map, 0, sizeof *app.workspace.map);
+    pe_assets_free(&pe_map_active_instance()->assets);
+    pe_history_free(&pe_map_active_instance()->history);
+    memset(pe_map_active_instance(), 0, sizeof *pe_map_active_instance());
     id = UI_MAP_VIEW;
     ok = pe_session_load(map_backup, id, editor_checkpoint, &id, error, sizeof error) && ok;
     editor_assets_sync();
@@ -508,7 +520,7 @@ bool editor_verify_console(void) {
     }
     PeConsole *service = app.shell.console;
     PeTerminal *terminal = pe_console_terminal(service);
-    PeScene baseline = app.workspace.map->scene;
+    PeScene baseline = pe_map_active_instance()->scene;
     SDL_FRect body = pe_console_area(service);
     float old_height = body.h;
     int state = -1;
@@ -550,24 +562,24 @@ bool editor_verify_console(void) {
     size_t length;
     const char *output = pe_terminal_output(terminal, &length);
     ok = ok && length == 13 && !memcmp(output, "echo penguin\x03", 13) &&
-         !memcmp(&baseline, &app.workspace.map->scene, sizeof baseline);
+         !memcmp(&baseline, &pe_map_active_instance()->scene, sizeof baseline);
     pe_terminal_consume(terminal, length);
     pe_terminal_feed(terminal, "shared-session", 14);
     editor_tab_select(true);
     editor_draw();
     ok = ok && app.shell.console == service && pe_console_terminal(app.shell.console) == terminal &&
-         !app.workspace.map && app.workspace.script;
+         !pe_map_active_instance() && pe_script_active_instance();
     char *copy = pe_terminal_copy(terminal, 0, 0, 0, 13);
     ok = ok && copy && !strcmp(copy, "shared-session");
     free(copy);
-    size_t script_length = app.workspace.script->document.length;
+    size_t script_length = pe_script_active_instance()->document.length;
     body = pe_console_area(service);
     smoke_click(body.x + 10, body.y + 8);
     editor_draw();
     event.type = SDL_EVENT_TEXT_INPUT;
     event.text.text = "x";
     editor_event(&event);
-    ok = ok && app.workspace.script->document.length == script_length;
+    ok = ok && pe_script_active_instance()->document.length == script_length;
     pe_terminal_output(terminal, &length);
     pe_terminal_consume(terminal, length);
     editor_tab_select(false);
@@ -628,12 +640,12 @@ bool editor_verify_window(void) {
 }
 
 bool editor_verify_scene_graph(void) {
-    PeScene original = app.workspace.map->scene;
-    pe_history_free(&app.workspace.map->history);
-    pe_scene_init(&app.workspace.map->scene, 16, 16, 16);
-    snprintf(app.workspace.map->scene.tileset, PE_PATH, "%s", original.tileset);
-    app.workspace.map->scene.tileset_tile_size = original.tileset_tile_size;
-    app.workspace.map->collapsed_count = 0;
+    PeScene original = pe_map_active_instance()->scene;
+    pe_history_free(&pe_map_active_instance()->history);
+    pe_scene_init(&pe_map_active_instance()->scene, 16, 16, 16);
+    snprintf(pe_map_active_instance()->scene.tileset, PE_PATH, "%s", original.tileset);
+    pe_map_active_instance()->scene.tileset_tile_size = original.tileset_tile_size;
+    pe_map_active_instance()->collapsed_count = 0;
     app.shell.left_tabs.selected = UI_SCENE_TAB;
     app.shell.selected = 0;
     editor_draw();
@@ -642,23 +654,24 @@ bool editor_verify_scene_graph(void) {
     float tools_x = LEFT - PANEL_GAP - 8 - (4 * 32 + 3 * 6);
     smoke_click(tools_x + 16, tools_y);
     uint32_t root = app.shell.selected;
-    ok = ok && root != 0 && app.workspace.map->history.count == 1;
+    ok = ok && root != 0 && pe_map_active_instance()->history.count == 1;
     smoke_click(tools_x + 92, tools_y);
     uint32_t child = app.shell.selected;
-    PeObject *o =
-        pe_entity_get(&app.workspace.map->scene, pe_entity_find(&app.workspace.map->scene, child));
+    PeObject *o = pe_entity_get(&pe_map_active_instance()->scene,
+                                pe_entity_find(&pe_map_active_instance()->scene, child));
     ok = ok && o && o->parent_id == root;
     smoke_click(tools_x + 54, tools_y);
     uint32_t sibling = app.shell.selected;
-    o = pe_entity_get(&app.workspace.map->scene,
-                      pe_entity_find(&app.workspace.map->scene, sibling));
+    o = pe_entity_get(&pe_map_active_instance()->scene,
+                      pe_entity_find(&pe_map_active_instance()->scene, sibling));
     ok = ok && o && o->parent_id == root;
     float first_y = TOP + TABS + 48.f;
     smoke_click(80, first_y + 36);
     ok = ok && app.shell.selected == child;
     smoke_click(tools_x + 92, tools_y);
     uint32_t leaf = app.shell.selected;
-    o = pe_entity_get(&app.workspace.map->scene, pe_entity_find(&app.workspace.map->scene, leaf));
+    o = pe_entity_get(&pe_map_active_instance()->scene,
+                      pe_entity_find(&pe_map_active_instance()->scene, leaf));
     ok = ok && o && o->parent_id == child;
     editor_draw();
     ok = ok && app.shell.scene_view.content == 4 * 26;
@@ -671,55 +684,58 @@ bool editor_verify_scene_graph(void) {
     /* Drag the root in world space and verify inherited motion of the leaf. */
     smoke_click(65, first_y + 10);
     float before_x = 0, before_y = 0;
-    ok = ok && pe_entity_world_position(&app.workspace.map->scene,
-                                        pe_entity_find(&app.workspace.map->scene, leaf), &before_x,
-                                        &before_y);
-    float sx = app.shell.viewport.x +
-               (66 - app.workspace.map->view.camera.x) * app.workspace.map->view.camera.zoom;
-    float sy = app.shell.viewport.y +
-               (66 - app.workspace.map->view.camera.y) * app.workspace.map->view.camera.zoom;
+    ok = ok && pe_entity_world_position(&pe_map_active_instance()->scene,
+                                        pe_entity_find(&pe_map_active_instance()->scene, leaf),
+                                        &before_x, &before_y);
+    float sx = app.shell.viewport.x + (66 - pe_map_active_instance()->view.camera.x) *
+                                          pe_map_active_instance()->view.camera.zoom;
+    float sy = app.shell.viewport.y + (66 - pe_map_active_instance()->view.camera.y) *
+                                          pe_map_active_instance()->view.camera.zoom;
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, sx, sy);
-    smoke_pointer(SDL_EVENT_MOUSE_MOTION, sx + 32 * app.workspace.map->view.camera.zoom,
-                  sy + 16 * app.workspace.map->view.camera.zoom);
-    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, sx + 32 * app.workspace.map->view.camera.zoom,
-                  sy + 16 * app.workspace.map->view.camera.zoom);
+    smoke_pointer(SDL_EVENT_MOUSE_MOTION, sx + 32 * pe_map_active_instance()->view.camera.zoom,
+                  sy + 16 * pe_map_active_instance()->view.camera.zoom);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, sx + 32 * pe_map_active_instance()->view.camera.zoom,
+                  sy + 16 * pe_map_active_instance()->view.camera.zoom);
     float x = 0, y = 0;
-    ok = ok && pe_entity_world_position(&app.workspace.map->scene,
-                                        pe_entity_find(&app.workspace.map->scene, leaf), &x, &y);
+    ok = ok &&
+         pe_entity_world_position(&pe_map_active_instance()->scene,
+                                  pe_entity_find(&pe_map_active_instance()->scene, leaf), &x, &y);
     ok = ok && fabsf(x - before_x - 32) < .01f && fabsf(y - before_y - 16) < .01f;
     editor_undo_active(false);
-    ok = ok && pe_entity_world_position(&app.workspace.map->scene,
-                                        pe_entity_find(&app.workspace.map->scene, leaf), &x, &y);
+    ok = ok &&
+         pe_entity_world_position(&pe_map_active_instance()->scene,
+                                  pe_entity_find(&pe_map_active_instance()->scene, leaf), &x, &y);
     ok = ok && fabsf(x - before_x) < .01f;
     editor_undo_active(true);
     smoke_click(tools_x + 130, tools_y);
-    ok = ok && !pe_entity_valid(&app.workspace.map->scene,
-                                pe_entity_find(&app.workspace.map->scene, leaf));
+    ok = ok && !pe_entity_valid(&pe_map_active_instance()->scene,
+                                pe_entity_find(&pe_map_active_instance()->scene, leaf));
     editor_undo_active(false);
-    ok = ok && pe_entity_valid(&app.workspace.map->scene,
-                               pe_entity_find(&app.workspace.map->scene, leaf));
+    ok = ok && pe_entity_valid(&pe_map_active_instance()->scene,
+                               pe_entity_find(&pe_map_active_instance()->scene, leaf));
     editor_draw();
     /* Collapse the child and persist both hierarchy and tree state across F6 and unload. */
     smoke_click(35, first_y + 36);
     editor_draw();
-    ok = ok && app.workspace.map->collapsed_count == 1 && app.workspace.map->collapsed[0] == child;
+    ok = ok && pe_map_active_instance()->collapsed_count == 1 &&
+         pe_map_active_instance()->collapsed[0] == child;
     ok = ok && editor_reload_layout();
     editor_tab_select(true);
-    ok = ok && app.workspace.map == NULL;
+    ok = ok && pe_map_active_instance() == NULL;
     editor_tab_select(false);
-    ok = ok && app.workspace.map && app.workspace.map->collapsed_count == 1 &&
-         app.workspace.map->collapsed[0] == child;
-    if (app.workspace.map) {
-        o = pe_entity_get(&app.workspace.map->scene,
-                          pe_entity_find(&app.workspace.map->scene, leaf));
+    ok = ok && pe_map_active_instance() && pe_map_active_instance()->collapsed_count == 1 &&
+         pe_map_active_instance()->collapsed[0] == child;
+    if (pe_map_active_instance()) {
+        o = pe_entity_get(&pe_map_active_instance()->scene,
+                          pe_entity_find(&pe_map_active_instance()->scene, leaf));
         ok = ok && o && o->parent_id == child;
-        pe_history_free(&app.workspace.map->history);
-        app.workspace.map->scene = original;
-        app.workspace.map->collapsed_count = 0;
+        pe_history_free(&pe_map_active_instance()->history);
+        pe_map_active_instance()->scene = original;
+        pe_map_active_instance()->collapsed_count = 0;
     }
     app.shell.selected = 0;
     app.shell.left_tabs.selected = UI_EXPLORER_TAB;
-    app.workspace.map->view.tool = BRUSH;
+    pe_map_active_instance()->view.tool = BRUSH;
     editor_selection_sync();
     if (!ok) {
         fprintf(stderr, "Scene graph smoke failed\n");
@@ -728,16 +744,18 @@ bool editor_verify_scene_graph(void) {
 }
 
 bool editor_verify_components(void) {
-    PeScene original = app.workspace.map->scene;
-    pe_history_free(&app.workspace.map->history);
-    pe_scene_init(&app.workspace.map->scene, 16, 16, 16);
-    snprintf(app.workspace.map->scene.tileset, PE_PATH, "%s", original.tileset);
-    app.workspace.map->scene.tileset_tile_size = original.tileset_tile_size;
-    PeEntity entity = pe_entity_create(&app.workspace.map->scene, 0);
-    uint32_t id = app.workspace.map->scene.objects[entity.index].stable_id;
+    PeScene original = pe_map_active_instance()->scene;
+    pe_history_free(&pe_map_active_instance()->history);
+    pe_scene_init(&pe_map_active_instance()->scene, 16, 16, 16);
+    snprintf(pe_map_active_instance()->scene.tileset, PE_PATH, "%s", original.tileset);
+    pe_map_active_instance()->scene.tileset_tile_size = original.tileset_tile_size;
+    PeEntity entity = pe_entity_create(&pe_map_active_instance()->scene, 0);
+    uint32_t id = pe_map_active_instance()->scene.objects[entity.index].stable_id;
     app.shell.selected = id;
-    memset(app.workspace.map->component_ids, 0, sizeof app.workspace.map->component_ids);
-    memset(app.workspace.map->component_closed, 0, sizeof app.workspace.map->component_closed);
+    memset(pe_map_active_instance()->component_ids, 0,
+           sizeof pe_map_active_instance()->component_ids);
+    memset(pe_map_active_instance()->component_closed, 0,
+           sizeof pe_map_active_instance()->component_closed);
     editor_inspect_entity();
     editor_draw();
     float x = app.platform.width - RIGHT + PANEL_GAP + 9;
@@ -745,53 +763,54 @@ bool editor_verify_components(void) {
     float remove_x = x + (RIGHT - 2 * PANEL_GAP - 32) - 11;
     float content_before = app.shell.inspector_view.content;
     smoke_click(x + 90, top + 12);
-    bool ok =
-        app.workspace.map->component_add_open && app.shell.inspector_view.content == content_before;
+    bool ok = pe_map_active_instance()->component_add_open &&
+              app.shell.inspector_view.content == content_before;
     SDL_Event key = {0};
     key.type = SDL_EVENT_KEY_DOWN;
     key.key.key = SDLK_ESCAPE;
     editor_event(&key);
     editor_draw();
-    ok = ok && !app.workspace.map->component_add_open;
-    PeScene before_popup = app.workspace.map->scene;
+    ok = ok && !pe_map_active_instance()->component_add_open;
+    PeScene before_popup = pe_map_active_instance()->scene;
     smoke_click(x + 90, top + 12);
     smoke_click(app.shell.viewport.x + 40, app.shell.viewport.y + 40);
-    ok = ok && !app.workspace.map->component_add_open && app.shell.selected == id &&
-         !memcmp(&before_popup, &app.workspace.map->scene, sizeof before_popup);
+    ok = ok && !pe_map_active_instance()->component_add_open && app.shell.selected == id &&
+         !memcmp(&before_popup, &pe_map_active_instance()->scene, sizeof before_popup);
     smoke_click(x + 90, top + 12);
     key.key.key = SDLK_DOWN;
     editor_event(&key);
     key.key.key = SDLK_RETURN;
     editor_event(&key);
     editor_draw();
-    ok = ok && app.workspace.map->scene.objects[entity.index].mask == (PE_TRANSFORM | PE_SPRITE);
+    ok = ok &&
+         pe_map_active_instance()->scene.objects[entity.index].mask == (PE_TRANSFORM | PE_SPRITE);
     editor_undo_active(false);
     editor_draw();
     smoke_click(x + 90, top + 12);
     /* Empty entity: the fourth choice is Player, which also adds Transform + Body. */
     smoke_click(x + 90, top + 33 + 3 * 28 + 12);
-    PeObject *o = pe_entity_get(&app.workspace.map->scene, entity);
+    PeObject *o = pe_entity_get(&pe_map_active_instance()->scene, entity);
     ok = ok && o && o->mask == (PE_TRANSFORM | PE_BODY | PE_PLAYER) &&
-         app.workspace.map->history.count == 1;
+         pe_map_active_instance()->history.count == 1;
     top -= 22;
     smoke_click(x + 90, top + 12);
     smoke_click(x + 90, top + 33 + 28 + 12);
-    ok = ok && o->mask == 15 && !app.workspace.map->component_add_open;
+    ok = ok && o->mask == 15 && !pe_map_active_instance()->component_add_open;
     smoke_click(x + 90, top + 12);
     smoke_click(x + 90, top + 33 + 12);
-    ok = ok && app.workspace.map->component_add_open && o->mask == 15;
+    ok = ok && pe_map_active_instance()->component_add_open && o->mask == 15;
     key.key.key = SDLK_ESCAPE;
     editor_event(&key);
     editor_draw();
     float transform = top + 33, sprite = transform + 164, body = sprite + 77, player = body + 106;
     smoke_click(x + 80, transform + 12);
-    ok = ok && (app.workspace.map->component_closed[entity.index] & PE_TRANSFORM);
+    ok = ok && (pe_map_active_instance()->component_closed[entity.index] & PE_TRANSFORM);
     smoke_click(x + 80, transform + 12);
-    ok = ok && !(app.workspace.map->component_closed[entity.index] & PE_TRANSFORM);
-    uint64_t revision = app.workspace.map->history.revision;
+    ok = ok && !(pe_map_active_instance()->component_closed[entity.index] & PE_TRANSFORM);
+    uint64_t revision = pe_map_active_instance()->history.revision;
     smoke_click(remove_x, transform + 10);
     smoke_click(remove_x, body + 10);
-    ok = ok && o->mask == 15 && app.workspace.map->history.revision == revision;
+    ok = ok && o->mask == 15 && pe_map_active_instance()->history.revision == revision;
     smoke_click(remove_x, sprite + 10);
     ok = ok && !(o->mask & PE_SPRITE);
     editor_undo_active(false);
@@ -867,7 +886,7 @@ bool editor_verify_components(void) {
     ok = ok && o->mask == 15 && o->vx == 25.5f;
     editor_draw();
     smoke_click(x + 80, sprite + 12);
-    ok = ok && (app.workspace.map->component_closed[entity.index] & PE_SPRITE);
+    ok = ok && (pe_map_active_instance()->component_closed[entity.index] & PE_SPRITE);
     smoke_click(x + 90, TOP + TABS + 44);
     ok = ok && app.shell.field == FIELD_NAME && app.shell.field_inline;
     text.text.text = "Hero";
@@ -889,20 +908,23 @@ bool editor_verify_components(void) {
     ok = ok && editor_reload_layout();
     editor_tab_select(true);
     editor_tab_select(false);
-    o = pe_entity_get(&app.workspace.map->scene, pe_entity_find(&app.workspace.map->scene, id));
+    o = pe_entity_get(&pe_map_active_instance()->scene,
+                      pe_entity_find(&pe_map_active_instance()->scene, id));
     ok = ok && o && !strcmp(o->name, "Hero");
     ok = ok && o && o->mask == 15 && o->color == 0x12345678 && o->vx == 25.5f &&
-         (app.workspace.map->component_closed[entity.index] & PE_SPRITE);
+         (pe_map_active_instance()->component_closed[entity.index] & PE_SPRITE);
     editor_play_toggle();
     ok = ok && !editor_component_change(PE_PLAYER, false);
     editor_play_toggle();
-    pe_history_free(&app.workspace.map->history);
-    app.workspace.map->scene = original;
-    memset(app.workspace.map->component_ids, 0, sizeof app.workspace.map->component_ids);
-    memset(app.workspace.map->component_closed, 0, sizeof app.workspace.map->component_closed);
-    app.workspace.map->component_add_open = false;
+    pe_history_free(&pe_map_active_instance()->history);
+    pe_map_active_instance()->scene = original;
+    memset(pe_map_active_instance()->component_ids, 0,
+           sizeof pe_map_active_instance()->component_ids);
+    memset(pe_map_active_instance()->component_closed, 0,
+           sizeof pe_map_active_instance()->component_closed);
+    pe_map_active_instance()->component_add_open = false;
     app.shell.selected = 0;
-    app.workspace.map->view.layers_open = app.workspace.map->view.palette_open = true;
+    pe_map_active_instance()->view.layers_open = pe_map_active_instance()->view.palette_open = true;
     app.shell.inspector_view.offset = 0;
     editor_selection_sync();
     if (!ok) {
@@ -926,49 +948,53 @@ static bool smoke_panel_tab(bool right, UiId id) {
 }
 
 bool editor_verify_map_panels(void) {
-    PeScene original = app.workspace.map->scene;
-    pe_history_free(&app.workspace.map->history);
-    app.workspace.map->view.layers_open = app.workspace.map->view.palette_open = true;
+    PeScene original = pe_map_active_instance()->scene;
+    pe_history_free(&pe_map_active_instance()->history);
+    pe_map_active_instance()->view.layers_open = pe_map_active_instance()->view.palette_open = true;
     editor_draw();
     bool ok = smoke_panel_tab(false, UI_MAP_TAB) && smoke_panel_tab(true, UI_TILES_TAB);
     float x = PANEL_GAP + 9, w = LEFT - 2 * PANEL_GAP - 32;
     float right_x = app.platform.width - RIGHT + PANEL_GAP + 9;
     float first = TOP + TABS + 72.f;
-    int before = app.workspace.map->scene.layer_count;
+    int before = pe_map_active_instance()->scene.layer_count;
     float half = (w - 8) / 2;
     float add_width = fminf(half, ui_tab_content_width(ICON_PLUS, "Add"));
     float delete_width = fminf(half, ui_tab_content_width(ICON_DELETE, "Delete"));
     float rename_width = fminf(half, ui_tab_content_width(ICON_EDIT, "Rename"));
     float arrow_width = fminf(32, (w - rename_width - 16) / 2);
     smoke_click(x + w - delete_width - 8 - add_width / 2, first + before * 30 + 12);
-    ok = ok && app.workspace.map->scene.layer_count == before + 1;
-    float actions = first + app.workspace.map->scene.layer_count * 30;
+    ok = ok && pe_map_active_instance()->scene.layer_count == before + 1;
+    float actions = first + pe_map_active_instance()->scene.layer_count * 30;
     smoke_click(x + w - 16 - 2 * arrow_width - rename_width / 2, actions + 32 + 12);
     ok = ok && app.shell.field == FIELD_LAYER;
     strcpy(app.shell.input, "Decoration");
     editor_field_apply();
     ok = ok &&
-         !strcmp(app.workspace.map->scene.layers[app.workspace.map->view.layer].name, "Decoration");
+         !strcmp(pe_map_active_instance()->scene.layers[pe_map_active_instance()->view.layer].name,
+                 "Decoration");
     editor_undo_active(false);
     ok = ok &&
-         strcmp(app.workspace.map->scene.layers[app.workspace.map->view.layer].name, "Decoration");
+         strcmp(pe_map_active_instance()->scene.layers[pe_map_active_instance()->view.layer].name,
+                "Decoration");
     editor_undo_active(true);
     editor_draw();
-    smoke_click(x + w - 22, first + app.workspace.map->view.layer * 30 + 12);
-    ok = ok && !app.workspace.map->scene.layers[app.workspace.map->view.layer].visible;
+    smoke_click(x + w - 22, first + pe_map_active_instance()->view.layer * 30 + 12);
+    ok =
+        ok && !pe_map_active_instance()->scene.layers[pe_map_active_instance()->view.layer].visible;
     editor_undo_active(false);
-    ok = ok && app.workspace.map->scene.layers[app.workspace.map->view.layer].visible;
+    ok = ok && pe_map_active_instance()->scene.layers[pe_map_active_instance()->view.layer].visible;
     editor_draw();
     smoke_click(x + w - 8 - 1.5f * arrow_width, actions + 44);
-    ok = ok && app.workspace.map->view.layer == before - 1 &&
-         !strcmp(app.workspace.map->scene.layers[app.workspace.map->view.layer].name, "Decoration");
+    ok = ok && pe_map_active_instance()->view.layer == before - 1 &&
+         !strcmp(pe_map_active_instance()->scene.layers[pe_map_active_instance()->view.layer].name,
+                 "Decoration");
     editor_undo_active(false);
-    app.workspace.map->view.layer = before;
+    pe_map_active_instance()->view.layer = before;
     editor_draw();
     smoke_click(x + w - delete_width / 2, actions + 12);
-    ok = ok && app.workspace.map->scene.layer_count == before;
+    ok = ok && pe_map_active_instance()->scene.layer_count == before;
     editor_undo_active(false);
-    app.workspace.map->view.layer = before;
+    pe_map_active_instance()->view.layer = before;
     editor_draw();
     /* Import and source size belong to Tiles, independently of the selected entity. */
     smoke_click(app.platform.width - PANEL_GAP - 48, TOP + TABS + 82);
@@ -979,27 +1005,30 @@ bool editor_verify_map_panels(void) {
     ok = ok && app.shell.field == FIELD_TILESIZE;
     editor_field_stop();
     editor_draw();
-    int old_tile = app.workspace.map->view.tile;
+    int old_tile = pe_map_active_instance()->view.tile;
     smoke_click(right_x + 37 + 16, TOP + TABS + 182);
-    ok = ok && app.workspace.map->view.tile == 2;
+    ok = ok && pe_map_active_instance()->view.tile == 2;
     ok = ok && editor_reload_layout() && app.shell.left_tabs.selected == UI_MAP_TAB &&
          app.shell.right_tabs.selected == UI_TILES_TAB;
     editor_tab_select(true);
     editor_tab_select(false);
     ok = ok && app.shell.left_tabs.selected == UI_MAP_TAB &&
          app.shell.right_tabs.selected == UI_TILES_TAB &&
-         app.workspace.map->scene.layer_count == before + 1 &&
-         !strcmp(app.workspace.map->scene.layers[app.workspace.map->view.layer].name, "Decoration");
+         pe_map_active_instance()->scene.layer_count == before + 1 &&
+         !strcmp(pe_map_active_instance()->scene.layers[pe_map_active_instance()->view.layer].name,
+                 "Decoration");
     editor_undo_active(false);
     ok = ok &&
-         strcmp(app.workspace.map->scene.layers[app.workspace.map->view.layer].name, "Decoration");
-    pe_history_free(&app.workspace.map->history);
-    app.workspace.map->scene = original;
-    app.workspace.map->view.layer = 0;
-    app.workspace.map->view.tile = old_tile;
+         strcmp(pe_map_active_instance()->scene.layers[pe_map_active_instance()->view.layer].name,
+                "Decoration");
+    pe_history_free(&pe_map_active_instance()->history);
+    pe_map_active_instance()->scene = original;
+    pe_map_active_instance()->view.layer = 0;
+    pe_map_active_instance()->view.tile = old_tile;
     app.shell.left_tabs.selected = UI_EXPLORER_TAB;
     app.shell.right_tabs.selected = UI_INSPECTOR_TAB;
-    app.workspace.map->view.map_view = app.workspace.map->view.tiles_view = (UiScroll){0};
+    pe_map_active_instance()->view.map_view = pe_map_active_instance()->view.tiles_view =
+        (UiScroll){0};
     editor_selection_sync();
     if (!ok) {
         fprintf(stderr, "Map/Tiles panel smoke failed\n");
@@ -1008,25 +1037,25 @@ bool editor_verify_map_panels(void) {
 }
 
 bool editor_verify_selection(void) {
-    PeScene original = app.workspace.map->scene;
-    PeCamera camera = app.workspace.map->view.camera;
-    pe_history_free(&app.workspace.map->history);
-    PeEntity parent = pe_entity_create(&app.workspace.map->scene, PE_TRANSFORM | PE_SPRITE);
-    PeEntity child = pe_entity_create(&app.workspace.map->scene, PE_TRANSFORM | PE_SPRITE);
-    PeObject *p = pe_entity_get(&app.workspace.map->scene, parent);
-    PeObject *o = pe_entity_get(&app.workspace.map->scene, child);
+    PeScene original = pe_map_active_instance()->scene;
+    PeCamera camera = pe_map_active_instance()->view.camera;
+    pe_history_free(&pe_map_active_instance()->history);
+    PeEntity parent = pe_entity_create(&pe_map_active_instance()->scene, PE_TRANSFORM | PE_SPRITE);
+    PeEntity child = pe_entity_create(&pe_map_active_instance()->scene, PE_TRANSFORM | PE_SPRITE);
+    PeObject *p = pe_entity_get(&pe_map_active_instance()->scene, parent);
+    PeObject *o = pe_entity_get(&pe_map_active_instance()->scene, child);
     if (!p || !o) {
         return false;
     }
     p->x = p->y = 2000;
     o->x = 12;
     o->y = 14;
-    bool ok = pe_entity_set_parent(&app.workspace.map->scene, child, parent, false);
+    bool ok = pe_entity_set_parent(&pe_map_active_instance()->scene, child, parent, false);
     app.shell.selected = 0;
     app.shell.left_tabs.selected = UI_SCENE_TAB;
     app.shell.right_tabs.selected = UI_INFO_TAB;
     editor_draw();
-    PeScene unchanged = app.workspace.map->scene;
+    PeScene unchanged = pe_map_active_instance()->scene;
     int roots = 0;
     for (int i = 0; i < PE_ENTITIES; i++) {
         if (original.objects[i].alive && !original.objects[i].parent_id) {
@@ -1039,39 +1068,40 @@ bool editor_verify_selection(void) {
     float wx = 0, wy = 0;
     ok = ok && app.shell.selected == o->stable_id &&
          app.shell.right_tabs.selected == UI_INSPECTOR_TAB;
-    ok = ok && pe_entity_world_position(&app.workspace.map->scene, child, &wx, &wy);
-    float sx = app.shell.viewport.x +
-               (wx - app.workspace.map->view.camera.x) * app.workspace.map->view.camera.zoom;
-    float sy = app.shell.viewport.y +
-               (wy - app.workspace.map->view.camera.y) * app.workspace.map->view.camera.zoom;
+    ok = ok && pe_entity_world_position(&pe_map_active_instance()->scene, child, &wx, &wy);
+    float sx = app.shell.viewport.x + (wx - pe_map_active_instance()->view.camera.x) *
+                                          pe_map_active_instance()->view.camera.zoom;
+    float sy = app.shell.viewport.y + (wy - pe_map_active_instance()->view.camera.y) *
+                                          pe_map_active_instance()->view.camera.zoom;
     ok = ok && editor_inside(sx, sy, app.shell.viewport) &&
-         !memcmp(&unchanged, &app.workspace.map->scene, sizeof unchanged);
-    PeCamera focused = app.workspace.map->view.camera;
+         !memcmp(&unchanged, &pe_map_active_instance()->scene, sizeof unchanged);
+    PeCamera focused = pe_map_active_instance()->view.camera;
     editor_inspect_entity();
     editor_draw();
-    ok = ok && !memcmp(&focused, &app.workspace.map->view.camera, sizeof focused);
+    ok = ok && !memcmp(&focused, &pe_map_active_instance()->view.camera, sizeof focused);
     smoke_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, sx + 2, sy + 2);
-    smoke_pointer(SDL_EVENT_MOUSE_MOTION, sx + 2 + 20 * app.workspace.map->view.camera.zoom,
+    smoke_pointer(SDL_EVENT_MOUSE_MOTION, sx + 2 + 20 * pe_map_active_instance()->view.camera.zoom,
                   sy + 2);
-    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP, sx + 2 + 20 * app.workspace.map->view.camera.zoom,
-                  sy + 2);
-    ok = ok && !memcmp(&focused, &app.workspace.map->view.camera, sizeof focused);
+    smoke_pointer(SDL_EVENT_MOUSE_BUTTON_UP,
+                  sx + 2 + 20 * pe_map_active_instance()->view.camera.zoom, sy + 2);
+    ok = ok && !memcmp(&focused, &pe_map_active_instance()->view.camera, sizeof focused);
     float moved_x = 0, moved_y = 0;
-    ok = ok && pe_entity_world_position(&app.workspace.map->scene, child, &moved_x, &moved_y) &&
+    ok = ok &&
+         pe_entity_world_position(&pe_map_active_instance()->scene, child, &moved_x, &moved_y) &&
          fabsf(moved_x - wx - 20) < .01f;
     editor_field_start(FIELD_X, "5000");
     editor_field_apply();
     editor_draw();
-    ok = ok && pe_entity_world_position(&app.workspace.map->scene, child, &wx, &wy);
-    sx = app.shell.viewport.x +
-         (wx - app.workspace.map->view.camera.x) * app.workspace.map->view.camera.zoom;
-    sy = app.shell.viewport.y +
-         (wy - app.workspace.map->view.camera.y) * app.workspace.map->view.camera.zoom;
+    ok = ok && pe_entity_world_position(&pe_map_active_instance()->scene, child, &wx, &wy);
+    sx = app.shell.viewport.x + (wx - pe_map_active_instance()->view.camera.x) *
+                                    pe_map_active_instance()->view.camera.zoom;
+    sy = app.shell.viewport.y + (wy - pe_map_active_instance()->view.camera.y) *
+                                    pe_map_active_instance()->view.camera.zoom;
     ok = ok && editor_inside(sx, sy, app.shell.viewport);
-    pe_history_free(&app.workspace.map->history);
-    app.workspace.map->scene = original;
-    app.workspace.map->view.camera = camera;
-    app.workspace.map->reveal_selected = false;
+    pe_history_free(&pe_map_active_instance()->history);
+    pe_map_active_instance()->scene = original;
+    pe_map_active_instance()->view.camera = camera;
+    pe_map_active_instance()->reveal_selected = false;
     app.shell.selected = 0;
     app.shell.left_tabs.selected = UI_EXPLORER_TAB;
     app.shell.right_tabs.selected = UI_INSPECTOR_TAB;
@@ -1082,29 +1112,29 @@ bool editor_verify_selection(void) {
 }
 
 void editor_capture_component_dropdown(void) {
-    PeScene scene = app.workspace.map->scene;
-    PeCamera camera = app.workspace.map->view.camera;
+    PeScene scene = pe_map_active_instance()->scene;
+    PeCamera camera = pe_map_active_instance()->view.camera;
     uint32_t selected = app.shell.selected;
     UiId left = app.shell.left_tabs.selected, right = app.shell.right_tabs.selected;
-    Tool tool = app.workspace.map->view.tool;
+    Tool tool = pe_map_active_instance()->view.tool;
     for (uint32_t i = 0; i < PE_ENTITIES; i++) {
-        PeObject *o = &app.workspace.map->scene.objects[i];
+        PeObject *o = &pe_map_active_instance()->scene.objects[i];
         if (!o->alive) {
             continue;
         }
         PeEntity entity = {i, o->generation};
         /* Show one selectable option without changing the real scene or its history. */
         if (o->mask & PE_PLAYER) {
-            pe_entity_remove_component(&app.workspace.map->scene, entity, PE_PLAYER);
+            pe_entity_remove_component(&pe_map_active_instance()->scene, entity, PE_PLAYER);
         } else if (o->mask & PE_BODY) {
-            pe_entity_remove_component(&app.workspace.map->scene, entity, PE_BODY);
+            pe_entity_remove_component(&pe_map_active_instance()->scene, entity, PE_BODY);
         }
         app.shell.selected = o->stable_id;
-        app.workspace.map->view.tool = SELECT;
+        pe_map_active_instance()->view.tool = SELECT;
         app.shell.left_tabs.selected = UI_SCENE_TAB;
         editor_inspect_entity();
         editor_draw();
-        SDL_FRect anchor = app.workspace.map->component_anchor;
+        SDL_FRect anchor = pe_map_active_instance()->component_anchor;
         smoke_click(anchor.x + anchor.w * .5f, anchor.y + 12);
         char path[1200];
         const char *original_path = editor_screenshot_path;
@@ -1131,7 +1161,7 @@ void editor_capture_component_dropdown(void) {
             }
             editor_field_stop();
         }
-        pe_entity_set_name(&app.workspace.map->scene, entity, "Hero");
+        pe_entity_set_name(&pe_map_active_instance()->scene, entity, "Hero");
         editor_draw();
         smoke_click(app.platform.width - RIGHT + PANEL_GAP + 100, TOP + TABS + 44);
         SDL_Event end_name = {0};
@@ -1146,12 +1176,12 @@ void editor_capture_component_dropdown(void) {
         editor_field_stop();
         break;
     }
-    app.workspace.map->scene = scene;
-    app.workspace.map->view.camera = camera;
+    pe_map_active_instance()->scene = scene;
+    pe_map_active_instance()->view.camera = camera;
     app.shell.selected = selected;
-    app.workspace.map->view.tool = tool;
+    pe_map_active_instance()->view.tool = tool;
     app.shell.left_tabs.selected = left;
     app.shell.right_tabs.selected = right;
-    app.workspace.map->reveal_selected = false;
-    app.workspace.map->component_add_open = false;
+    pe_map_active_instance()->reveal_selected = false;
+    pe_map_active_instance()->component_add_open = false;
 }

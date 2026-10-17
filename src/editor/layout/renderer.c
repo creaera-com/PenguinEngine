@@ -84,7 +84,7 @@ const cJSON *editor_layout_entry(UiId id) {
         return NULL;
     }
 
-    const char *module = id == UI_MAP_VIEW ? "map" : id == UI_SCRIPT_VIEW ? "scripts" : "vector";
+    const char *module = editor_view(id)->module;
     const cJSON *entries = pe_ui_get(app.shell.shell_layout->root, "editors");
     for (const cJSON *e = entries ? entries->child : NULL; e; e = e->next) {
         if (!strcmp(pe_ui_string(e, "module", ""), module)) {
@@ -159,11 +159,11 @@ void editor_apply_shell_layout(void) {
     UiId selected = app.workspace.loaded_view;
     const cJSON *entries = pe_ui_get(root, "editors");
     for (const cJSON *e = entries->child; e; e = e->next) {
-        items[count++] =
-            (UiTab){!strcmp(pe_ui_string(e, "module", ""), "map")       ? UI_MAP_VIEW
-                    : !strcmp(pe_ui_string(e, "module", ""), "scripts") ? UI_SCRIPT_VIEW
-                                                                        : UI_VECTOR_VIEW,
-                    true, 0};
+        const char *module = pe_ui_string(e, "module", "");
+        const EditorView *view = pe_editor_registry_module(editor_registry, module);
+        if (view) {
+            items[count++] = (UiTab){view->id, true, 0};
+        }
     }
 
     bool found = false;
@@ -715,51 +715,18 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
         editor_box((SDL_FRect){area.x, area.y + 4, 1, fmaxf(0, area.h - 8)}, UI_BORDER);
     } else if (strcmp(type, "spacer")) {
         ui_panel(app.platform.renderer, area, UI_PANEL);
-        if (strcmp(type, "map_canvas") && strcmp(type, "script_editor") &&
-            strcmp(type, "vector_canvas")) {
+        const PeEditorBackend *backend = app.workspace.backend;
+        bool canvas = backend && backend->canvas_type && !strcmp(type, backend->canvas_type);
+        if (canvas) {
+            app.shell.viewport = area;
+            app.shell.canvas_enabled = !app.shell.ui.blocked;
+        } else {
             editor_register_ui_hit((UiRect){area.x, area.y, area.w, area.h});
         }
         app.shell.panel_area = area;
         app.shell.panel_top = area.y;
-        if (!strcmp(type, "map_canvas") || !strcmp(type, "script_editor") ||
-            !strcmp(type, "vector_canvas")) {
-            app.shell.viewport = area;
-            app.shell.canvas_enabled = !app.shell.ui.blocked;
-            if (!strcmp(type, "map_canvas")) {
-                editor_draw_map_content();
-            } else if (!strcmp(type, "vector_canvas")) {
-                vector_draw_canvas();
-            } else {
-                editor_draw_script_content();
-            }
-        } else if (!strcmp(type, "file_tree")) {
+        if (!strcmp(type, "file_tree")) {
             editor_draw_tree();
-        } else if (!strcmp(type, "entity_tree")) {
-            const cJSON *tools = pe_ui_get(n, "tools");
-            if (tools) {
-                editor_draw_yaml_tool_list(tools, area, true);
-                float height = editor_yaml_tool_rows(tools, area.w) * 32.f + 6;
-                app.shell.panel_area.y += height;
-                app.shell.panel_area.h = fmaxf(0, app.shell.panel_area.h - height);
-                app.shell.panel_top = app.shell.panel_area.y;
-            }
-            editor_draw_scene_tree();
-        } else if (!strcmp(type, "vector_tree")) {
-            vector_draw_tree();
-        } else if (!strcmp(type, "vector_grid")) {
-            vector_draw_grid_settings(area);
-        } else if (!strcmp(type, "vector_preview")) {
-            vector_draw_preview(area);
-        } else if (!strcmp(type, "vector_inspector")) {
-            vector_draw_inspector();
-        } else if (!strcmp(type, "map_layers")) {
-            editor_draw_map_panel();
-        } else if (!strcmp(type, "tile_palette")) {
-            editor_draw_tiles_panel();
-        } else if (!strcmp(type, "inspector")) {
-            editor_draw_inspector();
-        } else if (!strcmp(type, "scene_info")) {
-            editor_draw_info();
         } else if (!strcmp(type, "terminal")) {
             if (!app.shell.console) {
                 app.shell.console = pe_console_new(app.project.root, !app.runtime.smoke);
@@ -768,8 +735,8 @@ void editor_draw_yaml_node(const cJSON *n, SDL_FRect area, int column) {
                 pe_console_draw(app.shell.console, app.platform.renderer, &app.shell.ui, area,
                                 !app.shell.ui.blocked);
             }
-        } else if (!strcmp(type, "script_info")) {
-            editor_draw_script_inspector();
+        } else if (backend && backend->draw_node) {
+            backend->draw_node(type, n, area);
         }
     }
 done:

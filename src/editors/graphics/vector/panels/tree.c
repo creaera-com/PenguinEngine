@@ -6,7 +6,7 @@ typedef struct {
 
 static bool expanded(uint32_t id) {
     for (int i = 0; i < VE_SHAPES; i++) {
-        if (app.workspace.vector->view.expanded_paths[i] == id) {
+        if (pe_vector_active_instance()->view.expanded_paths[i] == id) {
             return true;
         }
     }
@@ -14,7 +14,7 @@ static bool expanded(uint32_t id) {
 }
 
 static void toggle(uint32_t id) {
-    VeView *view = &app.workspace.vector->view;
+    VeView *view = &pe_vector_active_instance()->view;
     for (int i = 0; i < VE_SHAPES; i++) {
         if (view->expanded_paths[i] == id) {
             view->expanded_paths[i] = 0;
@@ -31,7 +31,7 @@ static void toggle(uint32_t id) {
 
 /* Count first so even a fully expanded document needs only its visible rows. */
 static int collect(VectorRow *rows, int *depths) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     int count = 0;
     for (int b = 0; b < VE_BOARDS; b++) {
         if (!v->document.boards[b].used) {
@@ -89,7 +89,7 @@ static bool row_button(UiId id, UiRect rect, UiIcon icon, const char *label, con
 }
 
 static void draw_row(VectorRow row, int index, const int *depths, int count, UiRect area) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     VeShape *s = row.shape >= 0 ? &v->document.shapes[row.shape] : NULL;
     bool children = row.node < 0 && (!s || (s->kind == VE_PATH && s->count));
     bool open = s ? expanded(s->id) : v->view.expanded[row.board] != 0;

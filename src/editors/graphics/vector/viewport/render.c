@@ -3,7 +3,7 @@
 #include "nanosvgrast.h"
 
 static VePoint point(float x, float y) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     return (VePoint){v->canvas.x + (x - v->view.x) * v->view.zoom,
                      v->canvas.y + (y - v->view.y) * v->view.zoom};
 }
@@ -20,7 +20,7 @@ static void handle(VePoint p, float size, uint32_t rgba) {
 }
 
 static bool raster(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     int w = (int)ceilf(v->canvas.w), h = (int)ceilf(v->canvas.h);
     if (w < 1 || h < 1 || w > 8192 || h > 8192) {
         return false;
@@ -72,7 +72,7 @@ static bool raster(void) {
 }
 
 static void ruler_axis(const VeBoard *board, SDL_FRect strip, float step, int axis) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     if (strip.x + strip.w < v->canvas.x || strip.y + strip.h < v->canvas.y ||
         strip.x > v->canvas.x + v->canvas.w || strip.y > v->canvas.y + v->canvas.h) {
         return;
@@ -122,7 +122,7 @@ static void ruler_axis(const VeBoard *board, SDL_FRect strip, float step, int ax
 }
 
 static void rulers(const VeBoard *board, bool active) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     VePoint p = point(board->x, board->y);
     char largest[32];
     snprintf(largest, sizeof largest, "%.0f", board->h);
@@ -141,7 +141,7 @@ static void rulers(const VeBoard *board, bool active) {
 }
 
 void vector_draw_canvas(void) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     SDL_FRect full = app.shell.viewport;
     editor_box(full, 0x383838ff);
     v->canvas = full;

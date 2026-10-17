@@ -2,8 +2,8 @@
 
 void editor_map_apply_field(void) {
     if (app.shell.field == FIELD_NAME) {
-        PeEntity entity = pe_entity_find(&app.workspace.map->scene, app.shell.selected);
-        PeObject *o = pe_entity_get(&app.workspace.map->scene, entity);
+        PeEntity entity = pe_entity_find(&pe_map_active_instance()->scene, app.shell.selected);
+        PeObject *o = pe_entity_get(&pe_map_active_instance()->scene, entity);
         if (!o) {
             editor_field_stop();
             return;
@@ -15,7 +15,7 @@ void editor_map_apply_field(void) {
         if (!strcmp(o->name, app.shell.input)) {
             editor_field_stop();
         } else if (editor_begin()) {
-            pe_entity_set_name(&app.workspace.map->scene, entity, app.shell.input);
+            pe_entity_set_name(&pe_map_active_instance()->scene, entity, app.shell.input);
             editor_commit();
             editor_field_stop();
         }
@@ -33,8 +33,9 @@ void editor_map_apply_field(void) {
             return;
         }
         if (editor_begin()) {
-            memcpy(app.workspace.map->scene.layers[app.workspace.map->view.layer].name,
-                   app.shell.input, strlen(app.shell.input) + 1);
+            memcpy(
+                pe_map_active_instance()->scene.layers[pe_map_active_instance()->view.layer].name,
+                app.shell.input, strlen(app.shell.input) + 1);
             editor_commit();
             editor_field_stop();
         }
@@ -42,8 +43,9 @@ void editor_map_apply_field(void) {
     }
 
     if (app.shell.field == FIELD_COLOR) {
-        PeObject *o = pe_entity_get(&app.workspace.map->scene,
-                                    pe_entity_find(&app.workspace.map->scene, app.shell.selected));
+        PeObject *o =
+            pe_entity_get(&pe_map_active_instance()->scene,
+                          pe_entity_find(&pe_map_active_instance()->scene, app.shell.selected));
         if (!o || !(o->mask & PE_SPRITE)) {
             editor_field_stop();
             return;
@@ -74,14 +76,15 @@ void editor_map_apply_field(void) {
             editor_message("Source tile size must be an integer from 1 to 128");
             return;
         }
-        if (editor_set_tileset(app.workspace.map->scene.tileset, (int)value)) {
+        if (editor_set_tileset(pe_map_active_instance()->scene.tileset, (int)value)) {
             editor_field_stop();
         }
         return;
     }
 
-    PeObject *o = pe_entity_get(&app.workspace.map->scene,
-                                pe_entity_find(&app.workspace.map->scene, app.shell.selected));
+    PeObject *o =
+        pe_entity_get(&pe_map_active_instance()->scene,
+                      pe_entity_find(&pe_map_active_instance()->scene, app.shell.selected));
     uint32_t required =
         (app.shell.field == FIELD_VX || app.shell.field == FIELD_VY) ? PE_BODY : PE_TRANSFORM;
     if (!o || !(o->mask & required)) {
@@ -118,7 +121,7 @@ void editor_map_apply_field(void) {
         }
         editor_commit();
         if (required == PE_TRANSFORM) {
-            app.workspace.map->reveal_selected = true;
+            pe_map_active_instance()->reveal_selected = true;
         }
         editor_field_stop();
     }

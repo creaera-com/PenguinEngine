@@ -2,13 +2,13 @@
 #include "editors/graphics/vector/viewport/grid.h"
 
 static VePoint world(float x, float y) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     return (VePoint){v->view.x + (x - v->canvas.x) / v->view.zoom,
                      v->view.y + (y - v->canvas.y) / v->view.zoom};
 }
 
 static int board_at(VePoint p) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     for (int i = VE_BOARDS - 1; i >= 0; i--) {
         VeBoard *b = &v->document.boards[i];
         if (b->used && p.x >= b->x && p.y >= b->y && p.x <= b->x + b->w && p.y <= b->y + b->h) {
@@ -19,7 +19,7 @@ static int board_at(VePoint p) {
 }
 
 static VePoint snap(VePoint point) {
-    VeView *view = &app.workspace.vector->view;
+    VeView *view = &pe_vector_active_instance()->view;
     VePoint result = point;
     if (view->snap_enabled) {
         ve_grid_snap(point, view->grid_width, view->grid_height, view->grid_isometric, view->zoom,
@@ -29,7 +29,7 @@ static VePoint snap(VePoint point) {
 }
 
 static int hit(VePoint p) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     VeFlat *flat = malloc(sizeof *flat);
     if (!flat) {
         return -1;
@@ -109,7 +109,7 @@ static void move_anchor(VeShape *s, int index, float dx, float dy) {
 }
 
 static bool preview_event(SDL_Event *e, bool inside) {
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     bool escape = e->type == SDL_EVENT_KEY_DOWN && e->key.key == SDLK_ESCAPE;
     bool cancel = escape || e->type == SDL_EVENT_WINDOW_FOCUS_LOST || e->type == SDL_EVENT_QUIT ||
                   e->type == SDL_EVENT_WINDOW_CLOSE_REQUESTED;
@@ -171,7 +171,7 @@ bool vector_event(SDL_Event *e) {
         app.shell.field != FIELD_NONE) {
         return false;
     }
-    VectorEditor *v = app.workspace.vector;
+    VectorEditor *v = pe_vector_active_instance();
     bool inside = editor_inside(app.shell.mx, app.shell.my, v->canvas);
     if (preview_event(e, inside)) {
         return true;

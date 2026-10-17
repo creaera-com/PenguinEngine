@@ -6,4 +6,6 @@
 #include "editor/module.h"
 /** @brief Statischer Vertrag für Payload-Lebenszyklus und Dokumentbefehle. */
 extern const PeEditorBackend pe_script_backend;
+/** @brief Öffentliche Registrierung ohne Zugriff auf interne Dokumenttypen. */
+extern const EditorView pe_script_view;
 #endif

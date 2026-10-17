@@ -23,7 +23,7 @@ flowchart TD
 
 Der Pfeil bezeichnet eine verwendete Schnittstelle. Ein konkreter Backend-Adapter implementiert den Vertrag; der Workspace ruft ihn über seine Operationstabelle auf. Neue Dokumenttypen erfordern deshalb keine zusätzlichen Undo-/Redo-Sonderfälle in den gemeinsamen YAML-Bindings.
 
-`tools/check_architecture.py` prüft direkte Modulgrenzen und verfolgt Includes der SDL-freien Modelle transitiv. Engine, UI und Dienste dürfen keine Anwendung oder konkreten Editoren einbinden. Konkrete Editoren dürfen keine Header anderer Editoren und nicht den Composition Root einbinden. Frontends verwenden ihren eigenen privaten `internal.h` und den gemeinsamen `editor/host.h`. Diese Prüfung läuft als CTest auch auf GitHub.
+`tools/check_architecture.py` prüft direkte Modulgrenzen und verfolgt Includes der SDL-freien Modelle transitiv. Engine, UI und Dienste dürfen keine Anwendung oder konkreten Editoren einbinden. Anwendung, Shell und Workspace dürfen keine konkreten Editorzustände interpretieren oder Modellheader einbinden. Nur `application/editors.c` darf die öffentlichen `adapter.h`-Einstiegspunkte registrieren. Konkrete Editoren dürfen keine Header oder Instanzzugriffe anderer Editoren und nicht den Composition Root einbinden. Frontends verwenden ihren eigenen privaten `internal.h` und den gemeinsamen `editor/host.h`. Diese Prüfung läuft als CTest auch auf GitHub.
 
 ## Dokumentvertrag: Was kann die gemeinsame Oberfläche tun?
 
@@ -56,7 +56,14 @@ Die Unity-Tests in `tests/test_document_contract.c` verwenden zwei unabhängige 
 | `action_enabled` / `action_active` | Voraussetzungen und Auswahlzustand von Werkzeugen liefern |
 | `boolean_binding` | Editorbezogene YAML-Bools auflösen |
 | `message` / `playing` | Editorbezogene Meldung und Play-Modus ohne fremde Modellzugriffe lesen |
-| `apply_field` | Den gemeinsamen Eingabepuffer fachlich validieren und übernehmen |
+| `apply_field` / `field_stopped` | Eingabepuffer fachlich übernehmen und eigene Dialogzustände aufräumen |
+| `draw_node` / `canvas_type` | Eigene YAML-Inhalte zeichnen und den interaktiven Canvas kennzeichnen |
+| `event` / `pointer` / `key` | Fachliche Eingaben und Tastenkürzel bearbeiten |
+| `overlay_event` / `overlay_open` / `draw_overlay` | Fachliche Popups betreiben |
+| `focus` / `blur` / `text_focus` | Textfokus beim Editorwechsel oder Konsolenklick übernehmen/abgeben |
+| `controls_hit` / `panel_scroll` / `zoom` | Fachliche Bedienflächen, Scrollpositionen und Zoom liefern |
+| `request` | Registrierte Öffnen-/Neu-/Importbefehle ausführen |
+| `update` / `startup` / `notify` / `begin_frame` | Laufzeit, Startansicht, Meldungen und flüchtige Frame-Daten behandeln |
 
 Der Workspace kennt damit das Lebenszyklusprotokoll, aber keine interne Undo-Struktur. Die CMake-Targets der Dokumentmodelle bleiben unabhängig von der UI-Anwendung.
 
@@ -78,9 +85,13 @@ Die private Anwendungsinstanz verbindet fünf Zustandsbereiche:
 
 Kamera, Tile-Werkzeug, Ebenenwahl, Map-Scrollpositionen, Play- und Gestenzustand gehören jetzt zu `MapPayload.view`. Sie leben und sterben mit der Map. Der Map-Checkpoint sichert Navigation, aber keine laufende Mausgeste oder Play-Simulation. Vector besitzt seine Navigation in `VeView`, Script seine Textansicht in `PeScriptEditor`.
 
-`application/internal.h` ist der Composition Root und bindet die konkreten Modellheader nur für die Integration ein. `editor/host.h` stellt den vorhandenen privaten Frontends gemeinsame Dienste und die getrennten Zustandsbereiche bereit. Die Payload-Typen sind dort opaque: Der Vector-Editor kann die Struktur von `MapPayload` nicht sehen.
+`application/internal.h` enthält keine Editor-Modellheader mehr. Der Workspace besitzt genau einen undurchsichtigen `void *instance` plus dessen Backend. Er deklariert weder `MapPayload` noch `VectorEditor` noch `PeScriptEditor`. Nur die konkrete Domäne interpretiert den Zeiger. Ihre privaten Frontends benutzen dafür `pe_map_active_instance()`, `pe_vector_active_instance()` beziehungsweise `pe_script_active_instance()`. Diese Funktionen prüfen das zugehörige Backend und liefern bei einer anderen aktiven Domäne NULL. Nach einem Wechsel dürfen zuvor geliehene Zeiger nicht weiterverwendet werden.
 
-Die Frontend-Integration verwendet weiterhin eine private globale Hostinstanz `app`. Das ist bewusst eine Anwendung mit einem Fenster, keine Zusage für mehrere unabhängige Editorfenster. Reine Modelle, der Dokumentvertrag, UI-Kern und Checkpoint-Codecs verwenden explizite Kontexte. Neue Modellfunktionen erhalten ihr Dokument als Parameter; sie greifen niemals auf `app` zu. Weitere Frontend-Entkopplung erfolgt über kleine Hostfunktionen, nicht über neue Querzugriffe auf fremde Payloads.
+Jede Domäne veröffentlicht in ihrem kleinen `adapter.h` eine `EditorView`-Beschreibung. `application/editors.c` registriert nur deren Adressen. Modulname, Zeichenfunktionen, Backend und Dokumentbefehle gehören zur Beschreibung. `editor/registry.c` sucht IDs, YAML-Modulnamen und Befehlsbesitzer ohne eingebaute Map-/Script-/Vector-Fallunterscheidung. Unity prüft dies mit erfundenen Dialog- und Animationseditoren. Sitzungspositionen folgen der Registrierung, die Kapazität ist `UI_MAX_TABS`.
+
+Die gemeinsame Darstellung verwaltet Geometrie, Clipping, Standardwidgets und die Konsole. Fachliche YAML-Knoten delegiert sie an `draw_node`. Die Shell fragt Popup-, Fokus- und Eingabeverhalten über den Vertrag ab. Öffnen/Neu sowie das Speichern aller veränderten Dokumente beim Beenden laufen über Registrierung und Dokumentvertrag.
+
+**Verbleibende Kopplung:** Die bestehenden Frontends und Adapter verwenden weiterhin den globalen `editor/host.h` mit `app`, gemeinsamen UI-Diensten und Shellzustand. Die Backend-Rückrufe erhalten noch keinen expliziten Instanz-/Dienstkontext. Die privaten Instanzzugriffe sind deshalb ein abgesicherter Übergang, keine vollständige Isolation oder Mehrfenster-Unterstützung. Auch YAML-Schema, Datei-Endungszuordnung und einige Standard-Tab-IDs kennen die eingebauten Editoren weiterhin. Ein weiterer Schritt wäre ein expliziter Hostkontext mit kleinen Diensten und parameterisierten Frontends. Reine Modelle, Dokumentvertrag und Checkpoint-Codecs arbeiten bereits mit expliziten Kontexten.
 
 ## Beispiel: Ein neues Vector-Werkzeug
 
@@ -97,10 +108,10 @@ Für ein zusätzliches Eigenschaftenfeld bleiben Cursor, Fokus und Texteingabe b
 1. Eine Domäne unter `src/editors/` anlegen, etwa `game/dialogue/`. Keine leeren Unterverzeichnisse auf Vorrat erzeugen.
 2. Dokumentmodell und seine Tests zuerst erstellen. UI-unabhängige Header dürfen `editor/host.h` nicht einbinden.
 3. Payload, privaten Frontend-Header und `adapter.c/.h` implementieren. Alle Pflichtoperationen des Backend-Vertrags bereitstellen; nicht benötigte optionale Rückrufe auf NULL setzen.
-4. Einen Eintrag mit stabiler ID, Metadaten, Zeichenfunktionen und Backend in `application/editors.c` ergänzen. Für die Integration des Payload-Zeigers `editor/workspace/state.h` und dessen forward declaration erweitern.
-5. Eine Sitzungsposition in `editor_session_index()` und die Sitzungsarrays/Initialisierung ergänzen. Aktuell sind drei Slots bewusst fest dimensioniert; kein dynamisches Plug-in-System ist vorausgesetzt.
+4. Eine öffentliche `EditorView`-Beschreibung mit stabiler ID, YAML-Modulname, Backend und benötigten Dokumentbefehlen veröffentlichen. Nur deren Adresse in `application/editors.c` registrieren. Der generische Workspace benötigt keinen neuen Payload-Typ.
+5. Der Sitzungsslot wird aus der Registrierung ermittelt. Die Anzahl darf `UI_MAX_TABS` nicht überschreiten; ein Compile-Time-Check sichert dies ab.
 6. YAML-Modul, Schema-Registrierung und Layoutdatei ergänzen. Die YAML-Dateien enthalten Anordnung und Aktionen, keine fachliche Dokumentlogik.
-7. Den bestehenden Datei-/Dirty-Anfrageablauf bei Bedarf um Öffnen/Neu für den neuen Dateityp erweitern. Das sind Integrationspunkte in `workspace/documents.c`, keine Änderungen an den Undo-Strukturen der anderen Editoren.
+7. Öffnen-/Neu-/Importbefehle in der Beschreibung registrieren und im eigenen `request` behandeln. Die Datei-Endungszuordnung und YAML-Schemavalidierung bei Bedarf ergänzen. Dirty-Abfrage, Speichern beim Beenden und Undo laufen automatisch über die bestehenden Verträge.
 8. Erzeugen, Speichern, Undo/Redo, Checkpoint, F6, Wechsel zu einem anderen Editor und vollständige Freigabe testen.
 
 ## Arbeitsregeln

@@ -1,7 +1,7 @@
 #include "editors/game/map/internal.h"
 
 bool editor_begin(void) {
-    if (!pe_history_begin(&app.workspace.map->history, &app.workspace.map->scene)) {
+    if (!pe_history_begin(&pe_map_active_instance()->history, &pe_map_active_instance()->scene)) {
         editor_message("Cannot begin edit (pending edit or out of memory)");
         return false;
     }
@@ -10,25 +10,25 @@ bool editor_begin(void) {
 }
 
 void editor_commit(void) {
-    if (!pe_history_commit(&app.workspace.map->history, &app.workspace.map->scene)) {
+    if (!pe_history_commit(&pe_map_active_instance()->history, &pe_map_active_instance()->scene)) {
         editor_message("Out of memory: edit reverted");
     }
 }
 
 void editor_assets_sync(void) {
     char error[256];
-    if (!pe_assets_load(&app.workspace.map->assets, app.platform.renderer, app.project.root,
-                        &app.workspace.map->scene, error, sizeof error)) {
+    if (!pe_assets_load(&pe_map_active_instance()->assets, app.platform.renderer, app.project.root,
+                        &pe_map_active_instance()->scene, error, sizeof error)) {
         editor_message(error);
     }
 }
 
 void editor_selection_sync(void) {
-    if (app.workspace.map->view.layer >= app.workspace.map->scene.layer_count) {
-        app.workspace.map->view.layer = app.workspace.map->scene.layer_count - 1;
+    if (pe_map_active_instance()->view.layer >= pe_map_active_instance()->scene.layer_count) {
+        pe_map_active_instance()->view.layer = pe_map_active_instance()->scene.layer_count - 1;
     }
-    if (!pe_entity_valid(&app.workspace.map->scene,
-                         pe_entity_find(&app.workspace.map->scene, app.shell.selected))) {
+    if (!pe_entity_valid(&pe_map_active_instance()->scene,
+                         pe_entity_find(&pe_map_active_instance()->scene, app.shell.selected))) {
         app.shell.selected = 0;
     }
     editor_assets_sync();
@@ -36,11 +36,12 @@ void editor_selection_sync(void) {
 
 bool editor_save_scene(void) {
     char error[256];
-    if (!pe_scene_save(&app.workspace.map->scene, app.project.scene_path, error, sizeof error)) {
+    if (!pe_scene_save(&pe_map_active_instance()->scene, app.project.scene_path, error,
+                       sizeof error)) {
         editor_message(error);
         return false;
     }
-    pe_history_saved(&app.workspace.map->history);
+    pe_history_saved(&pe_map_active_instance()->history);
     editor_message("Scene saved");
     return true;
 }
@@ -57,24 +58,26 @@ void editor_load_scene(const char *path) {
         free(next);
         return;
     }
-    app.workspace.map->scene = *next;
+    pe_map_active_instance()->scene = *next;
     free(next);
     snprintf(app.project.scene_path, sizeof app.project.scene_path, "%s", path);
-    pe_history_free(&app.workspace.map->history);
-    app.workspace.map->view.layer = 0;
+    pe_history_free(&pe_map_active_instance()->history);
+    pe_map_active_instance()->view.layer = 0;
     app.shell.selected = 0;
-    app.workspace.map->collapsed_count = 0;
-    memset(app.workspace.map->component_ids, 0, sizeof app.workspace.map->component_ids);
-    memset(app.workspace.map->component_closed, 0, sizeof app.workspace.map->component_closed);
-    app.workspace.map->component_add_open = false;
-    app.workspace.map->view.camera = (PeCamera){-16, -16, 2};
+    pe_map_active_instance()->collapsed_count = 0;
+    memset(pe_map_active_instance()->component_ids, 0,
+           sizeof pe_map_active_instance()->component_ids);
+    memset(pe_map_active_instance()->component_closed, 0,
+           sizeof pe_map_active_instance()->component_closed);
+    pe_map_active_instance()->component_add_open = false;
+    pe_map_active_instance()->view.camera = (PeCamera){-16, -16, 2};
     editor_assets_sync();
     editor_tab_select(false);
     editor_message("Scene opened");
 }
 
 bool editor_set_tileset(const char *relative, int tile_size) {
-    PeScene candidate = app.workspace.map->scene;
+    PeScene candidate = pe_map_active_instance()->scene;
     snprintf(candidate.tileset, sizeof candidate.tileset, "%s", relative);
     candidate.tileset_tile_size = tile_size;
     PeAssets check = {0};
@@ -88,18 +91,18 @@ bool editor_set_tileset(const char *relative, int tile_size) {
         pe_assets_free(&check);
         return false;
     }
-    app.workspace.map->scene = candidate;
+    pe_map_active_instance()->scene = candidate;
     editor_commit();
-    pe_assets_free(&app.workspace.map->assets);
-    app.workspace.map->assets = check;
-    app.workspace.map->view.tile = 1;
-    app.workspace.map->view.palette_scroll = 0;
+    pe_assets_free(&pe_map_active_instance()->assets);
+    pe_map_active_instance()->assets = check;
+    pe_map_active_instance()->view.tile = 1;
+    pe_map_active_instance()->view.palette_scroll = 0;
     editor_message("Tileset selected (Ctrl+Z to undo)");
     return true;
 }
 
 bool editor_import_png(const char *source) {
-    if (app.workspace.map->view.playing || !editor_suffix(source, ".png")) {
+    if (pe_map_active_instance()->view.playing || !editor_suffix(source, ".png")) {
         editor_message("Import requires a PNG file; stop play mode first");
         return false;
     }
@@ -129,7 +132,7 @@ bool editor_import_png(const char *source) {
         editor_message(SDL_GetError());
         return false;
     }
-    if (!editor_set_tileset(relative, app.workspace.map->scene.tileset_tile_size)) {
+    if (!editor_set_tileset(relative, pe_map_active_instance()->scene.tileset_tile_size)) {
         SDL_RemovePath(destination);
         return false;
     }

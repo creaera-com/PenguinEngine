@@ -8,60 +8,66 @@ void editor_draw_map_content(void) {
     bool modal = app.shell.field != FIELD_NONE || app.shell.request != REQUEST_NONE;
     /* Distinguish the workspace from empty/transparent tiles inside the map. */
     editor_box(app.shell.viewport, 0x383838ffu);
-    const PeScene *selected_scene =
-        app.workspace.map->view.playing ? &app.workspace.map->runtime : &app.workspace.map->scene;
-    if (app.workspace.map->reveal_selected && !app.workspace.map->view.playing) {
+    const PeScene *selected_scene = pe_map_active_instance()->view.playing
+                                        ? &pe_map_active_instance()->runtime
+                                        : &pe_map_active_instance()->scene;
+    if (pe_map_active_instance()->reveal_selected && !pe_map_active_instance()->view.playing) {
         float x, y;
         PeEntity selected = pe_entity_find(selected_scene, app.shell.selected);
-        const PeObject *o = pe_entity_get(&app.workspace.map->scene, selected);
+        const PeObject *o = pe_entity_get(&pe_map_active_instance()->scene, selected);
         if (o && pe_entity_world_position(selected_scene, selected, &x, &y)) {
-            float margin = 20 / app.workspace.map->view.camera.zoom;
-            float width = app.shell.viewport.w / app.workspace.map->view.camera.zoom;
-            float height = app.shell.viewport.h / app.workspace.map->view.camera.zoom;
-            if (x < app.workspace.map->view.camera.x + margin ||
-                y < app.workspace.map->view.camera.y + margin ||
-                x + o->w > app.workspace.map->view.camera.x + width - margin ||
-                y + o->h > app.workspace.map->view.camera.y + height - margin) {
-                app.workspace.map->view.camera.x = x + o->w * .5f - width * .5f;
-                app.workspace.map->view.camera.y = y + o->h * .5f - height * .5f;
+            float margin = 20 / pe_map_active_instance()->view.camera.zoom;
+            float width = app.shell.viewport.w / pe_map_active_instance()->view.camera.zoom;
+            float height = app.shell.viewport.h / pe_map_active_instance()->view.camera.zoom;
+            if (x < pe_map_active_instance()->view.camera.x + margin ||
+                y < pe_map_active_instance()->view.camera.y + margin ||
+                x + o->w > pe_map_active_instance()->view.camera.x + width - margin ||
+                y + o->h > pe_map_active_instance()->view.camera.y + height - margin) {
+                pe_map_active_instance()->view.camera.x = x + o->w * .5f - width * .5f;
+                pe_map_active_instance()->view.camera.y = y + o->h * .5f - height * .5f;
             }
         }
-        app.workspace.map->reveal_selected = false;
+        pe_map_active_instance()->reveal_selected = false;
     }
     SDL_Rect map_clip = {(int)app.shell.viewport.x, (int)app.shell.viewport.y,
                          (int)app.shell.viewport.w, (int)app.shell.viewport.h};
     SDL_SetRenderClipRect(app.platform.renderer, &map_clip);
-    const PeScene *visible_scene =
-        app.workspace.map->view.playing ? &app.workspace.map->runtime : &app.workspace.map->scene;
-    editor_box(
-        (SDL_FRect){
-            app.shell.viewport.x -
-                app.workspace.map->view.camera.x * app.workspace.map->view.camera.zoom,
-            app.shell.viewport.y -
-                app.workspace.map->view.camera.y * app.workspace.map->view.camera.zoom,
-            visible_scene->width * visible_scene->tile_size * app.workspace.map->view.camera.zoom,
-            visible_scene->height * visible_scene->tile_size * app.workspace.map->view.camera.zoom},
-        UI_CANVAS);
+    const PeScene *visible_scene = pe_map_active_instance()->view.playing
+                                       ? &pe_map_active_instance()->runtime
+                                       : &pe_map_active_instance()->scene;
+    editor_box((SDL_FRect){app.shell.viewport.x - pe_map_active_instance()->view.camera.x *
+                                                      pe_map_active_instance()->view.camera.zoom,
+                           app.shell.viewport.y - pe_map_active_instance()->view.camera.y *
+                                                      pe_map_active_instance()->view.camera.zoom,
+                           visible_scene->width * visible_scene->tile_size *
+                               pe_map_active_instance()->view.camera.zoom,
+                           visible_scene->height * visible_scene->tile_size *
+                               pe_map_active_instance()->view.camera.zoom},
+               UI_CANVAS);
     SDL_SetRenderClipRect(app.platform.renderer, NULL);
     pe_render_scene(app.platform.renderer,
-                    app.workspace.map->view.playing ? &app.workspace.map->runtime
-                                                    : &app.workspace.map->scene,
-                    &app.workspace.map->assets, &app.workspace.map->view.camera, app.shell.viewport,
-                    app.workspace.map->view.grid && !app.workspace.map->view.playing,
-                    app.workspace.map->view.collision && !app.workspace.map->view.playing);
-    if (!app.workspace.map->view.playing) {
-        PeObject *o = pe_entity_get(&app.workspace.map->scene,
-                                    pe_entity_find(&app.workspace.map->scene, app.shell.selected));
+                    pe_map_active_instance()->view.playing ? &pe_map_active_instance()->runtime
+                                                           : &pe_map_active_instance()->scene,
+                    &pe_map_active_instance()->assets, &pe_map_active_instance()->view.camera,
+                    app.shell.viewport,
+                    pe_map_active_instance()->view.grid && !pe_map_active_instance()->view.playing,
+                    pe_map_active_instance()->view.collision &&
+                        !pe_map_active_instance()->view.playing);
+    if (!pe_map_active_instance()->view.playing) {
+        PeObject *o =
+            pe_entity_get(&pe_map_active_instance()->scene,
+                          pe_entity_find(&pe_map_active_instance()->scene, app.shell.selected));
         float x, y;
-        if (o && pe_entity_world_position(
-                     &app.workspace.map->scene,
-                     pe_entity_find(&app.workspace.map->scene, app.shell.selected), &x, &y)) {
-            SDL_FRect rect = {app.shell.viewport.x + (x - app.workspace.map->view.camera.x) *
-                                                         app.workspace.map->view.camera.zoom,
-                              app.shell.viewport.y + (y - app.workspace.map->view.camera.y) *
-                                                         app.workspace.map->view.camera.zoom,
-                              o->w * app.workspace.map->view.camera.zoom,
-                              o->h * app.workspace.map->view.camera.zoom};
+        if (o &&
+            pe_entity_world_position(
+                &pe_map_active_instance()->scene,
+                pe_entity_find(&pe_map_active_instance()->scene, app.shell.selected), &x, &y)) {
+            SDL_FRect rect = {app.shell.viewport.x + (x - pe_map_active_instance()->view.camera.x) *
+                                                         pe_map_active_instance()->view.camera.zoom,
+                              app.shell.viewport.y + (y - pe_map_active_instance()->view.camera.y) *
+                                                         pe_map_active_instance()->view.camera.zoom,
+                              o->w * pe_map_active_instance()->view.camera.zoom,
+                              o->h * pe_map_active_instance()->view.camera.zoom};
             /* Draw after the map/grid so selection remains legible on matching sprite colors. */
             SDL_SetRenderClipRect(app.platform.renderer, &map_clip);
             SDL_FRect outer = {rect.x - 4, rect.y - 4, rect.w + 8, rect.h + 8};
@@ -89,26 +95,29 @@ void editor_draw_map_content(void) {
             editor_text(lx + 6, ly + 8, label, UI_ACCENT);
         }
         if (editor_inside(app.shell.mx, app.shell.my, app.shell.viewport) && !modal &&
-            app.workspace.map->view.tool != SELECT) {
+            pe_map_active_instance()->view.tool != SELECT) {
             int x, y;
             editor_tile_coords(app.shell.mx, app.shell.my, &x, &y);
-            int sx = app.workspace.map->view.painting && app.workspace.map->view.tool == RECTANGLE
-                         ? app.workspace.map->view.start_x
+            int sx = pe_map_active_instance()->view.painting &&
+                             pe_map_active_instance()->view.tool == RECTANGLE
+                         ? pe_map_active_instance()->view.start_x
                          : x,
-                sy = app.workspace.map->view.painting && app.workspace.map->view.tool == RECTANGLE
-                         ? app.workspace.map->view.start_y
+                sy = pe_map_active_instance()->view.painting &&
+                             pe_map_active_instance()->view.tool == RECTANGLE
+                         ? pe_map_active_instance()->view.start_y
                          : y;
             int minx = sx < x ? sx : x, miny = sy < y ? sy : y;
-            SDL_FRect rect = {app.shell.viewport.x + (minx * app.workspace.map->scene.tile_size -
-                                                      app.workspace.map->view.camera.x) *
-                                                         app.workspace.map->view.camera.zoom,
-                              app.shell.viewport.y + (miny * app.workspace.map->scene.tile_size -
-                                                      app.workspace.map->view.camera.y) *
-                                                         app.workspace.map->view.camera.zoom,
-                              (abs(x - sx) + 1) * app.workspace.map->scene.tile_size *
-                                  app.workspace.map->view.camera.zoom,
-                              (abs(y - sy) + 1) * app.workspace.map->scene.tile_size *
-                                  app.workspace.map->view.camera.zoom};
+            SDL_FRect rect = {
+                app.shell.viewport.x + (minx * pe_map_active_instance()->scene.tile_size -
+                                        pe_map_active_instance()->view.camera.x) *
+                                           pe_map_active_instance()->view.camera.zoom,
+                app.shell.viewport.y + (miny * pe_map_active_instance()->scene.tile_size -
+                                        pe_map_active_instance()->view.camera.y) *
+                                           pe_map_active_instance()->view.camera.zoom,
+                (abs(x - sx) + 1) * pe_map_active_instance()->scene.tile_size *
+                    pe_map_active_instance()->view.camera.zoom,
+                (abs(y - sy) + 1) * pe_map_active_instance()->scene.tile_size *
+                    pe_map_active_instance()->view.camera.zoom};
             SDL_Rect clip = {(int)app.shell.viewport.x, (int)app.shell.viewport.y,
                              (int)app.shell.viewport.w, (int)app.shell.viewport.h};
             SDL_SetRenderClipRect(app.platform.renderer, &clip);

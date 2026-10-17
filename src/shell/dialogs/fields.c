@@ -12,16 +12,18 @@ void editor_field_start(Field f, const char *value) {
 }
 
 void editor_field_stop(void) {
-    if (app.shell.field == FIELD_V_SAVE && app.workspace.vector) {
-        app.workspace.vector->after_save = REQUEST_NONE;
+    if (app.workspace.backend && app.workspace.backend->field_stopped) {
+        app.workspace.backend->field_stopped();
     }
     app.shell.field = FIELD_NONE;
     app.shell.field_inline = app.shell.field_invalid = app.shell.field_selecting = false;
     app.shell.needs_layout = true;
     ui_cancel(&app.shell.ui);
-    ui_focus(&app.shell.ui,
-             editor_scripts_active() && (*app.workspace.script).focused ? UI_SCRIPT_DOCUMENT : 0);
-    if (editor_scripts_active() && (*app.workspace.script).focused) {
+    UiId focus = app.workspace.backend && app.workspace.backend->text_focus
+                     ? app.workspace.backend->text_focus()
+                     : 0;
+    ui_focus(&app.shell.ui, focus);
+    if (focus) {
         SDL_StartTextInput(app.platform.window);
     } else {
         SDL_StopTextInput(app.platform.window);

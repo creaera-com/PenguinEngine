@@ -200,4 +200,9 @@ void editor_map_action(const char *name);
 void editor_map_update(double elapsed);
 
 /** @} */
+/** @brief Privater Zugriff des Frontends auf die eigene aktive Instanz; NULL bei fremdem Backend.
+ * Der Zeiger bleibt nur bis zum nächsten Editorwechsel gültig. Modelle verwenden explizite
+ * Kontexte.
+ */
+MapPayload *pe_map_active_instance(void);
 #endif
