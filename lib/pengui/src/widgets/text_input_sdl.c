@@ -48,6 +48,21 @@ void pui_draw_text_input(SDL_Renderer *r, SDL_FRect rect, const char *text, PUIT
 static void select_at(PUIView *view, int input, float x, bool extend) {
     Widget *s = &view->state[input];
     float column = (x - view->rect[input].x - 7 + s->edit.scroll) / PUI_FONT_WIDTH;
+    if (extend && view->selecting && view->selection_clicks >= 2) {
+        if (view->selection_clicks >= 3) {
+            pui_text_edit_key(&s->edit, s->text, PUI_TEXT_SELECT_ALL, false);
+            return;
+        }
+        column = fminf((float)strlen(s->text), fmaxf(0, floorf(column)));
+        pui_text_edit_select_word(&s->edit, s->text, (size_t)column);
+        size_t start = s->edit.anchor, end = s->edit.cursor;
+        s->edit.anchor =
+            start < view->selection_start ? view->selection_end : view->selection_start;
+        s->edit.cursor = start < view->selection_start ? start
+                         : end > view->selection_end   ? end
+                                                       : view->selection_end;
+        return;
+    }
     column = fminf((float)strlen(s->text), fmaxf(0, floorf(column + .5f)));
     pui_text_edit_click(&s->edit, s->text, (size_t)column, extend);
 }
@@ -186,6 +201,18 @@ void pui_widget_text_input_pointer(PUIView *view, PUIContext *pui, SDL_Window *w
         pui_focus(pui, view->layout->nodes[input].id);
         SDL_StartTextInput(window);
         select_at(view, input, event->button.x, (SDL_GetModState() & SDL_KMOD_SHIFT) != 0);
+        Widget *s = &view->state[input];
+        view->selection_clicks = event->button.clicks;
+        if (event->button.clicks >= 3) {
+            pui_text_edit_key(&s->edit, s->text, PUI_TEXT_SELECT_ALL, false);
+        } else if (event->button.clicks == 2) {
+            float column =
+                (event->button.x - view->rect[input].x - 7 + s->edit.scroll) / PUI_FONT_WIDTH;
+            column = fminf((float)strlen(s->text), fmaxf(0, floorf(column)));
+            pui_text_edit_select_word(&s->edit, s->text, (size_t)column);
+        }
+        view->selection_start = s->edit.anchor;
+        view->selection_end = s->edit.cursor;
         pui_context_acquire(pui, view->layout->nodes[input].id, view->hit[input]);
         view->selecting = pui->active == view->layout->nodes[input].id;
     }

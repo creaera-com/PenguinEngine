@@ -133,3 +133,38 @@ size_t pui_text_edit_column(const char *text, size_t offset) {
     }
     return column;
 }
+
+static int word_class(unsigned char c) {
+    if (c == ' ') {
+        return 0;
+    }
+    return c >= 128 || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+                   c == '_'
+               ? 1
+               : 2;
+}
+
+void pui_text_edit_select_word(PUITextEdit *edit, const char *text, size_t column) {
+    pui_text_edit_click(edit, text, column, false);
+    size_t pos = edit->cursor;
+    if (!*text) {
+        return;
+    }
+    if (!text[pos]) {
+        pos = boundary(text, pos - 1);
+    }
+    int kind = word_class((unsigned char)text[pos]);
+    size_t start = pos, end = next(text, pos);
+    while (start) {
+        size_t previous = boundary(text, start - 1);
+        if (word_class((unsigned char)text[previous]) != kind) {
+            break;
+        }
+        start = previous;
+    }
+    while (text[end] && word_class((unsigned char)text[end]) == kind) {
+        end = next(text, end);
+    }
+    edit->anchor = start;
+    edit->cursor = end;
+}

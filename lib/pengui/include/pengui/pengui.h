@@ -383,6 +383,11 @@ void pui_text_edit_click(PUITextEdit *edit, const char *text, size_t column, boo
  * @param offset Byteoffset; wird auf Textlänge und Zeichengrenze begrenzt.
  */
 size_t pui_text_edit_column(const char *text, size_t offset);
+/** @brief Select a word at a zero-based character column, preserving UTF-8 boundaries.
+ * Groups ASCII letters/digits/underscore and non-ASCII codepoints as words; spaces and
+ * ASCII punctuation form separate runs. At end-of-text selects the preceding run.
+ */
+void pui_text_edit_select_word(PUITextEdit *edit, const char *text, size_t column);
 
 /** @brief Prüft die Fortsetzung einer Hierarchieebene in einer aufgeklappten Baum-Liste.
  * @param depths Geliehene Preorder-Liste nichtnegativer Einrückungstiefen.

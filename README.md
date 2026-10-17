@@ -206,7 +206,9 @@ oder Enter aktiviert werden. Tab und Umschalt+Tab wechseln zwischen sichtbaren, 
 Textfeldern in YAML-Reihenfolge und springen am Ende wieder zum Anfang. Eingaben in inaktiven
 Tabs, eingeklappten oder deaktivierten Bereichen werden übersprungen. Das neu fokussierte
 Feld markiert seinen Text zum direkten Ersetzen. Text lässt sich außerdem mit gedrückter
-linker Maustaste markieren; beim Ziehen über den Feldrand scrollt langer Text horizontal. Buttons gehören bisher nicht zur Tab-Reihenfolge.
+linker Maustaste markieren; beim Ziehen über den Feldrand scrollt langer Text horizontal.
+Doppelklick markiert ein Wort, Dreifachklick das ganze Feld. Nach einem Doppelklick erweitert
+Ziehen die Auswahl in ganzen Wörtern. Strg+A bzw. Cmd+A markiert ebenfalls alles. Buttons gehören bisher nicht zur Tab-Reihenfolge.
 
 ## Eigene Button-Aktionen in C
 

@@ -304,6 +304,14 @@ bleibt während des Ziehens sichtbar, auch außerhalb des Feldes. Loslassen übe
 Widget aktiviert dieses nicht. Neue Eingabe ersetzt den markierten Text; die bestehenden
 Kopier-, Ausschneide- und Löschtasten arbeiten auf derselben Auswahl.
 
+Ein Doppelklick markiert das Wort unter der Maus. Beim anschließenden Ziehen wird die
+Auswahl in ganzen Wörtern erweitert. Ein Dreifachklick markiert das komplette einzeilige
+Textfeld. SDL liefert die Klickanzahl mit; pengUI benötigt dafür keinen eigenen Timer.
+Die Wortgrenzen werden derzeit durch ASCII-Buchstaben, Ziffern, Unterstriche und
+Nicht-ASCII-Zeichen gebildet. Leerzeichen und ASCII-Satzzeichen bilden eigene Gruppen;
+eine vollständige sprachabhängige Unicode-Wortsegmentierung ist noch nicht implementiert.
+Strg+A bzw. Cmd+A markiert ebenfalls den gesamten Text.
+
 Ein Klick außerhalb eines Textfelds beendet den Textfokus mit `SDL_StopTextInput()`.
 Ein unsichtbar oder nicht bedienbar gewordenes Feld verliert ihn nach dem Zeichnen
 ebenfalls. Fenster-Fokusverlust beendet die Textbearbeitung und aktive Mausinteraktionen.

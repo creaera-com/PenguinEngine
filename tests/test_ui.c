@@ -517,8 +517,29 @@ static void test_popup_placement_flips_and_clamps_to_bounds(void) {
     TEST_ASSERT_EQUAL_FLOAT(300, rect.h);
 }
 
+static void test_word_selection_respects_utf8_spaces_punctuation_and_end(void) {
+    PUITextEdit edit = {0};
+    const char *text = "Hallo schöne_Welt 42!";
+    pui_text_edit_select_word(&edit, text, 8);
+    TEST_ASSERT_EQUAL_UINT(6, edit.anchor);
+    TEST_ASSERT_EQUAL_UINT(strlen("Hallo schöne_Welt"), edit.cursor);
+    pui_text_edit_select_word(&edit, text, 5);
+    TEST_ASSERT_EQUAL_UINT(5, edit.anchor);
+    TEST_ASSERT_EQUAL_UINT(6, edit.cursor);
+    pui_text_edit_select_word(&edit, text, 18);
+    TEST_ASSERT_EQUAL_UINT(strlen("Hallo schöne_Welt "), edit.anchor);
+    TEST_ASSERT_EQUAL_UINT(strlen(text) - 1, edit.cursor);
+    pui_text_edit_select_word(&edit, text, 999);
+    TEST_ASSERT_EQUAL_UINT(strlen(text) - 1, edit.anchor);
+    TEST_ASSERT_EQUAL_UINT(strlen(text), edit.cursor);
+    pui_text_edit_select_word(&edit, "", 100);
+    TEST_ASSERT_EQUAL_UINT(0, edit.anchor);
+    TEST_ASSERT_EQUAL_UINT(0, edit.cursor);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_word_selection_respects_utf8_spaces_punctuation_and_end);
     RUN_TEST(test_popup_placement_flips_and_clamps_to_bounds);
     RUN_TEST(test_toggle_and_radio_change_only_on_valid_activation);
     RUN_TEST(test_image_fit_preserves_aspect_and_state_margin);

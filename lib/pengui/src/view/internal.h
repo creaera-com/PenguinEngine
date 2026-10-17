@@ -27,6 +27,8 @@ struct PUIView {
     PUIRect rect[PUI_LAYOUT_NODES], hit[PUI_LAYOUT_NODES];
     bool visible[PUI_LAYOUT_NODES], enabled[PUI_LAYOUT_NODES];
     int focused, submit;
+    int selection_clicks;
+    size_t selection_start, selection_end;
     bool selecting; ///< Mouse selection belongs to the focused text field until release.
     int popups[PUI_LAYOUT_DEPTH], popup_count;
     PUIRect popup_rects[PUI_LAYOUT_DEPTH], bounds;

@@ -528,8 +528,60 @@ static void test_focus_loss_cancels_mouse_selection(void) {
     TEST_ASSERT_EQUAL_STRING("Initial", pui_view_text(view, "name"));
 }
 
+static void multi_click_start(int clicks, float x) {
+    SDL_Event event = {0};
+    event.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
+    event.button.button = SDL_BUTTON_LEFT;
+    event.button.clicks = (Uint8)clicks;
+    event.button.x = x;
+    event.button.y = 45;
+    pui_view_event(view, &pui, window, &event);
+}
+
+static void test_double_click_selects_word_and_drag_extends_by_words(void) {
+    TEST_ASSERT_TRUE(pui_view_set_text(view, "name", "one schöne Welt"));
+    multi_click_start(2, 7 + 6 * PUI_FONT_WIDTH);
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, action, &actions);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, 7 + 6 * PUI_FONT_WIDTH, 45);
+    replace_selection("X");
+    TEST_ASSERT_EQUAL_STRING("one X Welt", pui_view_text(view, "name"));
+    TEST_ASSERT_TRUE(pui_view_set_text(view, "name", "one two three"));
+    multi_click_start(2, 7 + 5 * PUI_FONT_WIDTH);
+    selection_pointer(SDL_EVENT_MOUSE_MOTION, 7 + 10 * PUI_FONT_WIDTH, 45);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, 7 + 10 * PUI_FONT_WIDTH, 45);
+    replace_selection("X");
+    TEST_ASSERT_EQUAL_STRING("one X", pui_view_text(view, "name"));
+    TEST_ASSERT_TRUE(pui_view_set_text(view, "name", "one two three"));
+    multi_click_start(2, 7 + 5 * PUI_FONT_WIDTH);
+    selection_pointer(SDL_EVENT_MOUSE_MOTION, 7 + PUI_FONT_WIDTH, 45);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, 7 + PUI_FONT_WIDTH, 45);
+    replace_selection("X");
+    TEST_ASSERT_EQUAL_STRING("X three", pui_view_text(view, "name"));
+}
+
+static void test_triple_click_and_control_or_command_a_select_all(void) {
+    multi_click_start(3, 23);
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, action, &actions);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, 23, 45);
+    replace_selection("Triple");
+    TEST_ASSERT_EQUAL_STRING("Triple", pui_view_text(view, "name"));
+    SDL_Keymod modifiers[] = {SDL_KMOD_CTRL, SDL_KMOD_GUI};
+    for (int i = 0; i < 2; i++) {
+        TEST_ASSERT_TRUE(pui_view_set_text(view, "name", "Select all"));
+        SDL_Event event = {0};
+        event.type = SDL_EVENT_KEY_DOWN;
+        event.key.key = SDLK_A;
+        event.key.mod = modifiers[i];
+        TEST_ASSERT_TRUE(pui_view_event(view, &pui, window, &event));
+        replace_selection("All");
+        TEST_ASSERT_EQUAL_STRING("All", pui_view_text(view, "name"));
+    }
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_double_click_selects_word_and_drag_extends_by_words);
+    RUN_TEST(test_triple_click_and_control_or_command_a_select_all);
     RUN_TEST(test_mouse_selection_handles_fast_forward_and_reverse_utf8_drags);
     RUN_TEST(test_mouse_selection_keeps_capture_and_does_not_activate_button_on_release);
     RUN_TEST(test_mouse_selection_autoscrolls_while_held_outside_field);
