@@ -1,3 +1,4 @@
+/** @file @brief Bounded PNG loading and SDL texture creation. */
 #include "pengui/pengui.h"
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_MAX_DIMENSIONS 1024

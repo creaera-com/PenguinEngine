@@ -1,3 +1,4 @@
+/** @file @brief SDL-free UTF-8 editing, cursor and selection; native UI is in text_input_sdl.c. */
 #include "pengui/pengui.h"
 #include <string.h>
 

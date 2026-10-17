@@ -2,6 +2,7 @@
 #ifndef PENGUI_VIEW_INTERNAL_H
 #define PENGUI_VIEW_INTERNAL_H
 #include "pengui/pengui.h"
+#include "rendering/internal.h"
 
 typedef struct {
     bool open;
@@ -23,6 +24,32 @@ struct UiView {
     int focused, submit;
 };
 
-UiIcon ui_view_icon(const char *name);
 void ui_view_blur(UiView *view, UiContext *ui);
+void ui_view_draw_node(UiView *v, UiContext *ui, int i, UiRect area, UiAction action,
+                       void *context);
+void ui_view_draw_children(UiView *v, UiContext *ui, int i, UiRect area, bool row, UiAction action,
+                           void *context);
+void ui_view_draw_container(UiView *v, UiContext *ui, int i, UiRect area, UiAction action,
+                            void *context);
+void ui_widget_button_draw(UiView *v, UiContext *ui, int i, UiRect area, UiAction action,
+                           void *context);
+void ui_widget_splitter_draw(UiView *v, UiContext *ui, int i, UiRect area, UiAction action,
+                             void *context);
+void ui_widget_tabs_draw(UiView *v, UiContext *ui, int i, UiRect area, UiAction action,
+                         void *context);
+void ui_widget_text_input_draw(UiView *v, UiContext *ui, int i, UiRect area, UiAction action,
+                               void *context);
+void ui_widget_tree_draw(UiView *v, UiContext *ui, int i, UiRect area, UiAction action,
+                         void *context);
+void ui_widget_basic_draw(UiView *v, UiContext *ui, int i, UiRect area, UiAction action,
+                          void *context);
+float ui_view_node_height(const UiView *view, int index);
+void ui_widget_text_input_pointer(UiView *view, UiContext *ui, SDL_Window *window,
+                                  const SDL_Event *event);
+bool ui_widget_text_input_event(UiView *view, UiContext *ui, const SDL_Event *event);
+bool ui_widget_tree_scroll(UiView *view, int index, const SDL_Event *event);
+bool ui_widget_tabs_scroll(UiView *view, int index, const SDL_Event *event);
+void ui_widget_tabs_init(UiView *view, int index);
+void ui_widget_section_draw(UiView *v, UiContext *ui, int i, UiRect area, UiAction action,
+                            void *context);
 #endif

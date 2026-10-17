@@ -1,20 +1,9 @@
+/** @file @brief View lifetime, widget state ownership and value access. */
 #include "internal.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-void ui_view_apply_theme(const UiLayout *layout) {
-    UiTheme theme = ui_dark_theme();
-    theme.canvas = layout->colors[0];
-    theme.panel = layout->colors[1];
-    theme.surface = layout->colors[2];
-    theme.hover = layout->colors[3];
-    theme.accent = layout->colors[4];
-    theme.text = layout->colors[5];
-    theme.muted = layout->colors[6];
-    ui_set_theme(&theme);
-}
 
 UiView *ui_view_new(const UiLayout *layout, SDL_Renderer *renderer) {
     if (!layout || !renderer) {
@@ -43,15 +32,7 @@ UiView *ui_view_new(const UiLayout *layout, SDL_Renderer *renderer) {
             }
         }
         if (n->type == UI_NODE_TABS) {
-            UiTab tabs[UI_MAX_TABS];
-            int count = 0;
-            for (int k = n->child; k >= 0; k = layout->nodes[k].next) {
-                const UiNode *tab = &layout->nodes[k];
-                tabs[count++] =
-                    (UiTab){tab->id, tab->enabled,
-                            ui_tab_content_width(ui_view_icon(tab->icon), tab->text) + UI_TAB_GAP};
-            }
-            ui_tabs_init(&state->tabs, tabs, count, tabs[0].id);
+            ui_widget_tabs_init(view, i);
         }
     }
     return view;

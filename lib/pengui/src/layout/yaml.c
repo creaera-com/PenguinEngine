@@ -1,3 +1,4 @@
+/** @file @brief Load and validate the SDL-free YAML widget description. */
 #include "pengui/pengui.h"
 #include <errno.h>
 #include <math.h>

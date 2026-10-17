@@ -21,12 +21,12 @@ lib/pengui/
   include/pengui/    Öffentliche Schnittstelle
     pengui.h        Gesamte öffentliche API; SDL-Teil optional
   src/
-    core.c          Buttons, Tabs, Splitter, Scrollen, Fokus, Clipping
-    text_input.c    UTF-8-Textbearbeitung
-    layout.c        YAML laden und prüfen
-    sdl.c           Einzelne Widgets zeichnen
-    image.c         PNG-Dateien laden
-    view/           Zustand, Eingaben und Zeichnen der YAML-Oberfläche
+    core/           Gemeinsamer Kontext: Fokus, Pointer-Capture, Clipping
+    widgets/        Je Widget Logik und ggf. ein *_sdl.c-Gegenstück
+    layout/         YAML-Prüfung, Geometrie und Anordnung der Container
+    rendering/      Text, Icons, Bilder, Theme und Zeichenprimitive
+    view/           Zustand, Ereignisweiterleitung und Zeichen-Dispatch
+    window.c        Rahmenlose Fensterbedienung
 app/                Beispiel-Anwendung und ihre Aktionen
 resources/          playground.yaml und lizenzierte Schriftquelle
 tests/              Unity-Tests und App-Smoke-Test
@@ -69,7 +69,7 @@ root:
 
 Unterstützte Knoten: `row`, `column`, `panel`, `toolbar`, `button`, `label`, `separator`, `spacer`, `tabs` mit `tab`, `section`, `input`, `tree` mit `item` und `split` mit genau zwei Kindern. Gemeinsame Eigenschaften sind unter anderem `id`, `text`, `enabled`, `width`, `height`, `padding`, `gap`; `open` steuert anfangs geöffnete Bereiche. Breite/Höhe 0 verteilt freien Platz unter flexiblen Kindern. Splitter verwenden `axis`, `initial` (Größe des ersten Bereichs), `minimum_first` und `minimum_second`. Tabs passen sich ihren Beschriftungen an, lassen sich verschieben und per Mausrad horizontal scrollen. Trees scrollen, klappen auf und haben abwechselnde Zeilenfarben sowie Verbindungslinien.
 
-Buttons akzeptieren `icon`, `image` (PNG relativ zur YAML-Datei) und `image_padding` (Standard 4 px). Die View besitzt ihre Textur-Caches und gibt sie bei Reload/Freigabe frei. Fehlende Bilder zeigen ein Ersatzsymbol. PNGs sind auf 1024 × 1024 begrenzt. Verfügbare Icons stehen in `src/view/draw.c` unterhalb von `lib/pengui/`.
+Buttons akzeptieren `icon`, `image` (PNG relativ zur YAML-Datei) und `image_padding` (Standard 4 px). Die View besitzt ihre Textur-Caches und gibt sie bei Reload/Freigabe frei. Fehlende Bilder zeigen ein Ersatzsymbol. PNGs sind auf 1024 × 1024 begrenzt. Verfügbare Icons stehen in `src/rendering/icons.c` unterhalb von `lib/pengui/`.
 
 YAML v1 ist absichtlich klein: höchstens 128 Knoten, 12 Ebenen und 256 KiB Eingabe. Unbekannte Eigenschaften/Widgets, doppelte IDs/Schlüssel, fehlerhafte Zahlen und ungültige Kindstrukturen werden abgelehnt. Es gibt noch keine Bindingsprache, kein Docking und keine Undo-Verwaltung. Fachliche Aktionen und Dokumentmodelle gehören später in die jeweilige Anwendung.
 
@@ -94,3 +94,17 @@ Die Playground-Toolbar enthält rechts `window.minimize`, `window.maximize` und 
 ```
 
 `pengUI::core` stellt über diesen Header Widgets, Geometrie und YAML ohne SDL bereit. Beim Verlinken von `pengUI::sdl` setzt CMake für die Bibliothek und ihre Verbraucher zusätzlich `PENGUI_WITH_SDL=1`; dann enthält derselbe Header auch Darstellung, View und Fensterbedienung. Ohne CMake muss das Makro für SDL-Verbraucher beim Kompilieren gesetzt und gegen die SDL-Komponente sowie SDL3 verlinkt werden. Die Implementierung bleibt intern auf mehrere Dateien verteilt.
+
+## Wo gehört Widget-Code hin?
+
+| Bereich | Ohne SDL | Darstellung und native Eingaben |
+| --- | --- | --- |
+| Buttons | `widgets/button.c` | `widgets/button_sdl.c` einschließlich Bildbuttons und YAML-Aktionen |
+| Textfelder | `widgets/text_input.c` für UTF-8, Cursor und Auswahl | `widgets/text_input_sdl.c` für Zeichnen, Fokus, Clipboard und Tastatur |
+| Tabs | `widgets/tabs.c` | `widgets/tabs_sdl.c` einschließlich YAML-Initialisierung und Scrollen |
+| Tree | `widgets/tree.c` | `widgets/tree_sdl.c` einschließlich Aufklappen, Zeilen und Scrollen |
+| Scrollbar | `widgets/scrollbar.c` | `widgets/scrollbar_sdl.c` |
+| Splitter | `widgets/splitter.c` | `widgets/splitter_sdl.c` |
+| Kleine Elemente | `widgets/basic.c` | `widgets/basic_sdl.c` für Labels, Separatoren und Sections |
+
+Alle Pfade dieser Tabelle sind relativ zu `lib/pengui/src/`. Die zwei Dateien je größerem Widget halten den Core unabhängig von SDL; sie bilden gemeinsam den Einstieg für das jeweilige Element. `view/events.c` und `view/draw.c` leiten lediglich weiter. `layout/layout_sdl.c` verteilt den verfügbaren Platz; `layout/yaml.c` liest und prüft Beschreibungen. `rendering/image.c` lädt PNGs, während die Darstellung eines Bildbuttons beim Button bleibt. Die öffentliche API bleibt ausschließlich in `pengui/pengui.h`.
