@@ -205,7 +205,8 @@ und `pui_radio()` im SDL-freien Core bereit; `pui_draw_button()` und `pui_draw_c
 oder Enter aktiviert werden. Tab und Umschalt+Tab wechseln zwischen sichtbaren, bedienbaren
 Textfeldern in YAML-Reihenfolge und springen am Ende wieder zum Anfang. Eingaben in inaktiven
 Tabs, eingeklappten oder deaktivierten Bereichen werden übersprungen. Das neu fokussierte
-Feld markiert seinen Text zum direkten Ersetzen. Buttons gehören bisher nicht zur Tab-Reihenfolge.
+Feld markiert seinen Text zum direkten Ersetzen. Text lässt sich außerdem mit gedrückter
+linker Maustaste markieren; beim Ziehen über den Feldrand scrollt langer Text horizontal. Buttons gehören bisher nicht zur Tab-Reihenfolge.
 
 ## Eigene Button-Aktionen in C
 

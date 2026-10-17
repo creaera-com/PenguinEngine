@@ -19,6 +19,9 @@ bool pui_view_event(PUIView *view, PUIContext *pui, SDL_Window *window, const SD
     } else if (event->type == SDL_EVENT_MOUSE_MOTION) {
         view->pointer_inside = true;
         pui_pointer(pui, event->motion.x, event->motion.y, pui->down);
+        if (pui_widget_text_input_drag(view, pui, event)) {
+            return true;
+        }
     } else if ((event->type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
                 event->type == SDL_EVENT_MOUSE_BUTTON_UP) &&
                event->button.button == SDL_BUTTON_LEFT) {
@@ -27,6 +30,8 @@ bool pui_view_event(PUIView *view, PUIContext *pui, SDL_Window *window, const SD
                     event->type == SDL_EVENT_MOUSE_BUTTON_DOWN);
         if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
             pui_widget_text_input_pointer(view, pui, window, event);
+        } else if (pui_widget_text_input_drag(view, pui, event)) {
+            return true;
         }
     } else if (event->type == SDL_EVENT_MOUSE_WHEEL) {
         for (int i = view->layout->count - 1; i >= 0; i--) {

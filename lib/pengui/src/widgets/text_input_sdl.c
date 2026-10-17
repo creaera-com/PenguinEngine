@@ -1,4 +1,5 @@
 /** @file @brief Text-field drawing, focus, clipboard and native input events. */
+#include "core/internal.h"
 #include "view/internal.h"
 #include <math.h>
 #include <string.h>
@@ -43,12 +44,30 @@ void pui_draw_text_input(SDL_Renderer *r, SDL_FRect rect, const char *text, PUIT
     SDL_SetRenderClipRect(r, clipped ? &previous : NULL);
 }
 
+/* Column positions are converted by the core into valid UTF-8 byte boundaries. */
+static void select_at(PUIView *view, int input, float x, bool extend) {
+    Widget *s = &view->state[input];
+    float column = (x - view->rect[input].x - 7 + s->edit.scroll) / PUI_FONT_WIDTH;
+    column = fminf((float)strlen(s->text), fmaxf(0, floorf(column + .5f)));
+    pui_text_edit_click(&s->edit, s->text, (size_t)column, extend);
+}
+
 void pui_widget_text_input_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
                                 void *context) {
     const PUINode *n = &v->layout->nodes[i];
     Widget *s = &v->state[i];
-    if ((!pui->active || pui->released) && pui_hovered(pui, area)) {
-        pui_view_request_cursor(v, SDL_SYSTEM_CURSOR_TEXT, 1);
+    bool selecting = v->selecting && v->focused == i && pui->active == n->id && !pui->blocked;
+    if (selecting) {
+        pui->active_seen = true;
+    }
+    if (selecting && pui->down) {
+        /* Re-evaluate while held: keeping the cursor visible scrolls long text, which
+         * advances the selection on following frames even without more mouse motion. */
+        float x = fmaxf(area.x - PUI_FONT_WIDTH, fminf(pui->x, area.x + area.w + PUI_FONT_WIDTH));
+        select_at(v, i, x, true);
+    }
+    if (selecting || ((!pui->active || pui->released) && pui_hovered(pui, area))) {
+        pui_view_request_cursor(v, SDL_SYSTEM_CURSOR_TEXT, selecting ? 2 : 1);
     }
     pui_draw_text_input(v->renderer, pui_frect(area), s->text, &s->edit, v->focused == i,
                         !pui->blocked, false, SDL_GetTicks() % 1000 < 500);
@@ -62,6 +81,10 @@ void pui_widget_text_input_draw(PUIView *v, PUIContext *pui, int i, PUIRect area
 
 void pui_view_blur(PUIView *view, PUIContext *pui) {
     if (view->focused >= 0) {
+        if (view->selecting && pui->active == view->layout->nodes[view->focused].id) {
+            pui->active = 0;
+        }
+        view->selecting = false;
         if (view->window) {
             SDL_StopTextInput(view->window);
         }
@@ -145,6 +168,9 @@ static bool text_key(PUIView *view, PUIContext *pui, const SDL_KeyboardEvent *ke
 void pui_widget_text_input_pointer(PUIView *view, PUIContext *pui, SDL_Window *window,
                                    const SDL_Event *event) {
 
+    if (pui->active) {
+        return;
+    }
     int input = -1;
     for (int i = 0; i < view->layout->count; i++) {
         if (view->visible[i] && view->enabled[i] && view->layout->nodes[i].type == PUI_NODE_INPUT &&
@@ -159,13 +185,31 @@ void pui_widget_text_input_pointer(PUIView *view, PUIContext *pui, SDL_Window *w
         view->focused = input;
         pui_focus(pui, view->layout->nodes[input].id);
         SDL_StartTextInput(window);
-        float column =
-            (event->button.x - view->rect[input].x - 7 + view->state[input].edit.scroll) /
-            PUI_FONT_WIDTH;
-        pui_text_edit_click(&view->state[input].edit, view->state[input].text,
-                            (size_t)fmaxf(0, floorf(column + .5f)),
-                            (SDL_GetModState() & SDL_KMOD_SHIFT) != 0);
+        select_at(view, input, event->button.x, (SDL_GetModState() & SDL_KMOD_SHIFT) != 0);
+        pui_context_acquire(pui, view->layout->nodes[input].id, view->hit[input]);
+        view->selecting = pui->active == view->layout->nodes[input].id;
     }
+}
+
+bool pui_widget_text_input_drag(PUIView *view, PUIContext *pui, const SDL_Event *event) {
+    if (!view->selecting || view->focused < 0) {
+        return false;
+    }
+    int input = view->focused;
+    if (!view->visible[input] || !view->enabled[input] ||
+        pui->active != view->layout->nodes[input].id) {
+        view->selecting = false;
+        return false;
+    }
+    bool release = event->type == SDL_EVENT_MOUSE_BUTTON_UP;
+    float x = release ? event->button.x : event->motion.x;
+    select_at(view, input, x, true);
+    if (release) {
+        /* Releasing over another widget finishes this selection without activating it. */
+        pui->active = 0;
+        view->selecting = false;
+    }
+    return true;
 }
 
 /* YAML order, restricted to fields visible and enabled in the last rendered frame. */

@@ -446,8 +446,94 @@ static void test_cursor_shapes_follow_hover_drag_and_window_leave(void) {
     pui_layout_free(description);
 }
 
+static void selection_pointer(Uint32 type, float x, float y) {
+    SDL_Event event = {0};
+    event.type = type;
+    if (type == SDL_EVENT_MOUSE_MOTION) {
+        event.motion.x = x;
+        event.motion.y = y;
+    } else {
+        event.button.button = SDL_BUTTON_LEFT;
+        event.button.x = x;
+        event.button.y = y;
+    }
+    pui_view_event(view, &pui, window, &event);
+}
+
+static void replace_selection(const char *text) {
+    SDL_Event event = {0};
+    event.type = SDL_EVENT_TEXT_INPUT;
+    event.text.text = text;
+    TEST_ASSERT_TRUE(pui_view_event(view, &pui, window, &event));
+}
+
+static void test_mouse_selection_handles_fast_forward_and_reverse_utf8_drags(void) {
+    TEST_ASSERT_TRUE(pui_view_set_text(view, "name", "abcdef"));
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 15, 45); /* after a */
+    selection_pointer(SDL_EVENT_MOUSE_MOTION, 39, 45);      /* after d */
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, 39, 45);
+    replace_selection("X");
+    TEST_ASSERT_EQUAL_STRING("aXef", pui_view_text(view, "name"));
+    TEST_ASSERT_EQUAL_UINT(0, pui.active);
+    TEST_ASSERT_TRUE(pui_view_set_text(view, "name", "aäöbc"));
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 39, 45); /* after b */
+    selection_pointer(SDL_EVENT_MOUSE_MOTION, 15, 45);      /* before ä */
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, 15, 45);
+    replace_selection("!");
+    TEST_ASSERT_EQUAL_STRING("a!c", pui_view_text(view, "name"));
+}
+
+static void test_mouse_selection_keeps_capture_and_does_not_activate_button_on_release(void) {
+    TEST_ASSERT_TRUE(pui_view_set_text(view, "name", "abcdef"));
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 15, 45);
+    for (int i = 0; i < 3; i++) {
+        pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, action, &actions);
+        TEST_ASSERT_EQUAL_UINT(pui_id("name"), pui.active);
+    }
+    selection_pointer(SDL_EVENT_MOUSE_MOTION, 39, 15); /* over the button */
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, action, &actions);
+    TEST_ASSERT_EQUAL_INT(SDL_SYSTEM_CURSOR_TEXT, pui_view_cursor(view));
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, 39, 15);
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, action, &actions);
+    TEST_ASSERT_EQUAL_INT(0, actions);
+    replace_selection("X");
+    TEST_ASSERT_EQUAL_STRING("aXef", pui_view_text(view, "name"));
+}
+
+static void test_mouse_selection_autoscrolls_while_held_outside_field(void) {
+    char text[121];
+    memset(text, 'a', 120);
+    text[120] = 0;
+    TEST_ASSERT_TRUE(pui_view_set_text(view, "name", text));
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 7, 45);
+    selection_pointer(SDL_EVENT_MOUSE_MOTION, 420, 45);
+    for (int i = 0; i < 90; i++) {
+        pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, action, &actions);
+    }
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, 420, 45);
+    replace_selection("Selected");
+    TEST_ASSERT_EQUAL_STRING("Selected", pui_view_text(view, "name"));
+}
+
+static void test_focus_loss_cancels_mouse_selection(void) {
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 15, 45);
+    TEST_ASSERT_EQUAL_UINT(pui_id("name"), pui.active);
+    SDL_Event event = {0};
+    event.type = SDL_EVENT_WINDOW_FOCUS_LOST;
+    pui_view_event(view, &pui, window, &event);
+    TEST_ASSERT_EQUAL_UINT(0, pui.active);
+    event.type = SDL_EVENT_TEXT_INPUT;
+    event.text.text = "Ignored";
+    TEST_ASSERT_FALSE(pui_view_event(view, &pui, window, &event));
+    TEST_ASSERT_EQUAL_STRING("Initial", pui_view_text(view, "name"));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_mouse_selection_handles_fast_forward_and_reverse_utf8_drags);
+    RUN_TEST(test_mouse_selection_keeps_capture_and_does_not_activate_button_on_release);
+    RUN_TEST(test_mouse_selection_autoscrolls_while_held_outside_field);
+    RUN_TEST(test_focus_loss_cancels_mouse_selection);
     RUN_TEST(test_cursor_shapes_follow_hover_drag_and_window_leave);
     RUN_TEST(test_tab_focus_skips_hidden_disabled_and_wraps);
     RUN_TEST(test_reverse_tab_entry_single_field_and_no_inputs);

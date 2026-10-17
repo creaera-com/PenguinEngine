@@ -295,6 +295,15 @@ unter dem Zeiger. Ein bisheriges Feld verliert gegebenenfalls den Textfokus. Fü
 getroffene Feld werden beide Fokusangaben gesetzt und `SDL_StartTextInput()` aufgerufen.
 Die Einfügeposition ergibt sich aus der Klickposition und dem horizontalen Textscroll.
 
+Mit gedrückter linker Maustaste kannst du vom gesetzten Startpunkt aus Text markieren.
+Das Feld übernimmt dafür die Mausinteraktion und behält den Auswahlanker beim Ziehen bei.
+Bewegungen und das Loslassen werden schon in der Ereignisphase ausgewertet, sodass auch
+schnelle Auswahlbewegungen zwischen zwei Bildern funktionieren. Beim Halten über dem
+linken oder rechten Feldrand scrollt langer Text während des Zeichnens weiter. Der Textcursor
+bleibt während des Ziehens sichtbar, auch außerhalb des Feldes. Loslassen über einem anderen
+Widget aktiviert dieses nicht. Neue Eingabe ersetzt den markierten Text; die bestehenden
+Kopier-, Ausschneide- und Löschtasten arbeiten auf derselben Auswahl.
+
 Ein Klick außerhalb eines Textfelds beendet den Textfokus mit `SDL_StopTextInput()`.
 Ein unsichtbar oder nicht bedienbar gewordenes Feld verliert ihn nach dem Zeichnen
 ebenfalls. Fenster-Fokusverlust beendet die Textbearbeitung und aktive Mausinteraktionen.

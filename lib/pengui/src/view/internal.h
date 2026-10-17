@@ -27,6 +27,7 @@ struct PUIView {
     PUIRect rect[PUI_LAYOUT_NODES], hit[PUI_LAYOUT_NODES];
     bool visible[PUI_LAYOUT_NODES], enabled[PUI_LAYOUT_NODES];
     int focused, submit;
+    bool selecting; ///< Mouse selection belongs to the focused text field until release.
     int popups[PUI_LAYOUT_DEPTH], popup_count;
     PUIRect popup_rects[PUI_LAYOUT_DEPTH], bounds;
     SDL_SystemCursor cursor;
@@ -82,6 +83,7 @@ void pui_widget_basic_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUI
 float pui_view_node_height(const PUIView *view, int index);
 void pui_widget_text_input_pointer(PUIView *view, PUIContext *pui, SDL_Window *window,
                                    const SDL_Event *event);
+bool pui_widget_text_input_drag(PUIView *view, PUIContext *pui, const SDL_Event *event);
 bool pui_widget_text_input_event(PUIView *view, PUIContext *pui, const SDL_Event *event);
 bool pui_widget_tree_scroll(PUIView *view, int index, const SDL_Event *event);
 bool pui_widget_tabs_scroll(PUIView *view, int index, const SDL_Event *event);
