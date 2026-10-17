@@ -1,4 +1,4 @@
-#include "pengui/ui.h"
+#include "pengui/pengui.h"
 #include <string.h>
 
 static size_t boundary(const char *text, size_t pos) {

@@ -1,7 +1,7 @@
 /** @file @brief Private state shared only by the SDL view implementation. */
 #ifndef PENGUI_VIEW_INTERNAL_H
 #define PENGUI_VIEW_INTERNAL_H
-#include "pengui/view.h"
+#include "pengui/pengui.h"
 
 typedef struct {
     bool open;

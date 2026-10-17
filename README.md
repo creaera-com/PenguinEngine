@@ -19,11 +19,7 @@ Bei Mehrkonfigurations-Generatoren liegt die App unter `build/Debug/`. In CLion 
 ```text
 lib/pengui/
   include/pengui/    Öffentliche Schnittstelle
-    ui.h            Interaktionen und Layout-Geometrie ohne SDL
-    layout.h        Geprüfte YAML-Beschreibung ohne SDL
-    ui_sdl.h        Zeichnen, Theme, Symbole und Schrift
-    view.h          YAML-Darstellung und Widgetzustände
-    window.h        Optionale rahmenlose Fensterbedienung
+    pengui.h        Gesamte öffentliche API; SDL-Teil optional
   src/
     core.c          Buttons, Tabs, Splitter, Scrollen, Fokus, Clipping
     text_input.c    UTF-8-Textbearbeitung
@@ -77,7 +73,7 @@ Buttons akzeptieren `icon`, `image` (PNG relativ zur YAML-Datei) und `image_padd
 
 YAML v1 ist absichtlich klein: höchstens 128 Knoten, 12 Ebenen und 256 KiB Eingabe. Unbekannte Eigenschaften/Widgets, doppelte IDs/Schlüssel, fehlerhafte Zahlen und ungültige Kindstrukturen werden abgelehnt. Es gibt noch keine Bindingsprache, kein Docking und keine Undo-Verwaltung. Fachliche Aktionen und Dokumentmodelle gehören später in die jeweilige Anwendung.
 
-Einzelne Widgets lassen sich auch direkt in C über `ui.h` und `ui_sdl.h` nutzen, ohne YAML oder `UiView`.
+Einzelne Widgets lassen sich auch direkt in C über `pengui/pengui.h` nutzen, ohne YAML oder `UiView`.
 
 ## Prüfungen und Abhängigkeiten
 
@@ -90,3 +86,11 @@ Enthaltene Fremdsoftware: libyaml (MIT), stb_image (MIT/Public Domain), Unity (M
 Die Playground-Toolbar enthält rechts `window.minimize`, `window.maximize` und `window.close`. Maximieren wechselt bei maximiertem Fenster zu Wiederherstellen, einschließlich Symbolwechsel. Die Anwendung reicht diese Aktionen an `ui_window_action()` weiter. Schließen erzeugt eine SDL-Schließanfrage; die Anwendung entscheidet, ob sie tatsächlich beendet wird.
 
 `draggable: true` markiert in YAML einen Bereich, dessen freie Fläche das Fenster verschieben darf. Buttons und Eingabefelder bleiben bedienbar; die Fensterränder erlauben Größenänderungen. `ui_window_attach()` installiert den Hit-Test und entfernt den nativen Rahmen. Falls das SDL-Backend Hit-Tests nicht unterstützt, bleibt der native Rahmen als bedienbare Rückfalllösung erhalten. Der `UiWindow`-Kontext muss stabil bleiben; nach YAML-Reload wird sein View-Zeiger aktualisiert, vor Freigabe wird `ui_window_detach()` aufgerufen.
+
+## Ein öffentlicher Header
+
+```c
+#include <pengui/pengui.h>
+```
+
+`pengUI::core` stellt über diesen Header Widgets, Geometrie und YAML ohne SDL bereit. Beim Verlinken von `pengUI::sdl` setzt CMake für die Bibliothek und ihre Verbraucher zusätzlich `PENGUI_WITH_SDL=1`; dann enthält derselbe Header auch Darstellung, View und Fensterbedienung. Ohne CMake muss das Makro für SDL-Verbraucher beim Kompilieren gesetzt und gegen die SDL-Komponente sowie SDL3 verlinkt werden. Die Implementierung bleibt intern auf mehrere Dateien verteilt.

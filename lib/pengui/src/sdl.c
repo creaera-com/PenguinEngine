@@ -1,5 +1,5 @@
 #include "font_atlas.h"
-#include "pengui/ui_sdl.h"
+#include "pengui/pengui.h"
 #include <math.h>
 #include <string.h>
 

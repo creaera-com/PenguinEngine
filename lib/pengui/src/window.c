@@ -1,4 +1,4 @@
-#include "pengui/window.h"
+#include "pengui/pengui.h"
 #include "view/internal.h"
 #include <string.h>
 

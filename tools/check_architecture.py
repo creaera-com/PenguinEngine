@@ -9,10 +9,12 @@ for path in (root / 'lib/pengui').rglob('*'):
     if path.suffix not in ('.c', '.h'):
         continue
     source = path.read_text()
+    if path.name == 'pengui.h':
+        source = source.split('#if defined(PENGUI_WITH_SDL) && PENGUI_WITH_SDL', 1)[0]
     for include in re.findall(r'^\s*#include\s*[<"]([^">]+)', source, re.M):
         if include.startswith(('app/', 'engine/', 'editor/', 'editors/', 'penguin/')):
             errors.append(f'{path.relative_to(root)}: forbidden dependency {include}')
-        if path.name in ('core.c', 'text_input.c', 'layout.c', 'ui.h', 'layout.h'):
+        if path.name in ('core.c', 'text_input.c', 'layout.c', 'pengui.h'):
             if include.startswith('SDL') or include in ('pengui/view.h', 'pengui/ui_sdl.h'):
                 errors.append(f'{path.relative_to(root)}: core must remain SDL-free')
 for path in (root / 'app').rglob('*'):

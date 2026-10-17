@@ -1,4 +1,4 @@
-#include "pengui/view.h"
+#include "pengui/pengui.h"
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_MAX_DIMENSIONS 1024
 #define STBI_ONLY_PNG
