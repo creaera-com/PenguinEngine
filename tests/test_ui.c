@@ -499,8 +499,27 @@ static void test_toggle_and_radio_change_only_on_valid_activation(void) {
     TEST_ASSERT_FALSE(pui_radio(&pui, 1, button, NULL, true));
 }
 
+static void test_popup_placement_flips_and_clamps_to_bounds(void) {
+    PUIRect bounds = {10, 20, 400, 300};
+    PUIRect rect = pui_popup_rect(bounds, (PUIRect){30, 50, 40, 30}, 120, 100, PUI_POPUP_BELOW);
+    TEST_ASSERT_EQUAL_FLOAT(30, rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(83, rect.y);
+    rect = pui_popup_rect(bounds, (PUIRect){350, 280, 40, 30}, 120, 100, PUI_POPUP_BELOW);
+    TEST_ASSERT_EQUAL_FLOAT(290, rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(177, rect.y);
+    rect = pui_popup_rect(bounds, (PUIRect){350, 50, 40, 30}, 120, 100, PUI_POPUP_RIGHT);
+    TEST_ASSERT_EQUAL_FLOAT(227, rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(50, rect.y);
+    rect = pui_popup_rect(bounds, (PUIRect){30, 50, 40, 30}, 800, 700, PUI_POPUP_RIGHT);
+    TEST_ASSERT_EQUAL_FLOAT(10, rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(20, rect.y);
+    TEST_ASSERT_EQUAL_FLOAT(400, rect.w);
+    TEST_ASSERT_EQUAL_FLOAT(300, rect.h);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_popup_placement_flips_and_clamps_to_bounds);
     RUN_TEST(test_toggle_and_radio_change_only_on_valid_activation);
     RUN_TEST(test_image_fit_preserves_aspect_and_state_margin);
     RUN_TEST(test_tree_guides_follow_siblings_and_last_children);

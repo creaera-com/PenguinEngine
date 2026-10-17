@@ -3,8 +3,14 @@
 
 bool pui_view_event(PUIView *view, PUIContext *pui, SDL_Window *window, const SDL_Event *event) {
     view->window = window;
+    if (pui_view_popup_event(view, pui, event)) {
+        return true;
+    }
     if (event->type == SDL_EVENT_WINDOW_FOCUS_LOST) {
         view->pointer_inside = false;
+        while (view->popup_count) {
+            pui_view_popup_close(view, pui);
+        }
         pui_cancel(pui);
         pui_view_blur(view, pui);
     } else if (event->type == SDL_EVENT_WINDOW_MOUSE_ENTER ||

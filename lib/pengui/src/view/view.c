@@ -35,6 +35,9 @@ PUIView *pui_view_new(const PUILayout *layout, SDL_Renderer *renderer) {
                 state->image = pui_image_load(renderer, path);
             }
         }
+        if (n->type == PUI_NODE_DROPDOWN) {
+            pui_widget_dropdown_init(view, i);
+        }
         if (n->type == PUI_NODE_TABS) {
             pui_widget_tabs_init(view, i);
         }

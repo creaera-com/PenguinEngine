@@ -457,7 +457,10 @@ typedef enum {
     PUI_NODE_SPACER,
     PUI_NODE_TOGGLE,
     PUI_NODE_CHECKBOX,
-    PUI_NODE_BUTTON_GROUP
+    PUI_NODE_BUTTON_GROUP,
+    PUI_NODE_DROPDOWN,
+    PUI_NODE_OPTION,
+    PUI_NODE_POPUP_BUTTON
 } PUINodeType;
 
 /** @brief Geometry of a two/three-pane splitter; unused entries are zero. */
@@ -474,6 +477,13 @@ typedef struct {
 PUIRegions pui_split_layout(PUIRect area, PUIAxis axis, int count, int flexible,
                             const float preferred[3], const float minimum[3], float gap);
 
+/** @brief Preferred opening direction; flips to the opposite side when space is limited. */
+typedef enum { PUI_POPUP_BELOW, PUI_POPUP_RIGHT } PUIPopupPlacement;
+
+/** @brief Position a popup within bounds, flipping or clamping when necessary. */
+PUIRect pui_popup_rect(PUIRect bounds, PUIRect anchor, float width, float height,
+                       PUIPopupPlacement placement);
+
 /** @brief Owned description; children form a linked list of indices (-1 ends it). */
 typedef struct {
     PUINodeType type;
@@ -488,6 +498,9 @@ typedef struct {
     bool checked;   ///< Initial toggle/checkbox state, or initially selected group button.
     bool draggable; ///< Empty space in this widget may move a borderless window.
     PUIAxis axis;
+    char value[128]; ///< Stable option value, or initial dropdown value.
+    float popup_width, popup_height;
+    PUIPopupPlacement placement;
     int child, next;
 } PUINode;
 
@@ -808,7 +821,8 @@ void pui_view_free(PUIView *view);
 SDL_SystemCursor pui_view_cursor(const PUIView *view);
 /** @brief Apply the seven theme colors from YAML to the existing renderer theme. */
 void pui_view_apply_theme(const PUILayout *layout);
-/** @brief Feed SDL input on the main thread; true when a text edit consumed the event. */
+/** @brief Feed SDL input on the main thread; true when text editing or a popup consumed the event.
+ */
 bool pui_view_event(PUIView *view, PUIContext *pui, SDL_Window *window, const SDL_Event *event);
 /** @brief Draw a frame; callbacks may change app state but must not free the active view/layout. */
 void pui_view_draw(PUIView *view, PUIContext *pui, PUIRect area, PUIAction action, void *context);
@@ -824,6 +838,10 @@ bool pui_view_checked(const PUIView *view, const char *id);
  * Returns false for invalid IDs/types or a disallowed update.
  */
 bool pui_view_set_checked(PUIView *view, const char *id, bool checked);
+/** @brief Selected dropdown value, borrowed until layout/view disposal; NULL for invalid IDs. */
+const char *pui_view_value(const PUIView *view, const char *id);
+/** @brief Select an enabled option by value without firing an action; false for invalid values. */
+bool pui_view_set_value(PUIView *view, const char *id, const char *value);
 /** @brief Load a bounded PNG image as a renderer-owned texture; caller must destroy it. */
 SDL_Texture *pui_image_load(SDL_Renderer *renderer, const char *path);
 

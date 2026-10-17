@@ -37,6 +37,11 @@ SDL_HitTestResult pui_window_hit_test(const PUIWindow *chrome, int x, int y) {
         return SDL_HITTEST_NORMAL;
     }
     const PUIView *view = chrome->view;
+    for (int i = 0; i < view->popup_count; i++) {
+        if (pui_contains(view->popup_rects[i], (float)x, (float)y)) {
+            return SDL_HITTEST_NORMAL;
+        }
+    }
     bool draggable = false;
     for (int i = 0; i < view->layout->count; i++) {
         if (!view->visible[i] || !pui_contains(view->hit[i], (float)x, (float)y)) {
@@ -45,6 +50,7 @@ SDL_HitTestResult pui_window_hit_test(const PUIWindow *chrome, int x, int y) {
         const PUINode *node = &view->layout->nodes[i];
         if (node->type == PUI_NODE_BUTTON || node->type == PUI_NODE_TOGGLE ||
             node->type == PUI_NODE_CHECKBOX || node->type == PUI_NODE_BUTTON_GROUP ||
+            node->type == PUI_NODE_DROPDOWN || node->type == PUI_NODE_POPUP_BUTTON ||
             node->type == PUI_NODE_INPUT || node->type == PUI_NODE_TABS ||
             node->type == PUI_NODE_TREE) {
             return SDL_HITTEST_NORMAL;

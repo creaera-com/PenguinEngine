@@ -110,10 +110,10 @@ static bool boolean(Reader *r, yaml_node_t *n, const char *key, bool fallback) {
 }
 
 static int node(Reader *r, yaml_node_t *yaml, int depth) {
-    static const char *types[] = {"column", "row",       "panel",       "toolbar", "button",
-                                  "label",  "separator", "tabs",        "tab",     "section",
-                                  "input",  "tree",      "item",        "split",   "spacer",
-                                  "toggle", "checkbox",  "button_group"};
+    static const char *types[] = {
+        "column", "row",    "panel",    "toolbar",      "button",   "label",  "separator",
+        "tabs",   "tab",    "section",  "input",        "tree",     "item",   "split",
+        "spacer", "toggle", "checkbox", "button_group", "dropdown", "option", "popup_button"};
     if (depth >= PUI_LAYOUT_DEPTH || r->layout->count >= PUI_LAYOUT_NODES) {
         fail(r, yaml, "layout depth/node limit exceeded");
         return -1;
@@ -121,7 +121,8 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     if (!keys(r, yaml,
               "|type|id|text|action|icon|image|width|height|gap|padding|initial|"
               "initial_second|initial_last|minimum_first|minimum_second|minimum_last|flex|image_"
-              "padding|enabled|open|checked|draggable|axis|children|")) {
+              "padding|enabled|open|checked|draggable|axis|children|value|popup_width|popup_height|"
+              "placement|")) {
         return -1;
     }
     int index = r->layout->count++;
@@ -151,6 +152,17 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     string(r, yaml, "action", out->action, sizeof out->action);
     string(r, yaml, "icon", out->icon, sizeof out->icon);
     string(r, yaml, "image", out->image, sizeof out->image);
+    string(r, yaml, "value", out->value, sizeof out->value);
+    out->popup_width = number(r, yaml, "popup_width", 0, 0, 10000);
+    out->popup_height = number(r, yaml, "popup_height", 200, 28, 10000);
+    yaml_node_t *placement = get(r, yaml, "placement");
+    if (placement) {
+        const char *value = scalar(r, placement);
+        if (strcmp(value, "below") && strcmp(value, "right")) {
+            fail(r, placement, "placement must be below or right");
+        }
+        out->placement = !strcmp(value, "right") ? PUI_POPUP_RIGHT : PUI_POPUP_BELOW;
+    }
     out->width = number(r, yaml, "width", 0, 0, 10000);
     out->height = number(r, yaml, "height", 0, 0, 10000);
     out->gap = number(r, yaml, "gap", 3, 0, 128);
@@ -196,7 +208,10 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
                 r->layout->nodes[previous].next = child;
             }
             PUINodeType child_type = r->layout->nodes[child].type;
-            if ((out->type == PUI_NODE_TABS && child_type != PUI_NODE_TAB) ||
+            if ((out->type == PUI_NODE_DROPDOWN && child_type != PUI_NODE_OPTION) ||
+                (child_type == PUI_NODE_OPTION && out->type != PUI_NODE_DROPDOWN) ||
+                (out->type == PUI_NODE_POPUP_BUTTON && child_type != PUI_NODE_PANEL) ||
+                (out->type == PUI_NODE_TABS && child_type != PUI_NODE_TAB) ||
                 (out->type == PUI_NODE_BUTTON_GROUP && child_type != PUI_NODE_BUTTON) ||
                 ((out->type == PUI_NODE_TREE || out->type == PUI_NODE_ITEM) &&
                  child_type != PUI_NODE_ITEM) ||
@@ -209,14 +224,34 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
             count++;
         }
     }
-    if ((out->type == PUI_NODE_SPLIT && (count < 2 || count > 3)) ||
+    if ((out->type == PUI_NODE_POPUP_BUTTON && count != 1) ||
+        (out->type == PUI_NODE_SPLIT && (count < 2 || count > 3)) ||
         (out->type == PUI_NODE_TABS && (count < 1 || count > PUI_MAX_TABS)) ||
         ((out->type == PUI_NODE_BUTTON || out->type == PUI_NODE_LABEL ||
           out->type == PUI_NODE_INPUT || out->type == PUI_NODE_TOGGLE ||
-          out->type == PUI_NODE_CHECKBOX || out->type == PUI_NODE_SPACER ||
-          out->type == PUI_NODE_SEPARATOR) &&
+          out->type == PUI_NODE_CHECKBOX || out->type == PUI_NODE_OPTION ||
+          out->type == PUI_NODE_SPACER || out->type == PUI_NODE_SEPARATOR) &&
          count)) {
         fail(r, yaml, "invalid child count");
+    }
+    if (out->type == PUI_NODE_OPTION && !*out->value) {
+        fail(r, yaml, "option requires a non-empty value");
+    }
+    if (out->type == PUI_NODE_DROPDOWN) {
+        bool enabled = false, found = !*out->value;
+        for (int k = out->child; k >= 0; k = r->layout->nodes[k].next) {
+            const PUINode *child = &r->layout->nodes[k];
+            enabled |= child->enabled;
+            found |= child->enabled && !strcmp(child->value, out->value);
+            for (int j = out->child; j != k; j = r->layout->nodes[j].next) {
+                if (!strcmp(r->layout->nodes[j].value, child->value)) {
+                    fail(r, yaml, "dropdown option values must be unique");
+                }
+            }
+        }
+        if (!enabled || !found) {
+            fail(r, yaml, "dropdown requires an enabled option and a valid initial value");
+        }
     }
     if (out->type == PUI_NODE_BUTTON_GROUP) {
         int checked = 0, enabled = 0;
@@ -330,8 +365,9 @@ PUILayout *pui_layout_parse(const char *text, size_t length, char *error, size_t
         if (!r.failed) {
             layout->root = node(&r, get(&r, root, "root"), 0);
             if (layout->root >= 0 && (layout->nodes[layout->root].type == PUI_NODE_TAB ||
-                                      layout->nodes[layout->root].type == PUI_NODE_ITEM)) {
-                fail(&r, root, "tab/item requires its container");
+                                      layout->nodes[layout->root].type == PUI_NODE_ITEM ||
+                                      layout->nodes[layout->root].type == PUI_NODE_OPTION)) {
+                fail(&r, root, "tab/item/option requires its container");
             }
         }
     }

@@ -7,6 +7,8 @@
 typedef struct {
     bool open;
     bool checked;
+    bool commit, keyboard_navigation, reveal;
+    int highlighted;
     int group;      ///< Parent button-group index plus one; zero for independent controls.
     PUIId selected; ///< Persistent selection for each tree, independent of keyboard focus.
     float preferred[3];
@@ -25,6 +27,8 @@ struct PUIView {
     PUIRect rect[PUI_LAYOUT_NODES], hit[PUI_LAYOUT_NODES];
     bool visible[PUI_LAYOUT_NODES], enabled[PUI_LAYOUT_NODES];
     int focused, submit;
+    int popups[PUI_LAYOUT_DEPTH], popup_count;
+    PUIRect popup_rects[PUI_LAYOUT_DEPTH], bounds;
     SDL_SystemCursor cursor;
     int cursor_priority;
     bool pointer_inside;
@@ -32,6 +36,20 @@ struct PUIView {
     bool cursor_attempted[SDL_SYSTEM_CURSOR_COUNT];
 };
 
+void pui_widget_dropdown_init(PUIView *view, int index);
+void pui_widget_dropdown_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
+                              void *context);
+void pui_widget_dropdown_list(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
+                              void *context);
+bool pui_widget_dropdown_key(PUIView *view, const SDL_KeyboardEvent *key);
+void pui_widget_popup_button_draw(PUIView *v, PUIContext *pui, int i, PUIRect area,
+                                  PUIAction action, void *context);
+void pui_view_popup_open(PUIView *view, PUIContext *pui, int index);
+void pui_view_popup_close(PUIView *view, PUIContext *pui);
+bool pui_view_popup_prepare(PUIView *view, PUIContext *pui);
+void pui_view_popup_draw(PUIView *view, PUIContext *pui, PUIAction action, void *context);
+bool pui_view_popup_event(PUIView *view, PUIContext *pui, const SDL_Event *event);
+PUIContext pui_view_inert_context(const PUIContext *pui);
 void pui_view_request_cursor(PUIView *view, SDL_SystemCursor cursor, int priority);
 void pui_view_apply_cursor(PUIView *view, const PUIContext *pui);
 void pui_view_free_cursors(PUIView *view);

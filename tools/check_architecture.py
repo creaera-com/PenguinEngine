@@ -21,7 +21,7 @@ def core(path):
     relative = path.relative_to(lib).as_posix()
     return (relative.startswith('src/core/') or
             relative.startswith('src/widgets/') and not path.name.endswith('_sdl.c') or
-            relative in ('src/layout/layout.c', 'src/layout/yaml.c', 'include/pengui/pengui.h'))
+            relative in ('src/layout/layout.c', 'src/layout/popup.c', 'src/layout/yaml.c', 'include/pengui/pengui.h'))
 
 
 files = [p for p in lib.rglob('*') if p.suffix in ('.c', '.h')]

@@ -19,7 +19,6 @@ typedef struct {
 /* App actions stay outside the UI library; YAML only carries their names. */
 static void action(void *context, const char *name, const char *widget) {
     Playground *app = context;
-    (void)widget;
     if (pui_window_action(app->window, name)) {
         return;
     }
@@ -29,7 +28,12 @@ static void action(void *context, const char *name, const char *widget) {
         app->reload = true;
     } else {
         char message[256];
-        snprintf(message, sizeof message, "Action: %s | Clicks: %d", name, ++app->clicks);
+        const char *value = pui_view_value(app->view, widget);
+        if (value) {
+            snprintf(message, sizeof message, "Action: %s | Value: %s", name, value);
+        } else {
+            snprintf(message, sizeof message, "Action: %s | Clicks: %d", name, ++app->clicks);
+        }
         pui_view_set_text(app->view, "status", message);
     }
 }

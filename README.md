@@ -67,7 +67,7 @@ root:
 
 `pui_layout_load()` liefert eine geprüfte, besitzende Beschreibung; `pui_view_new()` erzeugt daraus Widgetzustände. Die Anwendung hält Layout und Renderer am Leben, bis sie die View mit `pui_view_free()` freigibt. Aktionen werden über einen Callback mit Anwendungs-Kontext, Aktionsname und Widget-ID ausgelöst. `pui_view_text()` liest Eingaben, `pui_view_set_text()` ändert Eingabe- oder Labeltexte. Callbacks dürfen die aktive View nicht freigeben; die Beispiel-App verschiebt Reload deshalb ans Frame-Ende.
 
-Unterstützte Knoten: `row`, `column`, `panel`, `toolbar`, `button`, `toggle`, `checkbox`, `button_group`, `label`, `separator`, `spacer`, `tabs` mit `tab`, `section`, `input`, `tree` mit `item` und `split` mit zwei oder drei Kindern. Gemeinsame Eigenschaften sind unter anderem `id`, `text`, `enabled`, `width`, `height`, `padding`, `gap`; `open` steuert anfangs geöffnete Bereiche. Breite/Höhe 0 verteilt freien Platz unter flexiblen Kindern. Splitter verwenden `axis`, `initial` (Größe des ersten Bereichs), `minimum_first` und `minimum_second`. Tabs passen sich ihren Beschriftungen an, lassen sich verschieben und per Mausrad horizontal scrollen. Trees scrollen, klappen auf und haben abwechselnde Zeilenfarben sowie Verbindungslinien.
+Unterstützte Knoten: `row`, `column`, `panel`, `toolbar`, `button`, `toggle`, `checkbox`, `button_group`, `dropdown` mit `option`, `popup_button`, `label`, `separator`, `spacer`, `tabs` mit `tab`, `section`, `input`, `tree` mit `item` und `split` mit zwei oder drei Kindern. Gemeinsame Eigenschaften sind unter anderem `id`, `text`, `enabled`, `width`, `height`, `padding`, `gap`; `open` steuert anfangs geöffnete Bereiche. Breite/Höhe 0 verteilt freien Platz unter flexiblen Kindern. Splitter verwenden `axis`, `initial` (Größe des ersten Bereichs), `minimum_first` und `minimum_second`. Tabs passen sich ihren Beschriftungen an, lassen sich verschieben und per Mausrad horizontal scrollen. Trees scrollen, klappen auf und haben abwechselnde Zeilenfarben sowie Verbindungslinien.
 
 Buttons akzeptieren `icon`, `image` (PNG relativ zur YAML-Datei) und `image_padding` (Standard 4 px). Die View besitzt ihre Textur-Caches und gibt sie bei Reload/Freigabe frei. Fehlende Bilder zeigen ein Ersatzsymbol. PNGs sind auf 1024 × 1024 begrenzt. Verfügbare Icons stehen in `src/rendering/icons.c` unterhalb von `lib/pengui/`.
 
@@ -101,6 +101,7 @@ Die Playground-Toolbar enthält rechts `window.minimize`, `window.maximize` und 
 | --- | --- | --- |
 | Buttons | `widgets/button.c` | `widgets/button_sdl.c` einschließlich Bildbuttons und YAML-Aktionen |
 | Toggle / Checkbox / Auswahlgruppen | `widgets/toggle.c` für Zustandswechsel und exklusive Auswahl | `widgets/toggle_sdl.c`, `widgets/checkbox_sdl.c`, `widgets/button_group_sdl.c` |
+| Dropdown / Popup-Button | `layout/popup.c` für Positionierung | `widgets/dropdown_sdl.c`, `widgets/popup_button_sdl.c`; gemeinsame Überlagerungen in `view/popup.c` |
 | Textfelder | `widgets/text_input.c` für UTF-8, Cursor und Auswahl | `widgets/text_input_sdl.c` für Zeichnen, Fokus, Clipboard und Tastatur |
 | Tabs | `widgets/tabs.c` | `widgets/tabs_sdl.c` einschließlich YAML-Initialisierung und Scrollen |
 | Tree | `widgets/tree.c` | `widgets/tree_sdl.c` einschließlich Aufklappen, Zeilen und Scrollen |
@@ -238,3 +239,75 @@ Dabei ist `action` der Callback und `&app` dein Anwendungskontext. Der Callback 
 kein C-Funktionsname, den pengUI automatisch aufruft: Die Zuordnung übernimmt deine
 `action()`-Funktion. Auch Toggle- und Checkbox-Änderungen kommen dort an; deren aktuellen
 Wert kannst du mit `pui_view_checked(app->view, widget)` abfragen.
+
+## Dropdown mit Werten
+
+```yaml
+- type: dropdown
+  id: blend_mode
+  action: app.blend_changed
+  value: normal
+  children:
+    - {type: option, text: Normal, value: normal}
+    - {type: option, text: Multiplizieren, value: multiply}
+    - {type: option, text: Negativ multiplizieren, value: screen}
+```
+
+`text` ist die sichtbare Beschriftung, `value` der davon unabhängige String für deine App.
+Werte müssen innerhalb des Dropdowns eindeutig und nicht leer sein. Ohne Anfangswert wird
+die erste aktivierte Option gewählt. Deaktivierte Optionen (`enabled: false`) lassen sich
+nicht auswählen. Eine geänderte Auswahl ruft die Aktion des Dropdowns mit dessen Widget-ID
+auf. Die bisherige Callback-Signatur bleibt gleich; der neue Wert ist im Callback verfügbar:
+
+```c
+/* Im bestehenden action()-Callback in app/application.c: */
+} else if (!strcmp(name, "app.blend_changed")) {
+    const char *value = pui_view_value(app->view, widget);
+    printf("Gewählt: %s\n", value);
+}
+```
+
+`pui_view_set_value(view, "blend_mode", "multiply")` wählt programmatisch, ohne ein Event
+auszulösen. Ein ungültiger oder deaktivierter Wert wird abgelehnt. Eine erneute Wahl des
+bereits aktiven Werts erzeugt ebenfalls kein Event. Die Demo zeigt den gewählten Wert in
+ihrer Statusmeldung. Pfeiltasten, Home/End und Enter/Leertaste bedienen die geöffnete Liste;
+längere Listen unterstützen Mausrad und Scrollbar.
+
+## Button mit aufklappendem Panel
+
+```yaml
+- type: popup_button
+  id: brush_settings
+  text: Pinsel
+  icon: settings
+  placement: right
+  popup_width: 250
+  popup_height: 180
+  children:
+    - type: panel
+      padding: 12
+      gap: 8
+      children:
+        - {type: label, text: Pinselgröße}
+        - {type: input, id: brush_size, text: "16"}
+        - {type: checkbox, id: smoothing, text: Glätten, checked: true}
+        - {type: button, text: Anwenden, action: app.apply_brush}
+```
+
+Der Popup-Button enthält genau ein normales `panel`. Darin kannst du die bestehenden
+Layouts und Widgets verwenden, auch weitere Dropdowns oder Popup-Buttons. Die Aktionen
+der enthaltenen Buttons funktionieren wie gewohnt. Das Öffnen selbst löst keine Aktion aus.
+Der Inhalt liegt über dem übrigen Layout und verschiebt es nicht.
+
+`placement: below` (Standard) öffnet darunter, `right` daneben. Wenn die Fläche am
+Fensterrand nicht reicht, wechselt das Popup auf die andere Seite und wird bei Bedarf
+auf den verfügbaren Bereich begrenzt. Standardgrößen: Panel 260 × 200 Pixel, Dropdown
+so breit wie der Button und maximal 200 Pixel hoch. Beide unterstützen `popup_width` und
+`popup_height`. Große allgemeine Panels werden begrenzt, aber nicht automatisch scrollbar;
+verwende passende Abmessungen bzw. Widgets mit eigener Scrollfunktion.
+
+Escape, ein Klick außerhalb oder ein erneuter Klick auf den Auslöser schließen das Popup.
+Der schließende Klick wird verbraucht und aktiviert kein darunterliegendes Element. Bei
+verschachtelten Popups wird zuerst das oberste geschlossen. Texteingaben und Tab-Navigation
+bleiben auf die Textfelder im obersten Panel beschränkt. Fenster-Fokusverlust schließt alle
+Popups. Anfangszustände und ausgewählte Werte werden bei YAML-Neuladen zurückgesetzt.

@@ -43,6 +43,12 @@ void pui_view_draw_node(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAct
     case PUI_NODE_BUTTON_GROUP:
         pui_widget_button_group_draw(v, pui, i, area, action, context);
         break;
+    case PUI_NODE_DROPDOWN:
+        pui_widget_dropdown_draw(v, pui, i, area, action, context);
+        break;
+    case PUI_NODE_POPUP_BUTTON:
+        pui_widget_popup_button_draw(v, pui, i, area, action, context);
+        break;
     case PUI_NODE_BUTTON:
         pui_widget_button_draw(v, pui, i, area, action, context);
         break;
@@ -65,7 +71,11 @@ void pui_view_draw(PUIView *view, PUIContext *pui, PUIRect area, PUIAction actio
     view->cursor = SDL_SYSTEM_CURSOR_DEFAULT;
     view->cursor_priority = 0;
     memset(view->visible, 0, sizeof view->visible);
-    pui_view_draw_node(view, pui, view->layout->root, area, action, context);
+    view->bounds = area;
+    bool modal = pui_view_popup_prepare(view, pui);
+    PUIContext inert = pui_view_inert_context(pui);
+    pui_view_draw_node(view, modal ? &inert : pui, view->layout->root, area, action, context);
+    pui_view_popup_draw(view, pui, action, context);
     if (view->focused >= 0 && (!view->visible[view->focused] || !view->enabled[view->focused])) {
         pui_view_blur(view, pui);
     }

@@ -143,8 +143,30 @@ static void test_checked_controls_and_group_validation(void) {
     }
 }
 
+static void test_dropdown_and_popup_structure_are_validated(void) {
+    char error[256];
+    const char *invalid[] = {
+        "{type: dropdown}",
+        "{type: dropdown, children: [{type: button}]}",
+        "{type: dropdown, children: [{type: option, value: a}, {type: option, value: a}]}",
+        "{type: dropdown, value: b, children: [{type: option, value: a}]}",
+        "{type: dropdown, children: [{type: option, value: a, enabled: false}]}",
+        "{type: dropdown, children: [{type: option}]}",
+        "{type: option, value: a}",
+        "{type: popup_button}",
+        "{type: popup_button, children: [{type: button}]}",
+        "{type: popup_button, children: [{type: panel}, {type: panel}]}",
+        "{type: popup_button, placement: nowhere, children: [{type: panel}]}"};
+    for (size_t i = 0; i < sizeof invalid / sizeof invalid[0]; i++) {
+        char yaml[512];
+        snprintf(yaml, sizeof yaml, "schema: pengui/v1\nroot: %s", invalid[i]);
+        TEST_ASSERT_NULL_MESSAGE(parse(yaml, error), invalid[i]);
+    }
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_dropdown_and_popup_structure_are_validated);
     RUN_TEST(test_checked_controls_and_group_validation);
     RUN_TEST(test_split_child_count_and_flexible_pane_are_validated);
     RUN_TEST(test_actual_playground_is_generic_and_bounded);

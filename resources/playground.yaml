@@ -167,6 +167,34 @@ root:
                 - {type: label, text: "Example app: app"}
                 - {type: label, text: "Layout: resources"}
             - type: section
+              text: Popups
+              children:
+                - type: dropdown
+                  id: blend_mode
+                  action: demo.blend
+                  value: normal
+                  children:
+                    - {type: option, text: Normal, value: normal}
+                    - {type: option, text: Multiply, value: multiply}
+                    - {type: option, text: Screen, value: screen}
+                - type: popup_button
+                  id: brush_settings
+                  text: Brush settings
+                  icon: settings
+                  placement: below
+                  popup_width: 250
+                  popup_height: 190
+                  children:
+                    - type: panel
+                      text: BRUSH SETTINGS
+                      padding: 12
+                      gap: 8
+                      children:
+                        - {type: label, text: Brush size}
+                        - {type: input, id: brush_size, text: "16"}
+                        - {type: checkbox, id: smooth_edges, text: Smooth edges, checked: true}
+                        - {type: button, text: Apply, action: demo.brush}
+            - type: section
               id: hints
               text: Keyboard
               children:
