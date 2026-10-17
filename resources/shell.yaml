@@ -23,14 +23,14 @@ root:
         - {type: separator}
         - type: button_group
           id: editor_switcher
-          width: 300
+          width: 100
           gap: 2
           children:
-            - {type: button, id: vector, text: Vector, action: editor.vector}
-            - {type: button, id: scripts, text: Scripts, action: editor.scripts}
-            - {type: button, id: game, text: Game, action: editor.game}
+            - {type: button, id: vector, icon: edit, action: editor.vector}
+            - {type: button, id: scripts, icon: file, action: editor.scripts}
+            - {type: button, id: game, icon: grid, action: editor.game}
         - {type: separator}
-        - {type: button, icon: refresh, text: Reload editor, action: shell.reload, width: 160}
+        - {type: button, icon: refresh, action: shell.reload, width: 32}
         - {type: spacer}
         - {type: button, icon: minimize, action: window.minimize, width: 32}
         - {type: button, icon: maximize, action: window.maximize, width: 32}

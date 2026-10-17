@@ -128,6 +128,9 @@ sequenceDiagram
     end
 ```
 
+Die drei Editor-Schalter verwenden die Icons Stift (Vector), Datei (Scripts) und Raster
+(Game). Der anschließende Aktualisieren-Button lädt den aktiven Editor neu.
+
 Die Toolbar trägt die Aktionsnamen `editor.vector`, `editor.scripts` und `editor.game`.
 Der Callback merkt damit nur einen Wechsel vor. Neue Instanzen werden nicht mitten im
 Zeichnen erzeugt oder freigegeben. Beim Commit nach `SDL_RenderPresent()` wird die neue

@@ -202,8 +202,8 @@ static void request_action(void *context, const char *name, const char *widget) 
 
 static void test_toolbar_action_queues_switch_until_commit(void) {
     activate("vector");
-    pui_pointer(&shell.input, 210, 20, true);
-    pui_pointer(&shell.input, 210, 20, false);
+    pui_pointer(&shell.input, 120, 20, true);
+    pui_pointer(&shell.input, 120, 20, false);
     pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 800, 600}, request_action, &host);
     TEST_ASSERT_EQUAL_STRING("vector", host.active->id);
     TEST_ASSERT_NOT_NULL(host.pending);
