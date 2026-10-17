@@ -61,6 +61,7 @@ void pui_view_free(PUIView *view) {
                 SDL_DestroyTexture(view->state[i].image);
             }
         }
+        pui_layout_free(view->owned_layout);
         free(view);
     }
 }

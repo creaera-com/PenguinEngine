@@ -21,6 +21,7 @@ typedef struct {
 
 struct PUIView {
     const PUILayout *layout;
+    PUILayout *owned_layout; ///< Composed copy after slot replacement.
     SDL_Renderer *renderer;
     SDL_Window *window;
     Widget state[PUI_LAYOUT_NODES];

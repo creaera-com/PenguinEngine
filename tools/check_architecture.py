@@ -21,7 +21,7 @@ def core(path):
     relative = path.relative_to(lib).as_posix()
     return (relative.startswith('src/core/') or
             relative.startswith('src/widgets/') and not path.name.endswith('_sdl.c') or
-            relative in ('src/layout/layout.c', 'src/layout/popup.c', 'src/layout/yaml.c', 'include/pengui/pengui.h'))
+            relative in ('src/layout/layout.c', 'src/layout/popup.c', 'src/layout/compose.c', 'src/layout/yaml.c', 'include/pengui/pengui.h'))
 
 
 files = [p for p in lib.rglob('*') if p.suffix in ('.c', '.h')]
@@ -51,6 +51,22 @@ for path in (root / 'app').rglob('*'):
     for name in includes.findall(path.read_text()):
         if 'lib/pengui/src' in name or name.startswith(('core/', 'widgets/', 'view/', 'rendering/', 'layout/')):
             errors.append(f'{path.relative_to(root)}: app must use public headers')
+# Concrete editors meet only in the registry. Editor internals remain module-local.
+for path in (root / 'editors').rglob('*'):
+    if path.suffix not in ('.c', '.h'):
+        continue
+    domain = path.relative_to(root / 'editors').parts[0]
+    for name in includes.findall(path.read_text()):
+        if (name.startswith('editors/') and not name.startswith(f'editors/{domain}/') or
+                name.startswith(('shell/', 'editor/', 'app/')) or
+                name.startswith('editor_host/') and name != 'editor_host/editor.h'):
+            errors.append(f'{path.relative_to(root)}: editor must depend only on its own module and common contract')
+for path in (root / 'app').rglob('*.c'):
+    if path == root / 'app/editor_host/registry.c':
+        continue
+    for name in includes.findall(path.read_text()):
+        if name.startswith('editors/'):
+            errors.append(f'{path.relative_to(root)}: concrete editor includes belong in the registry')
 for error in errors:
     print(error, file=sys.stderr)
 if errors:

@@ -1,0 +1,49 @@
+schema: pengui/v1
+root:
+  type: split
+  id: game_columns
+  axis: horizontal
+  flex: middle
+  initial: 220
+  initial_last: 280
+  minimum_first: 150
+  minimum_second: 250
+  minimum_last: 200
+  gap: 9
+  children:
+    - type: tabs
+      children:
+        - type: tab
+          id: game_explorer_tab
+          text: Explorer
+          icon: folder
+          padding: 0
+          children:
+            - type: panel
+              padding: 12
+              children:
+                - {type: label, text: "Game workspace"}
+                - {type: label, text: "No document opened."}
+                - {type: spacer}
+    - type: tabs
+      children:
+        - type: tab
+          id: game_workspace_tab
+          text: Game
+          padding: 0
+          children:
+            - type: panel
+              padding: 16
+              gap: 8
+              children:
+                - {type: label, text: "Game Editor", height: 30}
+                - {type: label, text: "No document opened."}
+                - {type: spacer}
+    - type: tabs
+      children:
+        - type: tab
+          id: game_inspector_tab
+          text: Inspector
+          padding: 0
+          children:
+            - {type: slot, id: inspector_content}

@@ -1,0 +1,43 @@
+schema: pengui/v1
+window: {title: "pengUI - Editor Shell", width: 1280, height: 800}
+theme:
+  background: "#101010"
+  panel: "#202020"
+  surface: "#292929"
+  hover: "#393939"
+  accent: "#C28E5C"
+  text: "#E9E9E9"
+  muted: "#A2A2A2"
+root:
+  type: column
+  padding: 0
+  gap: 3
+  children:
+    - type: toolbar
+      height: 44
+      draggable: true
+      padding: 8
+      gap: 6
+      children:
+        - {type: button, icon: menu, action: shell.menu, width: 32}
+        - {type: separator}
+        - type: button_group
+          id: editor_switcher
+          width: 300
+          gap: 2
+          children:
+            - {type: button, id: vector, text: Vector, action: editor.vector}
+            - {type: button, id: scripts, text: Scripts, action: editor.scripts}
+            - {type: button, id: game, text: Game, action: editor.game}
+        - {type: separator}
+        - {type: button, icon: refresh, text: Reload editor, action: shell.reload, width: 160}
+        - {type: spacer}
+        - {type: button, icon: minimize, action: window.minimize, width: 32}
+        - {type: button, icon: maximize, action: window.maximize, width: 32}
+        - {type: button, icon: close, action: window.close, width: 32}
+    - {type: slot, id: editor_area}
+    - type: panel
+      height: 24
+      padding: 0
+      children:
+        - {type: label, id: status, text: "Ready", height: 24}

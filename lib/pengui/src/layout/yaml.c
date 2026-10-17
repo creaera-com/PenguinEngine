@@ -111,9 +111,10 @@ static bool boolean(Reader *r, yaml_node_t *n, const char *key, bool fallback) {
 
 static int node(Reader *r, yaml_node_t *yaml, int depth) {
     static const char *types[] = {
-        "column", "row",    "panel",    "toolbar",      "button",   "label",  "separator",
-        "tabs",   "tab",    "section",  "input",        "tree",     "item",   "split",
-        "spacer", "toggle", "checkbox", "button_group", "dropdown", "option", "popup_button"};
+        "column",    "row",    "panel",        "toolbar", "button",   "label",
+        "separator", "tabs",   "tab",          "section", "input",    "tree",
+        "item",      "split",  "spacer",       "toggle",  "checkbox", "button_group",
+        "dropdown",  "option", "popup_button", "slot"};
     if (depth >= PUI_LAYOUT_DEPTH || r->layout->count >= PUI_LAYOUT_NODES) {
         fail(r, yaml, "layout depth/node limit exceeded");
         return -1;
@@ -142,6 +143,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     out->type = (PUINodeType)kind;
     snprintf(out->name, sizeof out->name, "_node_%d", index);
     string(r, yaml, "id", out->name, sizeof out->name);
+    out->generated_id = !get(r, yaml, "id");
     out->id = pui_id(out->name);
     for (int i = 0; i < index; i++) {
         if (out->id == r->layout->nodes[i].id) {
@@ -230,7 +232,8 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
         ((out->type == PUI_NODE_BUTTON || out->type == PUI_NODE_LABEL ||
           out->type == PUI_NODE_INPUT || out->type == PUI_NODE_TOGGLE ||
           out->type == PUI_NODE_CHECKBOX || out->type == PUI_NODE_OPTION ||
-          out->type == PUI_NODE_SPACER || out->type == PUI_NODE_SEPARATOR) &&
+          out->type == PUI_NODE_SLOT || out->type == PUI_NODE_SPACER ||
+          out->type == PUI_NODE_SEPARATOR) &&
          count)) {
         fail(r, yaml, "invalid child count");
     }

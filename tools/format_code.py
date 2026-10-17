@@ -11,7 +11,7 @@ def main():
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     files = sorted(
-        path for folder in ('lib', 'app', 'tests')
+        path for folder in ('lib', 'app', 'editors', 'tests')
         for path in (root / folder).rglob('*')
         if path.suffix in ('.c', '.h') and path.name != 'font_atlas.h'
     )

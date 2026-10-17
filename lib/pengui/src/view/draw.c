@@ -18,6 +18,11 @@ void pui_view_draw_node(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAct
     v->visible[i] = v->hit[i].w > 0 && v->hit[i].h > 0;
     v->enabled[i] = !pui->blocked;
     switch (n->type) {
+    case PUI_NODE_SLOT:
+        if (n->child >= 0) {
+            pui_view_draw_node(v, pui, n->child, area, action, context);
+        }
+        break;
     case PUI_NODE_COLUMN:
     case PUI_NODE_ROW:
     case PUI_NODE_PANEL:

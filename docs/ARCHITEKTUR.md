@@ -5,6 +5,9 @@ der Beispiel-App. Sie soll dir helfen, den Code zu lesen, eigene Oberflächen zu
 später weitere Widgets oder eine Engine darauf aufzusetzen.
 
 Die [README](../README.md) enthält Build-Anweisungen und weitere YAML-Beispiele.
+Die zusätzliche [Editor-Shell](EDITOREN.md) baut darauf mit generischen Slots und getrennten
+Modulen auf. Die folgende Startbeschreibung bezieht sich auf die Widget-Demo; der Einstieg
+der Editor-App steht in `app/editor/main.c`.
 Die gesamte öffentliche C-Schnittstelle steht in
 [pengui.h](../lib/pengui/include/pengui/pengui.h).
 
@@ -218,6 +221,16 @@ fest, welcher Bereich Fenstergrößenänderungen aufnimmt. Die anderen behalten 
 Wunschgrößen. Greifer ändern diese Wunschgrößen; Platzmangel begrenzt die tatsächlich
 angezeigten Größen, ohne die Wunschwerte zu vergessen. Die [README](../README.md#split-mit-zwei-oder-drei-bereichen)
 zeigt die vollständigen Eigenschaften.
+
+### Austauschbare Slots
+
+`slot` stellt die zugeteilte Fläche für einen separat geladenen UI-Baum bereit.
+`pui_layout_compose()` erzeugt eine neue zusammengesetzte Beschreibung;
+`pui_view_replace_slot()` ersetzt den Inhalt einer bestehenden View zwischen Frames.
+Die entstehende Oberfläche besitzt weiterhin einen gemeinsamen Fokus- und Eingabekontext.
+Explizite IDs sind im Gesamtbaum eindeutig; Bildpfade behalten ihr jeweiliges Quellverzeichnis.
+Die Details zum Erhalt von Zuständen und zum Zurücksetzen des Fokus stehen in der
+[Editor-Dokumentation](EDITOREN.md#einen-teilbereich-zur-laufzeit-austauschen).
 
 ### Clipping und Hit-Tests
 

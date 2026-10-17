@@ -1,7 +1,7 @@
 # pengUI
 
 Eigenständige UI-Bibliothek in C17 mit SDL3-Darstellung und einer kleinen Widget-Spielwiese.
-Dieser Entwicklungsbranch enthält bewusst keine Engine, kein ECS und keine Spiele- oder Grafikeditoren. Der bisherige Engine-Stand bleibt in den anderen Branches und der Git-Historie erhalten.
+Dieser Entwicklungsbranch enthält keine Engine und kein ECS. Die zusätzliche Editor-Shell bietet leere Gerüste für Vector, Scripts und Game. Der bisherige Engine-Stand bleibt in den anderen Branches und der Git-Historie erhalten.
 
 ## Dokumentation
 
@@ -9,6 +9,10 @@ Dieser Entwicklungsbranch enthält bewusst keine Engine, kein ECS und keine Spie
 Layout und Rendering, Widgetzustände, Mausinteraktion und Fokus, Tab-Navigation, Popups,
 C-Aktionen sowie Lebensdauer und Reload. Mit Codeverweisen und einer Anleitung zum
 Ergänzen eigener Widgets.
+
+[Editor-Shell und modulare Editoren](docs/EDITOREN.md) beschreibt die zusätzliche
+`pengui_editor`-App, den konfigurierbaren Starteditor, die Modulstruktur und austauschbare
+YAML-Bereiche.
 
 ## Starten
 
@@ -45,7 +49,8 @@ CMake-Targets:
 
 - `pengUI::core`: UI-Interaktion und YAML, ohne SDL.
 - `pengUI::sdl`: Darstellung und YAML-View; baut auf dem Core auf.
-- `pengui_playground`: eigenständige Demo, kein Teil der Bibliothek.
+- `pengui_playground`: eigenständige Widget-Demo, kein Teil der Bibliothek.
+- `pengui_editor`: Shell mit wechselbaren Editor-Gerüsten; Starteditor in `resources/application.yaml`.
 
 Nur den Core bauen:
 
@@ -74,7 +79,7 @@ root:
 
 `pui_layout_load()` liefert eine geprüfte, besitzende Beschreibung; `pui_view_new()` erzeugt daraus Widgetzustände. Die Anwendung hält Layout und Renderer am Leben, bis sie die View mit `pui_view_free()` freigibt. Aktionen werden über einen Callback mit Anwendungs-Kontext, Aktionsname und Widget-ID ausgelöst. `pui_view_text()` liest Eingaben, `pui_view_set_text()` ändert Eingabe- oder Labeltexte. Callbacks dürfen die aktive View nicht freigeben; die Beispiel-App verschiebt Reload deshalb ans Frame-Ende.
 
-Unterstützte Knoten: `row`, `column`, `panel`, `toolbar`, `button`, `toggle`, `checkbox`, `button_group`, `dropdown` mit `option`, `popup_button`, `label`, `separator`, `spacer`, `tabs` mit `tab`, `section`, `input`, `tree` mit `item` und `split` mit zwei oder drei Kindern. Gemeinsame Eigenschaften sind unter anderem `id`, `text`, `enabled`, `width`, `height`, `padding`, `gap`; `open` steuert anfangs geöffnete Bereiche. Breite/Höhe 0 verteilt freien Platz unter flexiblen Kindern. Splitter verwenden `axis`, `initial` (Größe des ersten Bereichs), `minimum_first` und `minimum_second`. Tabs passen sich ihren Beschriftungen an, lassen sich verschieben und per Mausrad horizontal scrollen. Trees scrollen, klappen auf und haben abwechselnde Zeilenfarben sowie Verbindungslinien.
+Unterstützte Knoten: `row`, `column`, `panel`, `toolbar`, `button`, `toggle`, `checkbox`, `button_group`, `dropdown` mit `option`, `popup_button`, `slot`, `label`, `separator`, `spacer`, `tabs` mit `tab`, `section`, `input`, `tree` mit `item` und `split` mit zwei oder drei Kindern. Gemeinsame Eigenschaften sind unter anderem `id`, `text`, `enabled`, `width`, `height`, `padding`, `gap`; `open` steuert anfangs geöffnete Bereiche. Breite/Höhe 0 verteilt freien Platz unter flexiblen Kindern. Splitter verwenden `axis`, `initial` (Größe des ersten Bereichs), `minimum_first` und `minimum_second`. Tabs passen sich ihren Beschriftungen an, lassen sich verschieben und per Mausrad horizontal scrollen. Trees scrollen, klappen auf und haben abwechselnde Zeilenfarben sowie Verbindungslinien.
 
 Buttons akzeptieren `icon`, `image` (PNG relativ zur YAML-Datei) und `image_padding` (Standard 4 px). Die View besitzt ihre Textur-Caches und gibt sie bei Reload/Freigabe frei. Fehlende Bilder zeigen ein Ersatzsymbol. PNGs sind auf 1024 × 1024 begrenzt. Verfügbare Icons stehen in `src/rendering/icons.c` unterhalb von `lib/pengui/`.
 
