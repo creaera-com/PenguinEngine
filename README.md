@@ -3,6 +3,13 @@
 Eigenständige UI-Bibliothek in C17 mit SDL3-Darstellung und einer kleinen Widget-Spielwiese.
 Dieser Entwicklungsbranch enthält bewusst keine Engine, kein ECS und keine Spiele- oder Grafikeditoren. Der bisherige Engine-Stand bleibt in den anderen Branches und der Git-Historie erhalten.
 
+## Dokumentation
+
+[Architektur und Funktionsweise der UI](docs/ARCHITEKTUR.md) erklärt den Programmstart,
+Layout und Rendering, Widgetzustände, Mausinteraktion und Fokus, Tab-Navigation, Popups,
+C-Aktionen sowie Lebensdauer und Reload. Mit Codeverweisen und einer Anleitung zum
+Ergänzen eigener Widgets.
+
 ## Starten
 
 ```sh
