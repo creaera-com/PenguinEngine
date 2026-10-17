@@ -336,8 +336,76 @@ static void test_vertical_group_default_and_keyboard_selection(void) {
     pui_layout_free(description);
 }
 
+static bool tab_key(PUIView *target, SDL_Keymod modifiers, bool repeat) {
+    SDL_Event event = {0};
+    event.type = SDL_EVENT_KEY_DOWN;
+    event.key.key = SDLK_TAB;
+    event.key.mod = modifiers;
+    event.key.repeat = repeat;
+    return pui_view_event(target, &pui, window, &event);
+}
+
+static void test_tab_focus_skips_hidden_disabled_and_wraps(void) {
+    char error[256];
+    const char *yaml =
+        "schema: pengui/v1\nroot: {type: column, padding: 0, gap: 0, children: ["
+        "{type: input, id: first, text: First}, {type: input, id: disabled, enabled: false}, "
+        "{type: section, open: false, children: [{type: input, id: collapsed}]}, "
+        "{type: panel, enabled: false, height: 30, padding: 0, children: [{type: input}]}, "
+        "{type: input, id: last, text: Last}, "
+        "{type: tabs, children: [{type: tab, text: Active}, "
+        "{type: tab, text: Hidden, children: [{type: input, id: hidden}]}]}]}";
+    PUILayout *description = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(description, error);
+    PUIView *controls = pui_view_new(description, renderer);
+    pui_init(&pui);
+    pui_view_draw(controls, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    TEST_ASSERT_TRUE(tab_key(controls, 0, false));
+    TEST_ASSERT_EQUAL_UINT(pui_id("first"), pui.focus);
+    TEST_ASSERT_TRUE(tab_key(controls, 0, true));
+    TEST_ASSERT_EQUAL_UINT(pui_id("first"), pui.focus);
+    TEST_ASSERT_FALSE(tab_key(controls, SDL_KMOD_CTRL, false));
+    TEST_ASSERT_TRUE(tab_key(controls, 0, false));
+    TEST_ASSERT_EQUAL_UINT(pui_id("last"), pui.focus);
+    SDL_Event text = {0};
+    text.type = SDL_EVENT_TEXT_INPUT;
+    text.text.text = "Changed";
+    TEST_ASSERT_TRUE(pui_view_event(controls, &pui, window, &text));
+    TEST_ASSERT_EQUAL_STRING("Changed", pui_view_text(controls, "last"));
+    TEST_ASSERT_EQUAL_STRING("First", pui_view_text(controls, "first"));
+    TEST_ASSERT_TRUE(tab_key(controls, 0, false));
+    TEST_ASSERT_EQUAL_UINT(pui_id("first"), pui.focus);
+    TEST_ASSERT_TRUE(tab_key(controls, SDL_KMOD_SHIFT, false));
+    TEST_ASSERT_EQUAL_UINT(pui_id("last"), pui.focus);
+    TEST_ASSERT_TRUE(tab_key(controls, SDL_KMOD_SHIFT, false));
+    TEST_ASSERT_EQUAL_UINT(pui_id("first"), pui.focus);
+    pui_view_free(controls);
+    pui_layout_free(description);
+}
+
+static void test_reverse_tab_entry_single_field_and_no_inputs(void) {
+    /* Without an input focus, Shift+Tab starts at the last eligible field. */
+    TEST_ASSERT_TRUE(tab_key(view, SDL_KMOD_SHIFT, false));
+    TEST_ASSERT_EQUAL_UINT(pui_id("name"), pui.focus);
+    TEST_ASSERT_TRUE(tab_key(view, 0, false));
+    TEST_ASSERT_EQUAL_UINT(pui_id("name"), pui.focus);
+    char error[256];
+    const char *yaml = "schema: pengui/v1\nroot: {type: input, enabled: false}";
+    PUILayout *description = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(description, error);
+    PUIView *empty = pui_view_new(description, renderer);
+    pui_init(&pui);
+    pui_view_draw(empty, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    TEST_ASSERT_FALSE(tab_key(empty, 0, false));
+    TEST_ASSERT_EQUAL_UINT(0, pui.focus);
+    pui_view_free(empty);
+    pui_layout_free(description);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_tab_focus_skips_hidden_disabled_and_wraps);
+    RUN_TEST(test_reverse_tab_entry_single_field_and_no_inputs);
     RUN_TEST(test_toggle_checkbox_and_groups_keep_independent_state);
     RUN_TEST(test_vertical_group_default_and_keyboard_selection);
     RUN_TEST(test_tabs_join_content_without_background_gap);

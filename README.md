@@ -194,4 +194,47 @@ nicht mit `false` leeren. Eine neu geladene YAML setzt die Zustände auf ihre An
 zurück; dauerhafte Anwendungszustände verwaltet die App. Ohne YAML stehen `pui_toggle()`
 und `pui_radio()` im SDL-freien Core bereit; `pui_draw_button()` und `pui_draw_checkbox()`
 übernehmen die Darstellung. Nach einem Mausklick kann das fokussierte Element mit Leertaste
-oder Enter aktiviert werden; eine allgemeine Tab-Fokusnavigation gibt es bisher nicht.
+oder Enter aktiviert werden. Tab und Umschalt+Tab wechseln zwischen sichtbaren, bedienbaren
+Textfeldern in YAML-Reihenfolge und springen am Ende wieder zum Anfang. Eingaben in inaktiven
+Tabs, eingeklappten oder deaktivierten Bereichen werden übersprungen. Das neu fokussierte
+Feld markiert seinen Text zum direkten Ersetzen. Buttons gehören bisher nicht zur Tab-Reihenfolge.
+
+## Eigene Button-Aktionen in C
+
+In `resources/playground.yaml` bekommt der Button einen frei gewählten Aktionsnamen:
+
+```yaml
+- {type: button, id: greet_button, text: Begrüßen, action: app.greet}
+```
+
+Deine Funktion gehört in die Anwendung, zum Beispiel in `app/application.c` vor die bestehende
+Funktion `action()`. Größere Funktionen können später in eigene C-Dateien der App wandern.
+
+```c
+static void greet(Playground *app) {
+    pui_view_set_text(app->view, "status", "Hallo aus meiner C-Funktion!");
+}
+```
+
+Ergänze in der vorhandenen `action()`-Funktion einen Zweig vor dem abschließenden `else`:
+
+```c
+} else if (!strcmp(name, "app.greet")) {
+    greet(app);
+} else {
+    /* bisherige Standardbehandlung */
+}
+```
+
+Eine einzelne Funktion muss nicht zusätzlich bei pengUI registriert werden. Die zentrale
+Weiterleitung erfolgt bereits in der Render-Schleife der App:
+
+```c
+pui_view_draw(app.view, &app.pui, area, action, &app);
+```
+
+Dabei ist `action` der Callback und `&app` dein Anwendungskontext. Der Callback erhält
+`name` aus YAML (`app.greet`) und `widget` aus der Widget-ID (`greet_button`). Der String ist
+kein C-Funktionsname, den pengUI automatisch aufruft: Die Zuordnung übernimmt deine
+`action()`-Funktion. Auch Toggle- und Checkbox-Änderungen kommen dort an; deren aktuellen
+Wert kannst du mit `pui_view_checked(app->view, widget)` abfragen.

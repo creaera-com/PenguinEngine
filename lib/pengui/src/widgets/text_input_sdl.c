@@ -165,7 +165,38 @@ void pui_widget_text_input_pointer(PUIView *view, PUIContext *pui, SDL_Window *w
     }
 }
 
+/* YAML order, restricted to fields visible and enabled in the last rendered frame. */
+static bool focus_next_input(PUIView *view, PUIContext *pui, bool backwards) {
+    int count = view->layout->count;
+    int start = view->focused >= 0 ? view->focused : backwards ? 0 : count - 1;
+    for (int step = 1; step <= count; step++) {
+        int i = (start + (backwards ? -step : step) + count) % count;
+        if (view->layout->nodes[i].type != PUI_NODE_INPUT || !view->visible[i] ||
+            !view->enabled[i]) {
+            continue;
+        }
+        if (i != view->focused) {
+            pui_view_blur(view, pui);
+            view->focused = i;
+            pui_text_edit_init(&view->state[i].edit, view->state[i].text, true);
+        }
+        pui_focus(pui, view->layout->nodes[i].id);
+        if (view->window) {
+            SDL_StartTextInput(view->window);
+        }
+        return true;
+    }
+    return false;
+}
+
 bool pui_widget_text_input_event(PUIView *view, PUIContext *pui, const SDL_Event *event) {
+    if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_TAB &&
+        !(event->key.mod & (SDL_KMOD_CTRL | SDL_KMOD_GUI | SDL_KMOD_ALT))) {
+        if (event->key.repeat) {
+            return true;
+        }
+        return focus_next_input(view, pui, (event->key.mod & SDL_KMOD_SHIFT) != 0);
+    }
     if (view->focused < 0) {
         return false;
     }
