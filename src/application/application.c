@@ -8,11 +8,10 @@ static bool start_vector, vector_preview;
 static bool start_scene_tree;
 static bool start_map_tools;
 
-int pe_application_run(int argc, char **argv) {
-    const char *root = NULL;
+static bool parse_arguments(int argc, char **argv, const char **root) {
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--project") && i + 1 < argc) {
-            root = argv[++i];
+            *root = argv[++i];
         } else if (!strcmp(argv[i], "--screenshot") && i + 1 < argc) {
             editor_screenshot_path = argv[++i];
         } else if (!strcmp(argv[i], "--ui") && i + 1 < argc) {
@@ -32,25 +31,31 @@ int pe_application_run(int argc, char **argv) {
             fprintf(stderr, "Usage: penguin_editor [--project path] [--smoke] [--scripts] "
                             "[--scene-tree] [--map-tools] [--vector | --vector-demo] [--ui "
                             "shell.yaml] [--screenshot file.bmp]\n");
-            return 1;
+            return false;
         }
     }
+    return true;
+}
 
+static bool load_project(const char *root) {
     char error[256];
     if (!pe_project_resolve(root, SDL_GetBasePath(), app.project.root, sizeof app.project.root,
                             error, sizeof error)) {
         fprintf(stderr, "%s\n", error);
-        return 1;
+        return false;
     }
-    root = app.project.root;
-    if (!pe_project_load(root, app.project.scene_path, sizeof app.project.scene_path, error,
-                         sizeof error)) {
+    if (!pe_project_load(app.project.root, app.project.scene_path, sizeof app.project.scene_path,
+                         error, sizeof error)) {
         fprintf(stderr, "%s\n", error);
-        return 1;
+        return false;
     }
+    return true;
+}
+
+static bool initialize_platform(void) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "%s\n", SDL_GetError());
-        return 1;
+        return false;
     }
     app.platform.window = SDL_CreateWindow("PenguinEngine - Editor", 1280, 800,
                                            SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN);
@@ -60,10 +65,15 @@ int pe_application_run(int argc, char **argv) {
         fprintf(stderr, "%s\n", SDL_GetError());
         SDL_DestroyWindow(app.platform.window);
         SDL_Quit();
-        return 1;
+        return false;
     }
     SDL_SetWindowMinimumSize(app.platform.window, 1100, 740);
     SDL_SetRenderVSync(app.platform.renderer, 1);
+    return true;
+}
+
+static bool initialize_shell(void) {
+    char error[256];
     ui_init(&app.shell.ui);
     if (!*app.shell.ui_path) {
         snprintf(app.shell.ui_path, sizeof app.shell.ui_path, "%sui-layouts/shell.yaml",
@@ -79,7 +89,7 @@ int pe_application_run(int argc, char **argv) {
     app.shell.shell_layout = pe_ui_layout_load(app.shell.ui_path, "shell", error, sizeof error);
     if (!app.shell.shell_layout) {
         fprintf(stderr, "%s\n", error);
-        return 1;
+        return false;
     }
     app.shell.gap = 3;
     app.shell.tab_gap = 2;
@@ -103,11 +113,15 @@ int pe_application_run(int argc, char **argv) {
     editor_window_init();
     app.shell.viewport =
         (SDL_FRect){LEFT, TOP + TABS, 1280 - LEFT - RIGHT, 800 - TOP - TABS - BOTTOM};
+    return true;
+}
+
+static bool initialize_sessions(void) {
     char *pref = app.runtime.smoke ? SDL_strdup(SDL_GetBasePath())
                                    : SDL_GetPrefPath("PenguinEngine", "editor-sessions");
     if (!pref) {
         fprintf(stderr, "Cannot create session directory: %s\n", SDL_GetError());
-        return 1;
+        return false;
     }
     for (int i = 0; i < editor_view_count; i++) {
         snprintf(app.workspace.session_paths[i], sizeof app.workspace.session_paths[i],
@@ -115,6 +129,11 @@ int pe_application_run(int argc, char **argv) {
                  (unsigned long long)SDL_GetPerformanceCounter(), i);
     }
     SDL_free(pref);
+    return true;
+}
+
+static bool start_editor(void) {
+    char error[256];
     app.runtime.running = true;
     app.runtime.last_time = SDL_GetTicksNS();
     strcpy(app.shell.expanded[0], "assets");
@@ -125,10 +144,14 @@ int pe_application_run(int argc, char **argv) {
     editor_message("Welcome! Select a tile, paint a map, and press F5 to play.");
     if (!editor_activate(app.shell.workspaces.selected, error, sizeof error)) {
         fprintf(stderr, "%s\n", error);
-        return 1;
+        return false;
     }
 
     SDL_ShowWindow(app.platform.window);
+    return true;
+}
+
+static int run_smoke_checks(void) {
     int exit_code = 0;
 #ifdef PE_EDITOR_SMOKE_TESTS
     if (app.runtime.smoke &&
@@ -146,6 +169,10 @@ int pe_application_run(int argc, char **argv) {
         editor_capture_component_dropdown();
     }
 #endif
+    return exit_code;
+}
+
+static void select_start_view(void) {
     if (start_vector) {
         editor_select_workspace(UI_VECTOR_VIEW);
         if (vector_preview && app.workspace.backend->startup) {
@@ -160,7 +187,9 @@ int pe_application_run(int argc, char **argv) {
             app.workspace.backend->startup("scene-tree");
         }
     }
+}
 
+static void run_main_loop(void) {
     int frames = 0;
     while (app.runtime.running) {
         SDL_Event e;
@@ -183,6 +212,9 @@ int pe_application_run(int argc, char **argv) {
         }
         SDL_Delay(1);
     }
+}
+
+static void shutdown_application(void) {
     editor_release_active();
     pe_ui_images_free(&app.shell.shell_images);
     pe_ui_layout_free(app.shell.shell_layout);
@@ -195,5 +227,18 @@ int pe_application_run(int argc, char **argv) {
     SDL_DestroyRenderer(app.platform.renderer);
     SDL_DestroyWindow(app.platform.window);
     SDL_Quit();
+}
+
+int pe_application_run(int argc, char **argv) {
+    const char *root = NULL;
+    if (!parse_arguments(argc, argv, &root) || !load_project(root) || !initialize_platform() ||
+        !initialize_shell() || !initialize_sessions() || !start_editor()) {
+        return 1;
+    }
+
+    int exit_code = run_smoke_checks();
+    select_start_view();
+    run_main_loop();
+    shutdown_application();
     return exit_code;
 }
