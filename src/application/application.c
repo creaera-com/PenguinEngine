@@ -8,6 +8,7 @@ static bool start_vector, vector_preview;
 static bool start_scene_tree;
 static bool start_map_tools;
 
+/* Liest Startoptionen; root verweist anschließend gegebenenfalls auf einen argv-Eintrag. */
 static bool parse_arguments(int argc, char **argv, const char **root) {
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--project") && i + 1 < argc) {
@@ -37,6 +38,8 @@ static bool parse_arguments(int argc, char **argv, const char **root) {
     return true;
 }
 
+/* Ermittelt die Projektwurzel und liest den Szenenpfad aus dem Projektmanifest.
+ * Die Szene selbst lädt später der zuständige Editor. */
 static bool load_project(const char *root) {
     char error[256];
     if (!pe_project_resolve(root, SDL_GetBasePath(), app.project.root, sizeof app.project.root,
@@ -52,6 +55,7 @@ static bool load_project(const char *root) {
     return true;
 }
 
+/* Erstellt Fenster und Renderer. Das Fenster bleibt bis zum erfolgreichen Editorstart verborgen. */
 static bool initialize_platform(void) {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "%s\n", SDL_GetError());
@@ -72,6 +76,7 @@ static bool initialize_platform(void) {
     return true;
 }
 
+/* Lädt die gemeinsame YAML-Oberfläche und bereitet Tabs, Panelgrößen und Fensterbedienung vor. */
 static bool initialize_shell(void) {
     char error[256];
     ui_init(&app.shell.ui);
@@ -116,6 +121,8 @@ static bool initialize_shell(void) {
     return true;
 }
 
+/* Reserviert temporäre Dateipfade für Editorwechsel innerhalb dieser Programmausführung.
+ * Hier werden noch keine Checkpoints geschrieben oder frühere Sitzungen wiederhergestellt. */
 static bool initialize_sessions(void) {
     char *pref = app.runtime.smoke ? SDL_strdup(SDL_GetBasePath())
                                    : SDL_GetPrefPath("PenguinEngine", "editor-sessions");
@@ -132,6 +139,7 @@ static bool initialize_sessions(void) {
     return true;
 }
 
+/* Bereitet den Explorer vor und aktiviert den in der Shell ausgewählten ersten Editor. */
 static bool start_editor(void) {
     char error[256];
     app.runtime.running = true;
@@ -151,6 +159,8 @@ static bool start_editor(void) {
     return true;
 }
 
+/* Führt integrierte Prüfungen nur im Testbuild und bei --smoke aus.
+ * Ohne einkompilierte Prüfungen liefert die Funktion unverändert Erfolg (Exitcode 0). */
 static int run_smoke_checks(void) {
     int exit_code = 0;
 #ifdef PE_EDITOR_SMOKE_TESTS
@@ -163,8 +173,8 @@ static int run_smoke_checks(void) {
         app.runtime.running = false;
         exit_code = 1;
     }
-#endif
-#ifdef PE_EDITOR_SMOKE_TESTS
+
+    /* Die zusätzliche Aufnahme setzt erfolgreiche Prüfungen und einen Ausgabepfad voraus. */
     if (app.runtime.smoke && exit_code == 0 && editor_screenshot_path) {
         editor_capture_component_dropdown();
     }
@@ -172,6 +182,7 @@ static int run_smoke_checks(void) {
     return exit_code;
 }
 
+/* Wendet optionale Startansichten erst nach Aktivierung und Smoke-Prüfungen an. */
 static void select_start_view(void) {
     if (start_vector) {
         editor_select_workspace(UI_VECTOR_VIEW);
@@ -189,6 +200,7 @@ static void select_start_view(void) {
     }
 }
 
+/* Verarbeitet Eingaben, aktualisiert Konsole und aktiven Editor und zeichnet jeden Frame. */
 static void run_main_loop(void) {
     int frames = 0;
     while (app.runtime.running) {
@@ -199,6 +211,7 @@ static void run_main_loop(void) {
         Uint64 now = SDL_GetTicksNS();
         double elapsed = (now - app.runtime.last_time) / 1e9;
         app.runtime.last_time = now;
+        /* Begrenzt den Simulationsschritt nach Pausen oder langsamen Frames auf 100 ms. */
         if (elapsed > .1) {
             elapsed = .1;
         }
@@ -207,6 +220,7 @@ static void run_main_loop(void) {
             app.workspace.backend->update(elapsed);
         }
         editor_draw();
+        /* --smoke beendet auch Produktionsbuilds nach wenigen Frames automatisch. */
         if (app.runtime.smoke && ++frames >= 3) {
             app.runtime.running = false;
         }
@@ -214,6 +228,7 @@ static void run_main_loop(void) {
     }
 }
 
+/* Gibt zuerst Editor und Shell frei, danach die von ihnen verwendeten SDL-Ressourcen. */
 static void shutdown_application(void) {
     editor_release_active();
     pe_ui_images_free(&app.shell.shell_images);
@@ -229,6 +244,8 @@ static void shutdown_application(void) {
     SDL_Quit();
 }
 
+/* Koordiniert die Startschritte in Abhängigkeitsreihenfolge.
+ * Durch || wird nach dem ersten fehlgeschlagenen Schritt nicht weiter initialisiert. */
 int pe_application_run(int argc, char **argv) {
     const char *root = NULL;
     if (!parse_arguments(argc, argv, &root) || !load_project(root) || !initialize_platform() ||
