@@ -118,7 +118,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     }
     if (!keys(r, yaml,
               "|type|id|text|action|icon|image|width|height|gap|padding|initial|"
-              "minimum_first|minimum_second|image_padding|enabled|open|axis|children|")) {
+              "minimum_first|minimum_second|image_padding|enabled|open|draggable|axis|children|")) {
         return -1;
     }
     int index = r->layout->count++;
@@ -158,6 +158,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     out->image_padding = number(r, yaml, "image_padding", 4, 2, 32);
     out->enabled = boolean(r, yaml, "enabled", true);
     out->open = boolean(r, yaml, "open", true);
+    out->draggable = boolean(r, yaml, "draggable", false);
     yaml_node_t *axis = get(r, yaml, "axis");
     if (axis) {
         const char *value = scalar(r, axis);

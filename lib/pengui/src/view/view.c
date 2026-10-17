@@ -26,6 +26,7 @@ UiView *ui_view_new(const UiLayout *layout, SDL_Renderer *renderer) {
     }
     view->layout = layout;
     view->renderer = renderer;
+    view->window = SDL_GetRenderWindow(renderer);
     view->focused = view->submit = -1;
     for (int i = 0; i < layout->count; i++) {
         const UiNode *n = &layout->nodes[i];

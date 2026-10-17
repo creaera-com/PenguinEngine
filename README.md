@@ -23,6 +23,7 @@ lib/pengui/
     layout.h        Geprüfte YAML-Beschreibung ohne SDL
     ui_sdl.h        Zeichnen, Theme, Symbole und Schrift
     view.h          YAML-Darstellung und Widgetzustände
+    window.h        Optionale rahmenlose Fensterbedienung
   src/
     core.c          Buttons, Tabs, Splitter, Scrollen, Fokus, Clipping
     text_input.c    UTF-8-Textbearbeitung
@@ -83,3 +84,9 @@ Einzelne Widgets lassen sich auch direkt in C über `ui.h` und `ui_sdl.h` nutzen
 Unity prüft den übernommenen UI-Kern, YAML-Validierung und native SDL-Eingaben. Zusätzlich startet die App mit `--smoke` aus einem anderen Arbeitsverzeichnis. `--screenshot datei.bmp` nimmt die Oberfläche auf. `PENGUI_SANITIZERS=ON` aktiviert ASan/UBSan. Die Architekturprüfung verhindert App-/Engine-Abhängigkeiten in der Bibliothek. Tests, Formatierung und Desktop-Builds für Linux, Windows und macOS sind in GitHub Actions eingerichtet.
 
 Enthaltene Fremdsoftware: libyaml (MIT), stb_image (MIT/Public Domain), Unity (MIT) und JetBrains Mono (SIL OFL). Die jeweiligen Lizenztexte bleiben bei den Quellen erhalten. SDL3 wird separat bezogen (zlib-Lizenz). Keine JavaScript-, Engine-, Terminal- oder SVG-Abhängigkeiten werden gebaut.
+
+## Eigene Fensterbuttons
+
+Die Playground-Toolbar enthält rechts `window.minimize`, `window.maximize` und `window.close`. Maximieren wechselt bei maximiertem Fenster zu Wiederherstellen, einschließlich Symbolwechsel. Die Anwendung reicht diese Aktionen an `ui_window_action()` weiter. Schließen erzeugt eine SDL-Schließanfrage; die Anwendung entscheidet, ob sie tatsächlich beendet wird.
+
+`draggable: true` markiert in YAML einen Bereich, dessen freie Fläche das Fenster verschieben darf. Buttons und Eingabefelder bleiben bedienbar; die Fensterränder erlauben Größenänderungen. `ui_window_attach()` installiert den Hit-Test und entfernt den nativen Rahmen. Falls das SDL-Backend Hit-Tests nicht unterstützt, bleibt der native Rahmen als bedienbare Rückfalllösung erhalten. Der `UiWindow`-Kontext muss stabil bleiben; nach YAML-Reload wird sein View-Zeiger aktualisiert, vor Freigabe wird `ui_window_detach()` aufgerufen.

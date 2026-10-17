@@ -1,5 +1,6 @@
 #include "application.h"
 #include "pengui/view.h"
+#include "pengui/window.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -9,6 +10,7 @@ typedef struct {
     UiLayout *layout;
     UiView *view;
     UiContext ui;
+    UiWindow chrome;
     bool running, smoke, reload;
     int clicks;
     const char *screenshot;
@@ -19,6 +21,9 @@ typedef struct {
 static void action(void *context, const char *name, const char *widget) {
     Playground *app = context;
     (void)widget;
+    if (ui_window_action(app->window, name)) {
+        return;
+    }
     if (!strcmp(name, "app.quit")) {
         app->running = false;
     } else if (!strcmp(name, "app.reload")) {
@@ -43,6 +48,7 @@ static bool load_layout(Playground *app) {
         ui_layout_free(layout);
         return false;
     }
+    app->chrome.view = view;
     ui_view_free(app->view);
     ui_layout_free(app->layout);
     app->view = view;
@@ -115,6 +121,7 @@ int playground_run(int argc, char **argv) {
     SDL_SetWindowMinimumSize(app.window, 800, 600);
     SDL_SetWindowSize(app.window, app.layout->width, app.layout->height);
     SDL_SetRenderVSync(app.renderer, 1);
+    ui_window_attach(&app.chrome, app.window, app.view, &app.ui);
     SDL_ShowWindow(app.window);
     app.running = true;
     result = 0;
@@ -141,6 +148,7 @@ int playground_run(int argc, char **argv) {
         SDL_Delay(1);
     }
 cleanup:
+    ui_window_detach(&app.chrome);
     ui_view_free(app.view);
     ui_layout_free(app.layout);
     SDL_DestroyRenderer(app.renderer);

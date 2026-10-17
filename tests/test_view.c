@@ -1,4 +1,5 @@
 #include "pengui/view.h"
+#include "pengui/window.h"
 #include "unity.h"
 #include <string.h>
 
@@ -104,6 +105,47 @@ static void test_panel_paints_and_restores_renderer_clipping(void) {
     ui_layout_free(panel);
 }
 
+static void test_window_drag_excludes_buttons_and_preserves_resize_edges(void) {
+    const char *yaml =
+        "schema: pengui/v1\nroot:\n  type: column\n  padding: 0\n  children:\n"
+        "    - type: toolbar\n      draggable: true\n      height: 44\n      children:\n"
+        "        - {type: button, width: 32, icon: minimize, action: window.minimize}\n"
+        "        - {type: spacer}\n"
+        "    - {type: spacer}\n";
+    char error[256];
+    UiLayout *description = ui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(description, error);
+    UiView *window_view = ui_view_new(description, renderer);
+    ui_view_draw(window_view, &ui, (UiRect){0, 0, 400, 300}, NULL, NULL);
+    UiWindow chrome = {window, window_view, &ui};
+    TEST_ASSERT_EQUAL_INT(SDL_HITTEST_DRAGGABLE, ui_window_hit_test(&chrome, 200, 20));
+    TEST_ASSERT_EQUAL_INT(SDL_HITTEST_NORMAL, ui_window_hit_test(&chrome, 20, 20));
+    TEST_ASSERT_EQUAL_INT(SDL_HITTEST_NORMAL, ui_window_hit_test(&chrome, 200, 100));
+    TEST_ASSERT_EQUAL_INT(SDL_HITTEST_RESIZE_TOPLEFT, ui_window_hit_test(&chrome, 1, 1));
+    TEST_ASSERT_EQUAL_INT(SDL_HITTEST_RESIZE_RIGHT, ui_window_hit_test(&chrome, 399, 150));
+    ui.down = true;
+    TEST_ASSERT_EQUAL_INT(SDL_HITTEST_NORMAL, ui_window_hit_test(&chrome, 200, 20));
+    ui.down = false;
+    ui_view_free(window_view);
+    ui_layout_free(description);
+}
+
+static void test_close_is_a_request_for_this_window(void) {
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+    }
+    TEST_ASSERT_FALSE(ui_window_action(window, "demo.unrelated"));
+    TEST_ASSERT_TRUE(ui_window_action(window, "window.close"));
+    bool found = false;
+    while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
+            TEST_ASSERT_EQUAL_UINT32(SDL_GetWindowID(window), event.window.windowID);
+            found = true;
+        }
+    }
+    TEST_ASSERT_TRUE(found);
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_yaml_button_dispatches_only_application_action);
@@ -111,5 +153,7 @@ int main(void) {
     RUN_TEST(test_two_views_have_independent_input_state);
     RUN_TEST(test_invalid_input_update_is_atomic);
     RUN_TEST(test_panel_paints_and_restores_renderer_clipping);
+    RUN_TEST(test_window_drag_excludes_buttons_and_preserves_resize_edges);
+    RUN_TEST(test_close_is_a_request_for_this_window);
     return UNITY_END();
 }

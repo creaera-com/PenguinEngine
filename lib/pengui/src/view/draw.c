@@ -12,11 +12,13 @@ UiIcon ui_view_icon(const char *name) {
     static const struct {
         const char *name;
         UiIcon value;
-    } icons[] = {{"menu", ICON_MENU},       {"save", ICON_SAVE},     {"undo", ICON_UNDO},
-                 {"redo", ICON_REDO},       {"folder", ICON_FOLDER}, {"file", ICON_FILE},
-                 {"plus", ICON_PLUS},       {"delete", ICON_DELETE}, {"edit", ICON_EDIT},
-                 {"check", ICON_CHECK},     {"close", ICON_CLOSE},   {"grid", ICON_GRID},
-                 {"refresh", ICON_REFRESH}, {"image", ICON_IMAGE},   {"settings", ICON_LAYERS}};
+    } icons[] = {
+        {"minimize", ICON_MINIMIZE}, {"maximize", ICON_MAXIMIZE}, {"restore", ICON_RESTORE},
+        {"menu", ICON_MENU},         {"save", ICON_SAVE},         {"undo", ICON_UNDO},
+        {"redo", ICON_REDO},         {"folder", ICON_FOLDER},     {"file", ICON_FILE},
+        {"plus", ICON_PLUS},         {"delete", ICON_DELETE},     {"edit", ICON_EDIT},
+        {"check", ICON_CHECK},       {"close", ICON_CLOSE},       {"grid", ICON_GRID},
+        {"refresh", ICON_REFRESH},   {"image", ICON_IMAGE},       {"settings", ICON_LAYERS}};
 
     for (size_t i = 0; i < sizeof icons / sizeof icons[0]; i++) {
         if (!strcmp(name, icons[i].name)) {
@@ -235,13 +237,18 @@ static void draw(UiView *v, UiContext *ui, int i, UiRect area, UiAction action, 
         }
     } else if (n->type == UI_NODE_BUTTON) {
         bool hover = ui_hovered(ui, area);
+        UiIcon button_icon = *n->image ? ICON_IMAGE : ui_view_icon(n->icon);
+        if (v->window && !strcmp(n->action, "window.maximize") &&
+            (SDL_GetWindowFlags(v->window) & SDL_WINDOW_MAXIMIZED)) {
+            button_icon = ICON_RESTORE;
+        }
         if (s->image) {
             ui_draw_image_button(v->renderer, frect(area), s->image, n->text, n->image_padding,
                                  false, !ui->blocked, hover, ui->active == n->id && ui->down,
                                  ui->focus == n->id);
         } else {
-            ui_draw_button(v->renderer, frect(area), *n->image ? ICON_IMAGE : ui_view_icon(n->icon),
-                           n->text, false, !ui->blocked, hover);
+            ui_draw_button(v->renderer, frect(area), button_icon, n->text, false, !ui->blocked,
+                           hover);
         }
         if (ui_button(ui, n->id, area, !ui->blocked) && action && *n->action) {
             action(context, n->action, n->name);

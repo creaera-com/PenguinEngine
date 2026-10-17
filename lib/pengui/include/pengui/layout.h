@@ -31,6 +31,7 @@ typedef struct {
     char name[64], text[256], action[64], icon[32], image[512];
     float width, height, gap, padding, initial, minimum_first, minimum_second, image_padding;
     bool enabled, open;
+    bool draggable; ///< Empty space in this widget may move a borderless window.
     UiAxis axis;
     int child, next;
 } UiNode;

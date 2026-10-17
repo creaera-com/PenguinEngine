@@ -14,6 +14,7 @@ root:
   gap: 3
   children:
     - type: toolbar
+      draggable: true
       height: 44
       padding: 8
       gap: 6
@@ -25,6 +26,10 @@ root:
         - {type: button, id: disabled_save, icon: save, enabled: false, width: 32}
         - {type: spacer}
         - {type: label, text: "C17 / SDL3", width: 110}
+        - {type: separator}
+        - {type: button, id: window_minimize, icon: minimize, action: window.minimize, width: 32}
+        - {type: button, id: window_maximize, icon: maximize, action: window.maximize, width: 32}
+        - {type: button, id: window_close, icon: close, action: window.close, width: 32}
     - type: split
       id: main_split
       axis: horizontal
