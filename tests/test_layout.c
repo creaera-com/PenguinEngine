@@ -116,8 +116,36 @@ static void test_split_child_count_and_flexible_pane_are_validated(void) {
     pui_layout_free(layout);
 }
 
+static void test_checked_controls_and_group_validation(void) {
+    char error[256];
+    PUILayout *layout = parse("schema: pengui/v1\nroot: {type: column, children: ["
+                              "{type: toggle, checked: true}, {type: checkbox}, "
+                              "{type: button_group, axis: vertical, children: ["
+                              "{type: button}, {type: button, checked: true}]}]}",
+                              error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+    TEST_ASSERT_TRUE(layout->nodes[1].checked);
+    TEST_ASSERT_FALSE(layout->nodes[2].checked);
+    pui_layout_free(layout);
+    const char *invalid[] = {"{type: button_group}",
+                             "{type: button_group, children: [{type: toggle}]}",
+                             "{type: button_group, children: [{type: button, enabled: false}]}",
+                             "{type: button_group, children: [{type: button, checked: true}, "
+                             "{type: button, checked: true}]}",
+                             "{type: button_group, children: [{type: button}, {type: button, "
+                             "checked: true, enabled: false}]}",
+                             "{type: toggle, checked: maybe}",
+                             "{type: checkbox, children: [{type: label}]}"};
+    for (size_t i = 0; i < sizeof invalid / sizeof invalid[0]; i++) {
+        char yaml[512];
+        snprintf(yaml, sizeof yaml, "schema: pengui/v1\nroot: %s", invalid[i]);
+        TEST_ASSERT_NULL_MESSAGE(parse(yaml, error), invalid[i]);
+    }
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_checked_controls_and_group_validation);
     RUN_TEST(test_split_child_count_and_flexible_pane_are_validated);
     RUN_TEST(test_actual_playground_is_generic_and_bounded);
     RUN_TEST(test_duplicate_ids_and_properties_are_rejected);

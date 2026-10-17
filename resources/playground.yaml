@@ -139,7 +139,21 @@ root:
                     - type: panel
                       padding: 12
                       children:
-                        - {type: label, text: "Space for your own tools. No terminal is running."}
+                        - {type: label, text: "Toggle, checkbox and exclusive button groups"}
+                        - type: row
+                          height: 30
+                          padding: 0
+                          gap: 12
+                          children:
+                            - {type: toggle, id: grid_toggle, text: Grid, icon: grid, checked: true, action: demo.grid, width: 150}
+                            - {type: checkbox, id: snap_checkbox, text: Snap to grid, checked: true, action: demo.snap}
+                        - type: button_group
+                          id: tool_group
+                          gap: 2
+                          children:
+                            - {type: button, id: select_tool, text: Select, action: demo.select}
+                            - {type: button, id: draw_tool, text: Draw, checked: true, action: demo.draw}
+                            - {type: button, id: erase_tool, text: Erase, action: demo.erase}
         - type: panel
           text: PLAYGROUND
           padding: 12

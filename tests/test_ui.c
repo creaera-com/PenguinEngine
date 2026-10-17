@@ -470,8 +470,38 @@ static void test_image_fit_preserves_aspect_and_state_margin(void) {
     TEST_ASSERT_EQUAL_FLOAT(0, pui_image_fit((PUIRect){0, 0, 32, 24}, NAN, 1, 4).w);
 }
 
+static void test_toggle_and_radio_change_only_on_valid_activation(void) {
+    bool checked = false;
+    pui_pointer(&pui, 20, 20, true);
+    pui_pointer(&pui, 20, 20, false);
+    TEST_ASSERT_TRUE(pui_toggle(&pui, 1, button, &checked, true));
+    TEST_ASSERT_TRUE(checked);
+    TEST_ASSERT_FALSE(pui_toggle(&pui, 1, button, &checked, true));
+    pui_end_frame(&pui);
+    pui_focus(&pui, 1);
+    pui_activate(&pui);
+    TEST_ASSERT_TRUE(pui_toggle(&pui, 1, button, &checked, true));
+    TEST_ASSERT_FALSE(checked);
+    pui_end_frame(&pui);
+    pui_activate(&pui);
+    TEST_ASSERT_FALSE(pui_toggle(&pui, 1, button, &checked, false));
+    TEST_ASSERT_FALSE(checked);
+    pui_end_frame(&pui);
+    PUIId selected = 2;
+    pui_activate(&pui);
+    TEST_ASSERT_TRUE(pui_radio(&pui, 1, button, &selected, true));
+    TEST_ASSERT_EQUAL_UINT(1, selected);
+    pui_end_frame(&pui);
+    pui_activate(&pui);
+    TEST_ASSERT_FALSE(pui_radio(&pui, 1, button, &selected, true));
+    TEST_ASSERT_EQUAL_UINT(1, selected);
+    TEST_ASSERT_FALSE(pui_toggle(&pui, 1, button, NULL, true));
+    TEST_ASSERT_FALSE(pui_radio(&pui, 1, button, NULL, true));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_toggle_and_radio_change_only_on_valid_activation);
     RUN_TEST(test_image_fit_preserves_aspect_and_state_margin);
     RUN_TEST(test_tree_guides_follow_siblings_and_last_children);
     RUN_TEST(test_tree_guides_invalid_and_clipped_lists);

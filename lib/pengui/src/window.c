@@ -43,8 +43,10 @@ SDL_HitTestResult pui_window_hit_test(const PUIWindow *chrome, int x, int y) {
             continue;
         }
         const PUINode *node = &view->layout->nodes[i];
-        if (node->type == PUI_NODE_BUTTON || node->type == PUI_NODE_INPUT ||
-            node->type == PUI_NODE_TABS || node->type == PUI_NODE_TREE) {
+        if (node->type == PUI_NODE_BUTTON || node->type == PUI_NODE_TOGGLE ||
+            node->type == PUI_NODE_CHECKBOX || node->type == PUI_NODE_BUTTON_GROUP ||
+            node->type == PUI_NODE_INPUT || node->type == PUI_NODE_TABS ||
+            node->type == PUI_NODE_TREE) {
             return SDL_HITTEST_NORMAL;
         }
         draggable = draggable || node->draggable;

@@ -11,7 +11,15 @@ float pui_view_node_height(const PUIView *v, int i) {
     if (n->type == PUI_NODE_LABEL) {
         return 24;
     }
-    if (n->type == PUI_NODE_BUTTON || n->type == PUI_NODE_INPUT) {
+    if (n->type == PUI_NODE_BUTTON_GROUP) {
+        int count = 0;
+        for (int k = n->child; k >= 0; k = v->layout->nodes[k].next) {
+            count++;
+        }
+        return 2 * n->padding + (n->axis == PUI_AXIS_Y ? count * 30 + (count - 1) * n->gap : 30);
+    }
+    if (n->type == PUI_NODE_BUTTON || n->type == PUI_NODE_INPUT || n->type == PUI_NODE_TOGGLE ||
+        n->type == PUI_NODE_CHECKBOX) {
         return 30;
     }
     if (n->type == PUI_NODE_TOOLBAR) {

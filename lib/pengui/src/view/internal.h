@@ -6,6 +6,8 @@
 
 typedef struct {
     bool open;
+    bool checked;
+    int group;      ///< Parent button-group index plus one; zero for independent controls.
     PUIId selected; ///< Persistent selection for each tree, independent of keyboard focus.
     float preferred[3];
     char text[256];
@@ -32,6 +34,13 @@ void pui_view_draw_children(PUIView *v, PUIContext *pui, int i, PUIRect area, bo
                             PUIAction action, void *context);
 void pui_view_draw_container(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
                              void *context);
+void pui_widget_toggle_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
+                            void *context);
+void pui_widget_checkbox_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
+                              void *context);
+void pui_widget_button_group_init(PUIView *view, int index);
+void pui_widget_button_group_draw(PUIView *v, PUIContext *pui, int i, PUIRect area,
+                                  PUIAction action, void *context);
 void pui_widget_button_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
                             void *context);
 void pui_widget_splitter_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,

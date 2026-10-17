@@ -67,7 +67,7 @@ root:
 
 `pui_layout_load()` liefert eine geprüfte, besitzende Beschreibung; `pui_view_new()` erzeugt daraus Widgetzustände. Die Anwendung hält Layout und Renderer am Leben, bis sie die View mit `pui_view_free()` freigibt. Aktionen werden über einen Callback mit Anwendungs-Kontext, Aktionsname und Widget-ID ausgelöst. `pui_view_text()` liest Eingaben, `pui_view_set_text()` ändert Eingabe- oder Labeltexte. Callbacks dürfen die aktive View nicht freigeben; die Beispiel-App verschiebt Reload deshalb ans Frame-Ende.
 
-Unterstützte Knoten: `row`, `column`, `panel`, `toolbar`, `button`, `label`, `separator`, `spacer`, `tabs` mit `tab`, `section`, `input`, `tree` mit `item` und `split` mit zwei oder drei Kindern. Gemeinsame Eigenschaften sind unter anderem `id`, `text`, `enabled`, `width`, `height`, `padding`, `gap`; `open` steuert anfangs geöffnete Bereiche. Breite/Höhe 0 verteilt freien Platz unter flexiblen Kindern. Splitter verwenden `axis`, `initial` (Größe des ersten Bereichs), `minimum_first` und `minimum_second`. Tabs passen sich ihren Beschriftungen an, lassen sich verschieben und per Mausrad horizontal scrollen. Trees scrollen, klappen auf und haben abwechselnde Zeilenfarben sowie Verbindungslinien.
+Unterstützte Knoten: `row`, `column`, `panel`, `toolbar`, `button`, `toggle`, `checkbox`, `button_group`, `label`, `separator`, `spacer`, `tabs` mit `tab`, `section`, `input`, `tree` mit `item` und `split` mit zwei oder drei Kindern. Gemeinsame Eigenschaften sind unter anderem `id`, `text`, `enabled`, `width`, `height`, `padding`, `gap`; `open` steuert anfangs geöffnete Bereiche. Breite/Höhe 0 verteilt freien Platz unter flexiblen Kindern. Splitter verwenden `axis`, `initial` (Größe des ersten Bereichs), `minimum_first` und `minimum_second`. Tabs passen sich ihren Beschriftungen an, lassen sich verschieben und per Mausrad horizontal scrollen. Trees scrollen, klappen auf und haben abwechselnde Zeilenfarben sowie Verbindungslinien.
 
 Buttons akzeptieren `icon`, `image` (PNG relativ zur YAML-Datei) und `image_padding` (Standard 4 px). Die View besitzt ihre Textur-Caches und gibt sie bei Reload/Freigabe frei. Fehlende Bilder zeigen ein Ersatzsymbol. PNGs sind auf 1024 × 1024 begrenzt. Verfügbare Icons stehen in `src/rendering/icons.c` unterhalb von `lib/pengui/`.
 
@@ -100,6 +100,7 @@ Die Playground-Toolbar enthält rechts `window.minimize`, `window.maximize` und 
 | Bereich | Ohne SDL | Darstellung und native Eingaben |
 | --- | --- | --- |
 | Buttons | `widgets/button.c` | `widgets/button_sdl.c` einschließlich Bildbuttons und YAML-Aktionen |
+| Toggle / Checkbox / Auswahlgruppen | `widgets/toggle.c` für Zustandswechsel und exklusive Auswahl | `widgets/toggle_sdl.c`, `widgets/checkbox_sdl.c`, `widgets/button_group_sdl.c` |
 | Textfelder | `widgets/text_input.c` für UTF-8, Cursor und Auswahl | `widgets/text_input_sdl.c` für Zeichnen, Fokus, Clipboard und Tastatur |
 | Tabs | `widgets/tabs.c` | `widgets/tabs_sdl.c` einschließlich YAML-Initialisierung und Scrollen |
 | Tree | `widgets/tree.c` | `widgets/tree_sdl.c` einschließlich Aufklappen, Zeilen und Scrollen |
@@ -149,3 +150,48 @@ children:
 ```
 
 Bei drei Kindern gelten die Mindestgrößen `minimum_first`, `minimum_second` und `minimum_last`. Bei zwei Kindern beschreibt `minimum_second` weiterhin den unteren/rechten Bereich; ein explizites `minimum_last` kann ihn überschreiben.
+
+## Toggle, Checkbox und exklusive Button-Gruppen
+
+`toggle` ist ein Button, der zwischen an/aus wechselt. `checkbox` zeigt denselben booleschen
+Zustand als anklickbares Kästchen mit Beschriftung. `checked` setzt den Anfangszustand
+(Standard: `false`). Beide unterstützen `enabled` und `action`; Toggles auch `icon` und `image`.
+
+```yaml
+type: column
+padding: 0
+children:
+  - {type: toggle, id: grid, text: Raster, icon: grid, checked: true, action: app.grid}
+  - {type: checkbox, id: snap, text: Am Raster ausrichten, action: app.snap}
+  - type: button_group
+    id: tools
+    gap: 2
+    children:
+      - {type: button, id: select, text: Auswahl, checked: true, action: app.select}
+      - {type: button, id: draw, text: Zeichnen, action: app.draw}
+      - {type: button, id: erase, text: Radieren, action: app.erase}
+```
+
+Eine `button_group` enthält ausschließlich `button`-Kinder und hält genau eines davon aktiv.
+Ein erneuter Klick auf das aktive Element schaltet es nicht aus. Ohne `checked: true` wird
+der erste bedienbare Button ausgewählt. Mehrere anfängliche Auswahlen, eine deaktivierte
+Anfangsauswahl oder Gruppen ohne bedienbares Kind werden beim Laden abgelehnt. Jede Gruppe
+ist unabhängig. Die Buttons teilen den verfügbaren Platz gleichmäßig; einzelne
+Kind-Breiten/Höhen werden dabei nicht ausgewertet. `axis: vertical` ordnet sie untereinander
+an; standardmäßig stehen sie nebeneinander. `padding` ist bei Gruppen standardmäßig 0.
+
+Bei einer Zustandsänderung wird die `action` des Toggles, der Checkbox bzw. des neu gewählten
+Gruppenbuttons aufgerufen. Im Callback ist der neue Zustand bereits abfragbar:
+
+```c
+bool snap = pui_view_checked(view, "snap");
+pui_view_set_checked(view, "snap", true);
+pui_view_set_checked(view, "draw", true); /* deaktiviert die anderen Buttons dieser Gruppe */
+```
+
+Programmatische Änderungen lösen keine Aktion aus. Die aktive Gruppenauswahl lässt sich
+nicht mit `false` leeren. Eine neu geladene YAML setzt die Zustände auf ihre Anfangswerte
+zurück; dauerhafte Anwendungszustände verwaltet die App. Ohne YAML stehen `pui_toggle()`
+und `pui_radio()` im SDL-freien Core bereit; `pui_draw_button()` und `pui_draw_checkbox()`
+übernehmen die Darstellung. Nach einem Mausklick kann das fokussierte Element mit Leertaste
+oder Enter aktiviert werden; eine allgemeine Tab-Fokusnavigation gibt es bisher nicht.

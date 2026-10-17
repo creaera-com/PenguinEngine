@@ -110,9 +110,10 @@ static bool boolean(Reader *r, yaml_node_t *n, const char *key, bool fallback) {
 }
 
 static int node(Reader *r, yaml_node_t *yaml, int depth) {
-    static const char *types[] = {"column", "row",       "panel", "toolbar", "button",
-                                  "label",  "separator", "tabs",  "tab",     "section",
-                                  "input",  "tree",      "item",  "split",   "spacer"};
+    static const char *types[] = {"column", "row",       "panel",       "toolbar", "button",
+                                  "label",  "separator", "tabs",        "tab",     "section",
+                                  "input",  "tree",      "item",        "split",   "spacer",
+                                  "toggle", "checkbox",  "button_group"};
     if (depth >= PUI_LAYOUT_DEPTH || r->layout->count >= PUI_LAYOUT_NODES) {
         fail(r, yaml, "layout depth/node limit exceeded");
         return -1;
@@ -120,7 +121,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     if (!keys(r, yaml,
               "|type|id|text|action|icon|image|width|height|gap|padding|initial|"
               "initial_second|initial_last|minimum_first|minimum_second|minimum_last|flex|image_"
-              "padding|enabled|open|draggable|axis|children|")) {
+              "padding|enabled|open|checked|draggable|axis|children|")) {
         return -1;
     }
     int index = r->layout->count++;
@@ -163,6 +164,10 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     out->image_padding = number(r, yaml, "image_padding", 4, 2, 32);
     out->enabled = boolean(r, yaml, "enabled", true);
     out->open = boolean(r, yaml, "open", true);
+    out->checked = boolean(r, yaml, "checked", false);
+    if (out->type == PUI_NODE_BUTTON_GROUP && !get(r, yaml, "padding")) {
+        out->padding = 0;
+    }
     out->draggable = boolean(r, yaml, "draggable", false);
     yaml_node_t *axis = get(r, yaml, "axis");
     if (axis) {
@@ -192,6 +197,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
             }
             PUINodeType child_type = r->layout->nodes[child].type;
             if ((out->type == PUI_NODE_TABS && child_type != PUI_NODE_TAB) ||
+                (out->type == PUI_NODE_BUTTON_GROUP && child_type != PUI_NODE_BUTTON) ||
                 ((out->type == PUI_NODE_TREE || out->type == PUI_NODE_ITEM) &&
                  child_type != PUI_NODE_ITEM) ||
                 (child_type == PUI_NODE_TAB && out->type != PUI_NODE_TABS) ||
@@ -206,10 +212,25 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     if ((out->type == PUI_NODE_SPLIT && (count < 2 || count > 3)) ||
         (out->type == PUI_NODE_TABS && (count < 1 || count > PUI_MAX_TABS)) ||
         ((out->type == PUI_NODE_BUTTON || out->type == PUI_NODE_LABEL ||
-          out->type == PUI_NODE_INPUT || out->type == PUI_NODE_SPACER ||
+          out->type == PUI_NODE_INPUT || out->type == PUI_NODE_TOGGLE ||
+          out->type == PUI_NODE_CHECKBOX || out->type == PUI_NODE_SPACER ||
           out->type == PUI_NODE_SEPARATOR) &&
          count)) {
         fail(r, yaml, "invalid child count");
+    }
+    if (out->type == PUI_NODE_BUTTON_GROUP) {
+        int checked = 0, enabled = 0;
+        for (int k = out->child; k >= 0; k = r->layout->nodes[k].next) {
+            const PUINode *child = &r->layout->nodes[k];
+            enabled += child->enabled;
+            checked += child->checked;
+            if (child->checked && !child->enabled) {
+                fail(r, yaml, "selected group button must be enabled");
+            }
+        }
+        if (!enabled || checked > 1) {
+            fail(r, yaml, "button_group needs an enabled button and at most one checked button");
+        }
     }
     if (out->type == PUI_NODE_SPLIT) {
         out->flexible = 1;

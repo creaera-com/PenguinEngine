@@ -34,6 +34,15 @@ void pui_view_draw_node(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAct
     case PUI_NODE_TABS:
         pui_widget_tabs_draw(v, pui, i, area, action, context);
         break;
+    case PUI_NODE_TOGGLE:
+        pui_widget_toggle_draw(v, pui, i, area, action, context);
+        break;
+    case PUI_NODE_CHECKBOX:
+        pui_widget_checkbox_draw(v, pui, i, area, action, context);
+        break;
+    case PUI_NODE_BUTTON_GROUP:
+        pui_widget_button_group_draw(v, pui, i, area, action, context);
+        break;
     case PUI_NODE_BUTTON:
         pui_widget_button_draw(v, pui, i, area, action, context);
         break;

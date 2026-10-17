@@ -236,9 +236,11 @@ static void test_tree_selection_persists_and_moves_without_actions(void) {
     pui_pointer(&pui, 2, 14, false);
     pui_view_draw(tree, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
     assert_pixel(1, 14, PUI_ACCENT);
+    assert_pixel(200, 14, PUI_ACCENT);
     pui_pointer(&pui, 390, 250, false);
     pui_view_draw(tree, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
     assert_pixel(1, 14, PUI_ACCENT);
+    assert_pixel(200, 14, PUI_ACCENT);
     pui_pointer(&pui, 20, 42, true);
     pui_pointer(&pui, 20, 42, false);
     pui_view_draw(tree, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
@@ -253,8 +255,91 @@ static void test_tree_selection_persists_and_moves_without_actions(void) {
     pui_layout_free(description);
 }
 
+static void click_control(PUIView *controls, float x, float y, char *selected) {
+    pui_pointer(&pui, x, y, true);
+    pui_pointer(&pui, x, y, false);
+    pui_view_draw(controls, &pui, (PUIRect){0, 0, 400, 300}, record_pane, selected);
+}
+
+static void test_toggle_checkbox_and_groups_keep_independent_state(void) {
+    char error[256], selected[16] = {0};
+    const char *yaml = "schema: pengui/v1\nroot: {type: column, padding: 0, gap: 0, children: ["
+                       "{type: toggle, id: toggle, checked: true, action: changed}, "
+                       "{type: checkbox, id: checkbox, action: changed}, "
+                       "{type: button_group, gap: 0, children: ["
+                       "{type: button, id: a, checked: true, action: changed}, "
+                       "{type: button, id: b, action: changed}, "
+                       "{type: button, id: c, enabled: false, action: changed}]}, "
+                       "{type: button_group, children: [{type: button, id: other}]}]}";
+    PUILayout *description = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(description, error);
+    PUIView *controls = pui_view_new(description, renderer);
+    PUIView *independent = pui_view_new(description, renderer);
+    pui_init(&pui);
+    TEST_ASSERT_TRUE(pui_view_checked(controls, "toggle"));
+    TEST_ASSERT_FALSE(pui_view_checked(controls, "checkbox"));
+    TEST_ASSERT_TRUE(pui_view_checked(controls, "a"));
+    TEST_ASSERT_TRUE(pui_view_checked(controls, "other"));
+    click_control(controls, 20, 15, selected);
+    TEST_ASSERT_EQUAL_STRING("toggle", selected);
+    TEST_ASSERT_FALSE(pui_view_checked(controls, "toggle"));
+    click_control(controls, 200, 45, selected);
+    TEST_ASSERT_EQUAL_STRING("checkbox", selected);
+    TEST_ASSERT_TRUE(pui_view_checked(controls, "checkbox"));
+    click_control(controls, 200, 75, selected);
+    TEST_ASSERT_EQUAL_STRING("b", selected);
+    TEST_ASSERT_TRUE(pui_view_checked(controls, "b"));
+    TEST_ASSERT_FALSE(pui_view_checked(controls, "a"));
+    assert_pixel(100, 85, PUI_SURFACE);
+    assert_pixel(200, 85, PUI_ACCENT);
+    selected[0] = 0;
+    click_control(controls, 200, 75, selected);
+    TEST_ASSERT_EQUAL_STRING("", selected);
+    click_control(controls, 350, 75, selected);
+    TEST_ASSERT_EQUAL_STRING("", selected);
+    TEST_ASSERT_TRUE(pui_view_checked(controls, "b"));
+    TEST_ASSERT_FALSE(pui_view_checked(controls, "c"));
+    TEST_ASSERT_FALSE(pui_view_set_checked(controls, "b", false));
+    TEST_ASSERT_FALSE(pui_view_set_checked(controls, "c", true));
+    TEST_ASSERT_TRUE(pui_view_set_checked(controls, "a", true));
+    TEST_ASSERT_FALSE(pui_view_checked(controls, "b"));
+    TEST_ASSERT_TRUE(pui_view_checked(controls, "other"));
+    TEST_ASSERT_TRUE(pui_view_checked(independent, "toggle"));
+    TEST_ASSERT_FALSE(pui_view_checked(independent, "checkbox"));
+    TEST_ASSERT_TRUE(pui_view_set_checked(controls, "checkbox", false));
+    TEST_ASSERT_FALSE(pui_view_checked(controls, "checkbox"));
+    TEST_ASSERT_FALSE(pui_view_set_checked(controls, "missing", true));
+    TEST_ASSERT_FALSE(pui_view_checked(NULL, "a"));
+    pui_view_free(independent);
+    pui_view_free(controls);
+    pui_layout_free(description);
+}
+
+static void test_vertical_group_default_and_keyboard_selection(void) {
+    char error[256], selected[16] = {0};
+    const char *yaml = "schema: pengui/v1\nroot: {type: button_group, axis: vertical, "
+                       "padding: 0, gap: 0, children: [{type: button, id: off, enabled: false}, "
+                       "{type: button, id: first}, {type: button, id: last, action: changed}]}";
+    PUILayout *description = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(description, error);
+    PUIView *controls = pui_view_new(description, renderer);
+    pui_init(&pui);
+    TEST_ASSERT_TRUE(pui_view_checked(controls, "first"));
+    pui_focus(&pui, pui_id("last"));
+    pui_activate(&pui);
+    pui_view_draw(controls, &pui, (PUIRect){0, 0, 400, 300}, record_pane, selected);
+    TEST_ASSERT_EQUAL_STRING("last", selected);
+    TEST_ASSERT_FALSE(pui_view_checked(controls, "first"));
+    TEST_ASSERT_TRUE(pui_view_checked(controls, "last"));
+    assert_pixel(200, 290, PUI_ACCENT);
+    pui_view_free(controls);
+    pui_layout_free(description);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_toggle_checkbox_and_groups_keep_independent_state);
+    RUN_TEST(test_vertical_group_default_and_keyboard_selection);
     RUN_TEST(test_tabs_join_content_without_background_gap);
     RUN_TEST(test_tree_selection_persists_and_moves_without_actions);
     RUN_TEST(test_three_pane_grips_and_resize_keep_outer_preferences);

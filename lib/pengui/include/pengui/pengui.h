@@ -187,6 +187,16 @@ void pui_clip_pop(PUIContext *context);
  */
 bool pui_button(PUIContext *context, PUIId id, PUIRect rect, bool enabled);
 
+/** @brief Toggle a caller-owned value on activation. Returns true only when changed.
+ * A NULL value is ignored. Uses the same pointer, keyboard and disabled rules as buttons.
+ */
+bool pui_toggle(PUIContext *context, PUIId id, PUIRect rect, bool *checked, bool enabled);
+
+/** @brief Select one ID in a caller-owned group; clicking the active choice cannot clear it.
+ * Returns true only when selection changes. A NULL selection is ignored.
+ */
+bool pui_radio(PUIContext *context, PUIId id, PUIRect rect, PUIId *selected, bool enabled);
+
 /**
  * @brief Verarbeitet einen Button und schaltet den übergebenen Aufklappzustand um.
  *
@@ -444,7 +454,10 @@ typedef enum {
     PUI_NODE_TREE,
     PUI_NODE_ITEM,
     PUI_NODE_SPLIT,
-    PUI_NODE_SPACER
+    PUI_NODE_SPACER,
+    PUI_NODE_TOGGLE,
+    PUI_NODE_CHECKBOX,
+    PUI_NODE_BUTTON_GROUP
 } PUINodeType;
 
 /** @brief Geometry of a two/three-pane splitter; unused entries are zero. */
@@ -472,6 +485,7 @@ typedef struct {
     float minimum_last;   ///< Minimum final-pane size; defaults to minimum_second for two panes.
     int flexible;         ///< Zero-based pane that absorbs resizing; split nodes only.
     bool enabled, open;
+    bool checked;   ///< Initial toggle/checkbox state, or initially selected group button.
     bool draggable; ///< Empty space in this widget may move a borderless window.
     PUIAxis axis;
     int child, next;
@@ -701,6 +715,10 @@ void pui_panel(SDL_Renderer *renderer, SDL_FRect rect, Uint32 color);
  */
 void pui_icon(SDL_Renderer *renderer, PUIIcon icon, float x, float y, float size, Uint32 color);
 
+/** @brief Draw a checkbox and label. Interaction/state are supplied separately via pui_toggle. */
+void pui_draw_checkbox(SDL_Renderer *renderer, SDL_FRect rect, const char *label, bool checked,
+                       bool enabled, bool hover, bool focused);
+
 /**
  * @brief Zeichnet einen flachen Icon-/Textbutton mit der aktuellen Palette.
  *
@@ -794,6 +812,13 @@ void pui_view_draw(PUIView *view, PUIContext *pui, PUIRect area, PUIAction actio
 const char *pui_view_text(const PUIView *view, const char *id);
 /** @brief Set input/label text without modifying YAML; false for wrong kinds or excessive text. */
 bool pui_view_set_text(PUIView *view, const char *id, const char *text);
+/** @brief Read a toggle, checkbox or grouped button. False for unchecked/invalid IDs. */
+bool pui_view_checked(const PUIView *view, const char *id);
+/** @brief Set checked state without dispatching an action. Selecting a group member clears
+ * its siblings. Cannot clear the active group member or select a disabled member.
+ * Returns false for invalid IDs/types or a disallowed update.
+ */
+bool pui_view_set_checked(PUIView *view, const char *id, bool checked);
 /** @brief Load a bounded PNG image as a renderer-owned texture; caller must destroy it. */
 SDL_Texture *pui_image_load(SDL_Renderer *renderer, const char *path);
 

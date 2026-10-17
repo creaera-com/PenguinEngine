@@ -68,6 +68,7 @@ void pui_widget_button_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PU
     const PUINode *n = &v->layout->nodes[i];
     Widget *s = &v->state[i];
     bool hover = pui_hovered(pui, area);
+    bool activated = !s->group && pui_button(pui, n->id, area, !pui->blocked);
     PUIIcon button_icon = *n->image ? ICON_IMAGE : pui_icon_from_name(n->icon);
     if (v->window && !strcmp(n->action, "window.maximize") &&
         (SDL_GetWindowFlags(v->window) & SDL_WINDOW_MAXIMIZED)) {
@@ -75,13 +76,13 @@ void pui_widget_button_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PU
     }
     if (s->image) {
         pui_draw_image_button(v->renderer, pui_frect(area), s->image, n->text, n->image_padding,
-                              false, !pui->blocked, hover, pui->active == n->id && pui->down,
+                              s->checked, !pui->blocked, hover, pui->active == n->id && pui->down,
                               pui->focus == n->id);
     } else {
-        pui_draw_button(v->renderer, pui_frect(area), button_icon, n->text, false, !pui->blocked,
-                        hover);
+        pui_draw_button(v->renderer, pui_frect(area), button_icon, n->text, s->checked,
+                        !pui->blocked, hover);
     }
-    if (pui_button(pui, n->id, area, !pui->blocked) && action && *n->action) {
+    if (activated && action && *n->action) {
         action(context, n->action, n->name);
     }
 }
