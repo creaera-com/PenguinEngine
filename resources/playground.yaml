@@ -33,9 +33,12 @@ root:
     - type: split
       id: main_split
       axis: horizontal
+      flex: middle
       initial: 245
+      initial_last: 280
       minimum_first: 190
-      minimum_second: 550
+      minimum_second: 360
+      minimum_last: 260
       gap: 9
       children:
         - type: tabs
@@ -76,73 +79,65 @@ root:
               children:
                 - {type: label, text: "Drag these tabs."}
                 - {type: label, text: "Scroll when space is tight."}
-        - type: split
-          id: details_split
-          axis: horizontal
-          initial: 635
-          minimum_first: 360
-          minimum_second: 260
-          gap: 9
+        - type: tabs
           children:
-            - type: tabs
+            - type: tab
+              id: controls_tab
+              text: Controls
+              icon: grid
+              padding: 0
               children:
-                - type: tab
-                  id: controls_tab
-                  text: Controls
-                  icon: grid
-                  padding: 0
+                - type: panel
+                  text: YOUR UI FRAMEWORK
+                  padding: 16
+                  gap: 12
                   children:
-                    - type: panel
-                      text: YOUR UI FRAMEWORK
-                      padding: 16
-                      gap: 12
+                    - {type: label, text: "A small foundation for your own applications.", height: 30}
+                    - {type: label, text: "This entire layout comes from playground.yaml."}
+                    - type: section
+                      id: button_section
+                      text: Buttons
+                      gap: 8
                       children:
-                        - {type: label, text: "A small foundation for your own applications.", height: 30}
-                        - {type: label, text: "This entire layout comes from playground.yaml."}
-                        - type: section
-                          id: button_section
-                          text: Buttons
-                          gap: 8
-                          children:
-                            - {type: button, id: primary, text: Try an action, icon: plus, action: demo.click}
-                            - {type: button, id: secondary, text: Another action, icon: check, action: demo.confirm}
-                            - {type: button, id: image_button, text: Image icon, image: icons/grid.png, image_padding: 4, action: demo.image}
-                            - {type: button, id: disabled, text: Disabled button, icon: save, enabled: false}
-                        - type: section
-                          id: text_section
-                          text: Text editing
-                          gap: 8
-                          children:
-                            - {type: label, text: "Click to edit. Enter dispatches an app action."}
-                            - {type: input, id: name, text: My first pengUI app, action: demo.submit}
-                        - {type: label, id: status, text: "Ready. Click a button or a tree entry.", height: 28}
-                        - {type: spacer}
-                - type: tab
-                  id: layout_tab
-                  text: Layout
-                  icon: settings
-                  children:
-                    - {type: label, text: "Drag panel grips to resize the columns."}
-                    - {type: label, text: "Edit YAML and press F6 to reload."}
-                    - {type: label, text: "Invalid YAML keeps the current UI alive."}
-            - type: panel
-              text: PLAYGROUND
-              padding: 12
-              gap: 8
+                        - {type: button, id: primary, text: Try an action, icon: plus, action: demo.click}
+                        - {type: button, id: secondary, text: Another action, icon: check, action: demo.confirm}
+                        - {type: button, id: image_button, text: Image icon, image: icons/grid.png, image_padding: 4, action: demo.image}
+                        - {type: button, id: disabled, text: Disabled button, icon: save, enabled: false}
+                    - type: section
+                      id: text_section
+                      text: Text editing
+                      gap: 8
+                      children:
+                        - {type: label, text: "Click to edit. Enter dispatches an app action."}
+                        - {type: input, id: name, text: My first pengUI app, action: demo.submit}
+                    - {type: label, id: status, text: "Ready. Click a button or a tree entry.", height: 28}
+                    - {type: spacer}
+            - type: tab
+              id: layout_tab
+              text: Layout
+              icon: settings
               children:
-                - type: section
-                  id: about
-                  text: About pengUI
-                  children:
-                    - {type: label, text: "Library: lib/pengui"}
-                    - {type: label, text: "Example app: app"}
-                    - {type: label, text: "Layout: resources"}
-                - type: section
-                  id: hints
-                  text: Keyboard
-                  children:
-                    - {type: label, text: "F6: reload YAML"}
-                    - {type: label, text: "Ctrl+A / C / X / V"}
-                    - {type: label, text: "Enter: activate"}
-                - {type: spacer}
+                - {type: label, text: "Drag panel grips to resize the columns."}
+                - {type: label, text: "Edit YAML and press F6 to reload."}
+                - {type: label, text: "Invalid YAML keeps the current UI alive."}
+        - type: panel
+          text: PLAYGROUND
+          padding: 12
+          gap: 8
+          children:
+            - type: section
+              id: about
+              text: About pengUI
+              children:
+                - {type: label, text: "Library: lib/pengui"}
+                - {type: label, text: "Example app: app"}
+                - {type: label, text: "Layout: resources"}
+            - type: section
+              id: hints
+              text: Keyboard
+              children:
+                - {type: label, text: "F6: reload YAML"}
+                - {type: label, text: "Ctrl+A / C / X / V"}
+                - {type: label, text: "Enter: activate"}
+            - {type: spacer}
     - {type: label, text: "pengUI  |  Standalone widget playground  |  F6 reloads the YAML layout", height: 24}

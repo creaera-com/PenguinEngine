@@ -21,7 +21,9 @@ PUIView *pui_view_new(const PUILayout *layout, SDL_Renderer *renderer) {
         const PUINode *n = &layout->nodes[i];
         Widget *state = &view->state[i];
         state->open = n->open;
-        state->extent = n->initial;
+        state->preferred[0] = n->initial;
+        state->preferred[1] = n->initial_second;
+        state->preferred[2] = n->initial_last;
         snprintf(state->text, sizeof state->text, "%s", n->text);
         pui_text_edit_init(&state->edit, state->text, false);
         if (*n->image) {

@@ -447,12 +447,30 @@ typedef enum {
     PUI_NODE_SPACER
 } PUINodeType;
 
+/** @brief Geometry of a two/three-pane splitter; unused entries are zero. */
+typedef struct {
+    PUIRect panes[3], grips[2];
+    int count;
+} PUIRegions;
+
+/** @brief Keep non-flexible preferred sizes; the flexible pane fills the remainder.
+ * Constraints shrink proportionally when the area is too small. Inputs are not mutated.
+ * Only the first count entries of preferred/minimum are used.
+ * Returns count=0 for invalid count/flexible index or NULL arrays.
+ */
+PUIRegions pui_split_layout(PUIRect area, PUIAxis axis, int count, int flexible,
+                            const float preferred[3], const float minimum[3], float gap);
+
 /** @brief Owned description; children form a linked list of indices (-1 ends it). */
 typedef struct {
     PUINodeType type;
     PUIId id;
     char name[64], text[256], action[64], icon[32], image[512];
     float width, height, gap, padding, initial, minimum_first, minimum_second, image_padding;
+    float initial_second; ///< Preferred middle size for three-pane splits.
+    float initial_last;   ///< Preferred size of the final pane.
+    float minimum_last;   ///< Minimum final-pane size; defaults to minimum_second for two panes.
+    int flexible;         ///< Zero-based pane that absorbs resizing; split nodes only.
     bool enabled, open;
     bool draggable; ///< Empty space in this widget may move a borderless window.
     PUIAxis axis;

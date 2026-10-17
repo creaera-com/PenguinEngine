@@ -67,7 +67,7 @@ root:
 
 `pui_layout_load()` liefert eine geprüfte, besitzende Beschreibung; `pui_view_new()` erzeugt daraus Widgetzustände. Die Anwendung hält Layout und Renderer am Leben, bis sie die View mit `pui_view_free()` freigibt. Aktionen werden über einen Callback mit Anwendungs-Kontext, Aktionsname und Widget-ID ausgelöst. `pui_view_text()` liest Eingaben, `pui_view_set_text()` ändert Eingabe- oder Labeltexte. Callbacks dürfen die aktive View nicht freigeben; die Beispiel-App verschiebt Reload deshalb ans Frame-Ende.
 
-Unterstützte Knoten: `row`, `column`, `panel`, `toolbar`, `button`, `label`, `separator`, `spacer`, `tabs` mit `tab`, `section`, `input`, `tree` mit `item` und `split` mit genau zwei Kindern. Gemeinsame Eigenschaften sind unter anderem `id`, `text`, `enabled`, `width`, `height`, `padding`, `gap`; `open` steuert anfangs geöffnete Bereiche. Breite/Höhe 0 verteilt freien Platz unter flexiblen Kindern. Splitter verwenden `axis`, `initial` (Größe des ersten Bereichs), `minimum_first` und `minimum_second`. Tabs passen sich ihren Beschriftungen an, lassen sich verschieben und per Mausrad horizontal scrollen. Trees scrollen, klappen auf und haben abwechselnde Zeilenfarben sowie Verbindungslinien.
+Unterstützte Knoten: `row`, `column`, `panel`, `toolbar`, `button`, `label`, `separator`, `spacer`, `tabs` mit `tab`, `section`, `input`, `tree` mit `item` und `split` mit zwei oder drei Kindern. Gemeinsame Eigenschaften sind unter anderem `id`, `text`, `enabled`, `width`, `height`, `padding`, `gap`; `open` steuert anfangs geöffnete Bereiche. Breite/Höhe 0 verteilt freien Platz unter flexiblen Kindern. Splitter verwenden `axis`, `initial` (Größe des ersten Bereichs), `minimum_first` und `minimum_second`. Tabs passen sich ihren Beschriftungen an, lassen sich verschieben und per Mausrad horizontal scrollen. Trees scrollen, klappen auf und haben abwechselnde Zeilenfarben sowie Verbindungslinien.
 
 Buttons akzeptieren `icon`, `image` (PNG relativ zur YAML-Datei) und `image_padding` (Standard 4 px). Die View besitzt ihre Textur-Caches und gibt sie bei Reload/Freigabe frei. Fehlende Bilder zeigen ein Ersatzsymbol. PNGs sind auf 1024 × 1024 begrenzt. Verfügbare Icons stehen in `src/rendering/icons.c` unterhalb von `lib/pengui/`.
 
@@ -108,3 +108,44 @@ Die Playground-Toolbar enthält rechts `window.minimize`, `window.maximize` und 
 | Kleine Elemente | `widgets/basic.c` | `widgets/basic_sdl.c` für Labels, Separatoren und Sections |
 
 Alle Pfade dieser Tabelle sind relativ zu `lib/pengui/src/`. Die zwei Dateien je größerem Widget halten den Core unabhängig von SDL; sie bilden gemeinsam den Einstieg für das jeweilige Element. `view/events.c` und `view/draw.c` leiten lediglich weiter. `layout/layout_sdl.c` verteilt den verfügbaren Platz; `layout/yaml.c` liest und prüft Beschreibungen. `rendering/image.c` lädt PNGs, während die Darstellung eines Bildbuttons beim Button bleibt. Die öffentliche API bleibt ausschließlich in `pengui/pengui.h`.
+
+## Split mit zwei oder drei Bereichen
+
+`axis: horizontal` ordnet die Bereiche nebeneinander an, `vertical` untereinander. `flex` bestimmt, welcher Bereich Größenänderungen des Fensters aufnimmt: `first`, `second` oder `last`, bei drei Kindern auch `middle`. Standard ist bei zwei Kindern `second`, bei drei Kindern `middle`. Die übrigen Bereiche behalten ihre eingestellte Breite bzw. Höhe. Greifer verändern diese Größen; reine Fensteränderungen überschreiben die Wunschgrößen nicht. Wenn das Fenster zu klein wird, werden die Bereiche begrenzt bzw. die Mindestgrößen proportional verkleinert. Bei mehr Platz stehen die eingestellten Größen wieder zur Verfügung.
+
+Drei Spalten mit flexibler Mitte benötigen keine Verschachtelung:
+
+```yaml
+type: split
+axis: horizontal
+flex: middle
+initial: 240
+initial_last: 280
+minimum_first: 160
+minimum_second: 240
+minimum_last: 160
+gap: 9
+children:
+  - {type: panel, text: Links}
+  - {type: panel, text: Mitte}
+  - {type: panel, text: Rechts}
+```
+
+`initial` ist die Wunschgröße des ersten Bereichs, `initial_second` die des zweiten (bei drei Kindern), `initial_last` die des letzten. Die Größe des flexiblen Bereichs ergibt sich aus dem verbleibenden Platz. Bei zwei Kindern fällt `initial_last` ohne Angabe auf `initial` zurück; die bestehenden Zweiteilungen bleiben mit ihrer bisherigen Voreinstellung kompatibel.
+
+Für einen Editor oben und eine Konsole mit fester Ausgangshöhe unten:
+
+```yaml
+type: split
+axis: vertical
+flex: first
+initial_last: 220
+minimum_first: 200
+minimum_second: 100
+gap: 9
+children:
+  - {type: panel, text: Editor}
+  - {type: panel, text: Konsole}
+```
+
+Bei drei Kindern gelten die Mindestgrößen `minimum_first`, `minimum_second` und `minimum_last`. Bei zwei Kindern beschreibt `minimum_second` weiterhin den unteren/rechten Bereich; ein explizites `minimum_last` kann ihn überschreiben.

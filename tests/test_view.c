@@ -1,5 +1,6 @@
 #include "pengui/pengui.h"
 #include "unity.h"
+#include <stdio.h>
 #include <string.h>
 
 static SDL_Window *window;
@@ -145,8 +146,59 @@ static void test_close_is_a_request_for_this_window(void) {
     TEST_ASSERT_TRUE(found);
 }
 
+static void record_pane(void *context, const char *action, const char *widget) {
+    (void)action;
+    snprintf(context, 16, "%s", widget);
+}
+
+static void split_frame(PUIView *split, float width, char *selected) {
+    pui_view_draw(split, &pui, (PUIRect){0, 0, width, 300}, record_pane, selected);
+}
+
+static void test_three_pane_grips_and_resize_keep_outer_preferences(void) {
+    char error[256], selected[16] = {0};
+    const char *yaml = "schema: pengui/v1\nroot: {type: split, initial: 80, initial_last: 80, "
+                       "minimum_first: 40, minimum_second: 40, minimum_last: 40, gap: 8, children: "
+                       "[{type: button, id: left, action: select}, {type: button, id: center, "
+                       "action: select}, {type: button, id: right, action: select}]}";
+    PUILayout *description = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(description, error);
+    PUIView *split = pui_view_new(description, renderer);
+    pui_init(&pui);
+    split_frame(split, 400, selected);
+    pui_pointer(&pui, 84, 150, true);
+    split_frame(split, 400, selected);
+    pui_pointer(&pui, 124, 150, true);
+    split_frame(split, 400, selected);
+    pui_pointer(&pui, 124, 150, false);
+    split_frame(split, 400, selected);
+    pui_pointer(&pui, 115, 150, true);
+    pui_pointer(&pui, 115, 150, false);
+    split_frame(split, 400, selected);
+    TEST_ASSERT_EQUAL_STRING("left", selected);
+    pui_pointer(&pui, 316, 150, true);
+    split_frame(split, 400, selected);
+    pui_pointer(&pui, 276, 150, true);
+    split_frame(split, 400, selected);
+    pui_pointer(&pui, 276, 150, false);
+    split_frame(split, 400, selected);
+    split_frame(split, 600, selected);
+    pui_pointer(&pui, 490, 150, true);
+    pui_pointer(&pui, 490, 150, false);
+    split_frame(split, 600, selected);
+    TEST_ASSERT_EQUAL_STRING("right", selected);
+    split_frame(split, 400, selected);
+    pui_pointer(&pui, 290, 150, true);
+    pui_pointer(&pui, 290, 150, false);
+    split_frame(split, 400, selected);
+    TEST_ASSERT_EQUAL_STRING("right", selected);
+    pui_view_free(split);
+    pui_layout_free(description);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_three_pane_grips_and_resize_keep_outer_preferences);
     RUN_TEST(test_yaml_button_dispatches_only_application_action);
     RUN_TEST(test_native_text_event_replaces_selection);
     RUN_TEST(test_two_views_have_independent_input_state);

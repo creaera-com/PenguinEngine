@@ -6,7 +6,7 @@
 
 typedef struct {
     bool open;
-    float extent;
+    float preferred[3];
     char text[256];
     PUITextEdit edit;
     PUITabs tabs;

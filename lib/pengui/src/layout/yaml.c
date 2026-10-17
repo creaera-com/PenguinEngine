@@ -119,7 +119,8 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     }
     if (!keys(r, yaml,
               "|type|id|text|action|icon|image|width|height|gap|padding|initial|"
-              "minimum_first|minimum_second|image_padding|enabled|open|draggable|axis|children|")) {
+              "initial_second|initial_last|minimum_first|minimum_second|minimum_last|flex|image_"
+              "padding|enabled|open|draggable|axis|children|")) {
         return -1;
     }
     int index = r->layout->count++;
@@ -156,6 +157,9 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     out->initial = number(r, yaml, "initial", 240, 0, 10000);
     out->minimum_first = number(r, yaml, "minimum_first", 160, 0, 10000);
     out->minimum_second = number(r, yaml, "minimum_second", 160, 0, 10000);
+    out->initial_second = number(r, yaml, "initial_second", 240, 0, 10000);
+    out->initial_last = number(r, yaml, "initial_last", 280, 0, 10000);
+    out->minimum_last = number(r, yaml, "minimum_last", 160, 0, 10000);
     out->image_padding = number(r, yaml, "image_padding", 4, 2, 32);
     out->enabled = boolean(r, yaml, "enabled", true);
     out->open = boolean(r, yaml, "open", true);
@@ -199,13 +203,37 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
             count++;
         }
     }
-    if ((out->type == PUI_NODE_SPLIT && count != 2) ||
+    if ((out->type == PUI_NODE_SPLIT && (count < 2 || count > 3)) ||
         (out->type == PUI_NODE_TABS && (count < 1 || count > PUI_MAX_TABS)) ||
         ((out->type == PUI_NODE_BUTTON || out->type == PUI_NODE_LABEL ||
           out->type == PUI_NODE_INPUT || out->type == PUI_NODE_SPACER ||
           out->type == PUI_NODE_SEPARATOR) &&
          count)) {
         fail(r, yaml, "invalid child count");
+    }
+    if (out->type == PUI_NODE_SPLIT) {
+        out->flexible = 1;
+        if (count == 2) {
+            if (!get(r, yaml, "initial_last")) {
+                out->initial_last = out->initial;
+            }
+            if (!get(r, yaml, "minimum_last")) {
+                out->minimum_last = out->minimum_second;
+            }
+        }
+        yaml_node_t *flex = get(r, yaml, "flex");
+        if (flex) {
+            const char *value = scalar(r, flex);
+            if (!strcmp(value, "first")) {
+                out->flexible = 0;
+            } else if (!strcmp(value, "last")) {
+                out->flexible = count - 1;
+            } else if (!strcmp(value, "second") || (count == 3 && !strcmp(value, "middle"))) {
+                out->flexible = 1;
+            } else {
+                fail(r, flex, "flex must select an existing pane: first, second, middle or last");
+            }
+        }
     }
     return r->failed ? -1 : index;
 }

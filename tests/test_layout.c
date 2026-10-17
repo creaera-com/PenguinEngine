@@ -92,8 +92,33 @@ static void test_theme_and_defaults_are_read_without_sdl(void) {
     pui_layout_free(layout);
 }
 
+static void test_split_child_count_and_flexible_pane_are_validated(void) {
+    char error[256];
+    const char *yaml =
+        "schema: pengui/v1\nroot: {type: split, flex: middle, initial: 200, initial_last: 250, "
+        "children: [{type: panel}, {type: panel}, {type: panel}]}";
+    PUILayout *layout = parse(yaml, error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+    TEST_ASSERT_EQUAL_INT(1, layout->nodes[0].flexible);
+    TEST_ASSERT_EQUAL_FLOAT(250, layout->nodes[0].initial_last);
+    pui_layout_free(layout);
+    TEST_ASSERT_NULL(parse("schema: pengui/v1\nroot: {type: split, children: [{type: panel}, "
+                           "{type: panel}, {type: panel}, {type: panel}]}",
+                           error));
+    TEST_ASSERT_NULL(parse("schema: pengui/v1\nroot: {type: split, flex: middle, children: [{type: "
+                           "panel}, {type: panel}]}",
+                           error));
+    layout = parse("schema: pengui/v1\nroot: {type: split, flex: first, initial_last: 180, "
+                   "children: [{type: panel}, {type: panel}]}",
+                   error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+    TEST_ASSERT_EQUAL_INT(0, layout->nodes[0].flexible);
+    pui_layout_free(layout);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_split_child_count_and_flexible_pane_are_validated);
     RUN_TEST(test_actual_playground_is_generic_and_bounded);
     RUN_TEST(test_duplicate_ids_and_properties_are_rejected);
     RUN_TEST(test_unknown_schema_widgets_and_keys_are_rejected);
