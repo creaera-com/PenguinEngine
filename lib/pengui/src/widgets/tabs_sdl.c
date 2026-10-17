@@ -43,7 +43,7 @@ void pui_widget_tabs_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
     for (int k = n->child; k >= 0; k = v->layout->nodes[k].next) {
         if (v->layout->nodes[k].id == s->tabs.selected) {
             pui_view_draw_node(v, pui, k,
-                               (PUIRect){area.x, area.y + 32, area.w, fmaxf(0, area.h - 32)},
+                               (PUIRect){area.x, area.y + bar.h, area.w, fmaxf(0, area.h - bar.h)},
                                action, context);
         }
     }

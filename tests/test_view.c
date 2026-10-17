@@ -196,8 +196,67 @@ static void test_three_pane_grips_and_resize_keep_outer_preferences(void) {
     pui_layout_free(description);
 }
 
+static void assert_pixel(float x, float y, Uint32 color) {
+    SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
+    TEST_ASSERT_NOT_NULL(surface);
+    Uint8 r, g, b, a;
+    TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, (int)x, (int)y, &r, &g, &b, &a));
+    TEST_ASSERT_EQUAL_UINT8(color >> 24, r);
+    TEST_ASSERT_EQUAL_UINT8((color >> 16) & 255, g);
+    TEST_ASSERT_EQUAL_UINT8((color >> 8) & 255, b);
+    SDL_DestroySurface(surface);
+}
+
+static void test_tabs_join_content_without_background_gap(void) {
+    char error[256];
+    const char *yaml = "schema: pengui/v1\nroot: {type: tabs, children: [{type: tab, "
+                       "text: Tab, padding: 0, children: [{type: panel}]}]}";
+    PUILayout *description = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(description, error);
+    PUIView *tabs = pui_view_new(description, renderer);
+    pui_panel(renderer, (SDL_FRect){0, 0, 400, 300}, PUI_CANVAS);
+    pui_view_draw(tabs, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    assert_pixel(10, 29, PUI_PANEL);
+    assert_pixel(10, 30, PUI_PANEL);
+    assert_pixel(10, 31, PUI_PANEL);
+    pui_view_free(tabs);
+    pui_layout_free(description);
+}
+
+static void test_tree_selection_persists_and_moves_without_actions(void) {
+    char error[256];
+    const char *yaml = "schema: pengui/v1\nroot: {type: tree, children: ["
+                       "{type: item, text: First}, {type: item, text: Second}, "
+                       "{type: item, text: Disabled, enabled: false}]}";
+    PUILayout *description = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(description, error);
+    PUIView *tree = pui_view_new(description, renderer);
+    pui_init(&pui);
+    pui_pointer(&pui, 2, 14, true);
+    pui_pointer(&pui, 2, 14, false);
+    pui_view_draw(tree, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    assert_pixel(1, 14, PUI_ACCENT);
+    pui_pointer(&pui, 390, 250, false);
+    pui_view_draw(tree, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    assert_pixel(1, 14, PUI_ACCENT);
+    pui_pointer(&pui, 20, 42, true);
+    pui_pointer(&pui, 20, 42, false);
+    pui_view_draw(tree, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    assert_pixel(1, 14, PUI_HOVER);
+    assert_pixel(1, 42, PUI_ACCENT);
+    pui_pointer(&pui, 20, 70, true);
+    pui_pointer(&pui, 20, 70, false);
+    pui_view_draw(tree, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    assert_pixel(1, 42, PUI_ACCENT);
+    assert_pixel(1, 70, PUI_HOVER);
+    pui_view_free(tree);
+    pui_layout_free(description);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_tabs_join_content_without_background_gap);
+    RUN_TEST(test_tree_selection_persists_and_moves_without_actions);
     RUN_TEST(test_three_pane_grips_and_resize_keep_outer_preferences);
     RUN_TEST(test_yaml_button_dispatches_only_application_action);
     RUN_TEST(test_native_text_event_replaces_selection);

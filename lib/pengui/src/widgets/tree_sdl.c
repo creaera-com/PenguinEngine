@@ -83,17 +83,8 @@ void pui_widget_tree_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
             continue;
         }
         bool enabled = v->enabled[index];
-        pui_panel(v->renderer, pui_frect(r), k % 2 ? PUI_SURFACE : PUI_HOVER);
-        float x = r.x + 8 + depths[k] * 18;
-        pui_draw_tree_guides(v->renderer, depths, count, k, r, 18, 13, area.w - 24, x + 12,
-                             PUI_MUTED);
-        PUIRect button = {x, r.y, fmaxf(0, r.w - (x - r.x)), r.h};
-        PUIIcon marker = item->child >= 0 ? (v->state[index].open ? ICON_DOWN : ICON_RIGHT)
-                                          : pui_icon_from_name(item->icon);
-        Uint32 foreground = enabled ? PUI_TEXT : PUI_DISABLED;
-        pui_icon(v->renderer, marker, x + 4, r.y + 6, 16, foreground);
-        pui_text(v->renderer, x + 26, r.y + 6, item->text, foreground);
-        if (pui_button(pui, item->id, button, enabled)) {
+        if (pui_button(pui, item->id, r, enabled)) {
+            s->selected = item->id;
             if (item->child >= 0) {
                 v->state[index].open = !v->state[index].open;
             }
@@ -101,6 +92,31 @@ void pui_widget_tree_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
                 action(context, item->action, item->name);
             }
         }
+    }
+    /* Resolve selection before painting so the previous row clears in the same frame. */
+    for (int k = 0; k < count; k++) {
+        int index = rows[k];
+        const PUINode *item = &v->layout->nodes[index];
+        PUIRect r = {area.x, area.y + k * 28 - s->scroll.offset, area.w - 12, 28};
+        if (r.y + r.h <= area.y || r.y >= area.y + area.h) {
+            continue;
+        }
+        bool enabled = v->enabled[index];
+        pui_panel(v->renderer, pui_frect(r),
+                  s->selected == item->id || (enabled && pui_hovered(pui, r)) ? PUI_HOVER
+                  : k % 2                                                     ? PUI_SURFACE
+                                                                              : PUI_HOVER);
+        if (s->selected == item->id) {
+            pui_panel(v->renderer, (SDL_FRect){r.x, r.y, 3, r.h}, PUI_ACCENT);
+        }
+        float x = r.x + 8 + depths[k] * 18;
+        pui_draw_tree_guides(v->renderer, depths, count, k, r, 18, 13, area.w - 24, x + 12,
+                             PUI_MUTED);
+        PUIIcon marker = item->child >= 0 ? (v->state[index].open ? ICON_DOWN : ICON_RIGHT)
+                                          : pui_icon_from_name(item->icon);
+        Uint32 foreground = enabled ? PUI_TEXT : PUI_DISABLED;
+        pui_icon(v->renderer, marker, x + 4, r.y + 6, 16, foreground);
+        pui_text(v->renderer, x + 26, r.y + 6, item->text, foreground);
     }
     pui_draw_scrollbar(v->renderer, pui, n->id ^ 0x65000000u, track, &s->scroll, PUI_AXIS_Y);
 }

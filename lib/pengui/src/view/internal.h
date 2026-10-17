@@ -6,6 +6,7 @@
 
 typedef struct {
     bool open;
+    PUIId selected; ///< Persistent selection for each tree, independent of keyboard focus.
     float preferred[3];
     char text[256];
     PUITextEdit edit;
