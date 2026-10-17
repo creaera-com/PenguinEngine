@@ -47,6 +47,9 @@ void pui_widget_text_input_draw(PUIView *v, PUIContext *pui, int i, PUIRect area
                                 void *context) {
     const PUINode *n = &v->layout->nodes[i];
     Widget *s = &v->state[i];
+    if ((!pui->active || pui->released) && pui_hovered(pui, area)) {
+        pui_view_request_cursor(v, SDL_SYSTEM_CURSOR_TEXT, 1);
+    }
     pui_draw_text_input(v->renderer, pui_frect(area), s->text, &s->edit, v->focused == i,
                         !pui->blocked, false, SDL_GetTicks() % 1000 < 500);
     if (v->submit == i) {

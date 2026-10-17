@@ -62,10 +62,13 @@ void pui_view_draw_node(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAct
 }
 
 void pui_view_draw(PUIView *view, PUIContext *pui, PUIRect area, PUIAction action, void *context) {
+    view->cursor = SDL_SYSTEM_CURSOR_DEFAULT;
+    view->cursor_priority = 0;
     memset(view->visible, 0, sizeof view->visible);
     pui_view_draw_node(view, pui, view->layout->root, area, action, context);
     if (view->focused >= 0 && (!view->visible[view->focused] || !view->enabled[view->focused])) {
         pui_view_blur(view, pui);
     }
     pui_end_frame(pui);
+    pui_view_apply_cursor(view, pui);
 }

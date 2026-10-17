@@ -801,6 +801,11 @@ typedef struct PUIView PUIView;
 PUIView *pui_view_new(const PUILayout *layout, SDL_Renderer *renderer);
 /** @brief Destroy before the renderer/layout; NULL is accepted. */
 void pui_view_free(PUIView *view);
+/** @brief Requested cursor from the last frame; default for NULL views.
+ * Applied automatically after drawing, with default-cursor fallback if unsupported by SDL.
+ * Splitter drags keep their resize cursor until release, including outside the grip.
+ */
+SDL_SystemCursor pui_view_cursor(const PUIView *view);
 /** @brief Apply the seven theme colors from YAML to the existing renderer theme. */
 void pui_view_apply_theme(const PUILayout *layout);
 /** @brief Feed SDL input on the main thread; true when a text edit consumed the event. */

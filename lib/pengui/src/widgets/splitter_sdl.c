@@ -8,7 +8,14 @@ static float length(PUIRect area, PUIAxis axis) {
 
 static void grip(PUIView *view, PUIContext *pui, PUIRect area, PUIAxis axis, PUIId id) {
     float x = area.x + area.w / 2, y = area.y + area.h / 2;
-    bool active = pui_hovered(pui, area) || pui->active == id;
+    bool dragging = !pui->blocked && pui->active == id;
+    bool hover = (!pui->active || pui->released) && pui_hovered(pui, area);
+    bool active = hover || dragging;
+    if (active) {
+        pui_view_request_cursor(
+            view, axis == PUI_AXIS_X ? SDL_SYSTEM_CURSOR_EW_RESIZE : SDL_SYSTEM_CURSOR_NS_RESIZE,
+            dragging ? 2 : 1);
+    }
     for (int dot = -1; dot <= 1; dot++) {
         pui_panel(view->renderer,
                   (SDL_FRect){x + (axis == PUI_AXIS_Y ? dot * 6 : 0) - 1,

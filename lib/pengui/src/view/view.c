@@ -17,6 +17,7 @@ PUIView *pui_view_new(const PUILayout *layout, SDL_Renderer *renderer) {
     view->renderer = renderer;
     view->window = SDL_GetRenderWindow(renderer);
     view->focused = view->submit = -1;
+    view->pointer_inside = true;
     for (int i = 0; i < layout->count; i++) {
         const PUINode *n = &layout->nodes[i];
         Widget *state = &view->state[i];
@@ -48,6 +49,7 @@ PUIView *pui_view_new(const PUILayout *layout, SDL_Renderer *renderer) {
 
 void pui_view_free(PUIView *view) {
     if (view) {
+        pui_view_free_cursors(view);
         if (view->window && view->focused >= 0) {
             SDL_StopTextInput(view->window);
         }

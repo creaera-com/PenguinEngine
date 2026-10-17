@@ -402,8 +402,53 @@ static void test_reverse_tab_entry_single_field_and_no_inputs(void) {
     pui_layout_free(description);
 }
 
+static void cursor_frame(PUIView *target, float x, float y, bool down, SDL_SystemCursor expected) {
+    pui_pointer(&pui, x, y, down);
+    pui_view_draw(target, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    char message[128];
+    snprintf(message, sizeof message, "cursor at %.0f,%.0f down=%d", x, y, down);
+    TEST_ASSERT_EQUAL_INT_MESSAGE(expected, pui_view_cursor(target), message);
+}
+
+static void test_cursor_shapes_follow_hover_drag_and_window_leave(void) {
+    char error[256];
+    const char *yaml = "schema: pengui/v1\nroot: {type: split, initial: 120, "
+                       "minimum_first: 40, minimum_second: 40, gap: 8, children: ["
+                       "{type: column, padding: 0, gap: 0, children: [{type: input}, "
+                       "{type: input, enabled: false}, {type: button}, {type: spacer}]}, "
+                       "{type: split, axis: vertical, initial: 100, minimum_first: 40, "
+                       "minimum_second: 40, gap: 8, children: [{type: panel}, {type: panel}]}]}";
+    PUILayout *description = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(description, error);
+    PUIView *controls = pui_view_new(description, renderer);
+    pui_init(&pui);
+    cursor_frame(controls, 20, 15, false, SDL_SYSTEM_CURSOR_TEXT);
+    cursor_frame(controls, 20, 45, false, SDL_SYSTEM_CURSOR_DEFAULT);
+    cursor_frame(controls, 20, 75, false, SDL_SYSTEM_CURSOR_DEFAULT);
+    cursor_frame(controls, 124, 150, false, SDL_SYSTEM_CURSOR_EW_RESIZE);
+    cursor_frame(controls, 200, 104, false, SDL_SYSTEM_CURSOR_NS_RESIZE);
+    cursor_frame(controls, 200, 104, true, SDL_SYSTEM_CURSOR_NS_RESIZE);
+    cursor_frame(controls, 20, 15, true, SDL_SYSTEM_CURSOR_NS_RESIZE);
+    cursor_frame(controls, 20, 15, false, SDL_SYSTEM_CURSOR_TEXT);
+    cursor_frame(controls, 124, 150, true, SDL_SYSTEM_CURSOR_EW_RESIZE);
+    cursor_frame(controls, 20, 15, true, SDL_SYSTEM_CURSOR_EW_RESIZE);
+    cursor_frame(controls, 20, 15, false, SDL_SYSTEM_CURSOR_TEXT);
+    SDL_Event event = {0};
+    event.type = SDL_EVENT_WINDOW_MOUSE_LEAVE;
+    pui_view_event(controls, &pui, window, &event);
+    pui_view_draw(controls, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    TEST_ASSERT_EQUAL_INT(SDL_SYSTEM_CURSOR_DEFAULT, pui_view_cursor(controls));
+    event.type = SDL_EVENT_WINDOW_MOUSE_ENTER;
+    pui_view_event(controls, &pui, window, &event);
+    cursor_frame(controls, 20, 15, false, SDL_SYSTEM_CURSOR_TEXT);
+    TEST_ASSERT_EQUAL_INT(SDL_SYSTEM_CURSOR_DEFAULT, pui_view_cursor(NULL));
+    pui_view_free(controls);
+    pui_layout_free(description);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_cursor_shapes_follow_hover_drag_and_window_leave);
     RUN_TEST(test_tab_focus_skips_hidden_disabled_and_wraps);
     RUN_TEST(test_reverse_tab_entry_single_field_and_no_inputs);
     RUN_TEST(test_toggle_checkbox_and_groups_keep_independent_state);

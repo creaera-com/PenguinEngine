@@ -25,8 +25,16 @@ struct PUIView {
     PUIRect rect[PUI_LAYOUT_NODES], hit[PUI_LAYOUT_NODES];
     bool visible[PUI_LAYOUT_NODES], enabled[PUI_LAYOUT_NODES];
     int focused, submit;
+    SDL_SystemCursor cursor;
+    int cursor_priority;
+    bool pointer_inside;
+    SDL_Cursor *cursors[SDL_SYSTEM_CURSOR_COUNT];
+    bool cursor_attempted[SDL_SYSTEM_CURSOR_COUNT];
 };
 
+void pui_view_request_cursor(PUIView *view, SDL_SystemCursor cursor, int priority);
+void pui_view_apply_cursor(PUIView *view, const PUIContext *pui);
+void pui_view_free_cursors(PUIView *view);
 void pui_view_blur(PUIView *view, PUIContext *pui);
 void pui_view_draw_node(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
                         void *context);

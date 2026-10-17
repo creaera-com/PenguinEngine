@@ -4,13 +4,19 @@
 bool pui_view_event(PUIView *view, PUIContext *pui, SDL_Window *window, const SDL_Event *event) {
     view->window = window;
     if (event->type == SDL_EVENT_WINDOW_FOCUS_LOST) {
+        view->pointer_inside = false;
         pui_cancel(pui);
         pui_view_blur(view, pui);
+    } else if (event->type == SDL_EVENT_WINDOW_MOUSE_ENTER ||
+               event->type == SDL_EVENT_WINDOW_MOUSE_LEAVE) {
+        view->pointer_inside = event->type == SDL_EVENT_WINDOW_MOUSE_ENTER;
     } else if (event->type == SDL_EVENT_MOUSE_MOTION) {
+        view->pointer_inside = true;
         pui_pointer(pui, event->motion.x, event->motion.y, pui->down);
     } else if ((event->type == SDL_EVENT_MOUSE_BUTTON_DOWN ||
                 event->type == SDL_EVENT_MOUSE_BUTTON_UP) &&
                event->button.button == SDL_BUTTON_LEFT) {
+        view->pointer_inside = true;
         pui_pointer(pui, event->button.x, event->button.y,
                     event->type == SDL_EVENT_MOUSE_BUTTON_DOWN);
         if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
