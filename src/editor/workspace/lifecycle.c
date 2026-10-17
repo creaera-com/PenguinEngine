@@ -286,6 +286,13 @@ bool editor_reload_layout(void) {
     PeUiLayout *old_shell = app.shell.shell_layout;
     app.shell.shell_layout = next;
     UiId id = app.workspace.loaded_view;
+    if (!id) {
+        pe_ui_layout_free(old_shell);
+        editor_apply_shell_layout();
+        editor_window_init();
+        app.shell.needs_layout = true;
+        return true;
+    }
     PeUiLayout *candidate = editor_load_editor_layout(id, error, sizeof error);
     if (!candidate) {
         app.shell.shell_layout = old_shell;

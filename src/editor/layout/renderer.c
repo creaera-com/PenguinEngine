@@ -176,6 +176,9 @@ void editor_apply_shell_layout(void) {
         selected = items[0].id;
     }
     ui_tabs_init(&app.shell.workspaces, items, count, selected);
+    if (!app.workspace.loaded_view) {
+        app.shell.workspaces.selected = 0;
+    }
     app.shell.workspaces.gap = (float)app.shell.tab_gap;
 }
 

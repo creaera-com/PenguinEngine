@@ -7,6 +7,39 @@
 static void smoke_pointer(Uint32 type, float x, float y);
 static void smoke_click(float x, float y);
 
+bool editor_verify_empty_shell(void) {
+    editor_draw();
+    bool ok = app.shell.shell_layout && !*app.project.root && !*app.project.scene_path &&
+              !app.workspace.backend && !app.workspace.instance && !app.workspace.active_layout &&
+              !app.workspace.loaded_view && !app.shell.workspaces.selected && !app.shell.console;
+    for (int i = 0; i < editor_view_count; i++) {
+        ok = ok && !*app.workspace.session_paths[i] && !app.workspace.session_exists[i];
+    }
+    const cJSON *toolbar = pe_ui_get(app.shell.shell_layout->root, "toolbar");
+    for (const cJSON *node = toolbar->child; node; node = node->next) {
+        const char *action = pe_ui_string(node, "action", "");
+        if (!strncmp(action, "document.", 9)) {
+            ok = ok && !editor_yaml_boolean(pe_ui_get(node, "enabled"), true);
+        }
+    }
+    editor_select_workspace(UI_MAP_VIEW);
+    editor_request(REQUEST_VECTOR_OPEN, "does-not-exist.svg");
+    editor_yaml_action("document.save");
+    editor_yaml_action("document.undo");
+    ok = ok && !app.workspace.backend && !app.workspace.active_layout;
+    ok = editor_reload_layout() && ok;
+    editor_draw();
+    ok = ok && !app.workspace.loaded_view && !app.shell.workspaces.selected &&
+         !app.workspace.instance && !app.shell.console;
+    editor_request(REQUEST_QUIT, NULL);
+    ok = ok && !app.runtime.running && app.shell.request == REQUEST_NONE;
+    app.runtime.running = true;
+    if (!ok) {
+        fprintf(stderr, "Projectless shell smoke failed\n");
+    }
+    return ok;
+}
+
 bool editor_verify_editor(void) {
     editor_draw();
     PeScene baseline = pe_map_active_instance()->scene;
