@@ -11,7 +11,7 @@ theme:
 root:
   type: column
   padding: 0
-  gap: 3
+  gap: 6
   children:
     - type: toolbar
       height: 44
@@ -21,14 +21,19 @@ root:
       children:
         - {type: button, icon: menu, action: shell.menu, width: 32}
         - {type: separator}
+        - {type: button, id: save, icon: save, action: editor.save}
+        - {type: separator}
+        - {type: button, id: undo, icon: undo, action: editor.undo}
+        - {type: button, id: redo, icon: redo, action: editor.redo}
+        - type: separator
         - type: button_group
           id: editor_switcher
           width: 100
           gap: 2
           children:
-            - {type: button, id: vector, icon: edit, action: editor.vector}
-            - {type: button, id: scripts, icon: file, action: editor.scripts}
             - {type: button, id: game, icon: grid, action: editor.game}
+            - {type: button, id: scripts, icon: file, action: editor.scripts}
+            - {type: button, id: vector, icon: edit, action: editor.vector}
         - {type: separator}
         - {type: button, icon: refresh, action: shell.reload, width: 32}
         - {type: spacer}

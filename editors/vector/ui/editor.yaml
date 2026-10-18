@@ -4,11 +4,11 @@ root:
   id: vector_columns
   axis: horizontal
   flex: middle
-  initial: 220
-  initial_last: 280
-  minimum_first: 150
+  initial: 250
+  initial_last: 250
+  minimum_first: 250
   minimum_second: 250
-  minimum_last: 200
+  minimum_last: 250
   gap: 9
   children:
     - type: tabs
@@ -25,20 +25,34 @@ root:
                 - {type: label, text: "Vector workspace"}
                 - {type: label, text: "No document opened."}
                 - {type: spacer}
-    - type: tabs
+    - type: column
+      padding: 0
+      gap: 3
       children:
-        - type: tab
-          id: vector_workspace_tab
-          text: Vector
-          padding: 0
+        - type: toolbar
+          height: 40
+          padding: 5
+          gap: 4
           children:
-            - type: panel
-              padding: 16
-              gap: 8
+            - {type: button, id: vector_add_document, icon: plus, action: vector.add_document, width: 30}
+            - {type: separator}
+            - {type: button, id: vector_add_artboard, icon: plus, action: vector.add_artboard, width: 30}
+            - {type: spacer}
+
+        - type: tabs
+          children:
+            - type: tab
+              id: vector_workspace_tab
+              text: Vector
+              padding: 0
               children:
-                - {type: label, text: "Vector Editor", height: 30}
-                - {type: label, text: "No document opened."}
-                - {type: spacer}
+                - type: panel
+                  padding: 16
+                  gap: 8
+                  children:
+                    - {type: label, text: "Vector Editor", height: 30}
+                    - {type: label, text: "No document opened."}
+                    - {type: spacer}
     - type: tabs
       children:
         - type: tab

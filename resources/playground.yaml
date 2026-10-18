@@ -34,8 +34,8 @@ root:
       id: main_split
       axis: horizontal
       flex: middle
-      initial: 245
-      initial_last: 280
+      initial: 350
+      initial_last: 350
       minimum_first: 190
       minimum_second: 360
       minimum_last: 260
