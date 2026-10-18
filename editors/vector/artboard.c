@@ -54,3 +54,40 @@ bool vector_artboard_add(VectorDocument *document, PUIRect rect) {
     document->next_artboard_id++;
     return true;
 }
+
+static bool valid_command(const AddArtboard *data) {
+    PUIRect rect = data->artboard.rect;
+    return data->artboard.id > 0 && data->index >= 0 && data->index < VECTOR_MAX_ARTBOARDS &&
+           isfinite(rect.x) && isfinite(rect.y) && isfinite(rect.w) && isfinite(rect.h) &&
+           rect.w >= 1 && rect.h >= 1;
+}
+
+bool vector_artboard_command_write(const VectorCommand *command, FILE *file) {
+    if (command->apply != apply || command->revert != revert || !command->data) {
+        return false;
+    }
+    const AddArtboard *data = command->data;
+    unsigned kind = 1;
+    return valid_command(data) && fwrite(&kind, sizeof kind, 1, file) == 1 &&
+           fwrite(&data->artboard, sizeof data->artboard, 1, file) == 1 &&
+           fwrite(&data->index, sizeof data->index, 1, file) == 1 &&
+           fwrite(&data->previous, sizeof data->previous, 1, file) == 1;
+}
+
+bool vector_artboard_command_read(VectorCommand *command, FILE *file) {
+    unsigned kind;
+    AddArtboard data;
+    if (fread(&kind, sizeof kind, 1, file) != 1 || kind != 1 ||
+        fread(&data.artboard, sizeof data.artboard, 1, file) != 1 ||
+        fread(&data.index, sizeof data.index, 1, file) != 1 ||
+        fread(&data.previous, sizeof data.previous, 1, file) != 1 || !valid_command(&data)) {
+        return false;
+    }
+    AddArtboard *owned = malloc(sizeof *owned);
+    if (!owned) {
+        return false;
+    }
+    *owned = data;
+    *command = (VectorCommand){apply, revert, owned};
+    return true;
+}

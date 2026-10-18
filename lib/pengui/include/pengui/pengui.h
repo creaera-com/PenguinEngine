@@ -862,6 +862,8 @@ bool pui_view_add_tab(PUIView *view, PUIContext *context, const char *tabs, cons
 const char *pui_view_selected_tab(const PUIView *view, const char *tabs);
 /** @brief Number of tabs; zero for an invalid tabs ID or NULL view. */
 int pui_view_tab_count(const PUIView *view, const char *tabs);
+/** @brief Borrow the tab ID at its displayed zero-based position; NULL if out of range. */
+const char *pui_view_tab_at(const PUIView *view, const char *tabs, int index);
 
 /** @brief Requested cursor from the last frame; default for NULL views.
  * Applied automatically after drawing, with default-cursor fallback if unsupported by SDL.

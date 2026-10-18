@@ -1,0 +1,279 @@
+/** @file @brief Pointer-free session snapshots; candidate restoration is transactional. */
+#include "checkpoint.h"
+#include "internal.h"
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* Native integer/float representation is sufficient for a private file in this process.
+ * Changing this schema requires a new signature. This is not an SVG or interchange format. */
+static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '0', '1'};
+
+#define WRITE(value) (fwrite(&(value), sizeof(value), 1, file) == 1)
+#define READ(value) (fread(&(value), sizeof(value), 1, file) == 1)
+
+static bool fail(char *error, size_t capacity) {
+    if (error && capacity) {
+        snprintf(error, capacity, "could not save or restore Vector session checkpoint");
+    }
+    return false;
+}
+
+static void tab_name(char *name, size_t capacity, unsigned id) {
+    if (id) {
+        snprintf(name, capacity, "vector_document_%u", id);
+    } else {
+        snprintf(name, capacity, "vector_workspace_tab");
+    }
+}
+
+static bool capture_tabs(const VectorDocuments *documents, const PUIView *view,
+                         unsigned order[PUI_MAX_TABS], unsigned *selected) {
+    if (pui_view_tab_count(view, "vector_document_tabs") != documents->count + 1) {
+        return false;
+    }
+    const char *active = pui_view_selected_tab(view, "vector_document_tabs");
+    bool seen[PUI_MAX_TABS] = {0}, found = false;
+    for (int i = 0; i <= documents->count; i++) {
+        const char *tab = pui_view_tab_at(view, "vector_document_tabs", i);
+        bool matched = false;
+        for (unsigned id = 0; id <= (unsigned)documents->count; id++) {
+            char name[64];
+            tab_name(name, sizeof name, id);
+            if (tab && !strcmp(tab, name) && !seen[id]) {
+                order[i] = id;
+                seen[id] = true;
+                matched = true;
+                if (active && !strcmp(active, name)) {
+                    *selected = id;
+                    found = true;
+                }
+                break;
+            }
+        }
+        if (!matched) {
+            return false;
+        }
+    }
+    return found;
+}
+
+static bool write_document(const VectorDocument *document, FILE *file) {
+    if (!WRITE(document->id) || !WRITE(document->title) || !WRITE(document->next_artboard_id) ||
+        !WRITE(document->active_artboard) || !WRITE(document->artboard_count) ||
+        fwrite(document->artboards, sizeof *document->artboards, document->artboard_count, file) !=
+            (size_t)document->artboard_count ||
+        !WRITE(document->viewport.x) || !WRITE(document->viewport.y) ||
+        !WRITE(document->viewport.zoom) || !WRITE(document->history.count) ||
+        !WRITE(document->history.cursor)) {
+        return false;
+    }
+    for (int i = 0; i < document->history.count; i++) {
+        if (!vector_artboard_command_write(&document->history.commands[i], file)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool vector_editor_checkpoint(const void *instance, const PUIView *view, FILE *file, char *error,
+                              size_t capacity) {
+    const VectorEditor *editor = instance;
+    const VectorDocuments *documents = &editor->documents;
+    unsigned order[PUI_MAX_TABS], selected;
+    if (documents->pending || !capture_tabs(documents, view, order, &selected) ||
+        !WRITE(signature) || !WRITE(documents->count) || !WRITE(selected) ||
+        fwrite(order, sizeof *order, documents->count + 1, file) != (size_t)documents->count + 1) {
+        return fail(error, capacity);
+    }
+    for (int i = 0; i < documents->count; i++) {
+        if (!write_document(&documents->items[i], file)) {
+            return fail(error, capacity);
+        }
+    }
+    return true;
+}
+
+/* Replaying validates command order, limits and agreement with the saved current state.
+ * It never modifies the candidate document or takes ownership of command payloads. */
+static bool valid_history(const VectorDocument *document) {
+    VectorDocument replay = {0};
+    for (int i = 0; i < document->history.count; i++) {
+        VectorCommand command = document->history.commands[i];
+        unsigned previous = replay.active_artboard;
+        int previous_count = replay.artboard_count;
+        if (!command.apply(&replay, command.data) ||
+            replay.active_artboard >= document->next_artboard_id) {
+            return false;
+        }
+        for (int j = 0; j < replay.artboard_count - 1; j++) {
+            if (replay.artboards[j].id == replay.active_artboard) {
+                return false;
+            }
+        }
+        if (!command.revert(&replay, command.data) || replay.active_artboard != previous ||
+            replay.artboard_count != previous_count || !command.apply(&replay, command.data)) {
+            return false;
+        }
+    }
+    for (int i = document->history.count; i > document->history.cursor; i--) {
+        VectorCommand command = document->history.commands[i - 1];
+        if (!command.revert(&replay, command.data)) {
+            return false;
+        }
+    }
+    if (replay.artboard_count != document->artboard_count ||
+        replay.active_artboard != document->active_artboard) {
+        return false;
+    }
+    for (int i = 0; i < replay.artboard_count; i++) {
+        const VectorArtboard *a = &replay.artboards[i], *b = &document->artboards[i];
+        if (a->id != b->id || a->rect.x != b->rect.x || a->rect.y != b->rect.y ||
+            a->rect.w != b->rect.w || a->rect.h != b->rect.h) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool read_document(VectorDocument *document, unsigned expected_id, FILE *file) {
+    int history_count;
+    if (!READ(document->id) || document->id != expected_id || !READ(document->title) ||
+        !memchr(document->title, 0, sizeof document->title) || !READ(document->next_artboard_id) ||
+        !document->next_artboard_id || !READ(document->active_artboard) ||
+        !READ(document->artboard_count) || document->artboard_count < 0 ||
+        document->artboard_count > VECTOR_MAX_ARTBOARDS ||
+        fread(document->artboards, sizeof *document->artboards, document->artboard_count, file) !=
+            (size_t)document->artboard_count ||
+        !READ(document->viewport.x) || !READ(document->viewport.y) ||
+        !READ(document->viewport.zoom) || !isfinite(document->viewport.x) ||
+        !isfinite(document->viewport.y) || !isfinite(document->viewport.zoom) ||
+        document->viewport.zoom < .1f || document->viewport.zoom > 4 || !READ(history_count) ||
+        history_count < 0 || history_count > VECTOR_HISTORY_CAPACITY ||
+        !READ(document->history.cursor) || document->history.cursor < 0 ||
+        document->history.cursor > history_count) {
+        return false;
+    }
+    for (int i = 0; i < history_count; i++) {
+        if (!vector_artboard_command_read(&document->history.commands[i], file)) {
+            return false;
+        }
+        document->history.count++;
+    }
+    return valid_history(document);
+}
+
+static bool read_documents(VectorDocuments *documents, unsigned order[PUI_MAX_TABS],
+                           unsigned *selected, FILE *file) {
+    char actual[sizeof signature];
+    if (!READ(actual) || memcmp(actual, signature, sizeof signature) || !READ(documents->count) ||
+        documents->count < 0 || documents->count > VECTOR_MAX_DOCUMENTS || !READ(*selected) ||
+        *selected > (unsigned)documents->count ||
+        fread(order, sizeof *order, documents->count + 1, file) != (size_t)documents->count + 1) {
+        /* Keep cleanup bounded even for an invalid count. */
+        documents->count = 0;
+        return false;
+    }
+    bool seen[PUI_MAX_TABS] = {0};
+    for (int i = 0; i <= documents->count; i++) {
+        if (order[i] > (unsigned)documents->count || seen[order[i]]) {
+            return false;
+        }
+        seen[order[i]] = true;
+    }
+    for (int i = 0; i < documents->count; i++) {
+        if (!read_document(&documents->items[i], (unsigned)i + 1, file)) {
+            return false;
+        }
+    }
+    return fgetc(file) == EOF && !ferror(file);
+}
+
+static bool restore_tab_order(PUILayout *layout, const VectorDocuments *documents,
+                              const unsigned order[PUI_MAX_TABS], unsigned selected) {
+    for (int i = 0; i < layout->count; i++) {
+        PUINode *tabs = &layout->nodes[i];
+        if (tabs->type != PUI_NODE_TABS || strcmp(tabs->name, "vector_document_tabs")) {
+            continue;
+        }
+        int indices[PUI_MAX_TABS];
+        for (int j = 0; j <= documents->count; j++) {
+            char name[64];
+            tab_name(name, sizeof name, order[j]);
+            indices[j] = -1;
+            for (int k = tabs->child; k >= 0; k = layout->nodes[k].next) {
+                if (!strcmp(layout->nodes[k].name, name)) {
+                    indices[j] = k;
+                    layout->nodes[k].checked = order[j] == selected;
+                    break;
+                }
+            }
+            if (indices[j] < 0) {
+                return false;
+            }
+        }
+        tabs->child = indices[0];
+        for (int j = 0; j <= documents->count; j++) {
+            layout->nodes[indices[j]].next = j < documents->count ? indices[j + 1] : -1;
+        }
+        return true;
+    }
+    return false;
+}
+
+static PUILayout *restore_layout(const PUILayout *base, const VectorDocuments *documents,
+                                 const unsigned order[PUI_MAX_TABS], unsigned selected, char *error,
+                                 size_t capacity) {
+    PUILayout *layout = malloc(sizeof *layout);
+    if (!layout) {
+        return NULL;
+    }
+    *layout = *base;
+    PUILayout *canvas = vector_canvas_layout(error, capacity);
+    if (!canvas) {
+        pui_layout_free(layout);
+        return NULL;
+    }
+    for (int i = 0; i < documents->count; i++) {
+        const VectorDocument *document = &documents->items[i];
+        char name[64];
+        tab_name(name, sizeof name, document->id);
+        PUILayout *next = pui_layout_add_tab(layout, "vector_document_tabs", name, document->title,
+                                             canvas, error, capacity);
+        pui_layout_free(layout);
+        layout = next;
+        if (!layout) {
+            break;
+        }
+    }
+    pui_layout_free(canvas);
+    if (layout && !restore_tab_order(layout, documents, order, selected)) {
+        pui_layout_free(layout);
+        layout = NULL;
+    }
+    return layout;
+}
+
+bool vector_editor_restore(void *instance, FILE *file, char *error, size_t capacity) {
+    VectorEditor *editor = instance;
+    VectorDocuments *loaded = calloc(1, sizeof *loaded);
+    if (!loaded) {
+        return fail(error, capacity);
+    }
+    unsigned order[PUI_MAX_TABS], selected;
+    PUILayout *layout = NULL;
+    if (read_documents(loaded, order, &selected, file)) {
+        layout = restore_layout(editor->layout, loaded, order, selected, error, capacity);
+    }
+    if (!layout) {
+        vector_documents_destroy(loaded);
+        free(loaded);
+        return fail(error, capacity);
+    }
+    vector_documents_destroy(&editor->documents);
+    editor->documents = *loaded;
+    free(loaded); /* Payload ownership has moved into editor->documents. */
+    pui_layout_free(editor->layout);
+    editor->layout = layout;
+    return true;
+}

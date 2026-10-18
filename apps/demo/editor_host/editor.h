@@ -2,6 +2,7 @@
 #ifndef PE_EDITOR_H
 #define PE_EDITOR_H
 #include "pengui/pengui.h"
+#include <stdio.h>
 
 /** @brief Borrowed services; resource_root must outlive editor instances. */
 typedef struct {
@@ -22,6 +23,12 @@ typedef struct {
     PUICanvasRenderer canvas;
     /** @brief Optional editor input after the UI has processed an event. */
     bool (*event)(void *editor, PUIView *view, const SDL_Event *event);
+    /** @brief Optional paired callbacks: snapshot to a session file and restore a fresh candidate.
+     * No pointers, SDL resources or transient gestures may be stored. Restore runs before mount.
+     */
+    bool (*checkpoint)(const void *editor, const PUIView *view, FILE *file, char *error,
+                       size_t capacity);
+    bool (*restore)(void *editor, FILE *file, char *error, size_t capacity);
 } EditorDefinition;
 
 /** @brief Load a module-owned UI file relative to the configured resource root. */

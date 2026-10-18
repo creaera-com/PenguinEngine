@@ -12,7 +12,8 @@ Ergänzen eigener Widgets.
 
 [Editor-Shell und modulare Editoren](docs/EDITOREN.md) beschreibt die zusätzliche
 `pengui_editor`-App, den konfigurierbaren Starteditor, die Modulstruktur und austauschbare
-YAML-Bereiche.
+YAML-Bereiche. Temporäre Checkpoints erhalten die Vector-Dokumente samt Undo/Redo,
+Ansicht und Dokument-Tabs beim Editorwechsel und Reload innerhalb der laufenden Sitzung.
 
 [Programmfluss und Datenmodell des Vektoreditors](docs/VEKTOR_PROGRAMMFLUSS_UND_DATENMODELL.md)
 verfolgt Button-Klicks bis zur Dokumentänderung und erklärt Mausgesten, History,

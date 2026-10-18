@@ -5,8 +5,8 @@ pengUI-Branch. Als Beispiele dienen „Add Document“, das Aufziehen eines Artb
 und Undo/Redo. Alle genannten Funktionen existieren im aktuellen Code.
 
 Die Oberfläche und das Dokument haben unterschiedliche Aufgaben: YAML beschreibt
-Buttons, Tabs und Panels. Die fachlichen Daten liegen in C-Strukturen des
-Vektoreditors. Ein Artboard ist ein Datensatz im Dokument, kein eigenes UI-Widget.
+Buttons, Tabs und Panels. Die fachlichen Daten liegen im aktiven Editor in C-Strukturen; beim Editorwechsel
+werden sie vorübergehend in Sitzungsdateien ausgelagert. Ein Artboard ist ein Datensatz im Dokument, kein eigenes UI-Widget.
 
 ## 1. Welche Datei übernimmt welche Aufgabe?
 
@@ -239,14 +239,15 @@ auch kein fertig gerendertes Bild seiner Zeichenfläche.
 ## 7. Das interne Speichermodell
 
 „Speichern im Arbeitsspeicher“ und „Speichern als Datei“ sind hier getrennte Dinge.
-Der aktuelle Vektoreditor hält Daten im RAM; SVG-Laden und -Speichern sind noch
-nicht implementiert. Der Save-Button hat noch keinen entsprechenden Vector-Handler.
+Der aktuelle Vektoreditor hält aktive Daten im RAM und lagert sie beim Wechsel in temporäre
+Sitzungsdateien aus; SVG-Laden und -Speichern sind noch nicht implementiert. Der Save-Button hat noch keinen entsprechenden Vector-Handler.
 
 ### Besitzstruktur
 
 ```text
 EditorApp                         lokale Struktur in editor_application_run()
   EditorHost
+    checkpoints ----------------> Liste aus Editordefinition + temporaerer FILE-Datei
     instance -------------------> VectorEditor             Heap: calloc()
                                     layout --------------> PUILayout
                                     documents              eingebettete Struktur
@@ -383,6 +384,7 @@ beim Verwerfen des Redo-Zweigs oder beim Zerstören der History freigegeben.
 | Zusammengesetztes View-Layout und Widgetzustände | Von der View verwaltet; beim Austausch bzw. Zerstören freigegeben. |
 | `AddArtboard` vor erfolgreichem `vector_history_execute()` | Gehört dem Aufrufer; `vector_artboard_add()` gibt es bei einem Fehler frei. |
 | `AddArtboard` nach erfolgreicher Übernahme | Gehört der History; Freigabe bei verworfenem Redo-Zweig oder `vector_history_destroy()`. |
+| Temporäre Checkpoint-Dateien und Listeneinträge | Gehören dem Host; alte Fassungen werden nach erfolgreichem Wechsel ersetzt, alle Dateien beim Beenden geschlossen und gelöscht. |
 | SDL-Renderer und Fenster | Gehören der App; werden beim Beenden nach der UI freigegeben. |
 
 Die Callback-Funktionen selbst sind Programmcode und werden nicht pro Befehl
@@ -400,19 +402,78 @@ Alle beschriebenen Abläufe laufen synchron auf dem App-/UI-Thread. Es gibt
 hier keinen Hintergrundthread und keine parallele Dokumentbearbeitung.
 
 Beim Wechsel zwischen Dokument-Tabs bleiben die Dokumente im aktiven Vektoreditor
-im Speicher. Ein Wechsel zu einem anderen **Editor** oder ein Reload entlädt
-dagegen die Vectorinstanz. `vector_documents_destroy()` verwirft Gesten und gibt
-die History-Nutzdaten aller Dokumente frei. Anschließend wird die Instanz freigegeben.
+im Speicher. Ein Wechsel zu einem anderen **Editor** oder ein Reload sichert nun
+zunächst einen Checkpoint und entlädt anschließend die Vectorinstanz.
+`vector_documents_destroy()` verwirft Gesten und gibt die History-Nutzdaten aller
+Dokumente frei. Anschließend wird die Instanz freigegeben. Der Checkpoint hält
+keine Zeiger auf diese freigegebenen Daten.
 
-Der Host erzeugt beim Editorwechsel zunächst die neue Instanz und tauscht den
-UI-Bereich aus. Erst nach Erfolg zerstört er die alte Instanz. Für diesen
-Übergang können kurzzeitig beide Instanzen existieren. Die Module sind statisch
-verlinkt; „Entladen“ bezeichnet das Freigeben ihrer Laufzeitdaten, nicht das
-Entfernen von Maschinencode aus dem Prozess.
+### Checkpoint-Ablauf im Host
 
-Es gibt noch keine Rückfrage bei ungespeicherten Dokumentänderungen und keine
-Dateipersistenz. Nach Entladen oder Beenden sind die Dokumentdaten verloren.
-Die YAML-Dateien werden durch Dokumentänderungen ebenfalls nicht beschrieben.
+```text
+editor_host_commit()
+  -> bisheriges commit_ui(): ausstehende Dokument-Tabs übernehmen
+  -> editor_checkpoint_capture()
+       -> vector_editor_checkpoint(): Werte in neue temporäre Datei schreiben
+       -> Datei flushen; bisherigen Checkpoint noch behalten
+  -> Ziel-Editor create()
+  -> editor_checkpoint_restore(), falls ein Checkpoint vorliegt
+       -> vector_editor_restore(): Daten und History laden, Layout vorbereiten
+  -> pui_view_replace_slot(): vollständig vorbereitete UI übernehmen
+  -> editor_checkpoint_publish(): neue Datei ersetzt die bisherige Fassung
+  -> bisheriges destroy(): alte Laufzeitdaten freigeben
+```
+
+Bei einem Reload ist der Ziel-Editor derselbe. Er erhält direkt den gerade frisch
+geschriebenen Checkpoint. Bei einem Wechsel zu Vector wird dessen zuletzt abgelegte
+Sitzungsdatei gelesen. Der Adapter-Vertrag in `EditorDefinition` besitzt dafür die
+optionalen Funktionen `checkpoint()` und `restore()`.
+
+Fehlschläge beim Sichern, Erzeugen, Laden oder Mounten brechen den Wechsel ab.
+Der bisher aktive Editor und der zuvor erfolgreich abgelegte Checkpoint bleiben
+erhalten. Das Vorbereiten erfolgt vor dem Austausch der laufenden Oberfläche.
+
+### Was steht in der temporären Datei?
+
+[checkpoint.c](../editors/vector/checkpoint.c) schreibt eine Versionssignatur,
+Dokumentanzahl, Tab-Reihenfolge und Tab-Auswahl. Danach folgen pro Dokument
+Identität, Titel, Artboard-Array, nächste und aktive Artboard-ID, Zoom/Verschiebung
+sowie History-Anzahl, Cursor und die Änderungsdaten aller Befehle.
+
+Die Einträge umfassen auch rückgängig gemachte Befehle: Redo funktioniert nach dem
+Zurückwechseln weiter. [artboard.c](../editors/vector/artboard.c) schreibt für diese
+Befehle einen Typkennzeichner und die Artboard-Daten mit Einfügeindex und vorheriger
+aktiver ID. Funktionszeiger und Heap-Adressen werden niemals gespeichert.
+Beim Lesen werden neue Nutzdaten reserviert und die passenden lokalen `apply`-/
+`revert`-Funktionen zugeordnet. Ein Probe-Durchlauf prüft die Konsistenz der History
+mit dem gespeicherten Dokumentzustand.
+
+Die Wiederherstellung baut neue Canvas-Tabs in einem neuen Layout auf. Die
+Reihenfolge wird rekonstruiert und der gespeicherte Tab über dessen `checked`-
+Anfangswert ausgewählt. `pui_view_tab_at()` liefert beim Sichern die aktuelle
+Anzeigereihenfolge. Laufende Mausgesten und Capture, die Werkzeug-Vorschau und
+sonstige Widgetzustände werden nicht serialisiert. Der Bildschirmbereich des
+Viewports wird beim Zeichnen neu berechnet; Pan und Zoom bleiben erhalten.
+
+Das Format verwendet native C-Zahlenrepräsentationen und gilt nur innerhalb der
+laufenden Sitzung. Es ist kein portables Dokumentformat. Verweise auf Dokumente
+vor dem Wechsel bleiben ungültig: Nach der Rückkehr sind neue Strukturen und
+History-Nutzdaten entstanden, auch wenn ihre fachlichen IDs gleich geblieben sind.
+
+Die temporäre Datei gehört dem Host, nicht der Editorinstanz.
+[checkpoint.c im Host](../apps/demo/editor_host/checkpoint.c) hält nur kleine
+Listeneinträge und offene Dateien; inaktive Modelle, Canvas-Views und History-
+Nutzdaten bleiben nicht im RAM. Die Module sind statisch verlinkt; „Entladen“
+bezeichnet weiterhin die Laufzeitdaten, nicht den Maschinencode. Während eines
+Wechsels können kurzzeitig bisherige und neue Instanz gleichzeitig existieren.
+
+[platform/temp_file.c](../apps/demo/platform/temp_file.c) kapselt die Anlage privater,
+beim Schließen gelöschter Dateien im temporären Bereich des Betriebssystems.
+Beim App-Ende schließt `editor_host_destroy()` alle Dateien. Ein Neustart beginnt
+mit leeren Dokumenten; eine Wiederherstellung nach einem Neustart oder Absturz
+ist nicht Bestandteil dieses Mechanismus. YAML wird durch Dokumentänderungen
+nicht beschrieben. Eine Rückfrage beim Beenden und reguläres SVG-Speichern
+sind weiterhin offen.
 
 ## 10. Wo setzt eine weitere Änderungsfunktion an?
 
@@ -429,7 +490,8 @@ Die History fordert, dass `apply()` und `revert()` bei einem Fehler keine
 Teiländerung hinterlassen. Neue Befehle müssen ihre erforderlichen Prüfungen
 entsprechend vor der eigentlichen Mutation durchführen. Wenn die Nutzdaten
 später ihrerseits Heap-Zeiger enthalten, muss auch der Freigabevertrag erweitert
-werden: Aktuell ruft die History lediglich `free(command.data)` auf.
+werden: Aktuell ruft die History lediglich `free(command.data)` auf. Neue Befehlstypen
+benötigen außerdem eine Erweiterung des Checkpoint-Codecs.
 
 Damit bleiben UI-Beschreibung, Interaktionszustand, fachliche Mutation und
 Undo/Redo nachvollziehbar getrennt. Die konkrete Struktur für zukünftige

@@ -64,13 +64,17 @@ void pui_widget_tabs_init(PUIView *view, int i) {
 
     PUITab tabs[PUI_MAX_TABS];
     int count = 0;
+    PUIId selected = 0;
     for (int k = n->child; k >= 0; k = layout->nodes[k].next) {
         const PUINode *tab = &layout->nodes[k];
+        if (tab->checked && tab->enabled) {
+            selected = tab->id;
+        }
         tabs[count++] =
             (PUITab){tab->id, tab->enabled,
                      pui_tab_content_width(pui_icon_from_name(tab->icon), tab->text) + PUI_TAB_GAP};
     }
-    pui_tabs_init(&view->state[i].tabs, tabs, count, tabs[0].id);
+    pui_tabs_init(&view->state[i].tabs, tabs, count, selected ? selected : tabs[0].id);
 }
 
 static int tabs_index(const PUIView *view, const char *tabs) {

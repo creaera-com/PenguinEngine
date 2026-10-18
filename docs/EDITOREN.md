@@ -94,6 +94,8 @@ besteht, braucht noch keine leere C-Datei. So bleiben die Dateien nach Aufgaben 
 | `destroy()` | Instanz und ihre eigenen Ressourcen freigeben |
 | `action()` | Optional: eine Aktion des aktiven Editors behandeln |
 | `commit_ui()` | Optional: vorgemerkte UI-Umbauten zwischen zwei Frames übernehmen |
+| `canvas()` / `event()` | Optional: eigene Zeichenfläche zeichnen und Eingaben verarbeiten |
+| `checkpoint()` / `restore()` | Optionales Paar: Sitzungsdaten in eine temporäre Datei schreiben und vor dem Mounten wiederherstellen |
 
 Der Host besitzt genau eine aktive Instanz. Registrierte Definitionen sind kleine,
 konstante Beschreibungen und halten keine inaktiven Editor-Views oder Dokumente am Leben.
@@ -105,7 +107,7 @@ zwischen den Modulen werden über den Adapter-Vertrag und die Architekturprüfun
 Die Module sind statisch ins Programm gelinkt; ihre Laufzeitobjekte und UI-Ressourcen
 werden freigegeben. Dynamische Bibliotheken und deren Entladen sind hier nicht beteiligt.
 
-Die bisherigen drei Adapter haben noch keine fachlichen Aktionen. Zum Ergänzen einer
+Scripts und Game haben noch keine fachlichen Aktionen; Vector implementiert Dokumente und Artboards. Zum Ergänzen einer
 Aktion implementierst du im Editor eine Funktion mit der Signatur von `action()` und
 trägst sie in dessen `adapter.c` als `.action = ...` ein. Sie kann dann an Funktionen in
 `inspector.c` oder anderen Dateien desselben Moduls weiterleiten. Ein `true` bedeutet,
@@ -148,12 +150,14 @@ UI vollständig vorbereitet und anschließend ausgetauscht.
 Ein Klick auf den bereits aktiven Editor erzeugt keine neue Instanz. Der Reload-Button
 und F6 fordern dagegen ausdrücklich einen Neuaufbau des aktiven Editors an. Dabei werden
 `editor.yaml` und `inspector.yaml` erneut geladen; die Shell-Datei und die Startkonfiguration
-werden erst beim nächsten App-Start neu eingelesen.
+werden erst beim nächsten App-Start neu eingelesen. Die Vector-Dokumente und ihre History
+bleiben dabei durch einen temporären Checkpoint erhalten.
 
 Nach erfolgreichem Wechsel werden die alte Instanz, deren Layout sowie die alten
 UI-Zustände und Bildressourcen des entfernten Inhalts freigegeben. Während der
 Vorbereitung existieren vorübergehend beide Instanzen, damit ein Fehler die laufende UI
-nicht zerstört. Es gibt keinen Cache inaktiver Editoren.
+nicht zerstört. Es gibt keinen Cache inaktiver Editorinstanzen; erhalten bleiben lediglich
+deren temporäre Sitzungsdateien und die kleinen Verwaltungsdaten im Host.
 
 ## Wie die getrennten YAML-Dateien zusammenkommen
 
@@ -281,12 +285,49 @@ eines laufenden Aufziehens bleiben Zoom und Pan unverändert.
 `editor.undo` entfernt das zuletzt angelegte Artboard, `editor.redo` stellt dasselbe
 Artboard mit derselben ID wieder her. Eine neue Änderung nach Undo verwirft den
 bisherigen Redo-Zweig. Pan und Zoom verändern die History nicht. Dokumente werden
-weiterhin nicht gespeichert; beim Editorwechsel oder Reload werden sie samt History entladen.
+weiterhin nicht als Benutzerdateien gespeichert. Beim Editorwechsel oder Reload werden
+sie samt History temporär gesichert, ihre Laufzeitdaten freigegeben und bei Rückkehr wieder geladen.
 
 `pui_view_add_tab()` und Slot-Austausch dürfen nur zwischen Frames stattfinden.
 Bestehende Widget-Zustände und Tab-Reihenfolgen bleiben erhalten; neue Tabs werden ausgewählt.
 Der Vector-Übersicht folgen maximal 15 Dokument-Tabs, pro Dokument maximal 64 Artboards.
 Die History fasst aktuell 128 Befehle; an dieser Grenze werden weitere Änderungen abgewiesen.
+
+## Temporäre Checkpoints beim Editorwechsel
+
+[checkpoint.c im Host](../apps/demo/editor_host/checkpoint.c) verwaltet pro Editor
+eine temporäre Datei. Der Host kennt den Inhalt nicht. Der jeweilige Adapter stellt
+das Paar `checkpoint` und `restore` bereit. Scripts und Game haben noch keinen
+fachlichen Zustand und benötigen daher derzeit keinen Checkpoint.
+
+Vor dem Wechsel übernimmt der Host noch vorgemerkte Dokument-Tabs und schreibt dann
+den aktuellen Zustand in eine neue temporäre Datei. Der bisherige Checkpoint bleibt
+erhalten, bis der Wechsel erfolgreich ist. Anschließend wird die neue Instanz erstellt,
+ihr letzter Checkpoint eingelesen und ihre Oberfläche vollständig vorbereitet. Erst nach
+dem erfolgreichen UI-Austausch wird die alte Instanz zerstört. Bei einem Fehler bleibt
+der bisherige Editor aktiv. Auch F6/Reload verwendet den gerade frisch gesicherten Zustand.
+
+[checkpoint.c im Vektoreditor](../editors/vector/checkpoint.c) speichert:
+
+- IDs und Titel aller Dokumente sowie ihre Artboards und die nächste Artboard-ID.
+- Vollständige Undo-/Redo-History einschließlich eines noch vorhandenen Redo-Zweigs.
+- Zoom und Verschiebung pro Dokument.
+- Reihenfolge und Auswahl der Dokument-Tabs, einschließlich des Übersichtstabs.
+
+Maus-Capture, laufende Werkzeug-Vorschauen, SDL-Ressourcen und sonstige Widgetzustände
+werden nicht gesichert. Splitgrößen innerhalb des entfernten Editors werden beim Laden
+wieder aus YAML initialisiert. Die Shell bleibt als laufende View erhalten.
+
+Das private Binärformat ist versioniert und gilt nur innerhalb des laufenden Prozesses.
+Es enthält Werte, keine Heap- oder Funktionszeiger. Die History-Callbacks werden anhand
+des Befehlstyps beim Laden neu zugeordnet. Unvollständige oder ungültige Checkpoints
+werden abgelehnt. Neue fachliche Befehlstypen benötigen auch einen passenden Codec.
+
+[platform/temp_file.c](../apps/demo/platform/temp_file.c) kapselt die temporäre Datei:
+unter Linux/macOS über `tmpfile()`, unter Windows über den Benutzer-Tempbereich mit
+Löschen beim Schließen. Es gibt keine Dateien im Projekt- oder Ressourcenverzeichnis
+und keine Wiederherstellung über App-Neustarts hinweg. Der Host schließt alle
+Checkpoint-Dateien beim Beenden.
 
 ## Einen weiteren Editor ergänzen
 
@@ -303,8 +344,9 @@ Unabhängige Fachbereiche sollen nicht gegenseitig ihre privaten Header einbinde
 ## Was absichtlich noch offen ist
 
 Es gibt noch keinen SVG-Canvas, keine Skriptausführung und keine Game-Engine-Funktionen.
-Es gibt noch keine Speicherung oder Rückfrage bei ungespeicherten Dokumentänderungen.
-Editorwechsel und Reload verwerfen derzeit die Dokumente einschließlich ihrer Artboards.
+Es gibt noch keine SVG-Speicherung oder Rückfrage bei ungespeicherten Dokumentänderungen.
+Editorwechsel und Reload erhalten Dokumente über temporäre Sitzungsdateien. Beim Beenden
+der App werden diese Dateien geschlossen und gelöscht; beim Neustart beginnt eine neue Sitzung.
 
 Die neue Struktur bereitet die UI-Zusammensetzung und den Lebenszyklus vor. Die nächsten
 Funktionen können dadurch im jeweiligen Editor und seinen einzelnen Bereichen entstehen.

@@ -8,6 +8,8 @@ typedef struct {
     EditorServices services;
     const EditorDefinition *active, *pending;
     void *instance;
+    struct EditorCheckpoint
+        *checkpoints; ///< Opaque session snapshots; no inactive editor instances.
 } EditorHost;
 
 /** @brief Initialize an empty host, borrowing the services' resource root. */

@@ -162,3 +162,24 @@ bool pui_view_hit(const PUIView *view, const char *widget, float x, float y) {
     }
     return false;
 }
+
+const char *pui_view_tab_at(const PUIView *view, const char *tabs, int index) {
+    if (!view || !tabs || index < 0) {
+        return NULL;
+    }
+    for (int i = 0; i < view->layout->count; i++) {
+        const PUINode *node = &view->layout->nodes[i];
+        if (node->type == PUI_NODE_TABS && !strcmp(node->name, tabs)) {
+            if (index >= view->state[i].tabs.count) {
+                return NULL;
+            }
+            PUIId id = view->state[i].tabs.items[index].id;
+            for (int k = node->child; k >= 0; k = view->layout->nodes[k].next) {
+                if (view->layout->nodes[k].id == id) {
+                    return view->layout->nodes[k].name;
+                }
+            }
+        }
+    }
+    return NULL;
+}

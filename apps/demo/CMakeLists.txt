@@ -14,11 +14,12 @@ add_dependencies(pengui_playground pengui_playground_resources)
 
 # Editor shell is a separate example app; pengUI itself has no editor dependency.
 add_library(pengui_editor_support STATIC
- editor/config.c shell/shell.c
- editor_host/host.c editor_host/registry.c editor_host/resources.c
+ editor/config.c shell/shell.c platform/temp_file.c
+ editor_host/host.c editor_host/checkpoint.c editor_host/registry.c editor_host/resources.c
  ${PROJECT_SOURCE_DIR}/editors/vector/adapter.c
  ${PROJECT_SOURCE_DIR}/editors/vector/editor.c
  ${PROJECT_SOURCE_DIR}/editors/vector/document.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/checkpoint.c
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard.c
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard_tool.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ruler.c

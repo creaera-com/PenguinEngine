@@ -245,7 +245,7 @@ static void test_add_document_button_appends_and_selects_tabs_between_frames(voi
     TEST_ASSERT_EQUAL_INT(PUI_MAX_TABS, pui_view_tab_count(shell.view, "vector_document_tabs"));
     activate("scripts");
     activate("vector");
-    TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_EQUAL_INT(PUI_MAX_TABS, pui_view_tab_count(shell.view, "vector_document_tabs"));
 }
 
 static void test_append_tab_retains_existing_input_values_and_dragged_order(void) {
