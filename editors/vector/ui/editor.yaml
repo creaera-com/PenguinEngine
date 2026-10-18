@@ -47,7 +47,7 @@ root:
           children:
             - {type: button, id: vector_add_document, icon: tabler:file-plus, action: vector.add_document, width: 30}
             - {type: separator}
-            - {type: button, id: vector_add_artboard, icon: tabler:artboard, action: vector.add_artboard, width: 30}
+            - {type: toggle, id: vector_add_artboard, icon: tabler:artboard, action: vector.add_artboard, width: 30}
             - {type: spacer}
 
         - type: tabs

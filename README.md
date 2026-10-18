@@ -102,15 +102,18 @@ Enthaltene Fremdsoftware: libyaml (MIT), stb_image (MIT/Public Domain), Unity (M
 
 ## Tabler Icons
 
-52 Tabler-Outline-Icons sind eingebettet und direkt per YAML verfügbar:
+Der vollständige Tabler-Katalog von v3.49.0 ist eingebettet: **6.238 Icons**,
+davon 5.184 Outline- und 1.054 gefüllte Icons. Sie sind offline per YAML verfügbar:
 
 ```yaml
 - {type: button, icon: tabler:device-floppy, action: editor.save}
-- {type: button, icon: tabler:artboard, action: vector.add_artboard}
+- {type: toggle, icon: tabler:artboard, action: vector.add_artboard}
+- {type: button, icon: tabler:filled/heart, action: app.favorite}
 ```
 
-Die Symbole übernehmen die Farbe des Widgets. Die enthaltene Auswahl und die Anleitung
-zum Ergänzen weiterer Icons stehen unter [Tabler Icons](third_party/tabler-icons/README.md).
+Die Symbole übernehmen die Farbe des Widgets. [Alle verfügbaren Namen](third_party/tabler-icons/catalog.txt)
+und [Details zur Einbindung](third_party/tabler-icons/README.md) sind im Repository enthalten.
+Es werden zur Laufzeit keine Icons heruntergeladen.
 Der normale C-Build benötigt dafür weder Downloads noch zusätzliche Python-Pakete.
 In C liefert `pui_icon_from_name("tabler:artboard")` das Symbol für `pui_icon()`.
 

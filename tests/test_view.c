@@ -660,8 +660,39 @@ static void test_tabler_icons_resolve_render_and_tint_cached_masks(void) {
     SDL_DestroySurface(surface);
 }
 
+static void test_complete_tabler_catalog_and_filled_variants_are_available_offline(void) {
+    FILE *catalog = fopen(PENGUI_TABLER_CATALOG, "r");
+    TEST_ASSERT_NOT_NULL(catalog);
+    char name[256];
+    int count = 0;
+    while (fgets(name, sizeof name, catalog)) {
+        if (name[0] == '#') {
+            continue;
+        }
+        name[strcspn(name, "\r\n")] = 0;
+        TEST_ASSERT_EQUAL_INT(ICON_TABLER_BASE + count, pui_icon_from_name(name));
+        count++;
+    }
+    fclose(catalog);
+    TEST_ASSERT_EQUAL_INT(6238, count);
+    TEST_ASSERT_EQUAL_INT(pui_icon_from_name("tabler:heart"),
+                          pui_icon_from_name("tabler:outline/heart"));
+    PUIIcon outline = pui_icon_from_name("tabler:heart");
+    PUIIcon filled = pui_icon_from_name("tabler:filled/heart");
+    TEST_ASSERT_TRUE(filled >= ICON_TABLER_BASE);
+    TEST_ASSERT_NOT_EQUAL(outline, filled);
+    pui_panel(renderer, (SDL_FRect){0, 0, 400, 300}, 0x000000FF);
+    pui_icon(renderer, outline, 10, 10, 48, 0xFFFFFFFF);
+    pui_icon(renderer, filled, 80, 10, 48, 0xFFFFFFFF);
+    assert_pixel(34, 34, 0x000000FF);
+    assert_pixel(104, 34, 0xFFFFFFFF);
+    TEST_ASSERT_NULL(pui_image_load_memory(renderer, "invalid PNG", 11));
+    TEST_ASSERT_NULL(pui_image_load_memory(renderer, NULL, 0));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_complete_tabler_catalog_and_filled_variants_are_available_offline);
     RUN_TEST(test_tabler_icons_resolve_render_and_tint_cached_masks);
     RUN_TEST(test_runtime_tree_hierarchy_updates_and_mounts_preserve_state);
     RUN_TEST(test_double_click_selects_word_and_drag_extends_by_words);

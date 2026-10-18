@@ -548,8 +548,49 @@ static void test_ruler_ticks_follow_document_scale_and_preserve_canvas_clip(void
     }
 }
 
+static void artboard_action(void *context, const char *name, const char *widget) {
+    TEST_ASSERT_EQUAL_STRING("vector.add_artboard", name);
+    TEST_ASSERT_TRUE(editor_host_action(context, shell.view, name, widget));
+}
+
+static void test_artboard_tool_button_stays_active_until_cancel_or_creation(void) {
+    activate("vector");
+    VectorDocument *document = add_vector_document();
+    pui_pointer(&shell.input, 338, 70, true);
+    pui_pointer(&shell.input, 338, 70, false);
+    pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 800, 600}, artboard_action, &host);
+    TEST_ASSERT_TRUE(document->artboard_tool.enabled);
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "vector_add_artboard"));
+    SDL_Event event = {.type = SDL_EVENT_MOUSE_BUTTON_DOWN};
+    event.button.button = SDL_BUTTON_LEFT;
+    event.button.x = 350;
+    event.button.y = 250;
+    canvas_event(&event);
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "vector_add_artboard"));
+    event.type = SDL_EVENT_MOUSE_BUTTON_UP;
+    canvas_event(&event);
+    TEST_ASSERT_EQUAL_INT(0, document->artboard_count);
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "vector_add_artboard"));
+    event.type = SDL_EVENT_KEY_DOWN;
+    event.key.key = SDLK_ESCAPE;
+    canvas_event(&event);
+    TEST_ASSERT_FALSE(pui_view_checked(shell.view, "vector_add_artboard"));
+    draw_artboard();
+    TEST_ASSERT_EQUAL_INT(1, document->artboard_count);
+    TEST_ASSERT_FALSE(pui_view_checked(shell.view, "vector_add_artboard"));
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "vector_add_artboard"));
+    event.type = SDL_EVENT_WINDOW_FOCUS_LOST;
+    canvas_event(&event);
+    TEST_ASSERT_FALSE(pui_view_checked(shell.view, "vector_add_artboard"));
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    add_vector_document();
+    TEST_ASSERT_FALSE(pui_view_checked(shell.view, "vector_add_artboard"));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_artboard_tool_button_stays_active_until_cancel_or_creation);
     RUN_TEST(test_ruler_ticks_follow_document_scale_and_preserve_canvas_clip);
     RUN_TEST(test_drag_normalizes_zoomed_coordinates_and_commits_once);
     RUN_TEST(test_artboard_cancel_empty_drag_and_release_outside_canvas);

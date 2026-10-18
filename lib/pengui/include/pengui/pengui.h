@@ -495,7 +495,7 @@ PUIRect pui_popup_rect(PUIRect bounds, PUIRect anchor, float width, float height
 typedef struct {
     PUINodeType type;
     PUIId id;
-    char name[64], text[256], action[64], icon[32], image[512];
+    char name[64], text[256], action[64], icon[128], image[512];
     float width, height, gap, padding, initial, minimum_first, minimum_second, image_padding;
     float initial_second; ///< Preferred middle size for three-pane splits.
     float initial_last;   ///< Preferred size of the final pane.
@@ -851,7 +851,7 @@ bool pui_view_hit(const PUIView *view, const char *widget, float x, float y);
  * Runtime rows do not consume layout nodes. At most PUI_LAYOUT_NODES rows per tree.
  */
 typedef struct {
-    char id[64], text[256], icon[32], action[64];
+    char id[64], text[256], icon[128], action[64];
     int depth;
     bool enabled, open;
 } PUITreeItem;
@@ -917,6 +917,8 @@ const char *pui_view_value(const PUIView *view, const char *id);
 bool pui_view_set_value(PUIView *view, const char *id, const char *value);
 /** @brief Load a bounded PNG image as a renderer-owned texture; caller must destroy it. */
 SDL_Texture *pui_image_load(SDL_Renderer *renderer, const char *path);
+/** @brief Load a bounded PNG from borrowed memory; returned texture belongs to its renderer. */
+SDL_Texture *pui_image_load_memory(SDL_Renderer *renderer, const void *data, size_t length);
 
 /** @file @brief Optional borderless SDL window controls, independent of application actions. */
 

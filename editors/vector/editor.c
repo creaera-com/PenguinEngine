@@ -2,6 +2,7 @@
 #include "artboard/tool.h"
 #include "internal.h"
 #include "ui/inspector.h"
+#include "ui/toolbar.h"
 #include "workspace/canvas.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,16 +60,19 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
     if (!strcmp(name, "vector.add_artboard") || !strcmp(name, "editor.undo") ||
         !strcmp(name, "editor.redo")) {
         if (!document) {
+            vector_toolbar_sync(view, NULL);
             pui_view_set_text(view, "status", "Zuerst ein Dokument anlegen oder auswaehlen");
             return true;
         }
         if (!strcmp(name, "vector.add_artboard")) {
             vector_artboard_tool_arm(document);
+            vector_toolbar_sync(view, document);
             pui_view_set_text(view, "status",
                               "Artboard aufziehen (linke Maustaste), Esc: abbrechen");
             return true;
         }
         vector_artboard_tool_cancel(document);
+        vector_toolbar_sync(view, document);
         bool changed = !strcmp(name, "editor.undo")
                            ? vector_history_undo(&document->history, document)
                            : vector_history_redo(&document->history, document);
@@ -101,7 +105,9 @@ bool vector_editor_event(void *instance, PUIView *view, const SDL_Event *event) 
     VectorEditor *editor = instance;
     VectorDocument *document = vector_document_tabs_active(&editor->documents, view);
     vector_workspace_cancel_inactive(&editor->documents, document);
-    return document && vector_canvas_event(document, view, event);
+    bool consumed = document && vector_canvas_event(document, view, event);
+    vector_toolbar_sync(view, document);
+    return consumed;
 }
 
 bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, char *error,
@@ -111,6 +117,7 @@ bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, c
                                      capacity)) {
         return false;
     }
+    vector_toolbar_sync(view, vector_document_tabs_active(&editor->documents, view));
     return vector_document_tree_sync(&editor->document_tree,
                                      vector_document_tabs_active(&editor->documents, view), view,
                                      error, capacity);

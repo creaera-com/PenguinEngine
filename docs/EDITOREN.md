@@ -82,6 +82,7 @@ editors/
     ui/
       inspector.c/.h    Laden der Inspector-Oberfläche
       document_tree.c/.h Abgeleitete Tree-Ansicht des aktiven Dokuments
+      toolbar.c/.h      Werkzeugstatus der Toolbar
       editor.yaml       Dreispaltiger Arbeitsbereich
       inspector.yaml    Inhalt des Inspector-Slots
   scripts/              Bisheriges kleines Editorgerüst
@@ -297,7 +298,10 @@ angelegt; die Position bleibt dort, wo du gezeichnet hast. Koordinaten werden au
 Pixel gerundet, die Mindestgröße beträgt 1 × 1 Pixel. Ein einfacher Klick erzeugt nichts.
 Escape oder Fokusverlust bricht ohne Änderung ab; beim Tabwechsel wird das Werkzeug ebenfalls
 zurückgesetzt. Nach erfolgreichem Anlegen endet das Werkzeug; für ein weiteres Artboard
-klickst du erneut auf den Toolbar-Button.
+klickst du erneut auf den Toolbar-Button. Der Button bleibt während des eingeschalteten
+Werkzeugs hervorgehoben, auch während des Aufziehens oder nach einem Klick ohne Größe.
+Nach erfolgreichem Anlegen, Escape, Fokusverlust oder Dokumentwechsel endet die
+Hervorhebung. `ui/toolbar.c` leitet sie aus dem Zustand des aktiven Dokuments ab.
 
 Jedes Artboard erhält oben und links ein dezentes Pixel-Lineal mit lokalem Nullpunkt.
 [ruler.c](../editors/vector/workspace/ruler.c) passt die Unterteilung dem Zoom an, während die

@@ -1,0 +1,7 @@
+/** @file @brief Toolbar presentation derived from the active document's tool state. */
+#ifndef PE_VECTOR_TOOLBAR_H
+#define PE_VECTOR_TOOLBAR_H
+#include "editors/vector/document/document.h"
+/** @brief Keep tool button highlights aligned with the active document; no document mutation. */
+void vector_toolbar_sync(PUIView *view, const VectorDocument *document);
+#endif

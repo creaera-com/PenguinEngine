@@ -14,8 +14,17 @@ if(NOT MSVC)
  target_link_libraries(pengUI PUBLIC m)
 endif()
 if(PENGUI_BUILD_SDL)
+ set(tabler_bytes "${CMAKE_CURRENT_BINARY_DIR}/tabler_bytes.c")
+ add_custom_command(OUTPUT "${tabler_bytes}"
+  COMMAND ${CMAKE_COMMAND}
+   "-DINPUT=${CMAKE_CURRENT_SOURCE_DIR}/src/rendering/tabler_atlas.bin"
+   "-DOUTPUT=${tabler_bytes}"
+   -P "${PROJECT_SOURCE_DIR}/cmake/EmbedBinary.cmake"
+  DEPENDS src/rendering/tabler_atlas.bin "${PROJECT_SOURCE_DIR}/cmake/EmbedBinary.cmake"
+  VERBATIM)
  # SDL counterparts contain each widget's drawing and native input handling.
  add_library(pengUI_sdl STATIC
+  "${tabler_bytes}"
   src/rendering/text.c src/rendering/icons.c src/rendering/tabler.c src/rendering/theme.c
   src/rendering/image.c src/rendering/primitives.c
   src/widgets/button_sdl.c src/widgets/toggle_sdl.c src/widgets/checkbox_sdl.c

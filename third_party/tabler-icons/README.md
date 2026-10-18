@@ -1,30 +1,54 @@
-# Tabler Icons (outline selection)
+# Tabler Icons — complete pinned catalog
 
 Upstream: https://github.com/tabler/tabler-icons
 Version: v3.49.0
 Pinned revision: bbed884d15354b5cebf2493371f20dc2d5e83eaf
 License: MIT, see [LICENSE](LICENSE).
 
-This directory contains 52 unmodified outline SVGs from `icons/outline/` in that
-revision. This is a selection, not the complete upstream catalog. The SVGs are
-the source assets; the normal application does not load or download them.
+All **6,238 icons** from this revision are included: **5,184 outline** and
+**1,054 filled** icons. The original, unmodified SVG files are bundled in
+`sources.tar.gz`, with `outline/` and `filled/` directories. The archive contains
+only the icon sources; it is not unpacked or loaded by the application.
 
-`tools/generate_tabler_icons.py` converts the selected SVGs into embedded 64x64
-alpha masks in `lib/pengui/src/rendering/tabler_atlas.h`. Runtime textures are
-created lazily and tinted by pengUI, so active/disabled/hover styles remain
-consistent. Small UI icons up to 64px are the intended use; these masks are not
-a general-purpose SVG renderer.
+Every available YAML name is listed in [catalog.txt](catalog.txt).
 
-To add another outline icon:
+```yaml
+icon: tabler:artboard
+icon: tabler:outline/heart
+icon: tabler:filled/heart
+```
 
-1. Copy the original SVG from the pinned upstream revision into `icons/` here.
-2. Install the development dependencies: `python -m pip install Pillow svgpathtools`.
-3. Run `python tools/generate_tabler_icons.py` from the repository root.
-4. Run `python tools/format_code.py`, then build and test.
-5. Commit the SVG and generated header together, keeping the upstream license.
+`tabler:<name>` is the short form for an outline icon. `outline/` is optional;
+`filled/` selects a filled variant. Names are case-sensitive and unknown names
+resolve to `ICON_NONE`. Existing built-in names such as `save` remain valid.
+In C use `pui_icon_from_name("tabler:filled/heart")` and `pui_icon(...)`.
+Numeric icon IDs are implementation details; persist names instead.
 
-Use `icon: tabler:<filename-without-svg>` in YAML, for example
-`icon: tabler:artboard` or `icon: tabler:file-plus`. C consumers use
-`pui_icon_from_name("tabler:artboard")`, then `pui_icon(...)`.
-Names are case-sensitive; unknown names resolve to `ICON_NONE`. All files in
-`icons/` are supported. Existing built-in names such as `save` remain valid.
+## Offline rendering and memory
+
+There is **no automatic icon download**. The entire catalog is embedded in the
+SDL library. No network access, resource path or SVG parser is needed at runtime.
+Only a texture page needed for drawing is decoded and cached by its renderer;
+the application does not create thousands of textures at startup.
+
+`lib/pengui/src/rendering/tabler_atlas.bin` contains compressed PNG pages of
+16 tintable 64x64 masks each. `tabler_atlas.h` maps names to pages and slots.
+CMake embeds the binary asset into a generated C source during the normal build,
+without Python or additional packages. SDL releases cached pages with the renderer.
+Colors follow widget state. These masks target small UI icons, not arbitrary-size
+SVG artwork or a general-purpose SVG renderer.
+
+## Rebuilding or updating the catalog
+
+Regeneration is a development task; it is not performed during a normal build:
+
+1. Install `CairoSVG==2.8.2` and Pillow, plus Cairo's native library if needed.
+2. Run `python tools/generate_tabler_icons.py` from the repository root.
+3. Run `python tools/format_code.py`, build, and test.
+4. Commit `tabler_atlas.bin`, `tabler_atlas.h`, and `catalog.txt` together.
+
+For a version update, replace `sources.tar.gz` with the complete outline and
+filled sources from the chosen upstream revision, update provenance and license,
+then regenerate all artifacts. The generated pages use lossless PNG compression;
+individual icon pixels are rendered from the original SVGs using CairoSVG.
+New upstream releases are not downloaded automatically.

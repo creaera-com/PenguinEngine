@@ -152,7 +152,10 @@ Dokument; dort erscheint lediglich eine Statusmeldung.
 Mit aktivem Dokument ruft `vector_editor_action()`
 `vector_artboard_tool_arm(document)` auf. Dabei wird das Werkzeug aktiviert und
 eine eventuell vorherige Vorschau verworfen. Es entsteht noch kein Artboard und
-noch kein History-Eintrag.
+noch kein History-Eintrag. `vector_toolbar_sync()` aus
+[ui/toolbar.c](../editors/vector/ui/toolbar.c) hält die Aktiv-Markierung des
+`vector_add_artboard`-Toggles synchron zum Werkzeugzustand. Beim Erstellen oder
+Abbrechen wird der Toggle wieder inaktiv.
 
 ### Der Maus-Drag läuft über die Ereignis-Schnittstelle
 
