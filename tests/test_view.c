@@ -578,8 +578,56 @@ static void test_triple_click_and_control_or_command_a_select_all(void) {
     }
 }
 
+static void runtime_tree_action(void *context, const char *name, const char *widget) {
+    TEST_ASSERT_EQUAL_STRING("tree.select", name);
+    snprintf(context, 64, "%s", widget);
+}
+
+static void test_runtime_tree_hierarchy_updates_and_mounts_preserve_state(void) {
+    pui_view_free(view);
+    pui_layout_free(layout);
+    const char *yaml = "schema: pengui/v1\nroot: {type: column, padding: 0, children: "
+                       "[{type: tree, id: objects, height: 200}, {type: slot, id: body}]}";
+    char error[256], selected[64] = {0};
+    layout = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL(layout);
+    view = pui_view_new(layout, renderer);
+    PUITreeItem items[] = {
+        {.id = "a", .text = "Artboard A", .action = "tree.select", .enabled = true, .open = true},
+        {.id = "child", .text = "Group", .action = "tree.select", .depth = 1, .enabled = true},
+        {.id = "b", .text = "Artboard B", .action = "tree.select", .enabled = true}};
+    TEST_ASSERT_TRUE(pui_view_set_tree_items(view, "objects", items, 3));
+    TEST_ASSERT_FALSE(pui_view_set_tree_items(view, "missing", items, 3));
+    pui_init(&pui);
+    pui_pointer(&pui, 2, 14, true);
+    pui_pointer(&pui, 2, 14, false);
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, runtime_tree_action, selected);
+    TEST_ASSERT_EQUAL_STRING("a", selected);
+    assert_pixel(1, 14, PUI_ACCENT);
+    /* Updating data must not reopen a root the user just collapsed. */
+    TEST_ASSERT_TRUE(pui_view_set_tree_items(view, "objects", items, 3));
+    for (int i = 0; i < 3; i++) {
+        TEST_ASSERT_TRUE(pui_view_replace_slot(view, &pui, "body", NULL, error, sizeof error));
+        TEST_ASSERT_EQUAL_INT(3, pui_view_tree_item_count(view, "objects"));
+    }
+    pui_pointer(&pui, 2, 42, true);
+    pui_pointer(&pui, 2, 42, false);
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, runtime_tree_action, selected);
+    TEST_ASSERT_EQUAL_STRING("b", selected);
+    assert_pixel(1, 42, PUI_ACCENT);
+    items[0].depth = 1;
+    TEST_ASSERT_FALSE(pui_view_set_tree_items(view, "objects", items, 3));
+    TEST_ASSERT_EQUAL_INT(3, pui_view_tree_item_count(view, "objects"));
+    items[0].depth = 0;
+    snprintf(items[1].id, sizeof items[1].id, "a");
+    TEST_ASSERT_FALSE(pui_view_set_tree_items(view, "objects", items, 3));
+    TEST_ASSERT_TRUE(pui_view_set_tree_items(view, "objects", NULL, 0));
+    TEST_ASSERT_EQUAL_INT(0, pui_view_tree_item_count(view, "objects"));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_runtime_tree_hierarchy_updates_and_mounts_preserve_state);
     RUN_TEST(test_double_click_selects_word_and_drag_extends_by_words);
     RUN_TEST(test_triple_click_and_control_or_command_a_select_all);
     RUN_TEST(test_mouse_selection_handles_fast_forward_and_reverse_utf8_drags);

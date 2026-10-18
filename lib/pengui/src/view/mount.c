@@ -40,7 +40,9 @@ static void retain_state(PUIView *old, PUIView *next, const char *slot) {
             if (initial.image) {
                 SDL_DestroyTexture(initial.image);
             }
+            pui_widget_tree_clear(&next->state[i]);
             next->state[i] = old->state[j];
+            old->state[j].tree = NULL;
             old->state[j].image = NULL;
             next->state[i].group = initial.group;
             next->state[i].commit = false;

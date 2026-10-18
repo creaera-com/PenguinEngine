@@ -3,12 +3,14 @@
 #define PE_VECTOR_INTERNAL_H
 #include "editor_host/editor.h"
 #include "editors/vector/document/document.h"
+#include "ui/document_tree.h"
 #include "workspace/documents.h"
 
 typedef struct {
     PUILayout *layout;
     VectorDocuments documents;
     VectorDocumentTabs document_tabs;
+    VectorDocumentTree document_tree;
 } VectorEditor;
 
 void *vector_editor_create(const EditorServices *services, char *error, size_t capacity);

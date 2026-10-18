@@ -284,8 +284,43 @@ static void test_truncated_checkpoint_releases_partial_history_and_retains_model
     fclose(file);
 }
 
+static void test_document_tree_tracks_changes_documents_and_checkpoint_restore(void) {
+    VectorDocument *document = add_document();
+    TEST_ASSERT_EQUAL_INT(0, pui_view_tree_item_count(shell.view, "vector_document_tree"));
+    TEST_ASSERT_TRUE(vector_artboard_add(document, (PUIRect){1, 2, 3, 4}));
+    TEST_ASSERT_TRUE(vector_artboard_add(document, (PUIRect){5, 6, 7, 8}));
+    commit();
+    TEST_ASSERT_EQUAL_INT(2, pui_view_tree_item_count(shell.view, "vector_document_tree"));
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.undo", ""));
+    commit();
+    TEST_ASSERT_EQUAL_INT(1, pui_view_tree_item_count(shell.view, "vector_document_tree"));
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.redo", ""));
+    commit();
+    TEST_ASSERT_EQUAL_INT(2, pui_view_tree_item_count(shell.view, "vector_document_tree"));
+    activate("scripts");
+    activate("vector");
+    commit();
+    TEST_ASSERT_EQUAL_INT(2, pui_view_tree_item_count(shell.view, "vector_document_tree"));
+    for (int i = 1; i < VECTOR_MAX_DOCUMENTS; i++) {
+        document = add_document();
+        TEST_ASSERT_EQUAL_INT(0, pui_view_tree_item_count(shell.view, "vector_document_tree"));
+    }
+    for (int i = 0; i < VECTOR_MAX_ARTBOARDS; i++) {
+        TEST_ASSERT_TRUE(vector_artboard_add(document, (PUIRect){i * 10.f, 0, 5, 5}));
+    }
+    commit();
+    TEST_ASSERT_EQUAL_INT(VECTOR_MAX_ARTBOARDS,
+                          pui_view_tree_item_count(shell.view, "vector_document_tree"));
+    activate("game");
+    activate("vector");
+    commit();
+    TEST_ASSERT_EQUAL_INT(VECTOR_MAX_ARTBOARDS,
+                          pui_view_tree_item_count(shell.view, "vector_document_tree"));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_document_tree_tracks_changes_documents_and_checkpoint_restore);
     RUN_TEST(test_truncated_checkpoint_releases_partial_history_and_retains_model);
     RUN_TEST(test_switch_restores_documents_histories_viewports_and_latest_edits);
     RUN_TEST(test_checkpoint_retains_dragged_tab_order_and_overview_selection);

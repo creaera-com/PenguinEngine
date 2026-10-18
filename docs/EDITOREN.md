@@ -81,6 +81,7 @@ editors/
       checkpoint.c/.h   Temporäres Sichern und Wiederherstellen
     ui/
       inspector.c/.h    Laden der Inspector-Oberfläche
+      document_tree.c/.h Abgeleitete Tree-Ansicht des aktiven Dokuments
       editor.yaml       Dreispaltiger Arbeitsbereich
       inspector.yaml    Inhalt des Inspector-Slots
   scripts/              Bisheriges kleines Editorgerüst
@@ -316,6 +317,32 @@ sie samt History temporär gesichert, ihre Laufzeitdaten freigegeben und bei Rü
 Bestehende Widget-Zustände und Tab-Reihenfolgen bleiben erhalten; neue Tabs werden ausgewählt.
 Der Vector-Übersicht folgen maximal 15 Dokument-Tabs, pro Dokument maximal 64 Artboards.
 Die History fasst aktuell 128 Befehle; an dieser Grenze werden weitere Änderungen abgewiesen.
+
+## Dokument-Tree im linken Panel
+
+Der Tab `vector_document_tree_tab` enthält einen gepaddeten `tree` mit der stabilen
+ID `vector_document_tree`. [ui/document_tree.c](../editors/vector/ui/document_tree.c)
+bindet das aktive Dokument an diesen Tree. Jedes Artboard erscheint als Wurzeleintrag
+`Artboard <ID>`. Ohne aktives Dokument bzw. ohne Artboards bleibt der Tree leer.
+
+Nach dem Übernehmen vorgemerkter Dokument-Tabs synchronisiert
+`vector_editor_commit_ui()` die Einträge. Anlegen, Undo/Redo und Dokumentwechsel werden
+anhand der Dokument-ID und Artboard-IDs erkannt. Änderungen erfordern keinen Neuaufbau
+der View; Fokus, Mausgesten und andere Widgetzustände bleiben davon unberührt.
+Bei Rückkehr aus einem anderen Editor werden die Einträge aus dem wiederhergestellten
+Dokument abgeleitet, nicht separat im Checkpoint gespeichert.
+
+pengUI stellt dafür `pui_view_set_tree_items()` bereit. Die View kopiert die übergebenen
+`PUITreeItem`-Datensätze und besitzt ihren Speicher. Stabile IDs erhalten die Auswahl
+und den Aufklappzustand beim Aktualisieren. Runtime-Einträge verbrauchen keine zusätzlichen
+YAML-Layoutknoten: Auch 64 Artboards bei 15 Dokument-Tabs können dargestellt werden.
+Pro Tree sind aktuell bis zu `PUI_LAYOUT_NODES` Runtime-Einträge möglich.
+
+Die Einträge verwenden eine Tiefenangabe (`depth: 0` für Wurzeln) in Tiefensuchreihenfolge.
+Damit kann die UI später Gruppen und Elemente unterhalb eines Artboards darstellen.
+Das fachliche Modell enthält bisher noch keine solchen Kindobjekte. Die Zeilenauswahl
+ist derzeit eine UI-Auswahl; sie ändert noch nicht die fachliche Artboard-Auswahl oder
+den Inspector.
 
 ## Temporäre Checkpoints beim Editorwechsel
 

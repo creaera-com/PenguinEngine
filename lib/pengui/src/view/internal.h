@@ -5,6 +5,13 @@
 #include "rendering/internal.h"
 
 typedef struct {
+    PUITreeItem *items;
+    bool *open;
+    int count;
+} TreeData;
+
+typedef struct {
+    TreeData *tree;
     bool open;
     bool checked;
     bool commit, keyboard_navigation, reveal;
@@ -42,6 +49,7 @@ struct PUIView {
     bool cursor_attempted[SDL_SYSTEM_CURSOR_COUNT];
 };
 
+void pui_widget_tree_clear(Widget *state);
 void pui_widget_dropdown_init(PUIView *view, int index);
 void pui_widget_dropdown_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
                               void *context);

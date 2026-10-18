@@ -31,7 +31,10 @@ root:
           icon: folder
           padding: 0
           children:
-           - type: panel
+            - type: panel
+              padding: 8
+              children:
+                - {type: tree, id: vector_document_tree}
     - type: column
       padding: 0
       gap: 3

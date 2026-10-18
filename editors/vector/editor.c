@@ -107,6 +107,11 @@ bool vector_editor_event(void *instance, PUIView *view, const SDL_Event *event) 
 bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, char *error,
                              size_t capacity) {
     VectorEditor *editor = instance;
-    return vector_document_tabs_commit(&editor->document_tabs, &editor->documents, view, input,
-                                       error, capacity);
+    if (!vector_document_tabs_commit(&editor->document_tabs, &editor->documents, view, input, error,
+                                     capacity)) {
+        return false;
+    }
+    return vector_document_tree_sync(&editor->document_tree,
+                                     vector_document_tabs_active(&editor->documents, view), view,
+                                     error, capacity);
 }

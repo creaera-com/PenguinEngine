@@ -614,3 +614,24 @@ Die folgenden Punkte beschreiben den jetzigen Ausbauzustand und helfen bei der P
 Wenn du später eine Engine aufsetzt, kann deren Dokument- und Szenenmodell außerhalb von
 pengUI bleiben. Die Bibliothek übernimmt weiterhin Darstellung und Bedienung; deine App
 verbindet UI-Aktionen mit den fachlichen Funktionen.
+
+## Runtime-Daten für Trees
+
+Neben statischen `item`-Kindern aus YAML können Trees eine kopierte Liste von
+`PUITreeItem`-Einträgen über `pui_view_set_tree_items()` erhalten. Der Aufruf erfolgt
+zwischen Frames und ersetzt nur die Daten dieses Widgets. Die Einträge enthalten
+stabile IDs, Text, Icon, optionalen Aktionsnamen, Tiefe sowie Anfangswerte für
+Aktivierung und Aufklappzustand. Die Liste steht in Tiefensuchreihenfolge; die erste
+Zeile beginnt auf Tiefe 0, die Tiefe steigt jeweils um höchstens eine Ebene.
+Ungültige IDs, doppelte IDs oder ungültige Tiefen lassen den bisherigen Zustand unverändert.
+
+Die View übernimmt Kopien, erhält Auswahl und Aufklappzustände über gleiche IDs und
+gibt die Daten beim Entfernen oder Zerstören frei. Zustände ausdrücklich identifizierter
+Trees außerhalb eines ausgetauschten Slots bleiben auch bei einer Layout-Komposition
+inklusive ihrer Runtime-Daten erhalten. `pui_view_tree_item_count()` liefert die Anzahl,
+oder -1 bei fehlendem Tree bzw. einem Tree mit statischen YAML-Kindern.
+
+Runtime-Einträge ersetzen die Darstellung der statischen Kinder des betreffenden Trees;
+sie belegen keine Layoutknoten. Eine leere Liste leert die Anzeige. Der Umfang ist
+zurzeit auf `PUI_LAYOUT_NODES` Einträge pro Tree begrenzt. Das Widget kennt keine
+Artboards: Die fachliche Zuordnung erfolgt ausschließlich in der Anwendung.

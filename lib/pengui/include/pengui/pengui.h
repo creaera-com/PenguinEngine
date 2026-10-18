@@ -841,6 +841,23 @@ void pui_view_set_canvas_renderer(PUIView *view, PUICanvasRenderer draw, void *c
 /** @brief True if an enabled, visible widget accepts input at the point (including popup scope). */
 bool pui_view_hit(const PUIView *view, const char *widget, float x, float y);
 
+/** @brief One runtime tree row in depth-first order; root rows have depth 0.
+ * IDs must be unique within the snapshot. Text and action strings are copied by the view.
+ * Runtime rows do not consume layout nodes. At most PUI_LAYOUT_NODES rows per tree.
+ */
+typedef struct {
+    char id[64], text[256], icon[32], action[64];
+    int depth;
+    bool enabled, open;
+} PUITreeItem;
+
+/** @brief Replace runtime rows of a tree, retaining open state/selection by stable ID.
+ * Call between frames. count=0 clears the tree; invalid input leaves the old data intact.
+ */
+bool pui_view_set_tree_items(PUIView *view, const char *tree, const PUITreeItem *items, int count);
+/** @brief Runtime row count; -1 for a missing tree or a tree using YAML children. */
+int pui_view_tree_item_count(const PUIView *view, const char *tree);
+
 /** @brief Create one independent view; layout/renderer must outlive it. NULL on failure. */
 PUIView *pui_view_new(const PUILayout *layout, SDL_Renderer *renderer);
 /** @brief Destroy before the renderer/layout; NULL is accepted. */

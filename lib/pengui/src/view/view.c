@@ -57,6 +57,7 @@ void pui_view_free(PUIView *view) {
             SDL_StopTextInput(view->window);
         }
         for (int i = 0; i < view->layout->count; i++) {
+            pui_widget_tree_clear(&view->state[i]);
             if (view->state[i].image) {
                 SDL_DestroyTexture(view->state[i].image);
             }
