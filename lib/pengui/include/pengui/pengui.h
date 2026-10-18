@@ -532,6 +532,13 @@ void pui_layout_free(PUILayout *layout);
  */
 PUILayout *pui_layout_compose(const PUILayout *base, const char *slot, const PUILayout *content,
                               char *error, size_t capacity);
+/** @brief Append a tab with copied content to a named tabs node, without changing inputs.
+ * Explicit content IDs are prefixed with "tab_id."; generated IDs are reassigned.
+ * Enforces tab/node/depth limits and unique IDs. Caller owns the returned layout.
+ */
+PUILayout *pui_layout_add_tab(const PUILayout *base, const char *tabs, const char *tab_id,
+                              const char *title, const PUILayout *content, char *error,
+                              size_t capacity);
 
 /* SDL support is enabled by the pengUI::sdl CMake target, not by the core target. */
 #if defined(PUI_WITH_SDL) && PUI_WITH_SDL
@@ -835,6 +842,16 @@ void pui_view_free(PUIView *view);
  */
 bool pui_view_replace_slot(PUIView *view, PUIContext *context, const char *slot,
                            const PUILayout *content, char *error, size_t capacity);
+/** @brief Append and select a tab between frames. Preserves existing explicit widget state
+ * and tab order; resets focus, capture and popups. Failure leaves the view unchanged.
+ * Content is copied; its explicit IDs are prefixed with "tab_id.".
+ */
+bool pui_view_add_tab(PUIView *view, PUIContext *context, const char *tabs, const char *tab_id,
+                      const char *title, const PUILayout *content, char *error, size_t capacity);
+/** @brief Selected tab's YAML ID, borrowed until the next layout replacement; NULL if invalid. */
+const char *pui_view_selected_tab(const PUIView *view, const char *tabs);
+/** @brief Number of tabs; zero for an invalid tabs ID or NULL view. */
+int pui_view_tab_count(const PUIView *view, const char *tabs);
 
 /** @brief Requested cursor from the last frame; default for NULL views.
  * Applied automatically after drawing, with default-cursor fallback if unsupported by SDL.

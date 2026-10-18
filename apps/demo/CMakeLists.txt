@@ -18,6 +18,7 @@ add_library(pengui_editor_support STATIC
  editor_host/host.c editor_host/registry.c editor_host/resources.c
  ${PROJECT_SOURCE_DIR}/editors/vector/adapter.c
  ${PROJECT_SOURCE_DIR}/editors/vector/editor.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/document.c
  ${PROJECT_SOURCE_DIR}/editors/vector/inspector.c
  ${PROJECT_SOURCE_DIR}/editors/scripts/adapter.c
  ${PROJECT_SOURCE_DIR}/editors/scripts/editor.c

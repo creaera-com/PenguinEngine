@@ -1,5 +1,6 @@
 /** @file @brief Replace a slot between frames while retaining explicitly identified outer state. */
 #include "internal.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,7 +20,7 @@ static bool contains(const PUILayout *layout, int root, int needle) {
 static void retain_state(PUIView *old, PUIView *next, const char *slot) {
     int replaced = -1;
     for (int i = 0; i < old->layout->count; i++) {
-        if (!strcmp(old->layout->nodes[i].name, slot)) {
+        if (slot && !strcmp(old->layout->nodes[i].name, slot)) {
             replaced = i;
         }
     }
@@ -53,17 +54,31 @@ static void retain_state(PUIView *old, PUIView *next, const char *slot) {
                 }
             }
             if (node->type == PUI_NODE_TABS) {
-                bool compatible = initial.tabs.count == next->state[i].tabs.count;
-                for (int k = 0; k < initial.tabs.count; k++) {
-                    bool found = false;
-                    for (int t = 0; t < next->state[i].tabs.count; t++) {
-                        found |= initial.tabs.items[k].id == next->state[i].tabs.items[t].id;
+                PUITabs merged = initial.tabs;
+                int count = 0;
+                for (int k = 0; k < old->state[j].tabs.count; k++) {
+                    for (int t = 0; t < initial.tabs.count; t++) {
+                        if (old->state[j].tabs.items[k].id == initial.tabs.items[t].id) {
+                            merged.items[count++] = initial.tabs.items[t];
+                        }
                     }
-                    compatible &= found;
                 }
-                if (!compatible) {
-                    next->state[i].tabs = initial.tabs;
+                for (int t = 0; t < initial.tabs.count; t++) {
+                    bool found = false;
+                    for (int k = 0; k < count; k++) {
+                        found |= merged.items[k].id == initial.tabs.items[t].id;
+                    }
+                    if (!found) {
+                        merged.items[count++] = initial.tabs.items[t];
+                    }
                 }
+                merged.scroll = old->state[j].tabs.scroll;
+                for (int k = 0; k < count; k++) {
+                    if (merged.items[k].id == old->state[j].tabs.selected) {
+                        merged.selected = old->state[j].tabs.selected;
+                    }
+                }
+                next->state[i].tabs = merged;
             }
             break;
         }
@@ -87,18 +102,8 @@ static void retain_state(PUIView *old, PUIView *next, const char *slot) {
     }
 }
 
-bool pui_view_replace_slot(PUIView *view, PUIContext *context, const char *slot,
-                           const PUILayout *content, char *error, size_t capacity) {
-    if (!view || !context) {
-        if (error && capacity) {
-            snprintf(error, capacity, "view and input context are required");
-        }
-        return false;
-    }
-    PUILayout *layout = pui_layout_compose(view->layout, slot, content, error, capacity);
-    if (!layout) {
-        return false;
-    }
+static bool apply_layout(PUIView *view, PUIContext *context, PUILayout *layout, const char *slot,
+                         const char *tabs, const char *selected, char *error, size_t capacity) {
     PUIView *next = pui_view_new(layout, view->renderer);
     PUIView *previous = malloc(sizeof *previous);
     if (!next || !previous) {
@@ -112,6 +117,24 @@ bool pui_view_replace_slot(PUIView *view, PUIContext *context, const char *slot,
     }
     next->owned_layout = layout;
     retain_state(view, next, slot);
+    if (tabs && selected) {
+        for (int i = 0; i < next->layout->count; i++) {
+            if (next->layout->nodes[i].type == PUI_NODE_TABS &&
+                !strcmp(next->layout->nodes[i].name, tabs)) {
+                next->state[i].tabs.selected = pui_id(selected);
+                /* Newly appended tabs are last in the preserved visual order. */
+                float width = 0;
+                for (int k = 0; k < next->state[i].tabs.count; k++) {
+                    width += next->state[i].tabs.items[k].width;
+                }
+                for (int j = 0; j < view->layout->count; j++) {
+                    if (!strcmp(view->layout->nodes[j].name, tabs)) {
+                        next->state[i].tabs.scroll = fmaxf(0, width - view->rect[j].w);
+                    }
+                }
+            }
+        }
+    }
     pui_view_blur(view, context);
     next->pointer_inside = view->pointer_inside;
     *previous = *view;
@@ -121,4 +144,35 @@ bool pui_view_replace_slot(PUIView *view, PUIContext *context, const char *slot,
     pui_cancel(context);
     pui_focus(context, 0);
     return true;
+}
+
+bool pui_view_replace_slot(PUIView *view, PUIContext *context, const char *slot,
+                           const PUILayout *content, char *error, size_t capacity) {
+    if (!view || !context) {
+        if (error && capacity) {
+            snprintf(error, capacity, "view and input context are required");
+        }
+        return false;
+    }
+    PUILayout *layout = pui_layout_compose(view->layout, slot, content, error, capacity);
+    if (!layout) {
+        return false;
+    }
+    return apply_layout(view, context, layout, slot, NULL, NULL, error, capacity);
+}
+
+bool pui_view_add_tab(PUIView *view, PUIContext *context, const char *tabs, const char *tab_id,
+                      const char *title, const PUILayout *content, char *error, size_t capacity) {
+    if (!view || !context) {
+        if (error && capacity) {
+            snprintf(error, capacity, "view and input context are required");
+        }
+        return false;
+    }
+    PUILayout *layout =
+        pui_layout_add_tab(view->layout, tabs, tab_id, title, content, error, capacity);
+    if (!layout) {
+        return false;
+    }
+    return apply_layout(view, context, layout, NULL, tabs, tab_id, error, capacity);
 }

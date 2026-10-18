@@ -72,3 +72,32 @@ void pui_widget_tabs_init(PUIView *view, int i) {
     }
     pui_tabs_init(&view->state[i].tabs, tabs, count, tabs[0].id);
 }
+
+static int tabs_index(const PUIView *view, const char *tabs) {
+    if (view && tabs) {
+        for (int i = 0; i < view->layout->count; i++) {
+            if (view->layout->nodes[i].type == PUI_NODE_TABS &&
+                !strcmp(view->layout->nodes[i].name, tabs)) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
+int pui_view_tab_count(const PUIView *view, const char *tabs) {
+    int i = tabs_index(view, tabs);
+    return i >= 0 ? view->state[i].tabs.count : 0;
+}
+
+const char *pui_view_selected_tab(const PUIView *view, const char *tabs) {
+    int i = tabs_index(view, tabs);
+    if (i >= 0) {
+        for (int k = view->layout->nodes[i].child; k >= 0; k = view->layout->nodes[k].next) {
+            if (view->layout->nodes[k].id == view->state[i].tabs.selected) {
+                return view->layout->nodes[k].name;
+            }
+        }
+    }
+    return NULL;
+}

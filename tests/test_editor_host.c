@@ -202,8 +202,8 @@ static void request_action(void *context, const char *name, const char *widget) 
 
 static void test_toolbar_action_queues_switch_until_commit(void) {
     activate("vector");
-    pui_pointer(&shell.input, 120, 20, true);
-    pui_pointer(&shell.input, 120, 20, false);
+    pui_pointer(&shell.input, 306, 20, true);
+    pui_pointer(&shell.input, 306, 20, false);
     pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 800, 600}, request_action, &host);
     TEST_ASSERT_EQUAL_STRING("vector", host.active->id);
     TEST_ASSERT_NOT_NULL(host.pending);
@@ -212,8 +212,111 @@ static void test_toolbar_action_queues_switch_until_commit(void) {
     TEST_ASSERT_EQUAL_STRING("scripts", host.active->id);
 }
 
+static void document_action(void *context, const char *name, const char *widget) {
+    TEST_ASSERT_EQUAL_STRING("vector.add_document", name);
+    TEST_ASSERT_TRUE(editor_host_action(context, shell.view, name, widget));
+}
+
+static void test_add_document_button_appends_and_selects_tabs_between_frames(void) {
+    activate("vector");
+    TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    pui_pointer(&shell.input, 279, 70, true);
+    pui_pointer(&shell.input, 279, 70, false);
+    pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 800, 600}, document_action, &host);
+    TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    char error[256];
+    TEST_ASSERT_TRUE_MESSAGE(
+        editor_host_commit(&host, shell.view, &shell.input, error, sizeof error), error);
+    TEST_ASSERT_EQUAL_INT(2, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_EQUAL_STRING("vector_document_1",
+                             pui_view_selected_tab(shell.view, "vector_document_tabs"));
+    for (int i = 1; i < PUI_MAX_TABS - 1; i++) {
+        TEST_ASSERT_TRUE(
+            editor_host_action(&host, shell.view, "vector.add_document", "vector_add_document"));
+        TEST_ASSERT_TRUE_MESSAGE(
+            editor_host_commit(&host, shell.view, &shell.input, error, sizeof error), error);
+    }
+    TEST_ASSERT_EQUAL_INT(PUI_MAX_TABS, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_TRUE(
+        editor_host_action(&host, shell.view, "vector.add_document", "vector_add_document"));
+    TEST_ASSERT_TRUE(editor_host_commit(&host, shell.view, &shell.input, error, sizeof error));
+    TEST_ASSERT_EQUAL_INT(PUI_MAX_TABS, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    activate("scripts");
+    activate("vector");
+    TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
+}
+
+static void test_append_tab_retains_existing_input_values_and_dragged_order(void) {
+    char error[256];
+    const char *base_yaml = "schema: pengui/v1\nroot: {type: tabs, id: documents, children: "
+                            "[{type: tab, id: start, text: Start}]}";
+    const char *content_yaml = "schema: pengui/v1\nroot: {type: input, id: name, text: Initial}";
+    PUILayout *base = pui_layout_parse(base_yaml, strlen(base_yaml), error, sizeof error);
+    PUILayout *content = pui_layout_parse(content_yaml, strlen(content_yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL(base);
+    TEST_ASSERT_NOT_NULL(content);
+    PUIView *view = pui_view_new(base, renderer);
+    PUIContext input;
+    pui_init(&input);
+    TEST_ASSERT_TRUE(
+        pui_view_add_tab(view, &input, "documents", "one", "One", content, error, sizeof error));
+    TEST_ASSERT_TRUE(pui_view_set_text(view, "one.name", "Changed"));
+    TEST_ASSERT_TRUE(
+        pui_view_add_tab(view, &input, "documents", "two", "Two", content, error, sizeof error));
+    TEST_ASSERT_EQUAL_STRING("Changed", pui_view_text(view, "one.name"));
+    TEST_ASSERT_EQUAL_STRING("Initial", pui_view_text(view, "two.name"));
+    pui_pointer(&input, 80, 15, true);
+    pui_view_draw(view, &input, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    pui_pointer(&input, 10, 15, true);
+    pui_view_draw(view, &input, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    pui_pointer(&input, 10, 15, false);
+    pui_view_draw(view, &input, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    TEST_ASSERT_TRUE(pui_view_add_tab(view, &input, "documents", "three", "Three", content, error,
+                                      sizeof error));
+    TEST_ASSERT_EQUAL_STRING("three", pui_view_selected_tab(view, "documents"));
+    pui_pointer(&input, 10, 15, true);
+    pui_pointer(&input, 10, 15, false);
+    pui_view_draw(view, &input, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    TEST_ASSERT_EQUAL_STRING("one", pui_view_selected_tab(view, "documents"));
+    TEST_ASSERT_EQUAL_STRING("Changed", pui_view_text(view, "one.name"));
+    TEST_ASSERT_FALSE(pui_view_add_tab(view, &input, "documents", "one", "Duplicate", content,
+                                       error, sizeof error));
+    TEST_ASSERT_EQUAL_INT(4, pui_view_tab_count(view, "documents"));
+    TEST_ASSERT_EQUAL_STRING("one", pui_view_selected_tab(view, "documents"));
+    TEST_ASSERT_EQUAL_STRING("Changed", pui_view_text(view, "one.name"));
+    pui_view_free(view);
+    pui_layout_free(content);
+    pui_layout_free(base);
+}
+
+static void test_failed_document_tab_does_not_consume_document_number(void) {
+    activate("vector");
+    const char *yaml = "schema: pengui/v1\nroot: {type: label, text: Temporary}";
+    char error[256];
+    PUILayout *replacement = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL(replacement);
+    TEST_ASSERT_TRUE(pui_view_replace_slot(shell.view, &shell.input, "editor_area", replacement,
+                                           error, sizeof error));
+    TEST_ASSERT_TRUE(
+        editor_host_action(&host, shell.view, "vector.add_document", "vector_add_document"));
+    TEST_ASSERT_FALSE(editor_host_commit(&host, shell.view, &shell.input, error, sizeof error));
+    TEST_ASSERT_EQUAL_INT(0, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_TRUE(pui_view_replace_slot(shell.view, &shell.input, "editor_area",
+                                           host.active->layout(host.instance), error,
+                                           sizeof error));
+    TEST_ASSERT_TRUE(
+        editor_host_action(&host, shell.view, "vector.add_document", "vector_add_document"));
+    TEST_ASSERT_TRUE(editor_host_commit(&host, shell.view, &shell.input, error, sizeof error));
+    TEST_ASSERT_EQUAL_STRING("vector_document_1",
+                             pui_view_selected_tab(shell.view, "vector_document_tabs"));
+    pui_layout_free(replacement);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_failed_document_tab_does_not_consume_document_number);
+    RUN_TEST(test_add_document_button_appends_and_selects_tabs_between_frames);
+    RUN_TEST(test_append_tab_retains_existing_input_values_and_dragged_order);
     RUN_TEST(test_toolbar_action_queues_switch_until_commit);
     RUN_TEST(test_successful_switch_and_failed_mount_release_editor_instances);
     RUN_TEST(test_all_editors_switch_and_same_editor_is_not_recreated);

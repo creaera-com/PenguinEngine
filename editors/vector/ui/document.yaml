@@ -1,0 +1,8 @@
+schema: pengui/v1
+root:
+  type: panel
+  padding: 16
+  gap: 8
+  children:
+    - {type: label, id: document_title, text: Neues Dokument, height: 30}
+    - {type: spacer}

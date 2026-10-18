@@ -1,8 +1,8 @@
 # Editor-Shell und modulare Editoren
 
 Die zusätzliche App `pengui_editor` bereitet drei eigenständige Arbeitsbereiche vor:
-`vector`, `scripts` und `game`. Sie enthalten zunächst nur UI-Gerüste. Dokumentmodelle,
-Zeichenwerkzeuge, Skriptausführung oder Spielfunktionen sind noch nicht implementiert.
+`vector`, `scripts` und `game`. Scripts und Game enthalten zunächst nur UI-Gerüste. Vector kann leere Dokumente als Tabs
+anlegen; Zeichenwerkzeuge, Skriptausführung und Spielfunktionen sind noch nicht implementiert.
 Die Widget-Demo `pengui_playground` bleibt separat erhalten.
 
 ## Starten und Starteditor festlegen
@@ -241,6 +241,39 @@ Wenn später beispielsweise eine Objektauswahl einen anderen Inspector benötigt
 Der Host ruft `commit_ui()` auch dann auf, wenn kein Editorwechsel ansteht. Dafür musst du
 weder die App-Schleife ändern noch Fachlogik im Host ergänzen.
 
+## Vector: Neues Dokument als Tab
+
+Der Toolbar-Button mit `action: vector.add_document` ist über den Vector-Adapter angebunden:
+
+1. `vector_editor_action()` merkt das Anlegen vor.
+2. `vector_editor_commit_ui()` ruft am Frame-Ende die Dokumentverwaltung auf.
+3. [document.c](../editors/vector/document.c) legt einen Eintrag mit ID und Titel an und
+   ergänzt über `pui_view_add_tab()` einen Tab in `vector_document_tabs`.
+4. Der neue Tab wird ausgewählt und bei Platzmangel in der Tab-Leiste sichtbar gescrollt.
+
+Die Oberfläche jedes neuen Dokuments stammt aus
+[document.yaml](../editors/vector/ui/document.yaml). Diese Vorlage kannst du unabhängig
+von `editor.yaml` gestalten. Ihre expliziten Widget-IDs erhalten beim Einfügen ein Präfix,
+beispielsweise `vector_document_1.document_title`. Dadurch können mehrere Dokumente
+dieselbe Vorlage verwenden. Bestehende Feldwerte und die vom Benutzer geänderte Reihenfolge
+der bisherigen Tabs bleiben beim Ergänzen erhalten.
+
+Die allgemeine pengUI-Funktion `pui_view_add_tab()` kopiert die Vorlage und darf wie ein
+Slot-Austausch nur zwischen Frames aufgerufen werden. Fehler ändern den bisherigen Baum
+nicht. `pui_view_selected_tab()` liefert die ID des ausgewählten Tabs,
+`pui_view_tab_count()` die Anzahl. Die aktuelle Implementierung setzt beim Ergänzen Fokus,
+Capture und Popups zurück.
+
+Der vorhandene Vector-Tab bleibt als Übersicht bestehen. Zusätzlich sind höchstens 15
+Dokument-Tabs möglich; umfangreichere Vorlagen können vorher das gemeinsame Knotenlimit
+erreichen. Grenzen werden als Statusmeldung behandelt. Bei einem Fehler wird kein
+Dokumenteintrag für einen nicht angelegten Tab behalten.
+
+Die Dokumente enthalten bisher nur Identität und Titel, keine SVG-Daten oder Artboards.
+Sie werden nicht gespeichert und beim Entladen oder Reload des Vector-Editors freigegeben.
+Der Button `vector.add_artboard` sowie die Shell-Aktionen für Speichern, Undo und Redo
+sind durch diese Änderung noch nicht angebunden.
+
 ## Einen weiteren Editor ergänzen
 
 1. Ein eigenes Verzeichnis unter `editors/` anlegen.
@@ -255,8 +288,8 @@ Unabhängige Fachbereiche sollen nicht gegenseitig ihre privaten Header einbinde
 
 ## Was absichtlich noch offen ist
 
-Es gibt noch keine echten Dokumente, keinen SVG-Canvas, keine Skriptausführung und keine
-Game-Engine-Funktionen. Deshalb existiert auch noch keine Prüfung auf ungespeicherte
+Es gibt noch keinen SVG-Canvas, keine Skriptausführung und keine Game-Engine-Funktionen.
+Die Vector-Dokumente bestehen bislang nur aus ID und Titel. Deshalb existiert auch noch keine Prüfung auf ungespeicherte
 Dokumentänderungen. Diese Entscheidung muss vor einem späteren Editorwechsel ergänzt
 werden, sobald echte Dokumentdaten entstehen.
 
