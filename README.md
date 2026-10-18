@@ -5,6 +5,8 @@ Dieser Entwicklungsbranch enthält keine Engine und kein ECS. Die zusätzliche E
 
 ## Dokumentation
 
+Die verbindlichen Architekturvorgaben für Änderungen stehen in [AGENTS.md](AGENTS.md).
+
 [Architektur und Funktionsweise der UI](docs/ARCHITEKTUR.md) erklärt den Programmstart,
 Layout und Rendering, Widgetzustände, Mausinteraktion und Fokus, Tab-Navigation, Popups,
 C-Aktionen sowie Lebensdauer und Reload. Mit Codeverweisen und einer Anleitung zum
