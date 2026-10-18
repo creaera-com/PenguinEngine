@@ -26,3 +26,6 @@ root:
       children:
         - {type: label, text: Hoehe, width: 64}
         - {type: input, id: artboard_height, action: vector.artboard.height}
+    - {type: checkbox, id: artboard_visible, text: Sichtbar, action: vector.artboard.visible, height: 28}
+    - {type: checkbox, id: artboard_locked, text: Gesperrt, action: vector.artboard.locked, height: 28}
+    - {type: label, id: artboard_edit_hint, text: "", height: 24}

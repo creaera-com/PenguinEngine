@@ -9,6 +9,7 @@ typedef struct {
     unsigned document_id;
     unsigned artboard_ids[VECTOR_MAX_ARTBOARDS];
     char names[VECTOR_MAX_ARTBOARDS][64];
+    unsigned flags[VECTOR_MAX_ARTBOARDS];
     int count;
 } VectorDocumentTree;
 

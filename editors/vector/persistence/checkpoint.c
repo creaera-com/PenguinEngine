@@ -8,7 +8,7 @@
 
 /* Native integer/float representation is sufficient for a private file in this process.
  * Changing this schema requires a new signature. This is not an SVG or interchange format. */
-static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '0', '4'};
+static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '0', '5'};
 
 #define WRITE(value) (fwrite(&(value), sizeof(value), 1, file) == 1)
 #define READ(value) (fread(&(value), sizeof(value), 1, file) == 1)
@@ -141,9 +141,9 @@ static bool valid_history(const VectorDocument *document) {
     }
     for (int i = 0; i < replay.artboard_count; i++) {
         const VectorArtboard *a = &replay.artboards[i], *b = &document->artboards[i];
-        if (!memchr(b->name, 0, sizeof b->name) || strcmp(a->name, b->name) || a->id != b->id ||
-            a->rect.x != b->rect.x || a->rect.y != b->rect.y || a->rect.w != b->rect.w ||
-            a->rect.h != b->rect.h) {
+        if (a->flags != b->flags || !memchr(b->name, 0, sizeof b->name) ||
+            strcmp(a->name, b->name) || a->id != b->id || a->rect.x != b->rect.x ||
+            a->rect.y != b->rect.y || a->rect.w != b->rect.w || a->rect.h != b->rect.h) {
             return false;
         }
     }

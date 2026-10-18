@@ -1,5 +1,6 @@
 /** @file @brief Artboards become root rows; future groups/elements may supply deeper rows. */
 #include "document_tree.h"
+#include "editors/vector/artboard/selection.h"
 #include "editors/vector/artboard/tool.h"
 #include "toolbar.h"
 #include <stdio.h>
@@ -13,7 +14,8 @@ static bool unchanged(const VectorDocumentTree *tree, const VectorDocument *docu
     }
     for (int i = 0; i < tree->count; i++) {
         if (tree->artboard_ids[i] != document->artboards[i].id ||
-            strcmp(tree->names[i], document->artboards[i].name)) {
+            strcmp(tree->names[i], document->artboards[i].name) ||
+            tree->flags[i] != document->artboards[i].flags) {
             return false;
         }
     }
@@ -51,6 +53,17 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
         snprintf(item->text, sizeof item->text, "%s", artboard->name);
         snprintf(item->icon, sizeof item->icon, "tabler:artboard");
         snprintf(item->action, sizeof item->action, "vector.artboard.select");
+        item->cell_count = 2;
+        snprintf(item->cells[0].icon, sizeof item->cells[0].icon, "%s",
+                 artboard->flags & VECTOR_OBJECT_HIDDEN ? "tabler:eye-off" : "tabler:eye");
+        snprintf(item->cells[0].action, sizeof item->cells[0].action, "vector.artboard.visibility");
+        item->cells[0].checked = !(artboard->flags & VECTOR_OBJECT_HIDDEN);
+        item->cells[0].enabled = true;
+        snprintf(item->cells[1].icon, sizeof item->cells[1].icon, "%s",
+                 artboard->flags & VECTOR_OBJECT_LOCKED ? "tabler:lock" : "tabler:lock-open");
+        snprintf(item->cells[1].action, sizeof item->cells[1].action, "vector.artboard.lock");
+        item->cells[1].checked = (artboard->flags & VECTOR_OBJECT_LOCKED) != 0;
+        item->cells[1].enabled = true;
         item->depth = 0;
         item->enabled = item->open = true;
     }
@@ -65,6 +78,7 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
     tree->document_id = document ? document->id : 0;
     tree->count = count;
     for (int i = 0; i < count; i++) {
+        tree->flags[i] = document->artboards[i].flags;
         tree->artboard_ids[i] = document->artboards[i].id;
         snprintf(tree->names[i], sizeof tree->names[i], "%s", document->artboards[i].name);
     }
@@ -73,17 +87,30 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
 
 bool vector_document_tree_action(VectorDocument *document, PUIView *view, const char *action,
                                  const char *widget) {
-    if (strcmp(action, "vector.artboard.select")) {
+    bool visibility = !strcmp(action, "vector.artboard.visibility"),
+         lock = !strcmp(action, "vector.artboard.lock");
+    if (!visibility && !lock && strcmp(action, "vector.artboard.select")) {
         return false;
     }
-    if (document && widget && !document->artboard_tool.enabled) {
+    if (document && widget && (visibility || lock || !document->artboard_tool.enabled)) {
         for (int i = 0; i < document->artboard_count; i++) {
             char id[64];
             snprintf(id, sizeof id, "vector_document_%u.artboard_%u", document->id,
                      document->artboards[i].id);
             if (!strcmp(id, widget)) {
-                vector_artboard_tool_cancel(document);
-                document->active_artboard = document->artboards[i].id;
+                if (visibility || lock) {
+                    vector_selection_cancel(document);
+                    bool changed = vector_artboard_set_state(
+                        document, document->artboards[i].id,
+                        document->artboards[i].flags ^
+                            (visibility ? VECTOR_OBJECT_HIDDEN : VECTOR_OBJECT_LOCKED));
+                    pui_view_set_text(view, "status",
+                                      changed ? "Objektstatus aktualisiert"
+                                              : "Objektstatus konnte nicht geaendert werden");
+                } else {
+                    vector_artboard_tool_cancel(document);
+                    document->active_artboard = document->artboards[i].id;
+                }
                 break;
             }
         }

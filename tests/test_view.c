@@ -734,8 +734,61 @@ static void test_empty_tabs_can_draw_receive_first_document_and_use_checked_defa
     TEST_ASSERT_EQUAL_UINT(0, tabs.selected);
 }
 
+static char table_action_name[64];
+
+static void table_action(void *context, const char *name, const char *widget) {
+    snprintf(table_action_name, sizeof table_action_name, "%s", name);
+    snprintf(context, 64, "%s", widget);
+}
+
+static void test_tree_table_cells_do_not_select_or_expand_rows(void) {
+    pui_view_free(view);
+    pui_layout_free(layout);
+    const char *yaml = "schema: pengui/v1\nroot: {type: tree, id: objects, padding: 0}";
+    char error[256], row[64] = {0};
+    layout = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL(layout);
+    view = pui_view_new(layout, renderer);
+    TEST_ASSERT_NOT_NULL(view);
+    PUITreeItem items[3] = {
+        {.id = "a",
+         .text = "Root with a very very very very long label",
+         .action = "tree.select",
+         .enabled = true,
+         .cell_count = 2,
+         .cells =
+             {{.icon = "tabler:eye", .action = "tree.visible", .enabled = true, .checked = true},
+              {.icon = "tabler:lock", .action = "tree.lock", .enabled = true}}},
+        {.id = "child", .text = "Child", .enabled = true, .depth = 1},
+        {.id = "b", .text = "Other", .action = "tree.select", .enabled = true, .cell_count = 2}};
+    TEST_ASSERT_TRUE(pui_view_set_tree_items(view, "objects", items, 3));
+    pui_init(&pui);
+    pui_pointer(&pui, 10, 42, true);
+    pui_pointer(&pui, 10, 42, false);
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, table_action, row);
+    TEST_ASSERT_EQUAL_STRING("b", row);
+    pui_pointer(&pui, 348, 14, true);
+    pui_pointer(&pui, 348, 14, false);
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, table_action, row);
+    TEST_ASSERT_EQUAL_STRING("a", row);
+    TEST_ASSERT_EQUAL_STRING("tree.visible", table_action_name);
+    assert_pixel(1, 42, PUI_ACCENT); // Cell action neither changes selection nor opens the root.
+    pui_pointer(&pui, 374, 14, true);
+    pui_pointer(&pui, 374, 14, false);
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, table_action, row);
+    TEST_ASSERT_EQUAL_STRING("tree.lock", table_action_name);
+    assert_pixel(1, 42, PUI_ACCENT);
+    items[0].cell_count = PUI_TREE_MAX_CELLS + 1;
+    TEST_ASSERT_FALSE(pui_view_set_tree_items(view, "objects", items, 3));
+    TEST_ASSERT_EQUAL_INT(3, pui_view_tree_item_count(view, "objects"));
+    items[0].cell_count = 2;
+    memset(items[0].cells[0].action, 'x', sizeof items[0].cells[0].action);
+    TEST_ASSERT_FALSE(pui_view_set_tree_items(view, "objects", items, 3));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_tree_table_cells_do_not_select_or_expand_rows);
     RUN_TEST(test_empty_tabs_can_draw_receive_first_document_and_use_checked_default);
     RUN_TEST(test_complete_tabler_catalog_and_filled_variants_are_available_offline);
     RUN_TEST(test_tabler_icons_resolve_render_and_tint_cached_masks);

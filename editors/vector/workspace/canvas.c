@@ -46,6 +46,9 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
     SDL_RenderFillRect(renderer, &background);
     for (int i = 0; i < document->artboard_count; i++) {
         VectorArtboard *board = &document->artboards[i];
+        if (board->flags & VECTOR_OBJECT_HIDDEN) {
+            continue;
+        }
         PUIRect display = vector_artboard_display_rect(document, board);
         SDL_FRect rect = {area.x + viewport->x + display.x * viewport->zoom,
                           area.y + viewport->y + display.y * viewport->zoom,
@@ -65,7 +68,8 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
     if (!document->artboard_tool.enabled) {
         for (int i = 0; i < document->artboard_count; i++) {
             VectorArtboard *board = &document->artboards[i];
-            if (board->id != document->active_artboard) {
+            if (board->id != document->active_artboard ||
+                (board->flags & VECTOR_OBJECT_STATE_MASK)) {
                 continue;
             }
             PUIRect display = vector_artboard_display_rect(document, board);

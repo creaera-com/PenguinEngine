@@ -1,5 +1,6 @@
 /** @file @brief Optional artboard property panel and committed field-to-command bindings. */
 #include "inspector.h"
+#include "editors/vector/artboard/selection.h"
 
 #include <errno.h>
 #include <math.h>
@@ -33,13 +34,30 @@ static bool dimension(const char *text, float *value) {
 
 bool vector_inspector_action(VectorInspector *inspector, VectorDocuments *documents, PUIView *view,
                              const char *action) {
-    if (strcmp(action, "vector.artboard.name") && strcmp(action, "vector.artboard.width") &&
-        strcmp(action, "vector.artboard.height")) {
+    bool visibility = !strcmp(action, "vector.artboard.visible"),
+         lock = !strcmp(action, "vector.artboard.locked");
+    if (!visibility && !lock && strcmp(action, "vector.artboard.name") &&
+        strcmp(action, "vector.artboard.width") && strcmp(action, "vector.artboard.height")) {
         return false;
     }
     VectorDocument *document = vector_documents_find(documents, inspector->document_id);
     VectorArtboard *board = selected(document, inspector->artboard_id);
     if (!board) {
+        return true;
+    }
+    if (visibility || lock) {
+        unsigned flags = board->flags;
+        unsigned bit = visibility ? VECTOR_OBJECT_HIDDEN : VECTOR_OBJECT_LOCKED;
+        bool enabled = pui_view_checked(view, visibility ? "artboard_visible" : "artboard_locked");
+        if (visibility) {
+            enabled = !enabled;
+        }
+        flags = enabled ? (flags | bit) : (flags & ~bit);
+        vector_selection_cancel(document);
+        bool changed = vector_artboard_set_state(document, board->id, flags);
+        pui_view_set_text(view, "status",
+                          changed ? "Objektstatus aktualisiert"
+                                  : "Objektstatus konnte nicht geaendert werden");
         return true;
     }
     const char *name = board->name;
@@ -60,7 +78,9 @@ bool vector_inspector_action(VectorInspector *inspector, VectorDocuments *docume
                                                                    : 4u;
     pui_view_set_text(view, "status",
                       changed ? "Artboard aktualisiert"
-                              : "Ungueltiger Wert (Name: 1-63 Bytes, Groesse: 1-1000000 px)");
+                      : (board->flags & VECTOR_OBJECT_LOCKED)
+                          ? "Artboard ist gesperrt"
+                          : "Ungueltiger Wert (Name: 1-63 Bytes, Groesse: 1-1000000 px)");
     return true;
 }
 
@@ -93,6 +113,10 @@ bool vector_inspector_sync(VectorInspector *inspector, VectorDocument *document,
             snprintf(value, sizeof value, "%.7g", (double)board->rect.h);
             pui_view_set_text(view, "artboard_height", value);
         }
+        pui_view_set_checked(view, "artboard_visible", !(board->flags & VECTOR_OBJECT_HIDDEN));
+        pui_view_set_checked(view, "artboard_locked", (board->flags & VECTOR_OBJECT_LOCKED) != 0);
+        pui_view_set_text(view, "artboard_edit_hint",
+                          board->flags & VECTOR_OBJECT_LOCKED ? "Zum Bearbeiten entsperren." : "");
         inspector->presented = *board;
     }
     inspector->document_id = document ? document->id : 0;

@@ -716,8 +716,87 @@ static void test_resize_renders_live_fill_and_white_handles_before_history_commi
     TEST_ASSERT_EQUAL_INT(2, document->history.cursor);
 }
 
+static void object_state_action(const char *action, const char *row) {
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, action, row));
+    commit();
+}
+
+static void test_visibility_and_lock_in_tree_inspector_and_history(void) {
+    VectorDocument *document = add_document();
+    TEST_ASSERT_TRUE(vector_artboard_add(document, (PUIRect){10, 20, 200, 100}));
+    commit();
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "artboard_visible"));
+    TEST_ASSERT_FALSE(pui_view_checked(shell.view, "artboard_locked"));
+    PUIRect screen = board_screen(document);
+    object_state_action("vector.artboard.visibility", "vector_document_1.artboard_1");
+    TEST_ASSERT_EQUAL_UINT(VECTOR_OBJECT_HIDDEN, document->artboards[0].flags);
+    TEST_ASSERT_FALSE(pui_view_checked(shell.view, "artboard_visible"));
+    assert_canvas_pixel(screen.x + 20, screen.y + 20, 104);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, screen.x + 20, screen.y + 20);
+    TEST_ASSERT_EQUAL_UINT(0, document->active_artboard);
+    object_state_action("vector.artboard.select", "vector_document_1.artboard_1");
+    TEST_ASSERT_EQUAL_UINT(
+        1, document->active_artboard); // Hidden objects remain reachable in the tree.
+    TEST_ASSERT_TRUE(pui_view_set_checked(shell.view, "artboard_visible", true));
+    object_state_action("vector.artboard.visible", "artboard_visible");
+    assert_canvas_pixel(screen.x + 20, screen.y + 20, 242);
+    TEST_ASSERT_TRUE(pui_view_set_checked(shell.view, "artboard_locked", true));
+    object_state_action("vector.artboard.locked", "artboard_locked");
+    TEST_ASSERT_EQUAL_UINT(VECTOR_OBJECT_LOCKED, document->artboards[0].flags);
+    TEST_ASSERT_FALSE(vector_artboard_move(document, 1, 100, 100));
+    TEST_ASSERT_FALSE(vector_artboard_set_rect(document, 1, (PUIRect){10, 20, 300, 300}));
+    TEST_ASSERT_FALSE(vector_artboard_update(document, 1, "Blocked", 300, 300));
+    int count = document->history.count;
+    property("artboard_name", "Blocked", "vector.artboard.name");
+    TEST_ASSERT_EQUAL_INT(count, document->history.count);
+    TEST_ASSERT_EQUAL_STRING("Artboard 1", document->artboards[0].name);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, screen.x, screen.y);
+    TEST_ASSERT_FALSE(document->selection_tool.dragging);
+    TEST_ASSERT_EQUAL_UINT(0, document->active_artboard);
+    object_state_action("vector.artboard.select", "vector_document_1.artboard_1");
+    object_state_action("vector.artboard.lock", "vector_document_1.artboard_1");
+    TEST_ASSERT_FALSE(pui_view_checked(shell.view, "artboard_locked"));
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.undo", ""));
+    commit();
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "artboard_locked"));
+    activate("scripts");
+    activate("vector");
+    commit();
+    VectorEditor *editor = host.instance;
+    document = &editor->documents.items[0];
+    TEST_ASSERT_EQUAL_UINT(VECTOR_OBJECT_LOCKED, document->artboards[0].flags);
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "artboard_locked"));
+    TEST_ASSERT_TRUE(vector_history_redo(&document->history, document));
+    commit();
+    TEST_ASSERT_EQUAL_UINT(0, document->artboards[0].flags);
+    TEST_ASSERT_FALSE(pui_view_checked(shell.view, "artboard_locked"));
+}
+
+static void test_hiding_or_locking_discards_an_active_resize_preview(void) {
+    VectorDocument *document = add_document();
+    PUIRect initial = {10, 20, 200, 100};
+    TEST_ASSERT_TRUE(vector_artboard_add(document, initial));
+    commit();
+    PUIRect screen = board_screen(document);
+    float x = screen.x + screen.w, y = screen.y + screen.h;
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+    selection_pointer(SDL_EVENT_MOUSE_MOTION, x + 30, y + 40);
+    object_state_action("vector.artboard.lock", "vector_document_1.artboard_1");
+    TEST_ASSERT_FALSE(document->selection_tool.dragging);
+    assert_rect(initial, document->artboards[0].rect);
+    TEST_ASSERT_EQUAL_INT(2,
+                          document->history.count); // Only creation and locking, never the preview.
+    TEST_ASSERT_TRUE(vector_history_undo(&document->history, document));
+    commit();
+    TEST_ASSERT_TRUE(vector_artboard_move(document, 1, 40, 50));
+    TEST_ASSERT_FALSE(vector_artboard_set_state(document, 1, 8));
+    TEST_ASSERT_EQUAL_UINT(0, document->artboards[0].flags);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_visibility_and_lock_in_tree_inspector_and_history);
+    RUN_TEST(test_hiding_or_locking_discards_an_active_resize_preview);
     RUN_TEST(test_resize_renders_live_fill_and_white_handles_before_history_commit);
     RUN_TEST(test_all_eight_resize_handles_use_zoom_and_single_history_steps);
     RUN_TEST(test_resize_minimum_cancel_noop_and_checkpoint_redo);

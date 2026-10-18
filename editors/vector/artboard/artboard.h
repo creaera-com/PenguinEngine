@@ -2,6 +2,7 @@
 #ifndef PE_VECTOR_ARTBOARD_H
 #define PE_VECTOR_ARTBOARD_H
 #include "editors/vector/history/history.h"
+#include "editors/vector/object/state.h"
 #include "pengui/pengui.h"
 #include <stdio.h>
 #define VECTOR_MAX_ARTBOARDS 64
@@ -9,10 +10,13 @@
 
 typedef struct {
     unsigned id;
+    unsigned flags; ///< Common visibility and lock flags; zero means visible and editable.
     char name[64];
     PUIRect rect; ///< Position and size in document pixels, independent of viewport zoom.
 } VectorArtboard;
 struct VectorDocument;
+/** @brief Undoable visibility/lock state; remains editable while the object is locked. */
+bool vector_artboard_set_state(struct VectorDocument *document, unsigned id, unsigned flags);
 /** @brief Atomically change position and dimensions through a single history command. */
 bool vector_artboard_set_rect(struct VectorDocument *document, unsigned id, PUIRect rect);
 /** @brief Move an artboard through a single undoable position change. */

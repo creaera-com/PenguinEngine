@@ -847,6 +847,14 @@ void pui_view_set_canvas_renderer(PUIView *view, PUICanvasRenderer draw, void *c
 /** @brief True if an enabled, visible widget accepts input at the point (including popup scope). */
 bool pui_view_hit(const PUIView *view, const char *widget, float x, float y);
 
+#define PUI_TREE_MAX_CELLS 4
+
+/** @brief Optional trailing tree-table icon button; callbacks receive the owning row ID. */
+typedef struct {
+    char icon[128], action[64];
+    bool checked, enabled;
+} PUITreeCell;
+
 /** @brief One runtime tree row in depth-first order; root rows have depth 0.
  * IDs must be unique within the snapshot. Text and action strings are copied by the view.
  * Runtime rows do not consume layout nodes. At most PUI_LAYOUT_NODES rows per tree.
@@ -855,15 +863,17 @@ typedef struct {
     char id[64], text[256], icon[128], action[64];
     int depth;
     bool enabled, open;
+    int cell_count; ///< Optional trailing button columns, zero for an ordinary tree row.
+    PUITreeCell cells[PUI_TREE_MAX_CELLS];
 } PUITreeItem;
 
 /** @brief Replace runtime rows of a tree, retaining open state/selection by stable ID.
  * Call between frames. count=0 clears the tree; invalid input leaves the old data intact.
  */
 bool pui_view_set_tree_items(PUIView *view, const char *tree, const PUITreeItem *items, int count);
-/** @brief Runtime row count; -1 for a missing tree or a tree using YAML children. */
 /** @brief Select a runtime tree row by ID; NULL clears selection without firing actions. */
 bool pui_view_select_tree_item(PUIView *view, const char *tree, const char *item);
+/** @brief Runtime row count; -1 for a missing tree or a tree using YAML children. */
 int pui_view_tree_item_count(const PUIView *view, const char *tree);
 
 /** @brief Create one independent view; layout/renderer must outlive it. NULL on failure. */

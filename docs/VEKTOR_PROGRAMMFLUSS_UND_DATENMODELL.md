@@ -570,3 +570,27 @@ noch SDL-Ereignisse oder History. Weitere Objekte können diese Geometrie späte
 `vector_artboard_set_rect()` Position und Größe gemeinsam als einen History-Befehl.
 Inspector und Lineale folgen der übernommenen Größe. Abbrechen verwirft die Vorschau
 wie beim Verschieben.
+
+
+## Sichtbarkeit und Sperren
+
+`object/state.h` definiert gemeinsame Flags `VECTOR_OBJECT_HIDDEN` und
+`VECTOR_OBJECT_LOCKED` für Artboards und zukünftige Ebenen, Gruppen und Formen.
+Null bedeutet sichtbar und ungesperrt. Aktuell gibt es weiterhin Artboards als
+Dokumentobjekte; die Flags führen keine zusätzlichen Ebenen oder Objekttypen ein.
+
+Im Dokument-Tree stehen rechts Auge und Schloss als separate Tree-Table-Zellen.
+Sie verändern den Zustand der betreffenden Zeile, ohne die aktuelle Auswahl zu wechseln.
+Der ausgewählte Eintrag zeigt dieselben Zustände über die YAML-Checkboxen
+`artboard_visible` und `artboard_locked` im Inspector. Beide UI-Anbindungen rufen
+`vector_artboard_set_state()` auf. Der Befehl nutzt dieselbe Vorher-/Nachher-History wie
+Geometrie und Name. Ein laufender Maus-Preview wird vorher abgebrochen. Undo/Redo und
+temporäre Checkpoints sichern auch die Flags.
+
+Ausgeblendete Artboards werden auf der Zeichenfläche vollständig übersprungen.
+Gesperrte Artboards bleiben sichtbar, sind dort aber weder auswählbar noch verschiebbar
+oder skalierbar; sie zeigen keine Greifer. Auch Namens- und Größenänderungen durch den
+Inspector werden bei gesperrten Artboards abgewiesen und der bisherige Feldwert wird
+wiederhergestellt. Im Tree können versteckte und gesperrte Einträge weiterhin ausgewählt
+werden, damit sie über Tree oder Inspector wieder eingeblendet oder entsperrt werden können.
+Die Zustandsbefehle selbst bleiben deshalb auch bei gesperrten Objekten verfügbar.

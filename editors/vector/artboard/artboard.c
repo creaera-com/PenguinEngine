@@ -76,7 +76,7 @@ static bool replace_board(void *state, const VectorArtboard *expected,
     for (int i = 0; i < document->artboard_count; i++) {
         VectorArtboard *board = &document->artboards[i];
         if (board->id == expected->id) {
-            if (strcmp(board->name, expected->name) ||
+            if (board->flags != expected->flags || strcmp(board->name, expected->name) ||
                 memcmp(&board->rect, &expected->rect, sizeof board->rect)) {
                 return false;
             }
@@ -108,6 +108,9 @@ bool vector_artboard_set_rect(VectorDocument *document, unsigned id, PUIRect rec
         VectorArtboard board = document->artboards[i];
         if (board.id != id) {
             continue;
+        }
+        if (board.flags & VECTOR_OBJECT_LOCKED) {
+            return false;
         }
         if (board.rect.x == rect.x && board.rect.y == rect.y && board.rect.w == rect.w &&
             board.rect.h == rect.h) {
@@ -153,6 +156,9 @@ bool vector_artboard_update(VectorDocument *document, unsigned id, const char *n
         if (before.id != id) {
             continue;
         }
+        if (before.flags & VECTOR_OBJECT_LOCKED) {
+            return false;
+        }
         if (!strcmp(before.name, name) && before.rect.w == width && before.rect.h == height) {
             return true;
         }
@@ -174,11 +180,40 @@ bool vector_artboard_update(VectorDocument *document, unsigned id, const char *n
     return false;
 }
 
+bool vector_artboard_set_state(VectorDocument *document, unsigned id, unsigned flags) {
+    if (flags & ~VECTOR_OBJECT_STATE_MASK) {
+        return false;
+    }
+    for (int i = 0; i < document->artboard_count; i++) {
+        VectorArtboard before = document->artboards[i];
+        if (before.id != id) {
+            continue;
+        }
+        if (before.flags == flags) {
+            return true;
+        }
+        EditArtboard *edit = calloc(1, sizeof *edit);
+        if (!edit) {
+            return false;
+        }
+        edit->before = edit->after = before;
+        edit->after.flags = flags;
+        if (vector_history_execute(&document->history, document,
+                                   (VectorCommand){edit_apply, edit_revert, edit})) {
+            return true;
+        }
+        free(edit);
+        return false;
+    }
+    return false;
+}
+
 static bool valid_board(VectorArtboard board) {
-    return board.id && memchr(board.name, 0, sizeof board.name) && *board.name &&
-           isfinite(board.rect.x) && isfinite(board.rect.y) && isfinite(board.rect.w) &&
-           isfinite(board.rect.h) && board.rect.w >= 1 && board.rect.h >= 1 &&
-           board.rect.w <= VECTOR_MAX_ARTBOARD_SIZE && board.rect.h <= VECTOR_MAX_ARTBOARD_SIZE;
+    return board.id && !(board.flags & ~VECTOR_OBJECT_STATE_MASK) &&
+           memchr(board.name, 0, sizeof board.name) && *board.name && isfinite(board.rect.x) &&
+           isfinite(board.rect.y) && isfinite(board.rect.w) && isfinite(board.rect.h) &&
+           board.rect.w >= 1 && board.rect.h >= 1 && board.rect.w <= VECTOR_MAX_ARTBOARD_SIZE &&
+           board.rect.h <= VECTOR_MAX_ARTBOARD_SIZE;
 }
 
 bool vector_artboard_command_write(const VectorCommand *command, FILE *file) {

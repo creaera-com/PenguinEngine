@@ -635,3 +635,22 @@ Runtime-Einträge ersetzen die Darstellung der statischen Kinder des betreffende
 sie belegen keine Layoutknoten. Eine leere Liste leert die Anzeige. Der Umfang ist
 zurzeit auf `PUI_LAYOUT_NODES` Einträge pro Tree begrenzt. Das Widget kennt keine
 Artboards: Die fachliche Zuordnung erfolgt ausschließlich in der Anwendung.
+
+
+### Tree-Table mit Aktionsspalten
+
+Runtime-Trees unterstützen pro Zeile optional bis zu `PUI_TREE_MAX_CELLS` (aktuell vier)
+zusätzliche Icon-Button-Spalten. `PUITreeItem.cell_count` aktiviert diese, die Einträge
+in `cells` enthalten Iconname, Aktionsname, `checked` und `enabled`. Ohne Zellen bleibt
+der Tree unverändert. Die Tree-Beschreibung selbst bleibt in YAML; die Anwendung liefert
+Zeilen und Zellen als dynamische Inhalte über `pui_view_set_tree_items()`.
+
+Die größte Zellenanzahl bestimmt die Spaltenzahl für alle Zeilen. Die Iconspalten sind
+rechts ausgerichtet und je 26 Bildschirm-Pixel breit. Namen und Baumlinien werden auf
+den verbleibenden Platz beschnitten. Ein Zellenklick sendet seine eigene Aktion mit
+der ID der zugehörigen Zeile; er verändert weder Auswahl noch Aufklappzustand. Der
+Host bleibt für Änderungen der Daten und Rückmeldung des neuen `checked`-Werts zuständig.
+`checked` steuert die Hervorhebung, während die Anwendung etwa `tabler:eye` und
+`tabler:eye-off` als passende Zustandsicons liefert. pengUI kennt dabei keine Objektzustände
+oder Editorbefehle. Statische YAML-`item`-Kinder erhalten dadurch keine zusätzlichen Zellen;
+die Spaltendaten gehören aktuell zur Runtime-API.

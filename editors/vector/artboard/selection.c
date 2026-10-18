@@ -55,6 +55,13 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
         return false;
     }
     if (tool->dragging) {
+        for (int i = 0; i < document->artboard_count; i++) {
+            if (document->artboards[i].id == tool->artboard_id &&
+                (document->artboards[i].flags & VECTOR_OBJECT_STATE_MASK)) {
+                vector_selection_cancel(document);
+                return true;
+            }
+        }
         if (event->type == SDL_EVENT_MOUSE_MOTION) {
             update(document, event->motion.x, event->motion.y);
             return true;
@@ -89,7 +96,7 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
     // Selected object's handles have priority over labels and board surfaces.
     for (int i = 0; i < document->artboard_count; i++) {
         VectorArtboard *board = &document->artboards[i];
-        if (board->id != document->active_artboard) {
+        if (board->id != document->active_artboard || (board->flags & VECTOR_OBJECT_STATE_MASK)) {
             continue;
         }
         const VectorViewport *v = &document->viewport;
@@ -110,6 +117,9 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
     // Labels sit above their boards and take priority over board surfaces.
     for (int i = document->artboard_count - 1; i >= 0; i--) {
         VectorArtboard *board = &document->artboards[i];
+        if (board->flags & VECTOR_OBJECT_STATE_MASK) {
+            continue;
+        }
         if (contains(vector_artboard_label_rect(document, board), x, y)) {
             document->active_artboard = board->id;
             *tool = (VectorSelectionTool){
@@ -122,7 +132,8 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
     y = (y - document->viewport.bounds.y - document->viewport.y) / document->viewport.zoom;
     document->active_artboard = 0;
     for (int i = document->artboard_count - 1; i >= 0; i--) {
-        if (contains(document->artboards[i].rect, x, y)) {
+        if (!(document->artboards[i].flags & VECTOR_OBJECT_STATE_MASK) &&
+            contains(document->artboards[i].rect, x, y)) {
             document->active_artboard = document->artboards[i].id;
             break;
         }
