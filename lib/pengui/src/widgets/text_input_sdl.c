@@ -250,6 +250,10 @@ static bool focus_next_input(PUIView *view, PUIContext *pui, bool backwards) {
             continue;
         }
         if (i != view->focused) {
+            /* Commit the field being left before handing focus to its neighbour. */
+            if (view->focused >= 0) {
+                view->submit = view->focused;
+            }
             pui_view_blur(view, pui);
             view->focused = i;
             pui_text_edit_init(&view->state[i].edit, view->state[i].text, true);

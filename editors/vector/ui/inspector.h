@@ -8,7 +8,8 @@ typedef struct {
     PUILayout *artboard_layout;
     unsigned document_id, artboard_id;
     VectorArtboard presented;
-    bool mounted, dirty;
+    bool mounted;
+    unsigned dirty;
 } VectorInspector;
 
 /** @brief Mount properties only for a selected artboard; synchronize model changes between frames.

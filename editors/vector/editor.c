@@ -143,7 +143,6 @@ bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, c
                                      capacity)) {
         return false;
     }
-    vector_document_tabs_captions(&editor->documents, view);
     VectorDocument *active = vector_document_tabs_active(&editor->documents, view);
     if (!vector_inspector_sync(&editor->inspector, active, view, input, error, capacity)) {
         return false;

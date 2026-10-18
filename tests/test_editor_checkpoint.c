@@ -408,7 +408,7 @@ static void test_artboard_inspector_updates_history_and_survives_editor_switch(v
     commit();
     TEST_ASSERT_EQUAL_STRING("Artboard 1", pui_view_text(shell.view, "artboard_name"));
     property("artboard_name", "Menu", "vector.artboard.name");
-    TEST_ASSERT_EQUAL_STRING("Menu", pui_view_text(shell.view, "vector_document_1"));
+    TEST_ASSERT_EQUAL_STRING("Dokument 1", pui_view_text(shell.view, "vector_document_1"));
     property("artboard_width", "640", "vector.artboard.width");
     property("artboard_height", "480", "vector.artboard.height");
     TEST_ASSERT_EQUAL_STRING("Menu", document->artboards[0].name);
@@ -472,8 +472,47 @@ static void test_artboard_selection_and_tool_toggle(void) {
     TEST_ASSERT_NULL(pui_view_text(shell.view, "artboard_name"));
 }
 
+static void dispatch_property(void *context, const char *name, const char *widget) {
+    (void)context;
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, name, widget));
+}
+
+static void native_input(SDL_Event *event) {
+    TEST_ASSERT_TRUE(pui_view_event(shell.view, &shell.input, window, event));
+    pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 1280, 800}, dispatch_property, NULL);
+    commit();
+}
+
+static void test_tab_commits_properties_and_preserves_next_field_selection(void) {
+    VectorDocument *document = add_document();
+    TEST_ASSERT_TRUE(vector_artboard_add(document, (PUIRect){10, 20, 200, 300}));
+    commit();
+    SDL_Event key = {.type = SDL_EVENT_KEY_DOWN};
+    key.key.key = SDLK_TAB;
+    native_input(&key); // First visible input: name, selected for replacement.
+    SDL_Event text = {.type = SDL_EVENT_TEXT_INPUT};
+    text.text.text = "Renamed";
+    native_input(&text);
+    native_input(&key); // Name -> width commits name.
+    TEST_ASSERT_EQUAL_STRING("Renamed", document->artboards[0].name);
+    TEST_ASSERT_EQUAL_STRING("Dokument 1", pui_view_text(shell.view, "vector_document_1"));
+    text.text.text = "640";
+    native_input(&text);
+    native_input(&key); // Width -> height commits width.
+    TEST_ASSERT_EQUAL_FLOAT(640, document->artboards[0].rect.w);
+    text.text.text = "480";
+    native_input(&text);
+    key.key.mod = SDL_KMOD_SHIFT;
+    native_input(&key); // Shift+Tab commits height.
+    TEST_ASSERT_EQUAL_FLOAT(480, document->artboards[0].rect.h);
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.undo", ""));
+    commit();
+    TEST_ASSERT_EQUAL_FLOAT(300, document->artboards[0].rect.h);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_tab_commits_properties_and_preserves_next_field_selection);
     RUN_TEST(test_artboard_inspector_updates_history_and_survives_editor_switch);
     RUN_TEST(test_artboard_selection_and_tool_toggle);
     RUN_TEST(test_empty_restored_checkpoint_gets_a_default_document);

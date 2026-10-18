@@ -55,7 +55,9 @@ bool vector_inspector_action(VectorInspector *inspector, VectorDocuments *docume
         valid = dimension(pui_view_text(view, "artboard_height"), &height);
     }
     bool changed = valid && vector_artboard_update(document, board->id, name, width, height);
-    inspector->dirty = true;
+    inspector->dirty |= !strcmp(action, "vector.artboard.name")    ? 1u
+                        : !strcmp(action, "vector.artboard.width") ? 2u
+                                                                   : 4u;
     pui_view_set_text(view, "status",
                       changed ? "Artboard aktualisiert"
                               : "Ungueltiger Wert (Name: 1-63 Bytes, Groesse: 1-1000000 px)");
@@ -76,14 +78,21 @@ bool vector_inspector_sync(VectorInspector *inspector, VectorDocument *document,
         inspector->mounted = mount;
         switched = true;
     }
-    if (board && (switched || inspector->dirty || strcmp(inspector->presented.name, board->name) ||
-                  memcmp(&inspector->presented.rect, &board->rect, sizeof board->rect))) {
+    if (board) {
         char value[64];
-        pui_view_set_text(view, "artboard_name", board->name);
-        snprintf(value, sizeof value, "%.7g", (double)board->rect.w);
-        pui_view_set_text(view, "artboard_width", value);
-        snprintf(value, sizeof value, "%.7g", (double)board->rect.h);
-        pui_view_set_text(view, "artboard_height", value);
+        /* Updating an unrelated field must preserve the newly focused input's
+         * selection and any text already entered before the next frame. */
+        if (switched || (inspector->dirty & 1u) || strcmp(inspector->presented.name, board->name)) {
+            pui_view_set_text(view, "artboard_name", board->name);
+        }
+        if (switched || (inspector->dirty & 2u) || inspector->presented.rect.w != board->rect.w) {
+            snprintf(value, sizeof value, "%.7g", (double)board->rect.w);
+            pui_view_set_text(view, "artboard_width", value);
+        }
+        if (switched || (inspector->dirty & 4u) || inspector->presented.rect.h != board->rect.h) {
+            snprintf(value, sizeof value, "%.7g", (double)board->rect.h);
+            pui_view_set_text(view, "artboard_height", value);
+        }
         inspector->presented = *board;
     }
     inspector->document_id = document ? document->id : 0;

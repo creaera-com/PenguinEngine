@@ -524,14 +524,15 @@ oder im Dokument-Tree auswählen.
 Der Inspector enthält den Slot `artboard_properties`. Die UI-Anbindung
 `editors/vector/ui/inspector.c` setzt dort bei vorhandener Auswahl die Beschreibung
 `artboard_inspector.yaml` ein und entfernt sie wieder ohne Auswahl. Die Felder werden
-bei Enter oder Fokuswechsel übernommen. Name, Breite und Höhe werden über
+bei Enter oder beim Feldwechsel mit Tab beziehungsweise Shift+Tab übernommen. Name, Breite und Höhe werden über
 `vector_artboard_update()` als ein Vorher-/Nachher-Befehl in die dokumenteigene History
 aufgenommen. Ungültige Werte verändern das Dokument nicht; das Feld zeigt wieder den
 bisherigen Wert. Größen sind Dokumentpixel und liegen zwischen 1 und 1.000.000; Namen
 haben maximal 63 UTF-8-Bytes.
 
-Die Artboard-ID bleibt beim Umbenennen unverändert. Beschriftung über der Zeichenfläche,
-Tree-Zeile und Dokument-Tab lesen den Namen aus demselben Artboard. Der Tab zeigt den
-Namen des ausgewählten Artboards, sonst den Dokumentnamen. Auswahl und UI-Beschriftungen
+Die Artboard-ID bleibt beim Umbenennen unverändert. Beschriftung über der Zeichenfläche
+und Tree-Zeile lesen den Namen aus demselben Artboard. Der Dokument-Tab behält
+seinen Dokumentnamen. Tab und Shift+Tab übernehmen den Wert des verlassenen Feldes
+und fokussieren das nächste beziehungsweise vorherige Eingabefeld. Auswahl und UI-Beschriftungen
 sind keine eigenen Undo-Schritte. Die temporären Checkpoints sichern Namen, Geometrie,
 Auswahl sowie Erstellungs- und Änderungsbefehle einschließlich noch möglicher Redo-Schritte.
