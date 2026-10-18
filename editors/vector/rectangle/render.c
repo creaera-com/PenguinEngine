@@ -5,14 +5,25 @@
 #include <math.h>
 
 static void draw(SDL_Renderer *renderer, SDL_FRect board, float zoom, PUIRect local, bool selected,
-                 bool preview) {
+                 bool preview, uint32_t fill) {
     SDL_FRect rect = {board.x + local.x * zoom, board.y + local.y * zoom, local.w * zoom,
                       local.h * zoom};
-    SDL_SetRenderDrawColor(renderer, 115, 147, 175, preview ? 150 : 255);
+    SDL_BlendMode blend;
+    SDL_GetRenderDrawBlendMode(renderer, &blend);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    unsigned alpha = fill & 255u;
+    if (preview) {
+        alpha = alpha * 150 / 255;
+    }
+    SDL_SetRenderDrawColor(renderer, fill >> 24, (fill >> 16) & 255, (fill >> 8) & 255,
+                           (Uint8)alpha);
     SDL_RenderFillRect(renderer, &rect);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, selected || preview ? 194 : 66, selected || preview ? 142 : 89,
-                           selected || preview ? 92 : 109, 255);
+                           selected || preview ? 92 : 109,
+                           selected || preview ? 255 : (Uint8)alpha);
     SDL_RenderRect(renderer, &rect);
+    SDL_SetRenderDrawBlendMode(renderer, blend);
 }
 
 void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *parent,
@@ -43,13 +54,18 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
         if (rectangle->parent_id != parent->id || rectangle->flags & VECTOR_OBJECT_HIDDEN) {
             continue;
         }
+        uint32_t fill =
+            document->fill_preview.active && document->fill_preview.rectangle_id == rectangle->id
+                ? document->fill_preview.color
+                : rectangle->fill;
         draw(renderer, board, document->viewport.zoom,
              vector_rectangle_display_rect(document, rectangle),
-             document->active_rectangle == rectangle->id, false);
+             document->active_rectangle == rectangle->id, false, fill);
     }
     if (document->rectangle_tool.dragging && document->rectangle_tool.parent_id == parent->id) {
         draw(renderer, board, document->viewport.zoom,
-             vector_rectangle_tool_rect(&document->rectangle_tool), true, true);
+             vector_rectangle_tool_rect(&document->rectangle_tool), true, true,
+             VECTOR_RECTANGLE_DEFAULT_FILL);
     }
     SDL_SetRenderClipRect(renderer, clipped ? &outer : NULL);
 }

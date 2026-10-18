@@ -1,7 +1,7 @@
 # Core widget behavior and YAML stay independent of SDL.
 add_library(pengUI STATIC
  src/core/context.c
- src/widgets/button.c src/widgets/toggle.c src/widgets/basic.c src/widgets/text_input.c
+ src/widgets/color_picker.c src/widgets/button.c src/widgets/toggle.c src/widgets/basic.c src/widgets/text_input.c
  src/widgets/tabs.c src/widgets/tree.c src/widgets/scrollbar.c src/widgets/splitter.c
  src/layout/layout.c src/layout/popup.c src/layout/compose.c src/layout/yaml.c)
 target_include_directories(pengUI PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -27,7 +27,7 @@ if(PENGUI_BUILD_SDL)
   "${tabler_bytes}"
   src/rendering/text.c src/rendering/icons.c src/rendering/tabler.c src/rendering/theme.c
   src/rendering/image.c src/rendering/primitives.c
-  src/widgets/button_sdl.c src/widgets/toggle_sdl.c src/widgets/checkbox_sdl.c
+  src/widgets/color_picker_sdl.c src/widgets/button_sdl.c src/widgets/toggle_sdl.c src/widgets/checkbox_sdl.c
   src/widgets/dropdown_sdl.c src/widgets/popup_button_sdl.c src/widgets/button_group_sdl.c src/widgets/text_input_sdl.c src/widgets/basic_sdl.c
   src/widgets/tabs_sdl.c src/widgets/tree_sdl.c src/widgets/scrollbar_sdl.c src/widgets/splitter_sdl.c
   src/layout/layout_sdl.c src/view/view.c src/view/mount.c src/view/cursor.c src/view/popup.c src/view/events.c src/view/draw.c src/window.c)

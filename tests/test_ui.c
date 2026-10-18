@@ -545,8 +545,37 @@ static void test_word_selection_respects_utf8_spaces_punctuation_and_end(void) {
     TEST_ASSERT_EQUAL_UINT(0, edit.cursor);
 }
 
+static void test_hsl_rgba_roundtrip_primaries_transparency_and_hex(void) {
+    const uint32_t colors[] = {0xff0000ff, 0x00ff00ff, 0x0000ffff, 0x00000000,
+                               0xffffffff, 0x7393af80, 0x808080ff, 0xff00ff01};
+    for (size_t i = 0; i < sizeof colors / sizeof *colors; i++) {
+        PUIHSLColor hsl = pui_color_to_hsl(colors[i]);
+        TEST_ASSERT_EQUAL_HEX32(colors[i], pui_color_from_hsl(hsl));
+        char text[10];
+        pui_color_format_hex(colors[i], text);
+        uint32_t result = 0;
+        TEST_ASSERT_TRUE(pui_color_parse_hex(text, &result));
+        TEST_ASSERT_EQUAL_HEX32(colors[i], result);
+    }
+    TEST_ASSERT_EQUAL_HEX32(0xff000080, pui_color_from_hsl((PUIHSLColor){360, 1, .5f, .5f}));
+    TEST_ASSERT_EQUAL_HEX32(0x0000ffff, pui_color_from_hsl((PUIHSLColor){-120, 1, .5f, 1}));
+    uint32_t rgba = 0;
+    TEST_ASSERT_TRUE(pui_color_parse_hex("#f08", &rgba));
+    TEST_ASSERT_EQUAL_HEX32(0xff0088ff, rgba);
+    TEST_ASSERT_TRUE(pui_color_parse_hex("#F008", &rgba));
+    TEST_ASSERT_EQUAL_HEX32(0xff000088, rgba);
+    const char *invalid[] = {"",         "FF0000",  "#12",        "#12345",
+                             "#1234567", "#xx0000", "#fffffffff", "#123456 "};
+    for (size_t i = 0; i < sizeof invalid / sizeof *invalid; i++) {
+        rgba = 0x12345678;
+        TEST_ASSERT_FALSE(pui_color_parse_hex(invalid[i], &rgba));
+        TEST_ASSERT_EQUAL_HEX32(0x12345678, rgba);
+    }
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_hsl_rgba_roundtrip_primaries_transparency_and_hex);
     RUN_TEST(test_word_selection_respects_utf8_spaces_punctuation_and_end);
     RUN_TEST(test_popup_placement_flips_and_clamps_to_bounds);
     RUN_TEST(test_toggle_and_radio_change_only_on_valid_activation);

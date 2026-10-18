@@ -444,6 +444,20 @@ PUIRect pui_image_fit(PUIRect bounds, float width, float height, float padding);
 #define PUI_LAYOUT_DEPTH 12
 
 /** @brief Generic widget kinds; no application or document domains. */
+/** @brief HSL lightness color: hue in degrees, saturation/lightness/alpha in [0,1]. */
+typedef struct {
+    float h, s, l, a;
+} PUIHSLColor;
+
+/** @brief Convert packed 0xRRGGBBAA to HSL; achromatic colors have hue zero. */
+PUIHSLColor pui_color_to_hsl(uint32_t rgba);
+/** @brief Convert HSL to 0xRRGGBBAA; finite values are clamped, hue wraps at 360 degrees. */
+uint32_t pui_color_from_hsl(PUIHSLColor hsla);
+/** @brief Parse #RGB, #RGBA, #RRGGBB or #RRGGBBAA; failure leaves the output unchanged. */
+bool pui_color_parse_hex(const char *text, uint32_t *rgba);
+/** @brief Write canonical #RRGGBBAA including terminator into a ten-byte buffer. */
+void pui_color_format_hex(uint32_t rgba, char text[10]);
+
 typedef enum {
     PUI_NODE_COLUMN,
     PUI_NODE_ROW,
@@ -467,7 +481,8 @@ typedef enum {
     PUI_NODE_OPTION,
     PUI_NODE_POPUP_BUTTON,
     PUI_NODE_SLOT,
-    PUI_NODE_CANVAS
+    PUI_NODE_CANVAS,
+    PUI_NODE_COLOR_PICKER
 } PUINodeType;
 
 /** @brief Geometry of a two/three-pane splitter; unused entries are zero. */
@@ -507,7 +522,9 @@ typedef struct {
                     ///< tab.
     bool draggable; ///< Empty space in this widget may move a borderless window.
     PUIAxis axis;
-    char value[128]; ///< Stable option value, or initial dropdown value.
+    char preview_action[64]; ///< Optional color-picker live preview/cancellation action.
+    int color_mode;          ///< Color picker: 0=HSL, 1=RGBA.
+    char value[128]; ///< Stable option value, initial dropdown value, or initial color-picker hex.
     float popup_width, popup_height;
     PUIPopupPlacement placement;
     int child, next;
@@ -916,6 +933,12 @@ void pui_view_draw(PUIView *view, PUIContext *pui, PUIRect area, PUIAction actio
  * mutation.
  */
 const char *pui_view_text(const PUIView *view, const char *id);
+/** @brief Read the current packed color, including an active preview; false for invalid IDs. */
+bool pui_view_color(const PUIView *view, const char *id, uint32_t *rgba);
+/** @brief Replace a picker's committed color and reset its fields without firing actions. */
+bool pui_view_set_color(PUIView *view, const char *id, uint32_t rgba);
+/** @brief True only during a color-slider gesture. */
+bool pui_view_color_editing(const PUIView *view, const char *id);
 /** @brief Set input, label or tab text; tab widths follow the new caption. */
 bool pui_view_set_text(PUIView *view, const char *id, const char *text);
 /** @brief Read a toggle, checkbox or grouped button. False for unchecked/invalid IDs. */

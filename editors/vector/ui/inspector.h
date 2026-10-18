@@ -18,6 +18,9 @@ typedef struct {
  */
 bool vector_inspector_sync(VectorInspector *inspector, VectorDocument *document, PUIView *view,
                            PUIContext *input, char *error, size_t capacity);
+/** @brief Discard pending color preview before tool/history context changes. */
+void vector_inspector_cancel_color(VectorInspector *inspector, VectorDocuments *documents,
+                                   PUIView *view);
 /** @brief Translate committed input values into undoable model changes. */
 bool vector_inspector_action(VectorInspector *inspector, VectorDocuments *documents, PUIView *view,
                              const char *action);

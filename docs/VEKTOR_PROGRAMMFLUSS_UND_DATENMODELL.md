@@ -629,7 +629,7 @@ Befehlstypen an die jeweiligen Artboard- und Rechteck-Codecs. Checkpoints speich
 Rechtecke, Eltern-IDs, Auswahl, ID-Zähler und die gesamte History einschließlich Redo.
 Es sind aktuell höchstens 64 Artboards und 64 Rechtecke pro Dokument vorgesehen; alle
 128 Tree-Zeilen passen in die bestehende Runtime-Tree-Grenze. Rechtecke erhalten
-zunächst eine feste blaue Füllung. Individuelle Farben sind ein weiterer Ausbauschritt. Das Auswahlwerkzeug
+standardmäßig eine blaue, im Inspector bearbeitbare Füllung. Das Auswahlwerkzeug
 unterstützt Verschieben und Skalieren der Rechtecke per Maus wie unten beschrieben.
 
 
@@ -660,3 +660,25 @@ Kinder dürfen beim Transformieren über Artboard-Grenzen reichen; ihre Füllung
 am Artboard beschnitten. Der ausgewählte Begrenzungsrahmen samt Greifern bleibt auch
 außerhalb sichtbar. Ein bereits ausgewähltes Rechteck kann dort an seiner Fläche
 wieder zurückgezogen werden. Die Eltern-ID ändert sich durch Verschieben nicht.
+
+
+## Rechteck-Füllfarbe und Farb-Vorschau
+
+`VectorRectangle.fill` speichert `0xRRGGBBAA`; der Standard ist `0x7393AFFF`.
+`rectangle_inspector.yaml` enthält das allgemeine pengUI-Widget `rectangle_fill`.
+Die Aktionen `vector.rectangle.fill_preview` und `vector.rectangle.fill` werden
+in `ui/rectangle_inspector.c` in Vorschau bzw. Modelländerung übersetzt.
+
+Während eines Reglerzugs hält `VectorDocument.fill_preview` nur Rechteck-ID, vorläufige
+Farbe und ein Aktiv-Flag. Der Renderer liest diese Farbe anstelle der gespeicherten
+Füllung. Modellfarbe und History bleiben unverändert. Beim Loslassen führt
+`vector_rectangle_set_fill()` genau einen vorhandenen Vorher-/Nachher-Befehl aus.
+Eine Hex- oder numerische Eingabe übernimmt der Picker mit Enter oder beim Feldwechsel.
+Escape, Fokusverlust oder Werkzeug-/Dokumentwechsel verwerfen die vorläufige Farbe.
+Eigene und geerbte Sperren verhindern die Übernahme.
+
+Beim Zeichnen wird der Alphakanal mit SDL-Blending verrechnet; Auswahlrahmen und
+Greifer bleiben als Editorhilfen sichtbar. Die vorherige Renderer-Blendeinstellung
+wird wiederhergestellt. Checkpoints sichern die gespeicherte Füllfarbe einschließlich
+Undo- und Redo-Befehlen, jedoch keine aktive Farbvorschau. Nach Undo/Redo oder
+Editorwechsel synchronisiert der Inspector den Modellwert zurück in den Picker.

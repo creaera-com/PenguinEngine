@@ -659,3 +659,73 @@ die Spaltendaten gehören aktuell zur Runtime-API.
 Die programmatische Auswahl über `pui_view_select_tree_item()` öffnet die Vorfahren
 der ausgewählten Runtime-Zeile. Dadurch werden neu angelegte Kindelemente sichtbar,
 ohne den zuvor geschlossenen Zweig manuell öffnen zu müssen.
+
+
+## Wiederverwendbarer Farbwähler
+
+`color_picker` ist ein eigenständiges pengUI-Widget ohne Editorabhängigkeiten:
+
+```yaml
+- type: color_picker
+  id: fill_color
+  mode: hsl
+  value: "#7393AFFF"
+  height: 280
+  action: object.fill
+  preview_action: object.fill_preview
+```
+
+`mode` ist `hsl` (Standard) oder `rgba`; die beiden Buttons wechseln die Darstellung,
+ohne die Farbe zu verändern. `value` ist eine **in Anführungszeichen gesetzte**
+Hex-Farbe. Ohne Wert beginnt der Picker mit deckendem Weiß. `preview_action` ist
+optional. Ein Picker benötigt zusätzlich zu seinem eigenen Layoutknoten neun
+gewöhnliche Input-Knoten. IDs innerhalb seines Namensraums sind reserviert:
+`.h`, `.s`, `.l`, `.a`, `.r`, `.g`, `.b`, `.alpha` und `.hex`. Das funktioniert auch bei
+YAML-Komposition und den automatisch vorangestellten Dokument-Tab-Präfixen.
+
+| Eingabe | Wertebereich |
+| --- | --- |
+| H | 0–360 Grad; 360 entspricht 0 |
+| S, L und Deckkraft in HSL | 0–100 Prozent; Dezimalwerte möglich |
+| R, G, B und A in RGBA | Ganze Zahlen von 0–255 |
+| Hex | `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA` |
+
+HSL-L ist Lightness, nicht die physikalische Leuchtdichte. Farben sind intern in
+`0xRRGGBBAA` gepackt; Hex wird kanonisch als `#RRGGBBAA` angezeigt. Ein Schachbrettmuster
+unter Vorschau und Alpha-Regler macht Transparenz sichtbar. Ungültige Eingaben verändern
+die gültige Farbe nicht und werden im Widget gemeldet.
+
+Die Felder verwenden die vorhandene Textbearbeitung einschließlich Auswahl, Cursor,
+Zwischenablage, Tab und Shift+Tab. Enter, Feldwechsel mit Tab oder Mausklick übernehmen
+einen gültigen Wert. Regler ändern die Vorschau während des Ziehens. `action` wird bei
+einer übernommenen Änderung gesendet, beim Regler erst beim Loslassen. Ein Moduswechsel
+oder derselbe gepackte Farbwert senden keinen Änderungsbefehl. Escape bzw. Fokusverlust
+verwerfen eine laufende Vorschau. Entfernen oder Deaktivieren des Widgets beendet
+eine laufende Reglergeste ebenfalls.
+
+Im C-Callback wird der Wert über `pui_view_color(view, widget_id, &rgba)` gelesen.
+`pui_view_color_editing()` meldet eine aktive Reglergeste. Die Vorschau-Aktion wird
+auch beim Abbrechen oder Loslassen gesendet; bei `editing == false` entfernt die
+Anwendung ihre vorläufige Darstellung. Die eigentliche Undo/Redo-History liegt
+weiterhin in der Anwendung. `pui_view_set_color()` setzt einen Modellwert zurück in
+das Widget und seine Felder, ohne Aktionen auszulösen.
+
+```c
+uint32_t rgba;
+if (pui_view_color(view, widget_id, &rgba)) {
+    if (!strcmp(action, "object.fill_preview")) {
+        /* Nur vorläufig anzeigen, solange color_editing wahr ist. */
+        update_preview(rgba, pui_view_color_editing(view, widget_id));
+    } else if (!strcmp(action, "object.fill")) {
+        /* Einen fachlichen History-Befehl ausführen. */
+        apply_fill_command(rgba);
+    }
+}
+```
+
+`widgets/color_picker.c` enthält SDL-freie Konvertierung, Hex-Validierung und
+Composite-Expansion; `widgets/color_picker_sdl.c` übernimmt Zeichnen, Regler und
+Feldbindungen. Eingabefelder bleiben normale `input`-Widgets. Die Kernfunktionen
+`pui_color_to_hsl()`, `pui_color_from_hsl()`, `pui_color_parse_hex()` und
+`pui_color_format_hex()` sind auch ohne SDL nutzbar. Das Widget erhält keine Rechteck-,
+Dokument- oder History-Zeiger.

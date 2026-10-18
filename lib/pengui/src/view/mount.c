@@ -122,6 +122,12 @@ static bool apply_layout(PUIView *view, PUIContext *context, PUILayout *layout, 
     next->canvas_context = view->canvas_context;
     retain_state(view, next, slot);
     for (int i = 0; i < next->layout->count; i++) {
+        if (next->layout->nodes[i].type == PUI_NODE_COLOR_PICKER &&
+            next->state[i].color.drag >= 0) {
+            pui_widget_color_picker_cancel(next, i);
+        }
+    }
+    for (int i = 0; i < next->layout->count; i++) {
         const PUINode *node = &next->layout->nodes[i];
         if (node->type != PUI_NODE_TABS) {
             continue;

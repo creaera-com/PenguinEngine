@@ -11,6 +11,9 @@ typedef struct {
     bool mounted;
 } VectorRectangleInspector;
 
+/** @brief Cancel an in-progress slider before a tool or history action changes context. */
+void vector_rectangle_inspector_cancel_color(VectorRectangleInspector *inspector,
+                                             VectorDocuments *documents, PUIView *view);
 bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
                                        VectorDocuments *documents, PUIView *view,
                                        const char *action);

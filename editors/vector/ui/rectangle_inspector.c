@@ -16,21 +16,58 @@ static bool dimension(const char *text, float *value) {
     return !errno && end != text && !*end && isfinite(*value) && *value >= 1;
 }
 
+void vector_rectangle_inspector_cancel_color(VectorRectangleInspector *inspector,
+                                             VectorDocuments *documents, PUIView *view) {
+    VectorDocument *document = vector_documents_find(documents, inspector->document_id);
+    VectorRectangle *rectangle =
+        document ? vector_rectangle_find(document, inspector->rectangle_id) : NULL;
+    if (document) {
+        document->fill_preview = (VectorFillPreview){0};
+    }
+    if (rectangle && pui_view_color_editing(view, "rectangle_fill")) {
+        pui_view_set_color(view, "rectangle_fill", rectangle->fill);
+    }
+}
+
 bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
                                        VectorDocuments *documents, PUIView *view,
                                        const char *action) {
+    bool fill = !strcmp(action, "vector.rectangle.fill"),
+         preview = !strcmp(action, "vector.rectangle.fill_preview");
     bool name = !strcmp(action, "vector.rectangle.name"),
          width = !strcmp(action, "vector.rectangle.width"),
          height = !strcmp(action, "vector.rectangle.height");
     bool visible = !strcmp(action, "vector.rectangle.visible"),
          locked = !strcmp(action, "vector.rectangle.locked");
-    if (!name && !width && !height && !visible && !locked) {
+    if (!fill && !preview && !name && !width && !height && !visible && !locked) {
         return false;
     }
     VectorDocument *document = vector_documents_find(documents, inspector->document_id);
     VectorRectangle *rectangle =
         document ? vector_rectangle_find(document, inspector->rectangle_id) : NULL;
     if (!rectangle) {
+        return true;
+    }
+    if (fill || preview) {
+        uint32_t color;
+        if (!pui_view_color(view, "rectangle_fill", &color)) {
+            return true;
+        }
+        if (preview) {
+            document->fill_preview = (VectorFillPreview){
+                .rectangle_id = rectangle->id,
+                .color = color,
+                .active = pui_view_color_editing(view, "rectangle_fill") &&
+                          !(vector_rectangle_effective_flags(document, rectangle) &
+                            VECTOR_OBJECT_LOCKED)};
+            return true;
+        }
+        document->fill_preview = (VectorFillPreview){0};
+        bool changed = vector_rectangle_set_fill(document, rectangle->id, color);
+        inspector->dirty |= 8u;
+        pui_view_set_text(view, "status",
+                          changed ? "Fuellfarbe aktualisiert"
+                                  : "Rechteck oder Artboard ist gesperrt");
         return true;
     }
     bool changed = false;
@@ -97,6 +134,14 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
                                   VECTOR_OBJECT_LOCKED
                               ? "Objekt oder Artboard gesperrt."
                               : "");
+        if (switched || (inspector->dirty & 8u) || inspector->presented.fill != rectangle->fill) {
+            uint32_t current;
+            if (switched || !pui_view_color(view, "rectangle_fill", &current) ||
+                current != rectangle->fill) {
+                document->fill_preview = (VectorFillPreview){0};
+                pui_view_set_color(view, "rectangle_fill", rectangle->fill);
+            }
+        }
         inspector->presented = *rectangle;
     }
     inspector->document_id = document ? document->id : 0;

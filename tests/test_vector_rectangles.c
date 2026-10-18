@@ -95,7 +95,7 @@ static void assert_rect(PUIRect expected, PUIRect actual) {
     TEST_ASSERT_EQUAL_FLOAT(expected.h, actual.h);
 }
 
-static void assert_local_red(VectorDocument *doc, float x, float y, Uint8 expected) {
+static Uint8 local_red(VectorDocument *doc, float x, float y) {
     VectorViewport *v = &doc->viewport;
     PUIRect board = doc->artboards[0].rect;
     SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
@@ -106,7 +106,11 @@ static void assert_local_red(VectorDocument *doc, float x, float y, Uint8 expect
                              (int)(v->bounds.y + v->y + (board.y + y) * v->zoom), &r, &g, &b, &a);
     SDL_DestroySurface(surface);
     TEST_ASSERT_TRUE(ok);
-    TEST_ASSERT_EQUAL_UINT8(expected, r);
+    return r;
+}
+
+static void assert_local_red(VectorDocument *doc, float x, float y, Uint8 expected) {
+    TEST_ASSERT_EQUAL_UINT8(expected, local_red(doc, x, y));
 }
 
 static void test_draw_rectangle_in_parent_local_coordinates_and_undo(void) {
@@ -436,8 +440,157 @@ static void test_rectangle_mouse_geometry_redo_and_inspector_survive_switch(void
     TEST_ASSERT_EQUAL_UINT(1, doc->rectangles[0].parent_id);
 }
 
+static void color_action(void *context, const char *name, const char *widget) {
+    (void)context;
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, name, widget));
+}
+
+static void color_event(SDL_Event *event) {
+    if (!pui_view_event(shell.view, &shell.input, window, event)) {
+        editor_host_event(&host, shell.view, event);
+    }
+    pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 1280, 800}, color_action, NULL);
+    commit();
+}
+
+static void color_pointer(SDL_EventType type, float x, float y) {
+    SDL_Event event = {.type = type};
+    if (type == SDL_EVENT_MOUSE_MOTION) {
+        event.motion.x = x;
+        event.motion.y = y;
+    } else {
+        event.button.button = SDL_BUTTON_LEFT;
+        event.button.x = x;
+        event.button.y = y;
+    }
+    color_event(&event);
+}
+
+static void color_origin(float *x, float *y) {
+    for (int row = 0; row < 800; row += 4) {
+        for (int column = 0; column < 1280; column += 4) {
+            if (pui_view_hit(shell.view, "rectangle_fill", column, row)) {
+                *x = (float)column;
+                *y = (float)row;
+                return;
+            }
+        }
+    }
+    TEST_FAIL_MESSAGE("rectangle color picker must be visible");
+}
+
+static void test_rectangle_color_slider_preview_single_commit_and_cancel(void) {
+    VectorDocument *doc = parent();
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 1, (PUIRect){20, 30, 80, 60}));
+    commit();
+    float x = 0, y = 0;
+    color_origin(&x, &y);
+    color_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x + 20, y + 70);
+    TEST_ASSERT_TRUE(doc->fill_preview.active);
+    TEST_ASSERT_EQUAL_INT(2, doc->history.count);
+    TEST_ASSERT_EQUAL_HEX32(VECTOR_RECTANGLE_DEFAULT_FILL, doc->rectangles[0].fill);
+    uint32_t preview;
+    TEST_ASSERT_TRUE(pui_view_color(shell.view, "rectangle_fill", &preview));
+    assert_local_red(doc, 40, 50, preview >> 24);
+    color_pointer(SDL_EVENT_MOUSE_MOTION, x + 110, y + 70);
+    TEST_ASSERT_EQUAL_INT(2, doc->history.count);
+    color_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 110, y + 70);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    TEST_ASSERT_FALSE(doc->fill_preview.active);
+    uint32_t committed = doc->rectangles[0].fill;
+    TEST_ASSERT_NOT_EQUAL(VECTOR_RECTANGLE_DEFAULT_FILL, committed);
+    color_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x + 20, y + 70);
+    SDL_Event escape = {.type = SDL_EVENT_KEY_DOWN};
+    escape.key.key = SDLK_ESCAPE;
+    color_event(&escape);
+    TEST_ASSERT_FALSE(doc->fill_preview.active);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    TEST_ASSERT_EQUAL_HEX32(committed, doc->rectangles[0].fill);
+    assert_local_red(doc, 40, 50, committed >> 24);
+    action("editor.undo", "");
+    TEST_ASSERT_EQUAL_HEX32(VECTOR_RECTANGLE_DEFAULT_FILL, doc->rectangles[0].fill);
+    action("editor.redo", "");
+    TEST_ASSERT_EQUAL_HEX32(committed, doc->rectangles[0].fill);
+    int before_tool = doc->history.count;
+    color_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x + 20, y + 70);
+    TEST_ASSERT_TRUE(doc->fill_preview.active);
+    action("vector.add_rect", "");
+    TEST_ASSERT_FALSE(pui_view_color_editing(shell.view, "rectangle_fill"));
+    TEST_ASSERT_FALSE(doc->fill_preview.active);
+    color_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 20, y + 70);
+    TEST_ASSERT_EQUAL_INT(before_tool, doc->history.count);
+    action("vector.tool_selection", "");
+    action("vector.rectangle.lock", "vector_document_1.rectangle_1");
+    int count = doc->history.count;
+    color_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x + 10, y + 70);
+    color_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 10, y + 70);
+    TEST_ASSERT_EQUAL_INT(count, doc->history.count);
+    TEST_ASSERT_EQUAL_HEX32(committed, doc->rectangles[0].fill);
+    TEST_ASSERT_TRUE(pui_view_color(shell.view, "rectangle_fill", &preview));
+    TEST_ASSERT_EQUAL_HEX32(committed, preview);
+}
+
+static void test_fill_alpha_history_and_checkpoint_ignore_transient_color(void) {
+    VectorDocument *doc = parent();
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 1, (PUIRect){20, 30, 80, 60}));
+    TEST_ASSERT_TRUE(vector_rectangle_set_fill(doc, 1, 0xff000000));
+    commit();
+    assert_local_red(doc, 40, 50, 242);
+    TEST_ASSERT_TRUE(vector_rectangle_set_fill(doc, 1, 0xff000080));
+    commit();
+    TEST_ASSERT_UINT8_WITHIN(1, 249, local_red(doc, 40, 50));
+    TEST_ASSERT_TRUE(vector_rectangle_set_fill(doc, 1, 0x00ff00ff));
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    commit();
+    doc->fill_preview = (VectorFillPreview){.rectangle_id = 1, .color = 0x0000ffff, .active = true};
+    activate("scripts");
+    activate("vector");
+    commit();
+    doc = document();
+    TEST_ASSERT_FALSE(doc->fill_preview.active);
+    TEST_ASSERT_EQUAL_HEX32(0xff000080, doc->rectangles[0].fill);
+    uint32_t rgba;
+    TEST_ASSERT_TRUE(pui_view_color(shell.view, "rectangle_fill", &rgba));
+    TEST_ASSERT_EQUAL_HEX32(0xff000080, rgba);
+    TEST_ASSERT_TRUE(vector_history_redo(&doc->history, doc));
+    commit();
+    assert_local_red(doc, 40, 50, 0);
+    TEST_ASSERT_TRUE(vector_artboard_set_state(doc, 1, VECTOR_OBJECT_LOCKED));
+    TEST_ASSERT_FALSE(vector_rectangle_set_fill(doc, 1, 0xffffffff));
+    TEST_ASSERT_EQUAL_HEX32(0x00ff00ff, doc->rectangles[0].fill);
+}
+
+static void test_rectangle_hex_field_uses_the_same_fill_history(void) {
+    VectorDocument *doc = parent();
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 1, (PUIRect){20, 30, 80, 60}));
+    commit();
+    float x = 0, y = 0;
+    color_origin(&x, &y);
+    TEST_ASSERT_TRUE(pui_view_set_text(shell.view, "rectangle_fill.hex", "#FF800040"));
+    color_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x + 80, y + 244);
+    color_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 80, y + 244);
+    SDL_Event enter = {.type = SDL_EVENT_KEY_DOWN};
+    enter.key.key = SDLK_RETURN;
+    color_event(&enter);
+    TEST_ASSERT_EQUAL_HEX32(0xff800040, doc->rectangles[0].fill);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    color_event(&enter);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    TEST_ASSERT_TRUE(pui_view_set_text(shell.view, "rectangle_fill.hex", "#00FF00FF"));
+    SDL_Event tab = {.type = SDL_EVENT_KEY_DOWN};
+    tab.key.key = SDLK_TAB;
+    color_event(&tab);
+    TEST_ASSERT_EQUAL_HEX32(0x00ff00ff, doc->rectangles[0].fill);
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+    action("editor.undo", "");
+    TEST_ASSERT_EQUAL_HEX32(0xff800040, doc->rectangles[0].fill);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_rectangle_hex_field_uses_the_same_fill_history);
+    RUN_TEST(test_rectangle_color_slider_preview_single_commit_and_cancel);
+    RUN_TEST(test_fill_alpha_history_and_checkpoint_ignore_transient_color);
     RUN_TEST(test_rectangle_all_eight_handles_preview_and_single_history_commit);
     RUN_TEST(test_rectangle_live_fill_minimum_escape_and_body_movement);
     RUN_TEST(test_rectangle_mouse_respects_locks_hiding_and_cancellation);

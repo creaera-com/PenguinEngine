@@ -3,10 +3,12 @@
 #define PE_VECTOR_RECTANGLE_H
 #include "editors/vector/artboard/artboard.h"
 #define VECTOR_MAX_RECTANGLES 64
+#define VECTOR_RECTANGLE_DEFAULT_FILL 0x7393afffu
 
 /** @brief Rectangle geometry is relative to parent_id, never to the viewport. */
 typedef struct {
     unsigned id, parent_id, flags;
+    uint32_t fill; ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
     char name[64];
     PUIRect rect;
 } VectorRectangle;
@@ -21,6 +23,8 @@ bool vector_rectangle_add(struct VectorDocument *document, unsigned parent_id, P
 /** @brief Update properties atomically; inherited locks block property changes. */
 bool vector_rectangle_update(struct VectorDocument *document, unsigned id, const char *name,
                              PUIRect rect);
+/** @brief Undoable fill color change; inherited locks prevent editing. */
+bool vector_rectangle_set_fill(struct VectorDocument *document, unsigned id, uint32_t rgba);
 /** @brief Change this child's own visibility/lock flags, independently of inherited state. */
 bool vector_rectangle_set_state(struct VectorDocument *document, unsigned id, unsigned flags);
 /** @brief Native session codecs write values, never pointers. */

@@ -1,5 +1,6 @@
 /** @file @brief Load and validate the SDL-free YAML widget description. */
 #include "pengui/pengui.h"
+#include "widgets/color_picker.h"
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
@@ -114,7 +115,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
         "column",    "row",    "panel",        "toolbar", "button",   "label",
         "separator", "tabs",   "tab",          "section", "input",    "tree",
         "item",      "split",  "spacer",       "toggle",  "checkbox", "button_group",
-        "dropdown",  "option", "popup_button", "slot",    "canvas"};
+        "dropdown",  "option", "popup_button", "slot",    "canvas",   "color_picker"};
     if (depth >= PUI_LAYOUT_DEPTH || r->layout->count >= PUI_LAYOUT_NODES) {
         fail(r, yaml, "layout depth/node limit exceeded");
         return -1;
@@ -123,7 +124,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
               "|type|id|text|action|icon|image|width|height|gap|padding|initial|"
               "initial_second|initial_last|minimum_first|minimum_second|minimum_last|flex|image_"
               "padding|enabled|open|checked|draggable|axis|children|value|popup_width|popup_height|"
-              "placement|")) {
+              "placement|preview_action|mode|")) {
         return -1;
     }
     int index = r->layout->count++;
@@ -164,6 +165,15 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
             fail(r, placement, "placement must be below or right");
         }
         out->placement = !strcmp(value, "right") ? PUI_POPUP_RIGHT : PUI_POPUP_BELOW;
+    }
+    string(r, yaml, "preview_action", out->preview_action, sizeof out->preview_action);
+    yaml_node_t *mode = get(r, yaml, "mode");
+    if (mode) {
+        const char *value = scalar(r, mode);
+        if (out->type != PUI_NODE_COLOR_PICKER || (strcmp(value, "hsl") && strcmp(value, "rgba"))) {
+            fail(r, mode, "mode must be hsl or rgba on a color_picker");
+        }
+        out->color_mode = !strcmp(value, "rgba");
     }
     out->width = number(r, yaml, "width", 0, 0, 10000);
     out->height = number(r, yaml, "height", 0, 0, 10000);
@@ -232,8 +242,9 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
         ((out->type == PUI_NODE_BUTTON || out->type == PUI_NODE_LABEL ||
           out->type == PUI_NODE_INPUT || out->type == PUI_NODE_TOGGLE ||
           out->type == PUI_NODE_CHECKBOX || out->type == PUI_NODE_OPTION ||
-          out->type == PUI_NODE_CANVAS || out->type == PUI_NODE_SLOT ||
-          out->type == PUI_NODE_SPACER || out->type == PUI_NODE_SEPARATOR) &&
+          out->type == PUI_NODE_CANVAS || out->type == PUI_NODE_COLOR_PICKER ||
+          out->type == PUI_NODE_SLOT || out->type == PUI_NODE_SPACER ||
+          out->type == PUI_NODE_SEPARATOR) &&
          count)) {
         fail(r, yaml, "invalid child count");
     }
@@ -292,6 +303,13 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
             } else {
                 fail(r, flex, "flex must select an existing pane: first, second, middle or last");
             }
+        }
+    }
+    if (!r->failed && out->type == PUI_NODE_COLOR_PICKER) {
+        if (depth + 1 >= PUI_LAYOUT_DEPTH) {
+            fail(r, yaml, "color_picker exceeds layout depth");
+        } else if (!pui_color_picker_expand(r->layout, index, r->error, r->capacity)) {
+            r->failed = true;
         }
     }
     return r->failed ? -1 : index;

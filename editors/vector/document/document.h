@@ -22,6 +22,7 @@ typedef struct VectorDocument {
     int rectangle_count;
     unsigned next_rectangle_id, active_rectangle;
     VectorRectangleTool rectangle_tool;
+    VectorFillPreview fill_preview;
     VectorHistory history;
     VectorViewport viewport;
     VectorArtboardTool artboard_tool;

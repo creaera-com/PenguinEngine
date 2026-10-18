@@ -64,6 +64,11 @@ void vector_editor_destroy(void *instance) {
 
 bool vector_editor_action(void *instance, PUIView *view, const char *name, const char *widget) {
     VectorEditor *editor = instance;
+    if (!strcmp(name, "vector.tool_selection") || !strcmp(name, "vector.add_rect") ||
+        !strcmp(name, "vector.add_artboard") || !strcmp(name, "editor.undo") ||
+        !strcmp(name, "editor.redo")) {
+        vector_inspector_cancel_color(&editor->inspector, &editor->documents, view);
+    }
     if (vector_inspector_action(&editor->inspector, &editor->documents, view, name)) {
         return true;
     }

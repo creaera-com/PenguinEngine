@@ -6,6 +6,7 @@
 #include <string.h>
 
 void vector_rectangle_tool_cancel(VectorDocument *document) {
+    document->fill_preview = (VectorFillPreview){0};
     document->viewport.panning = false;
     if (document->rectangle_tool.dragging) {
         SDL_CaptureMouse(false);

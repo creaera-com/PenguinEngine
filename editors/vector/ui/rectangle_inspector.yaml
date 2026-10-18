@@ -29,3 +29,10 @@ root:
     - {type: checkbox, id: rectangle_visible, text: Sichtbar, action: vector.rectangle.visible, height: 28}
     - {type: checkbox, id: rectangle_locked, text: Gesperrt, action: vector.rectangle.locked, height: 28}
     - {type: label, id: rectangle_edit_hint, text: "", height: 24}
+    - {type: label, text: Fuellfarbe, height: 24}
+    - type: color_picker
+      id: rectangle_fill
+      mode: hsl
+      value: "#7393AFFF"
+      action: vector.rectangle.fill
+      preview_action: vector.rectangle.fill_preview

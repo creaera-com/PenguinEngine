@@ -8,6 +8,9 @@ float pui_view_node_height(const PUIView *v, int i) {
     if (n->height > 0) {
         return n->height;
     }
+    if (n->type == PUI_NODE_COLOR_PICKER) {
+        return 280;
+    }
     if (n->type == PUI_NODE_LABEL) {
         return 24;
     }

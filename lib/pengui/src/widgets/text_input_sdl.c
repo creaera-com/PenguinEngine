@@ -194,6 +194,9 @@ void pui_widget_text_input_pointer(PUIView *view, PUIContext *pui, SDL_Window *w
         }
     }
     if (input != view->focused) {
+        if (view->focused >= 0 && pui_widget_color_picker_owns(view, view->focused)) {
+            view->submit = view->focused;
+        }
         pui_view_blur(view, pui);
     }
     if (input >= 0) {

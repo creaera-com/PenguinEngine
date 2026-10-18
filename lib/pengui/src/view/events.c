@@ -3,6 +3,10 @@
 
 bool pui_view_event(PUIView *view, PUIContext *pui, SDL_Window *window, const SDL_Event *event) {
     view->window = window;
+    bool color_consumed = pui_widget_color_picker_event(view, pui, event);
+    if (color_consumed && event->type != SDL_EVENT_WINDOW_FOCUS_LOST) {
+        return true;
+    }
     if (pui_view_popup_event(view, pui, event)) {
         return true;
     }

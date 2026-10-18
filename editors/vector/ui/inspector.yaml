@@ -4,4 +4,3 @@ root:
   padding: 12
   children:
     - {type: slot, id: selection_properties}
-    - {type: spacer}

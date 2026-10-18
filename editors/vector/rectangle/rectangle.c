@@ -87,8 +87,10 @@ static bool edit_revert(void *state, const void *payload) {
 
 bool vector_rectangle_add(VectorDocument *document, unsigned parent_id, PUIRect rect) {
     VectorArtboard *parent = vector_artboard_find(document, parent_id);
-    VectorRectangle value = {
-        .id = document->next_rectangle_id, .parent_id = parent_id, .rect = rect};
+    VectorRectangle value = {.id = document->next_rectangle_id,
+                             .parent_id = parent_id,
+                             .fill = VECTOR_RECTANGLE_DEFAULT_FILL,
+                             .rect = rect};
     snprintf(value.name, sizeof value.name, "Rechteck %u", value.id);
     if (!parent || parent->flags & VECTOR_OBJECT_STATE_MASK || !valid(value) || rect.x < 0 ||
         rect.y < 0 || rect.x + rect.w > parent->rect.w || rect.y + rect.h > parent->rect.h ||
@@ -140,6 +142,17 @@ bool vector_rectangle_update(VectorDocument *document, unsigned id, const char *
     VectorRectangle after = *rectangle;
     after.rect = rect;
     snprintf(after.name, sizeof after.name, "%s", name);
+    return edit(document, *rectangle, after);
+}
+
+bool vector_rectangle_set_fill(VectorDocument *document, unsigned id, uint32_t rgba) {
+    VectorRectangle *rectangle = vector_rectangle_find(document, id);
+    if (!rectangle ||
+        (vector_rectangle_effective_flags(document, rectangle) & VECTOR_OBJECT_LOCKED)) {
+        return false;
+    }
+    VectorRectangle after = *rectangle;
+    after.fill = rgba;
     return edit(document, *rectangle, after);
 }
 

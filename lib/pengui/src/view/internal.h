@@ -3,6 +3,7 @@
 #define PUI_VIEW_INTERNAL_H
 #include "pengui/pengui.h"
 #include "rendering/internal.h"
+#include "widgets/color_picker.h"
 
 typedef struct {
     PUITreeItem *items;
@@ -11,6 +12,7 @@ typedef struct {
 } TreeData;
 
 typedef struct {
+    PUIColorPickerState color;
     TreeData *tree;
     bool open;
     bool checked;
@@ -49,6 +51,14 @@ struct PUIView {
     bool cursor_attempted[SDL_SYSTEM_CURSOR_COUNT];
 };
 
+void pui_widget_color_picker_finish_frame(PUIView *view, PUIContext *input, PUIAction action,
+                                          void *context);
+void pui_widget_color_picker_init(PUIView *view, int index);
+void pui_widget_color_picker_draw(PUIView *view, PUIContext *input, int index, PUIRect area,
+                                  PUIAction action, void *context);
+bool pui_widget_color_picker_event(PUIView *view, PUIContext *input, const SDL_Event *event);
+bool pui_widget_color_picker_owns(const PUIView *view, int input);
+void pui_widget_color_picker_cancel(PUIView *view, int index);
 void pui_widget_tree_clear(Widget *state);
 void pui_widget_dropdown_init(PUIView *view, int index);
 void pui_widget_dropdown_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,

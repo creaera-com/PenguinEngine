@@ -32,6 +32,11 @@ static bool dimension(const char *text, float *value) {
     return !errno && end != text && !*end && isfinite(*value) && *value >= 1;
 }
 
+void vector_inspector_cancel_color(VectorInspector *inspector, VectorDocuments *documents,
+                                   PUIView *view) {
+    vector_rectangle_inspector_cancel_color(&inspector->rectangle, documents, view);
+}
+
 bool vector_inspector_action(VectorInspector *inspector, VectorDocuments *documents, PUIView *view,
                              const char *action) {
     if (vector_rectangle_inspector_action(&inspector->rectangle, documents, view, action)) {

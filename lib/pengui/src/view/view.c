@@ -43,6 +43,11 @@ PUIView *pui_view_new(const PUILayout *layout, SDL_Renderer *renderer) {
         }
     }
     for (int i = 0; i < layout->count; i++) {
+        if (layout->nodes[i].type == PUI_NODE_COLOR_PICKER) {
+            pui_widget_color_picker_init(view, i);
+        }
+    }
+    for (int i = 0; i < layout->count; i++) {
         if (layout->nodes[i].type == PUI_NODE_BUTTON_GROUP) {
             pui_widget_button_group_init(view, i);
         }
@@ -57,6 +62,10 @@ void pui_view_free(PUIView *view) {
             SDL_StopTextInput(view->window);
         }
         for (int i = 0; i < view->layout->count; i++) {
+            if (view->layout->nodes[i].type == PUI_NODE_COLOR_PICKER &&
+                view->state[i].color.drag >= 0) {
+                SDL_CaptureMouse(false);
+            }
             pui_widget_tree_clear(&view->state[i]);
             if (view->state[i].image) {
                 SDL_DestroyTexture(view->state[i].image);
