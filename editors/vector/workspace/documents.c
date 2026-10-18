@@ -32,6 +32,11 @@ void vector_document_tabs_request(VectorDocumentTabs *tabs, const VectorDocument
 
 bool vector_document_tabs_commit(VectorDocumentTabs *tabs, VectorDocuments *documents,
                                  PUIView *view, PUIContext *input, char *error, size_t capacity) {
+    /* A fresh or empty restored workspace gets one document. An explicit request
+     * already provides that document, so do not queue a second one. */
+    if (!documents->count && !tabs->pending) {
+        tabs->pending = 1;
+    }
     while (tabs->pending > 0) {
         VectorDocument document;
         vector_document_init(&document, (unsigned)documents->count + 1);

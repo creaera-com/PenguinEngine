@@ -126,7 +126,9 @@ children: []
 
 `children` kann auch ganz fehlen. Anfangs gibt es weder einen ausgewählten Tab noch
 Dokumentinhalt. `pui_view_add_tab()` ergänzt später zwischen Frames den ersten Tab
-und wählt ihn aus. Der Vektoreditor startet genau so und links mit „Document“ aktiv.
+und wählt ihn aus. Der Vektoreditor ergänzt automatisch ein leeres „Dokument 1“,
+wenn noch kein Dokument vorhanden oder vorgemerkt ist. Bereits wiederhergestellte
+Dokumente bleiben erhalten; links ist anfangs „Document“ aktiv.
 
 ## Tabler Icons
 

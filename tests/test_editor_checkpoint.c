@@ -352,28 +352,53 @@ static void test_navigation_tab_selection_survives_document_changes_editor_switc
                              pui_view_selected_tab(shell.view, "vector_navigation_tabs"));
 }
 
-static void test_empty_editor_checkpoint_restores_no_document_and_default_navigation(void) {
-    TEST_ASSERT_EQUAL_INT(0, pui_view_tab_count(shell.view, "vector_document_tabs"));
-    TEST_ASSERT_NULL(pui_view_selected_tab(shell.view, "vector_document_tabs"));
+static void test_empty_workspace_gets_one_default_document_without_duplicates(void) {
+    /* Initial mounting is followed by the first between-frame UI commit. */
+    commit();
+    TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_EQUAL_STRING("vector_document_1",
+                             pui_view_selected_tab(shell.view, "vector_document_tabs"));
     TEST_ASSERT_EQUAL_STRING("vector_document_tree_tab",
                              pui_view_selected_tab(shell.view, "vector_navigation_tabs"));
+    commit();
+    TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    VectorEditor *editor = host.instance;
+    TEST_ASSERT_EQUAL_INT(0, editor->documents.items[0].artboard_count);
+    TEST_ASSERT_EQUAL_INT(0, editor->documents.items[0].history.count);
     activate("scripts");
     activate("vector");
     commit();
-    TEST_ASSERT_EQUAL_INT(0, pui_view_tab_count(shell.view, "vector_document_tabs"));
-    TEST_ASSERT_NULL(pui_view_selected_tab(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
     TEST_ASSERT_FALSE(pui_view_checked(shell.view, "vector_add_artboard"));
     TEST_ASSERT_EQUAL_INT(0, pui_view_tree_item_count(shell.view, "vector_document_tree"));
     TEST_ASSERT_TRUE(editor_host_request(&host, "vector", true));
     commit();
-    TEST_ASSERT_EQUAL_INT(0, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
     add_document();
+    TEST_ASSERT_EQUAL_INT(2, pui_view_tab_count(shell.view, "vector_document_tabs"));
+}
+
+static void test_empty_restored_checkpoint_gets_a_default_document(void) {
+    char error[256];
+    EditorCheckpoint *empty = NULL;
+    TEST_ASSERT_TRUE(editor_checkpoint_capture(host.active, host.instance, shell.view, &empty,
+                                               error, sizeof error));
+    TEST_ASSERT_NOT_NULL(empty);
+    activate("scripts");
+    editor_checkpoint_publish(&host.checkpoints, empty);
+    activate("vector");
+    commit();
+    TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_EQUAL_STRING("vector_document_1",
+                             pui_view_selected_tab(shell.view, "vector_document_tabs"));
+    commit();
     TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
 }
 
 int main(void) {
     UNITY_BEGIN();
-    RUN_TEST(test_empty_editor_checkpoint_restores_no_document_and_default_navigation);
+    RUN_TEST(test_empty_restored_checkpoint_gets_a_default_document);
+    RUN_TEST(test_empty_workspace_gets_one_default_document_without_duplicates);
     RUN_TEST(test_navigation_tab_selection_survives_document_changes_editor_switch_and_reload);
     RUN_TEST(test_document_tree_tracks_changes_documents_and_checkpoint_restore);
     RUN_TEST(test_truncated_checkpoint_releases_partial_history_and_retains_model);

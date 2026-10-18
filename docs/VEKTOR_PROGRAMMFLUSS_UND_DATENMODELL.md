@@ -138,6 +138,11 @@ Der Aufschub schützt die laufende UI-Traversierung. Eine einfache Änderung an
 Dokumentdaten muss dagegen keinen UI-Baum austauschen. Die beiden Fälle haben
 deshalb unterschiedliche Zeitpunkte für ihre Änderung.
 
+Bei einer leeren Dokumentverwaltung merkt `vector_document_tabs_commit()` automatisch
+eine Erstellung vor, falls nicht bereits eine explizite Anforderung vorliegt. Das gilt
+auch nach dem Einlesen eines leeren Checkpoints. Die übrige Erstellung läuft über
+denselben oben beschriebenen Weg; es gibt keinen zweiten Erzeugungsmechanismus.
+
 Das Anlegen eines **Dokuments** ist aktuell nicht Teil der Undo-History.
 Die History wird bisher für das Anlegen von **Artboards innerhalb eines Dokuments** verwendet.
 
@@ -147,7 +152,9 @@ Die History wird bisher für das Anlegen von **Artboards innerhalb eines Dokumen
 
 Bei `vector.add_artboard` ermittelt `vector_document_tabs_active()` anhand des
 gewählten Tabs das zugehörige Dokument. Beim Start ist die Dokument-Tab-Leiste
-leer. Ohne Dokument erscheint bei dieser Aktion lediglich eine Statusmeldung.
+zunächst leer; der erste UI-Commit ergänzt automatisch ein Anfangsdokument, sofern
+noch keine explizite Erstellung vorgemerkt ist. Ohne aktives Dokument erscheint bei
+dieser Aktion lediglich eine Statusmeldung.
 
 Mit aktivem Dokument ruft `vector_editor_action()`
 `vector_artboard_tool_arm(document)` auf. Dabei wird das Werkzeug aktiviert und

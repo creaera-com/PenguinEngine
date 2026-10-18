@@ -319,14 +319,16 @@ sie samt History temporär gesichert, ihre Laufzeitdaten freigegeben und bei Rü
 
 `pui_view_add_tab()` und Slot-Austausch dürfen nur zwischen Frames stattfinden.
 Bestehende Widget-Zustände und Tab-Reihenfolgen bleiben erhalten; neue Tabs werden ausgewählt.
-Der Vektoreditor beginnt mit einer leeren Dokument-Tab-Leiste, ohne Übersichtstab.
+Der Vektoreditor ergänzt beim ersten UI-Commit automatisch ein leeres „Dokument 1“,
+wenn keine Dokumente vorhanden oder bereits zur Erstellung vorgemerkt sind.
 Es sind maximal 15 Dokument-Tabs möglich, pro Dokument maximal 64 Artboards.
 Die History fasst aktuell 128 Befehle; an dieser Grenze werden weitere Änderungen abgewiesen.
 
 Der linke Tab „Document“ verwendet `checked: true` als Anfangswert. Allgemein darf
 `tabs` ohne Kinder oder mit `children: []` beginnen. Der erste Dokument-Tab entsteht
-erst durch „Add Document“. Ein leerer Editor lässt sich ebenfalls als Checkpoint
-sichern und wiederherstellen; das erzeugt kein leeres Platzhalterdokument.
+durch „Add Document“ oder automatisch beim ersten UI-Commit einer leeren
+Dokumentverwaltung. Ein leerer Checkpoint ist weiterhin gültig; nach dem Wiederherstellen
+wird ebenfalls genau ein Anfangsdokument ergänzt. Bestehende Dokumente werden nicht ersetzt.
 
 ## Dokument-Tree im linken Panel
 

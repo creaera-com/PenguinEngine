@@ -8,12 +8,13 @@ typedef struct {
     int pending;
 } VectorDocumentTabs;
 
-/** @brief Map the selected workspace tab to a model document; NULL for the overview. */
+/** @brief Map the selected workspace tab to a model document; NULL when no document is selected. */
 VectorDocument *vector_document_tabs_active(VectorDocuments *documents, const PUIView *view);
 /** @brief Queue one tab creation or show a status message if the capacity is reached. */
 void vector_document_tabs_request(VectorDocumentTabs *tabs, const VectorDocuments *documents,
                                   PUIView *view);
-/** @brief Add tabs between frames; append model data only after successful UI composition. */
+/** @brief Add tabs between frames, ensuring one document when empty; append model data only after
+ * successful UI composition. */
 bool vector_document_tabs_commit(VectorDocumentTabs *tabs, VectorDocuments *documents,
                                  PUIView *view, PUIContext *input, char *error, size_t capacity);
 /** @brief Cancel native interactions in all documents except active (NULL cancels all). */
