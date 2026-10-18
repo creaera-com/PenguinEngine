@@ -545,7 +545,7 @@ aktiv ist. Nur im Auswahlmodus können bestehende Artboards auf der Zeichenfläc
 oder im Tree ausgewählt werden. Ein Klick in die Artboard-Fläche wählt aus; ein
 Verschieben beginnt ausschließlich am Namen über dem Artboard.
 
-`artboard/selection.c` berechnet dieselben Label-Grenzen für Rendering und Hit-Test.
+`workspace/selection.c` berechnet dieselben Label-Grenzen für Rendering und Hit-Test.
 Beim Ziehen enthält `VectorSelectionTool` nur den vorläufigen Versatz. Die Zeichenfläche
 stellt diesen dar, während die gespeicherte Artboard-Geometrie unverändert bleibt.
 Mausbewegungen werden durch den Zoom in Dokumentpixel umgerechnet. Beim Loslassen
@@ -566,7 +566,7 @@ auf mindestens einen Dokumentpixel begrenzt; ein Überkreuzen spiegelt das Artbo
 `geometry/resize.h` und `resize.c` enthalten die vom Objekttyp unabhängige Berechnung
 von Greiferpositionen, Trefferflächen und Rechteckänderungen. Sie kennen weder Artboards
 noch SDL-Ereignisse oder History. Weitere Objekte können diese Geometrie später verwenden.
-`artboard/selection.c` übernimmt die Mausinteraktion und Vorschau; beim Loslassen schreibt
+`workspace/selection.c` übernimmt die Mausinteraktion und Vorschau; beim Loslassen schreibt
 `vector_artboard_set_rect()` Position und Größe gemeinsam als einen History-Befehl.
 Inspector und Lineale folgen der übernommenen Größe. Abbrechen verwirft die Vorschau
 wie beim Verschieben.
@@ -629,6 +629,34 @@ Befehlstypen an die jeweiligen Artboard- und Rechteck-Codecs. Checkpoints speich
 Rechtecke, Eltern-IDs, Auswahl, ID-Zähler und die gesamte History einschließlich Redo.
 Es sind aktuell höchstens 64 Artboards und 64 Rechtecke pro Dokument vorgesehen; alle
 128 Tree-Zeilen passen in die bestehende Runtime-Tree-Grenze. Rechtecke erhalten
-zunächst eine feste blaue Füllung. Individuelle Farben sowie Verschieben und Skalieren
-der Rechtecke per Maus sind weitere Ausbauschritte; bisherige Mausgreifer bearbeiten
-weiterhin Artboards.
+zunächst eine feste blaue Füllung. Individuelle Farben sind ein weiterer Ausbauschritt. Das Auswahlwerkzeug
+unterstützt Verschieben und Skalieren der Rechtecke per Maus wie unten beschrieben.
+
+
+## Rechtecke per Maus verschieben und skalieren
+
+`workspace/selection.c` bündelt nun die Auswahlinteraktion für Artboards und Rechtecke.
+Die reine Gestenstruktur steht in `workspace/selection_state.h`; Dokumentdaten hängen
+weiterhin nicht von SDL-Ereignisverarbeitung ab. `VectorSelectionTool.rectangle_id`
+unterscheidet Kind-Rechtecke von einer Artboard-Geste. Die vorhandene Rechteckgeometrie
+in `geometry/resize.c` berechnet beide Arten von Größenänderungen.
+
+Ein ausgewähltes, sichtbares und ungesperrtes Rechteck zeigt dieselben acht weißen
+7-Pixel-Greifer wie ein Artboard. Ecken ändern beide Dimensionen, Kantenmitten eine.
+Die Mindestgröße ist ein Dokumentpixel, die gegenüberliegende Kante bleibt fest.
+Ein Ziehen an der Rechteckfläche verschiebt das Rechteck relativ zu seinem Artboard.
+Artboards behalten das Verschieben über ihren Namen. Zoom wird bei Mausbewegungen
+berücksichtigt; die Bildschirmgröße der Greifer bleibt konstant.
+
+`vector_rectangle_display_rect()` liefert die lokale Vorschau. Rendering und
+Auswahlrahmen verwenden diese Werte bereits während des Ziehens; gespeicherte
+Geometrie und History bleiben unverändert. Erst Loslassen ruft
+`vector_rectangle_update()` mit einem gemeinsamen Vorher-/Nachher-Befehl auf.
+Ein Klick ohne Bewegung erzeugt keinen History-Eintrag. Escape, Fokusverlust und
+Werkzeug- oder Editorwechsel verwerfen die Vorschau. Eigene und geerbte Sperren bzw.
+Ausblendungen verhindern Mausänderungen.
+
+Kinder dürfen beim Transformieren über Artboard-Grenzen reichen; ihre Füllung bleibt
+am Artboard beschnitten. Der ausgewählte Begrenzungsrahmen samt Greifern bleibt auch
+außerhalb sichtbar. Ein bereits ausgewähltes Rechteck kann dort an seiner Fläche
+wieder zurückgezogen werden. Die Eltern-ID ändert sich durch Verschieben nicht.

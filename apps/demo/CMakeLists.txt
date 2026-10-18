@@ -27,7 +27,7 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/rectangle_inspector.c
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard/artboard.c
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard/tool.c
- ${PROJECT_SOURCE_DIR}/editors/vector/artboard/selection.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/workspace/selection.c
  ${PROJECT_SOURCE_DIR}/editors/vector/geometry/resize.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/ruler.c
  ${PROJECT_SOURCE_DIR}/editors/vector/history/history.c

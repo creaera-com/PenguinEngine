@@ -1,7 +1,9 @@
 #include "editor_host/host.h"
 #include "editors/vector/artboard/tool.h"
+#include "editors/vector/geometry/resize.h"
 #include "editors/vector/internal.h"
 #include "editors/vector/rectangle/tool.h"
+#include "editors/vector/workspace/selection.h"
 #include "shell/shell.h"
 #include "unity.h"
 #include <string.h>
@@ -291,8 +293,155 @@ static void test_empty_click_focus_loss_and_editor_switch_discard_tool_preview(v
     TEST_ASSERT_EQUAL_INT(1, doc->history.count);
 }
 
+static void test_rectangle_all_eight_handles_preview_and_single_history_commit(void) {
+    VectorDocument *doc = parent();
+    PUIRect initial = {40, 30, 100, 60};
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 1, initial));
+    doc->viewport.zoom = 2;
+    commit();
+    const PUIRect expected[8] = {{60, 40, 80, 50},  {40, 40, 100, 50}, {40, 40, 120, 50},
+                                 {40, 30, 120, 60}, {40, 30, 120, 70}, {40, 30, 100, 70},
+                                 {60, 30, 80, 70},  {60, 30, 80, 60}};
+    for (int i = 0; i < 8; i++) {
+        PUIRect bounds;
+        TEST_ASSERT_TRUE(vector_selection_bounds(doc, &bounds));
+        PUIRect h = vector_resize_handle_rect(bounds, i, 7);
+        float x = h.x + 3.5f, y = h.y + 3.5f;
+        pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+        TEST_ASSERT_EQUAL_UINT(1, doc->selection_tool.rectangle_id);
+        TEST_ASSERT_EQUAL_UINT(vector_resize_handle_edges(i), doc->selection_tool.resize_edges);
+        pointer(SDL_EVENT_MOUSE_MOTION, x + 40, y + 20);
+        assert_rect(initial, doc->rectangles[0].rect);
+        assert_rect(expected[i], vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+        assert_rect((PUIRect){10, 20, 200, 120}, doc->artboards[0].rect);
+        TEST_ASSERT_EQUAL_INT(2, doc->history.cursor);
+        pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 40, y + 20);
+        commit();
+        assert_rect(expected[i], doc->rectangles[0].rect);
+        TEST_ASSERT_EQUAL_INT(3, doc->history.cursor);
+        TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+        TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+        assert_rect(initial, doc->rectangles[0].rect);
+        TEST_ASSERT_TRUE(vector_history_redo(&doc->history, doc));
+        assert_rect(expected[i], doc->rectangles[0].rect);
+        TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+        commit();
+    }
+}
+
+static void test_rectangle_live_fill_minimum_escape_and_body_movement(void) {
+    VectorDocument *doc = parent();
+    PUIRect initial = {40, 30, 100, 60};
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 1, initial));
+    commit();
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 140, 90);
+    local_pointer(doc, SDL_EVENT_MOUSE_MOTION, 160, 100);
+    assert_local_red(doc, 150, 95, 115); // Added rectangle area fills before release.
+    TEST_ASSERT_EQUAL_INT(2, doc->history.count);
+    assert_rect(initial, doc->rectangles[0].rect);
+    local_pointer(doc, SDL_EVENT_MOUSE_MOTION, 120, 70);
+    assert_local_red(doc, 130, 80, 242); // Shrinking immediately uncovers the artboard.
+    SDL_Event escape = {.type = SDL_EVENT_KEY_DOWN};
+    escape.key.key = SDLK_ESCAPE;
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &escape));
+    frame();
+    assert_rect(initial, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_INT(2, doc->history.count);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 40, 30);
+    local_pointer(doc, SDL_EVENT_MOUSE_MOTION, 540, 530);
+    assert_rect((PUIRect){139, 89, 1, 1}, vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &escape));
+    frame();
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 60, 50);
+    TEST_ASSERT_EQUAL_UINT(0, doc->selection_tool.resize_edges);
+    local_pointer(doc, SDL_EVENT_MOUSE_MOTION, 80, 60);
+    assert_rect(initial, doc->rectangles[0].rect);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_UP, 80, 60);
+    commit();
+    assert_rect((PUIRect){60, 40, 100, 60}, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    TEST_ASSERT_EQUAL_UINT(1, doc->rectangles[0].parent_id);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    commit();
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 60, 50);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_UP, 300, 50);
+    commit();
+    assert_rect((PUIRect){280, 30, 100, 60}, doc->rectangles[0].rect);
+    // Selected bounds stay available outside the artboard, allowing the child to be brought back.
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 300, 50);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_UP, 60, 50);
+    commit();
+    assert_rect(initial, doc->rectangles[0].rect);
+}
+
+static void test_rectangle_mouse_respects_locks_hiding_and_cancellation(void) {
+    VectorDocument *doc = parent();
+    PUIRect initial = {40, 30, 100, 60};
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 1, initial));
+    commit();
+    unsigned states[2] = {VECTOR_OBJECT_LOCKED, VECTOR_OBJECT_HIDDEN};
+    for (int i = 0; i < 2; i++) {
+        TEST_ASSERT_TRUE(vector_rectangle_set_state(doc, 1, states[i]));
+        commit();
+        PUIRect bounds;
+        TEST_ASSERT_FALSE(vector_selection_bounds(doc, &bounds));
+        int count = doc->history.count;
+        local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 40, 30);
+        TEST_ASSERT_FALSE(doc->selection_tool.dragging);
+        TEST_ASSERT_EQUAL_INT(count, doc->history.count);
+        TEST_ASSERT_TRUE(vector_rectangle_set_state(doc, 1, 0));
+        action("vector.rectangle.select", "vector_document_1.rectangle_1");
+        TEST_ASSERT_TRUE(vector_artboard_set_state(doc, 1, states[i]));
+        commit();
+        TEST_ASSERT_FALSE(vector_selection_bounds(doc, &bounds));
+        local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 40, 30);
+        TEST_ASSERT_FALSE(doc->selection_tool.dragging);
+        TEST_ASSERT_TRUE(vector_artboard_set_state(doc, 1, 0));
+        action("vector.rectangle.select", "vector_document_1.rectangle_1");
+    }
+    int count = doc->history.count;
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 140, 90);
+    local_pointer(doc, SDL_EVENT_MOUSE_MOTION, 160, 100);
+    SDL_Event lost = {.type = SDL_EVENT_WINDOW_FOCUS_LOST};
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &lost));
+    frame();
+    TEST_ASSERT_FALSE(doc->selection_tool.dragging);
+    assert_rect(initial, doc->rectangles[0].rect);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 140, 90);
+    local_pointer(doc, SDL_EVENT_MOUSE_MOTION, 160, 100);
+    action("vector.add_rect", "");
+    TEST_ASSERT_FALSE(doc->selection_tool.dragging);
+    assert_rect(initial, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_INT(count, doc->history.count);
+}
+
+static void test_rectangle_mouse_geometry_redo_and_inspector_survive_switch(void) {
+    VectorDocument *doc = parent();
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 1, (PUIRect){40, 30, 100, 60}));
+    commit();
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 140, 90);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_UP, 160, 100);
+    commit();
+    TEST_ASSERT_EQUAL_STRING("120", pui_view_text(shell.view, "rectangle_width"));
+    TEST_ASSERT_EQUAL_STRING("70", pui_view_text(shell.view, "rectangle_height"));
+    action("editor.undo", "");
+    activate("scripts");
+    activate("vector");
+    commit();
+    doc = document();
+    assert_rect((PUIRect){40, 30, 100, 60}, doc->rectangles[0].rect);
+    action("editor.redo", "");
+    assert_rect((PUIRect){40, 30, 120, 70}, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_STRING("120", pui_view_text(shell.view, "rectangle_width"));
+    TEST_ASSERT_EQUAL_UINT(1, doc->rectangles[0].parent_id);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_rectangle_all_eight_handles_preview_and_single_history_commit);
+    RUN_TEST(test_rectangle_live_fill_minimum_escape_and_body_movement);
+    RUN_TEST(test_rectangle_mouse_respects_locks_hiding_and_cancellation);
+    RUN_TEST(test_rectangle_mouse_geometry_redo_and_inspector_survive_switch);
     RUN_TEST(test_empty_click_focus_loss_and_editor_switch_discard_tool_preview);
     RUN_TEST(test_draw_rectangle_in_parent_local_coordinates_and_undo);
     RUN_TEST(test_cancellation_reverse_drag_clamping_and_parent_guards);

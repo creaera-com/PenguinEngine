@@ -7,6 +7,7 @@
 #include "editors/vector/history/history.h"
 #include "editors/vector/rectangle/rectangle.h"
 #include "editors/vector/rectangle/tool_state.h"
+#include "editors/vector/workspace/selection_state.h"
 #include "editors/vector/workspace/viewport.h"
 #define VECTOR_MAX_DOCUMENTS 15
 

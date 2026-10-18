@@ -86,7 +86,7 @@ for area in ('document', 'history'):
                 continue
             relative = target.relative_to(vector).as_posix()
             if (relative == 'internal.h' or relative.startswith(('ui/', 'persistence/')) or
-                    relative.startswith('workspace/') and relative != 'workspace/viewport.h' or
+                    relative.startswith('workspace/') and relative not in ('workspace/viewport.h', 'workspace/selection_state.h') or
                     relative in ('artboard/tool.h', 'rectangle/tool.h', 'rectangle/render.h')):
                 errors.append(f'{path.relative_to(root)}: model/history reaches UI wiring {relative}')
             else:

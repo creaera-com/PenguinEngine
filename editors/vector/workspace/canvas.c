@@ -1,11 +1,10 @@
 /** @file @brief Light-gray document workspace with independent pan and zoom. */
 #include "canvas.h"
-#include "editors/vector/artboard/selection.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/document/document.h"
-#include "editors/vector/geometry/resize.h"
 #include "editors/vector/rectangle/render.h"
 #include "editors/vector/rectangle/tool.h"
+#include "editors/vector/workspace/selection.h"
 #include "ruler.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,29 +66,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
             SDL_RenderRect(renderer, &rect);
         }
     }
-    // Keep the selected object's handles above every board, in constant screen-pixel size.
-    if (!document->artboard_tool.enabled && !document->rectangle_tool.enabled &&
-        !document->active_rectangle) {
-        for (int i = 0; i < document->artboard_count; i++) {
-            VectorArtboard *board = &document->artboards[i];
-            if (board->id != document->active_artboard ||
-                (board->flags & VECTOR_OBJECT_STATE_MASK)) {
-                continue;
-            }
-            PUIRect display = vector_artboard_display_rect(document, board);
-            PUIRect screen = {area.x + viewport->x + display.x * viewport->zoom,
-                              area.y + viewport->y + display.y * viewport->zoom,
-                              display.w * viewport->zoom, display.h * viewport->zoom};
-            for (int k = 0; k < 8; k++) {
-                PUIRect handle = vector_resize_handle_rect(screen, k, 7);
-                SDL_FRect r = {handle.x, handle.y, handle.w, handle.h};
-                SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-                SDL_RenderFillRect(renderer, &r);
-                SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
-                SDL_RenderRect(renderer, &r);
-            }
-        }
-    }
+    vector_selection_draw_handles(document, renderer);
     if (document->artboard_tool.dragging) {
         PUIRect preview = vector_artboard_tool_rect(&document->artboard_tool);
         SDL_FRect rect = {area.x + viewport->x + preview.x * viewport->zoom,

@@ -1,6 +1,6 @@
 /** @file @brief Optional artboard property panel and committed field-to-command bindings. */
 #include "inspector.h"
-#include "editors/vector/artboard/selection.h"
+#include "editors/vector/workspace/selection.h"
 
 #include <errno.h>
 #include <math.h>

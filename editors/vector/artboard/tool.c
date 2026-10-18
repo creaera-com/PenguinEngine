@@ -2,7 +2,7 @@
 #include "tool.h"
 #include "editors/vector/document/document.h"
 #include "editors/vector/rectangle/tool.h"
-#include "selection.h"
+#include "editors/vector/workspace/selection.h"
 #include <math.h>
 #include <stdio.h>
 
