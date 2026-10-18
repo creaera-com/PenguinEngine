@@ -711,8 +711,13 @@ typedef enum {
     ICON_MINIMIZE, ///< Fenster minimieren.
     ICON_MAXIMIZE, ///< Fenster maximieren.
     ICON_RESTORE,  ///< Fenstergröße wiederherstellen.
-    ICON_COLLAPSE  ///< Fenster auf Titelleiste reduzieren.
+    ICON_COLLAPSE, ///< Fenster auf Titelleiste reduzieren.
+    ICON_TABLER_BASE =
+        0x10000 ///< Internal range for named Tabler icons; resolve names instead of storing values.
 } PUIIcon;
+
+/** @brief Resolve built-in names or bundled tabler:<name> icons; ICON_NONE if unknown. */
+PUIIcon pui_icon_from_name(const char *name);
 
 /**
  * @brief Zeichnet einen flachen Icon-/Textbutton mit expliziter Palette.

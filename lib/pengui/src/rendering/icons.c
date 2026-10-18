@@ -21,6 +21,10 @@ static void lines(SDL_Renderer *r, float x, float y, float size, const Line *v, 
     } while (0)
 
 void pui_icon(SDL_Renderer *r, PUIIcon icon, float x, float y, float s, Uint32 c) {
+    if (icon >= ICON_TABLER_BASE) {
+        pui_tabler_draw(r, icon, x, y, s, c);
+        return;
+    }
     pui_render_color(r, c);
     switch (icon) {
     case ICON_MINIMIZE:
@@ -157,11 +161,19 @@ void pui_icon(SDL_Renderer *r, PUIIcon icon, float x, float y, float s, Uint32 c
         DRAW({3, 3, 13, 13}, {13, 3, 3, 13});
         break;
     case ICON_NONE:
+    case ICON_TABLER_BASE:
         break;
     }
 }
 
 PUIIcon pui_icon_from_name(const char *name) {
+    if (!name) {
+        return ICON_NONE;
+    }
+    if (!strncmp(name, "tabler:", 7)) {
+        return pui_tabler_from_name(name + 7);
+    }
+
     static const struct {
         const char *name;
         PUIIcon value;

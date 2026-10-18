@@ -19,27 +19,27 @@ root:
       padding: 8
       gap: 6
       children:
-        - {type: button, icon: menu, action: shell.menu, width: 32}
+        - {type: button, icon: tabler:menu-2, action: shell.menu, width: 32}
         - {type: separator}
-        - {type: button, id: save, icon: save, action: editor.save}
+        - {type: button, id: save, icon: tabler:device-floppy, action: editor.save}
         - {type: separator}
-        - {type: button, id: undo, icon: undo, action: editor.undo}
-        - {type: button, id: redo, icon: redo, action: editor.redo}
+        - {type: button, id: undo, icon: tabler:arrow-back-up, action: editor.undo}
+        - {type: button, id: redo, icon: tabler:arrow-forward-up, action: editor.redo}
         - type: separator
         - type: button_group
           id: editor_switcher
           width: 100
           gap: 2
           children:
-            - {type: button, id: game, icon: grid, action: editor.game}
-            - {type: button, id: scripts, icon: file, action: editor.scripts}
-            - {type: button, id: vector, icon: edit, action: editor.vector}
+            - {type: button, id: game, icon: tabler:table, action: editor.game}
+            - {type: button, id: scripts, icon: tabler:file-code, action: editor.scripts}
+            - {type: button, id: vector, icon: tabler:pencil, action: editor.vector}
         - {type: separator}
-        - {type: button, icon: refresh, action: shell.reload, width: 32}
+        - {type: button, icon: tabler:refresh, action: shell.reload, width: 32}
         - {type: spacer}
-        - {type: button, icon: minimize, action: window.minimize, width: 32}
-        - {type: button, icon: maximize, action: window.maximize, width: 32}
-        - {type: button, icon: close, action: window.close, width: 32}
+        - {type: button, icon: tabler:minus, action: window.minimize, width: 32}
+        - {type: button, icon: tabler:square, action: window.maximize, width: 32}
+        - {type: button, icon: tabler:x, action: window.close, width: 32}
     - {type: slot, id: editor_area}
     - type: panel
       height: 24

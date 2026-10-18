@@ -33,7 +33,7 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
         snprintf(item->id, sizeof item->id, "vector_document_%u.artboard_%u", document->id,
                  artboard->id);
         snprintf(item->text, sizeof item->text, "Artboard %u", artboard->id);
-        snprintf(item->icon, sizeof item->icon, "grid");
+        snprintf(item->icon, sizeof item->icon, "tabler:artboard");
         item->depth = 0;
         item->enabled = item->open = true;
     }

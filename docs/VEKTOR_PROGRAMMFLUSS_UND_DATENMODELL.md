@@ -442,7 +442,8 @@ erhalten. Das Vorbereiten erfolgt vor dem Austausch der laufenden Oberfläche.
 ### Was steht in der temporären Datei?
 
 [checkpoint.c](../editors/vector/persistence/checkpoint.c) schreibt eine Versionssignatur,
-Dokumentanzahl, Tab-Reihenfolge und Tab-Auswahl. Danach folgen pro Dokument
+Dokumentanzahl, Tab-Reihenfolge und Tab-Auswahl. Zusätzlich wird die Auswahl des
+linken Navigationstabs gespeichert. Danach folgen pro Dokument
 Identität, Titel, Artboard-Array, nächste und aktive Artboard-ID, Zoom/Verschiebung
 sowie History-Anzahl, Cursor und die Änderungsdaten aller Befehle.
 

@@ -625,8 +625,44 @@ static void test_runtime_tree_hierarchy_updates_and_mounts_preserve_state(void) 
     TEST_ASSERT_EQUAL_INT(0, pui_view_tree_item_count(view, "objects"));
 }
 
+static void test_tabler_icons_resolve_render_and_tint_cached_masks(void) {
+    TEST_ASSERT_EQUAL_INT(ICON_SAVE, pui_icon_from_name("save"));
+    TEST_ASSERT_EQUAL_INT(ICON_NONE, pui_icon_from_name(NULL));
+    TEST_ASSERT_EQUAL_INT(ICON_NONE, pui_icon_from_name("tabler:missing-icon"));
+    PUIIcon icon = pui_icon_from_name("tabler:device-floppy");
+    TEST_ASSERT_TRUE(icon >= ICON_TABLER_BASE);
+    TEST_ASSERT_NOT_EQUAL(icon, pui_icon_from_name("tabler:artboard"));
+    pui_panel(renderer, (SDL_FRect){0, 0, 400, 300}, 0x000000FF);
+    pui_icon(renderer, icon, 10, 10, 32, 0xFF8000FF);
+    pui_icon(renderer, icon, 60, 10, 32, 0x0080FFFF);
+    SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
+    TEST_ASSERT_NOT_NULL(surface);
+    int orange = 0, blue = 0;
+    for (int y = 10; y < 42; y++) {
+        for (int x = 10; x < 42; x++) {
+            Uint8 r, g, b, a;
+            TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, x, y, &r, &g, &b, &a));
+            if (r > 32) {
+                TEST_ASSERT_EQUAL_UINT8(0, b);
+                TEST_ASSERT_TRUE(r >= g);
+                orange++;
+            }
+            TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, x + 50, y, &r, &g, &b, &a));
+            if (b > 32) {
+                TEST_ASSERT_EQUAL_UINT8(0, r);
+                TEST_ASSERT_TRUE(b >= g);
+                blue++;
+            }
+        }
+    }
+    TEST_ASSERT_TRUE(orange > 50);
+    TEST_ASSERT_EQUAL_INT(orange, blue);
+    SDL_DestroySurface(surface);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_tabler_icons_resolve_render_and_tint_cached_masks);
     RUN_TEST(test_runtime_tree_hierarchy_updates_and_mounts_preserve_state);
     RUN_TEST(test_double_click_selects_word_and_drag_extends_by_words);
     RUN_TEST(test_triple_click_and_control_or_command_a_select_all);

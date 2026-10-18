@@ -8,7 +8,7 @@
 
 /* Native integer/float representation is sufficient for a private file in this process.
  * Changing this schema requires a new signature. This is not an SVG or interchange format. */
-static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '0', '1'};
+static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '0', '2'};
 
 #define WRITE(value) (fwrite(&(value), sizeof(value), 1, file) == 1)
 #define READ(value) (fread(&(value), sizeof(value), 1, file) == 1)
@@ -92,7 +92,13 @@ bool vector_editor_checkpoint(const void *instance, const PUIView *view, FILE *f
             return fail(error, capacity);
         }
     }
-    return true;
+    char navigation[64] = {0};
+    const char *tab = pui_view_selected_tab(view, "vector_navigation_tabs");
+    if (!tab || strlen(tab) >= sizeof navigation) {
+        return fail(error, capacity);
+    }
+    snprintf(navigation, sizeof navigation, "%s", tab);
+    return WRITE(navigation) || fail(error, capacity);
 }
 
 /* Replaying validates command order, limits and agreement with the saved current state.
@@ -165,7 +171,7 @@ static bool read_document(VectorDocument *document, unsigned expected_id, FILE *
 }
 
 static bool read_documents(VectorDocuments *documents, unsigned order[PUI_MAX_TABS],
-                           unsigned *selected, FILE *file) {
+                           unsigned *selected, char navigation[64], FILE *file) {
     char actual[sizeof signature];
     if (!READ(actual) || memcmp(actual, signature, sizeof signature) || !READ(documents->count) ||
         documents->count < 0 || documents->count > VECTOR_MAX_DOCUMENTS || !READ(*selected) ||
@@ -186,6 +192,11 @@ static bool read_documents(VectorDocuments *documents, unsigned order[PUI_MAX_TA
         if (!read_document(&documents->items[i], (unsigned)i + 1, file)) {
             return false;
         }
+    }
+    if (fread(navigation, 64, 1, file) != 1 || !memchr(navigation, 0, 64) ||
+        (strcmp(navigation, "vector_explorer_tab") &&
+         strcmp(navigation, "vector_document_tree_tab"))) {
+        return false;
     }
     return fgetc(file) == EOF && !ferror(file);
 }
@@ -262,9 +273,19 @@ bool vector_editor_restore(void *instance, FILE *file, char *error, size_t capac
         return fail(error, capacity);
     }
     unsigned order[PUI_MAX_TABS], selected;
+    char navigation[64];
     PUILayout *layout = NULL;
-    if (read_documents(loaded, order, &selected, file)) {
+    if (read_documents(loaded, order, &selected, navigation, file)) {
         layout = restore_layout(editor->layout, loaded, order, selected, error, capacity);
+    }
+    if (layout) {
+        for (int i = 0; i < layout->count; i++) {
+            PUINode *node = &layout->nodes[i];
+            if (node->type == PUI_NODE_TAB && (!strcmp(node->name, "vector_explorer_tab") ||
+                                               !strcmp(node->name, "vector_document_tree_tab"))) {
+                node->checked = !strcmp(node->name, navigation);
+            }
+        }
     }
     if (!layout) {
         vector_documents_destroy(loaded);

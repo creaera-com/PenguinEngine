@@ -72,7 +72,8 @@ void pui_widget_button_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PU
     PUIIcon button_icon = *n->image ? ICON_IMAGE : pui_icon_from_name(n->icon);
     if (v->window && !strcmp(n->action, "window.maximize") &&
         (SDL_GetWindowFlags(v->window) & SDL_WINDOW_MAXIMIZED)) {
-        button_icon = ICON_RESTORE;
+        button_icon =
+            !strncmp(n->icon, "tabler:", 7) ? pui_icon_from_name("tabler:copy") : ICON_RESTORE;
     }
     if (s->image) {
         pui_draw_image_button(v->renderer, pui_frect(area), s->image, n->text, n->image_padding,

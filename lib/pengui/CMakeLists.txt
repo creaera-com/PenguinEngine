@@ -16,7 +16,7 @@ endif()
 if(PENGUI_BUILD_SDL)
  # SDL counterparts contain each widget's drawing and native input handling.
  add_library(pengUI_sdl STATIC
-  src/rendering/text.c src/rendering/icons.c src/rendering/theme.c
+  src/rendering/text.c src/rendering/icons.c src/rendering/tabler.c src/rendering/theme.c
   src/rendering/image.c src/rendering/primitives.c
   src/widgets/button_sdl.c src/widgets/toggle_sdl.c src/widgets/checkbox_sdl.c
   src/widgets/dropdown_sdl.c src/widgets/popup_button_sdl.c src/widgets/button_group_sdl.c src/widgets/text_input_sdl.c src/widgets/basic_sdl.c

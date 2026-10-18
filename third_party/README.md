@@ -7,3 +7,6 @@
 - SDL3 3.2.10: found or fetched by CMake; not vendored here.
 
 The previous engine-only dependencies are excluded from this branch.
+
+Tabler Icons: eine eingebettete Auswahl von 52 Outline-Icons, MIT. Quellen, Lizenz und
+Regenerationsanleitung unter [tabler-icons/README.md](tabler-icons/README.md).

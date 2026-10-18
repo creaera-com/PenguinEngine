@@ -12,11 +12,12 @@ root:
   gap: 9
   children:
     - type: tabs
+      id: vector_navigation_tabs
       children:
         - type: tab
           id: vector_explorer_tab
           text: Explorer
-          icon: folder
+          icon: tabler:folder
           padding: 0
           children:
             - type: panel
@@ -28,7 +29,7 @@ root:
         - type: tab
           id: vector_document_tree_tab
           text: Document
-          icon: folder
+          icon: tabler:stack-2
           padding: 0
           children:
             - type: panel
@@ -44,9 +45,9 @@ root:
           padding: 5
           gap: 4
           children:
-            - {type: button, id: vector_add_document, icon: plus, action: vector.add_document, width: 30}
+            - {type: button, id: vector_add_document, icon: tabler:file-plus, action: vector.add_document, width: 30}
             - {type: separator}
-            - {type: button, id: vector_add_artboard, icon: plus, action: vector.add_artboard, width: 30}
+            - {type: button, id: vector_add_artboard, icon: tabler:artboard, action: vector.add_artboard, width: 30}
             - {type: spacer}
 
         - type: tabs

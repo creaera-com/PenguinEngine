@@ -98,7 +98,21 @@ Einzelne Widgets lassen sich auch direkt in C über `pengui/pengui.h` nutzen, oh
 
 Unity prüft den übernommenen UI-Kern, YAML-Validierung und native SDL-Eingaben. Zusätzlich startet die App mit `--smoke` aus einem anderen Arbeitsverzeichnis. `--screenshot datei.bmp` nimmt die Oberfläche auf. `PENGUI_SANITIZERS=ON` aktiviert ASan/UBSan. Die Architekturprüfung verhindert App-/Engine-Abhängigkeiten in der Bibliothek. Tests, Formatierung und Desktop-Builds für Linux, Windows und macOS sind in GitHub Actions eingerichtet.
 
-Enthaltene Fremdsoftware: libyaml (MIT), stb_image (MIT/Public Domain), Unity (MIT) und JetBrains Mono (SIL OFL). Die jeweiligen Lizenztexte bleiben bei den Quellen erhalten. SDL3 wird separat bezogen (zlib-Lizenz). Keine JavaScript-, Engine-, Terminal- oder SVG-Abhängigkeiten werden gebaut.
+Enthaltene Fremdsoftware: libyaml (MIT), stb_image (MIT/Public Domain), Unity (MIT), Tabler Icons (MIT) und JetBrains Mono (SIL OFL). Die jeweiligen Lizenztexte bleiben bei den Quellen erhalten. SDL3 wird separat bezogen (zlib-Lizenz). Keine JavaScript-, Engine-, Terminal- oder SVG-Abhängigkeiten werden gebaut.
+
+## Tabler Icons
+
+52 Tabler-Outline-Icons sind eingebettet und direkt per YAML verfügbar:
+
+```yaml
+- {type: button, icon: tabler:device-floppy, action: editor.save}
+- {type: button, icon: tabler:artboard, action: vector.add_artboard}
+```
+
+Die Symbole übernehmen die Farbe des Widgets. Die enthaltene Auswahl und die Anleitung
+zum Ergänzen weiterer Icons stehen unter [Tabler Icons](third_party/tabler-icons/README.md).
+Der normale C-Build benötigt dafür weder Downloads noch zusätzliche Python-Pakete.
+In C liefert `pui_icon_from_name("tabler:artboard")` das Symbol für `pui_icon()`.
 
 ## Eigene Fensterbuttons
 

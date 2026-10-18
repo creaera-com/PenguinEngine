@@ -11,5 +11,7 @@ static inline void pui_render_color(SDL_Renderer *r, Uint32 c) {
     SDL_SetRenderDrawColor(r, (Uint8)(c >> 24), (Uint8)(c >> 16), (Uint8)(c >> 8), (Uint8)c);
 }
 
-PUIIcon pui_icon_from_name(const char *name);
+PUIIcon pui_tabler_from_name(const char *name);
+void pui_tabler_draw(SDL_Renderer *renderer, PUIIcon icon, float x, float y, float size,
+                     Uint32 rgba);
 #endif

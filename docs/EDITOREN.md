@@ -338,6 +338,10 @@ und den Aufklappzustand beim Aktualisieren. Runtime-Einträge verbrauchen keine 
 YAML-Layoutknoten: Auch 64 Artboards bei 15 Dokument-Tabs können dargestellt werden.
 Pro Tree sind aktuell bis zu `PUI_LAYOUT_NODES` Runtime-Einträge möglich.
 
+Der linke Tabs-Container hat die stabile ID `vector_navigation_tabs`. Dadurch bleibt
+seine Auswahl beim Ergänzen von Dokument-Tabs erhalten; der Checkpoint stellt sie
+auch nach Editorwechsel oder Reload wieder her.
+
 Die Einträge verwenden eine Tiefenangabe (`depth: 0` für Wurzeln) in Tiefensuchreihenfolge.
 Damit kann die UI später Gruppen und Elemente unterhalb eines Artboards darstellen.
 Das fachliche Modell enthält bisher noch keine solchen Kindobjekte. Die Zeilenauswahl
@@ -364,6 +368,7 @@ der bisherige Editor aktiv. Auch F6/Reload verwendet den gerade frisch gesichert
 - Vollständige Undo-/Redo-History einschließlich eines noch vorhandenen Redo-Zweigs.
 - Zoom und Verschiebung pro Dokument.
 - Reihenfolge und Auswahl der Dokument-Tabs, einschließlich des Übersichtstabs.
+- Auswahl des linken Navigationstabs (Explorer oder Document).
 
 Maus-Capture, laufende Werkzeug-Vorschauen, SDL-Ressourcen und sonstige Widgetzustände
 werden nicht gesichert. Splitgrößen innerhalb des entfernten Editors werden beim Laden

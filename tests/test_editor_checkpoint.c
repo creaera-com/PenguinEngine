@@ -318,8 +318,46 @@ static void test_document_tree_tracks_changes_documents_and_checkpoint_restore(v
                           pui_view_tree_item_count(shell.view, "vector_document_tree"));
 }
 
+static void test_navigation_tab_selection_survives_document_changes_editor_switch_and_reload(void) {
+    pui_pointer(&shell.input, 155, 65, true);
+    pui_pointer(&shell.input, 155, 65, false);
+    frame();
+    TEST_ASSERT_EQUAL_STRING("vector_document_tree_tab",
+                             pui_view_selected_tab(shell.view, "vector_navigation_tabs"));
+    add_document();
+    TEST_ASSERT_EQUAL_STRING("vector_document_tree_tab",
+                             pui_view_selected_tab(shell.view, "vector_navigation_tabs"));
+    add_document();
+    TEST_ASSERT_EQUAL_STRING("vector_document_tree_tab",
+                             pui_view_selected_tab(shell.view, "vector_navigation_tabs"));
+    pui_pointer(&shell.input, 370, 108, true);
+    pui_pointer(&shell.input, 370, 108, false);
+    frame();
+    commit();
+    TEST_ASSERT_EQUAL_STRING("vector_document_1",
+                             pui_view_selected_tab(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_EQUAL_STRING("vector_document_tree_tab",
+                             pui_view_selected_tab(shell.view, "vector_navigation_tabs"));
+    activate("scripts");
+    activate("vector");
+    TEST_ASSERT_EQUAL_STRING("vector_document_tree_tab",
+                             pui_view_selected_tab(shell.view, "vector_navigation_tabs"));
+    TEST_ASSERT_TRUE(editor_host_request(&host, "vector", true));
+    commit();
+    TEST_ASSERT_EQUAL_STRING("vector_document_tree_tab",
+                             pui_view_selected_tab(shell.view, "vector_navigation_tabs"));
+    pui_pointer(&shell.input, 50, 65, true);
+    pui_pointer(&shell.input, 50, 65, false);
+    frame();
+    activate("game");
+    activate("vector");
+    TEST_ASSERT_EQUAL_STRING("vector_explorer_tab",
+                             pui_view_selected_tab(shell.view, "vector_navigation_tabs"));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_navigation_tab_selection_survives_document_changes_editor_switch_and_reload);
     RUN_TEST(test_document_tree_tracks_changes_documents_and_checkpoint_restore);
     RUN_TEST(test_truncated_checkpoint_releases_partial_history_and_retains_model);
     RUN_TEST(test_switch_restores_documents_histories_viewports_and_latest_edits);
