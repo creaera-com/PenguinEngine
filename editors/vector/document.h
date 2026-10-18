@@ -2,6 +2,7 @@
 #ifndef PE_VECTOR_DOCUMENT_H
 #define PE_VECTOR_DOCUMENT_H
 #include "artboard.h"
+#include "artboard_tool.h"
 #include "canvas.h"
 #include "editor_host/editor.h"
 #include "history.h"
@@ -16,6 +17,7 @@ typedef struct VectorDocument {
     unsigned next_artboard_id, active_artboard;
     VectorHistory history;
     VectorViewport viewport;
+    VectorArtboardTool artboard_tool;
 } VectorDocument;
 
 /** @brief Private document collection; the existing Vector overview occupies one tab. */

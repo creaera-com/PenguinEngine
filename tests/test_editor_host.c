@@ -3,6 +3,7 @@
 #include "editors/vector/internal.h"
 #include "shell/shell.h"
 #include "unity.h"
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -322,15 +323,40 @@ static VectorDocument *add_vector_document(void) {
     return vector_documents_active(&editor->documents, shell.view);
 }
 
+static void canvas_event(SDL_Event *event) {
+    bool consumed = pui_view_event(shell.view, &shell.input, window, event);
+    TEST_ASSERT_FALSE(consumed);
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, event));
+    pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 800, 600}, NULL, NULL);
+}
+
+static void draw_artboard(void) {
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    SDL_Event event = {.type = SDL_EVENT_MOUSE_BUTTON_DOWN};
+    event.button.button = SDL_BUTTON_LEFT;
+    event.button.x = 330;
+    event.button.y = 220;
+    canvas_event(&event);
+    event.type = SDL_EVENT_MOUSE_MOTION;
+    event.motion.x = 430;
+    event.motion.y = 380;
+    canvas_event(&event);
+    event.type = SDL_EVENT_MOUSE_BUTTON_UP;
+    event.button.button = SDL_BUTTON_LEFT;
+    event.button.x = 430;
+    event.button.y = 380;
+    canvas_event(&event);
+}
+
 static void test_artboard_history_is_per_document_and_discards_redo_branch(void) {
     activate("vector");
     TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
     VectorDocument *first = add_vector_document();
     TEST_ASSERT_NOT_NULL(first);
-    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    draw_artboard();
     TEST_ASSERT_EQUAL_INT(1, first->artboard_count);
     unsigned original = first->active_artboard;
-    TEST_ASSERT_EQUAL_FLOAT(512, first->artboards[0].rect.w);
+    TEST_ASSERT_EQUAL_FLOAT(100, first->artboards[0].rect.w);
     TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.undo", ""));
     TEST_ASSERT_EQUAL_INT(0, first->artboard_count);
     TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.redo", ""));
@@ -339,17 +365,17 @@ static void test_artboard_history_is_per_document_and_discards_redo_branch(void)
     TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.undo", ""));
     TEST_ASSERT_EQUAL_INT(1, first->artboard_count);
     TEST_ASSERT_EQUAL_INT(0, second->artboard_count);
-    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    draw_artboard();
     TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.undo", ""));
-    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    draw_artboard();
     TEST_ASSERT_EQUAL_INT(1, second->artboard_count);
     TEST_ASSERT_EQUAL_UINT(2, second->active_artboard);
     TEST_ASSERT_FALSE(vector_history_redo(&second->history, second));
     TEST_ASSERT_EQUAL_INT(1, first->history.cursor);
     for (int i = 1; i < VECTOR_MAX_ARTBOARDS; i++) {
-        TEST_ASSERT_TRUE(vector_artboard_add(second));
+        TEST_ASSERT_TRUE(vector_artboard_add(second, (PUIRect){0, 0, 100, 160}));
     }
-    TEST_ASSERT_FALSE(vector_artboard_add(second));
+    TEST_ASSERT_FALSE(vector_artboard_add(second, (PUIRect){0, 0, 100, 160}));
     TEST_ASSERT_EQUAL_INT(VECTOR_MAX_ARTBOARDS, second->history.count);
     for (int i = 0; i < VECTOR_MAX_ARTBOARDS; i++) {
         TEST_ASSERT_TRUE(vector_history_undo(&second->history, second));
@@ -402,7 +428,7 @@ static void test_canvas_is_clipped_and_zoom_keeps_point_under_pointer(void) {
     event.wheel.mouse_y = 300;
     event.wheel.mouse_x = 10;
     TEST_ASSERT_FALSE(editor_host_event(&host, shell.view, &event));
-    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    draw_artboard();
     pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 800, 600}, NULL, NULL);
     surface = SDL_RenderReadPixels(renderer, NULL);
     TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 400, 300, &r, &g, &b, &a));
@@ -412,8 +438,120 @@ static void test_canvas_is_clipped_and_zoom_keeps_point_under_pointer(void) {
     SDL_DestroySurface(surface);
 }
 
+static void test_drag_normalizes_zoomed_coordinates_and_commits_once(void) {
+    activate("vector");
+    VectorDocument *document = add_vector_document();
+    document->viewport.zoom = 2;
+    document->viewport.x = 31;
+    document->viewport.y = -17;
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    TEST_ASSERT_EQUAL_INT(0, document->history.count);
+    SDL_Event event = {.type = SDL_EVENT_MOUSE_BUTTON_DOWN};
+    event.button.button = SDL_BUTTON_LEFT;
+    event.button.x = 450;
+    event.button.y = 400;
+    canvas_event(&event);
+    event.type = SDL_EVENT_MOUSE_MOTION;
+    event.motion.x = 350;
+    event.motion.y = 250;
+    canvas_event(&event);
+    TEST_ASSERT_EQUAL_INT(0, document->artboard_count);
+    TEST_ASSERT_EQUAL_INT(0, document->history.count);
+    event.type = SDL_EVENT_MOUSE_BUTTON_UP;
+    event.button.button = SDL_BUTTON_LEFT;
+    event.button.x = 350;
+    event.button.y = 250;
+    canvas_event(&event);
+    TEST_ASSERT_EQUAL_INT(1, document->history.count);
+    TEST_ASSERT_EQUAL_INT(1, document->artboard_count);
+    PUIRect rect = document->artboards[0].rect;
+    TEST_ASSERT_EQUAL_FLOAT(50, rect.w);
+    TEST_ASSERT_EQUAL_FLOAT(75, rect.h);
+    TEST_ASSERT_EQUAL_FLOAT(roundf((350 - document->viewport.bounds.x - 31) / 2), rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(roundf((250 - document->viewport.bounds.y + 17) / 2), rect.y);
+    TEST_ASSERT_FALSE(document->artboard_tool.enabled);
+    TEST_ASSERT_TRUE(vector_history_undo(&document->history, document));
+    TEST_ASSERT_EQUAL_INT(0, document->artboard_count);
+    TEST_ASSERT_TRUE(vector_history_redo(&document->history, document));
+    TEST_ASSERT_EQUAL_MEMORY(&rect, &document->artboards[0].rect, sizeof rect);
+}
+
+static void test_artboard_cancel_empty_drag_and_release_outside_canvas(void) {
+    activate("vector");
+    VectorDocument *document = add_vector_document();
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    SDL_Event event = {.type = SDL_EVENT_MOUSE_BUTTON_DOWN};
+    event.button.button = SDL_BUTTON_LEFT;
+    event.button.x = 350;
+    event.button.y = 250;
+    canvas_event(&event);
+    event.type = SDL_EVENT_MOUSE_BUTTON_UP;
+    canvas_event(&event);
+    TEST_ASSERT_EQUAL_INT(0, document->history.count);
+    TEST_ASSERT_TRUE(document->artboard_tool.enabled);
+    event.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
+    canvas_event(&event);
+    event.type = SDL_EVENT_KEY_DOWN;
+    event.key.key = SDLK_ESCAPE;
+    canvas_event(&event);
+    TEST_ASSERT_FALSE(document->artboard_tool.dragging);
+    TEST_ASSERT_FALSE(document->artboard_tool.enabled);
+    TEST_ASSERT_EQUAL_INT(0, document->history.count);
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    event = (SDL_Event){.type = SDL_EVENT_MOUSE_BUTTON_DOWN};
+    event.button.button = SDL_BUTTON_LEFT;
+    event.button.x = 350;
+    event.button.y = 250;
+    canvas_event(&event);
+    event.type = SDL_EVENT_WINDOW_FOCUS_LOST;
+    canvas_event(&event);
+    TEST_ASSERT_EQUAL_INT(0, document->artboard_count);
+    TEST_ASSERT_FALSE(document->artboard_tool.enabled);
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    event = (SDL_Event){.type = SDL_EVENT_MOUSE_BUTTON_DOWN};
+    event.button.button = SDL_BUTTON_LEFT;
+    event.button.x = 350;
+    event.button.y = 250;
+    canvas_event(&event);
+    event.type = SDL_EVENT_MOUSE_BUTTON_UP;
+    event.button.x = 700;
+    event.button.y = 500;
+    canvas_event(&event);
+    TEST_ASSERT_EQUAL_INT(1, document->artboard_count);
+    TEST_ASSERT_EQUAL_FLOAT(350, document->artboards[0].rect.w);
+    TEST_ASSERT_EQUAL_FLOAT(250, document->artboards[0].rect.h);
+    TEST_ASSERT_FALSE(vector_artboard_add(document, (PUIRect){0, 0, 0, 10}));
+    TEST_ASSERT_FALSE(vector_artboard_add(document, (PUIRect){0, 0, INFINITY, 10}));
+    TEST_ASSERT_EQUAL_INT(1, document->history.count);
+}
+
+static void test_ruler_ticks_follow_document_scale_and_preserve_canvas_clip(void) {
+    activate("vector");
+    VectorDocument *document = add_vector_document();
+    document->viewport.x = 40;
+    document->viewport.y = 50;
+    TEST_ASSERT_TRUE(vector_artboard_add(document, (PUIRect){0, 0, 80, 100}));
+    for (int zoom = 1; zoom <= 2; zoom++) {
+        document->viewport.zoom = (float)zoom;
+        pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 800, 600}, NULL, NULL);
+        SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
+        TEST_ASSERT_NOT_NULL(surface);
+        int x = (int)document->viewport.bounds.x + 40;
+        int y = (int)document->viewport.bounds.y + 50;
+        Uint8 r, g, b, a;
+        TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, x + 10, y - 2, &r, &g, &b, &a));
+        TEST_ASSERT_EQUAL_UINT8(zoom == 1 ? 151 : 83, r);
+        TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, x + 30, y + 30, &r, &g, &b, &a));
+        TEST_ASSERT_EQUAL_UINT8(242, r);
+        SDL_DestroySurface(surface);
+    }
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_ruler_ticks_follow_document_scale_and_preserve_canvas_clip);
+    RUN_TEST(test_drag_normalizes_zoomed_coordinates_and_commits_once);
+    RUN_TEST(test_artboard_cancel_empty_drag_and_release_outside_canvas);
     RUN_TEST(test_artboard_history_is_per_document_and_discards_redo_branch);
     RUN_TEST(test_canvas_is_clipped_and_zoom_keeps_point_under_pointer);
     RUN_TEST(test_failed_document_tab_does_not_consume_document_number);

@@ -55,6 +55,7 @@ bool vector_documents_commit(VectorDocuments *documents, PUIView *view, PUIConte
 
 void vector_documents_destroy(VectorDocuments *documents) {
     for (int i = 0; i < documents->count; i++) {
+        vector_artboard_tool_cancel(&documents->items[i]);
         vector_history_destroy(&documents->items[i].history);
     }
     *documents = (VectorDocuments){0};

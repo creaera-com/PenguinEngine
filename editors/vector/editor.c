@@ -58,8 +58,14 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
             pui_view_set_text(view, "status", "Zuerst ein Dokument anlegen oder auswaehlen");
             return true;
         }
-        bool changed = !strcmp(name, "vector.add_artboard") ? vector_artboard_add(document)
-                       : !strcmp(name, "editor.undo")
+        if (!strcmp(name, "vector.add_artboard")) {
+            vector_artboard_tool_arm(document);
+            pui_view_set_text(view, "status",
+                              "Artboard aufziehen (linke Maustaste), Esc: abbrechen");
+            return true;
+        }
+        vector_artboard_tool_cancel(document);
+        bool changed = !strcmp(name, "editor.undo")
                            ? vector_history_undo(&document->history, document)
                            : vector_history_redo(&document->history, document);
         if (changed) {
@@ -80,6 +86,12 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
         char id[96];
         snprintf(id, sizeof id, "vector_document_%u.canvas", document->id);
         if (!strcmp(id, widget)) {
+            for (int j = 0; j < editor->documents.count; j++) {
+                if (j != i) {
+                    vector_artboard_tool_cancel(&editor->documents.items[j]);
+                    editor->documents.items[j].viewport.panning = false;
+                }
+            }
             vector_canvas_draw(document, renderer, area);
             return;
         }
@@ -89,6 +101,13 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
 bool vector_editor_event(void *instance, PUIView *view, const SDL_Event *event) {
     VectorEditor *editor = instance;
     VectorDocument *document = vector_documents_active(&editor->documents, view);
+    for (int i = 0; i < editor->documents.count; i++) {
+        VectorDocument *other = &editor->documents.items[i];
+        if (other != document) {
+            vector_artboard_tool_cancel(other);
+            other->viewport.panning = false;
+        }
+    }
     return document && vector_canvas_event(document, view, event);
 }
 

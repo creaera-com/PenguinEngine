@@ -1,7 +1,7 @@
 /** @file @brief Undoable artboard creation. */
 #include "document.h"
+#include <math.h>
 #include <stdlib.h>
-#include <string.h>
 
 typedef struct {
     VectorArtboard artboard;
@@ -33,8 +33,9 @@ static bool revert(void *state, const void *data) {
     return true;
 }
 
-bool vector_artboard_add(VectorDocument *document) {
-    if (document->artboard_count >= VECTOR_MAX_ARTBOARDS) {
+bool vector_artboard_add(VectorDocument *document, PUIRect rect) {
+    if (!isfinite(rect.x) || !isfinite(rect.y) || !isfinite(rect.w) || !isfinite(rect.h) ||
+        rect.w < 1 || rect.h < 1 || document->artboard_count >= VECTOR_MAX_ARTBOARDS) {
         return false;
     }
     AddArtboard *command = malloc(sizeof *command);
@@ -42,11 +43,9 @@ bool vector_artboard_add(VectorDocument *document) {
         return false;
     }
     int index = document->artboard_count;
-    *command =
-        (AddArtboard){.artboard = {.id = document->next_artboard_id,
-                                   .rect = {(index % 2) * 576.f, (index / 2) * 576.f, 512, 512}},
-                      .index = index,
-                      .previous = document->active_artboard};
+    *command = (AddArtboard){.artboard = {.id = document->next_artboard_id, .rect = rect},
+                             .index = index,
+                             .previous = document->active_artboard};
     if (!vector_history_execute(&document->history, document,
                                 (VectorCommand){apply, revert, command})) {
         free(command);

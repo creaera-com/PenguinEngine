@@ -257,10 +257,20 @@ Dokument-YAML. Die äußere Anordnung bleibt in `editors/vector/ui/editor.yaml`.
 Artboards; pengUI stellt nur den generischen, geclippten Canvas-Callback bereit.
 Der Host leitet Rendering und Eingabe über den Editor-Adapter weiter.
 
-`vector.add_artboard` legt im aktiven Dokument ein weißes Artboard mit 512 × 512 Pixeln an.
-Ohne aktives Dokument erscheint eine Statusmeldung. Weitere Artboards werden mit Abstand
-nebeneinander und darunter angeordnet. Das Mausrad zoomt um den Mauszeiger;
-mit gedrückter mittlerer Maustaste verschiebst du den sichtbaren Ausschnitt.
+`vector.add_artboard` aktiviert das Artboard-Werkzeug im ausgewählten Dokument.
+Ziehe mit der linken Maustaste ein Rechteck in beliebiger Richtung auf. Die Vorschau
+zeigt die Größe in Dokument-Pixeln. Beim Loslassen wird ein einzelner History-Befehl
+angelegt; die Position bleibt dort, wo du gezeichnet hast. Koordinaten werden auf ganze
+Pixel gerundet, die Mindestgröße beträgt 1 × 1 Pixel. Ein einfacher Klick erzeugt nichts.
+Escape oder Fokusverlust bricht ohne Änderung ab; beim Tabwechsel wird das Werkzeug ebenfalls
+zurückgesetzt. Nach erfolgreichem Anlegen endet das Werkzeug; für ein weiteres Artboard
+klickst du erneut auf den Toolbar-Button.
+
+Jedes Artboard erhält oben und links ein dezentes Pixel-Lineal mit lokalem Nullpunkt.
+[ruler.c](../editors/vector/ruler.c) passt die Unterteilung dem Zoom an, während die
+Dicke des Lineals auf dem Bildschirm gleich bleibt. Das Mausrad zoomt um den Mauszeiger;
+mit gedrückter mittlerer Maustaste verschiebst du den sichtbaren Ausschnitt. Während
+eines laufenden Aufziehens bleiben Zoom und Pan unverändert.
 
 [artboard.c](../editors/vector/artboard.c) erstellt dafür einen Befehl für
 [history.c](../editors/vector/history.c). Jedes Dokument besitzt eine eigene History:

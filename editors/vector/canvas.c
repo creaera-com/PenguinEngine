@@ -1,5 +1,6 @@
 /** @file @brief Light-gray document workspace with independent pan and zoom. */
 #include "document.h"
+#include "ruler.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -44,6 +45,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         SDL_FRect rect = {area.x + viewport->x + board->rect.x * viewport->zoom,
                           area.y + viewport->y + board->rect.y * viewport->zoom,
                           board->rect.w * viewport->zoom, board->rect.h * viewport->zoom};
+        vector_ruler_draw(renderer, rect, viewport->zoom);
         SDL_SetRenderDrawColor(renderer, 242, 242, 242, 255);
         SDL_RenderFillRect(renderer, &rect);
         if (board->id == document->active_artboard) {
@@ -51,9 +53,23 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
             SDL_RenderRect(renderer, &rect);
         }
     }
+    if (document->artboard_tool.dragging) {
+        PUIRect preview = vector_artboard_tool_rect(&document->artboard_tool);
+        SDL_FRect rect = {area.x + viewport->x + preview.x * viewport->zoom,
+                          area.y + viewport->y + preview.y * viewport->zoom,
+                          preview.w * viewport->zoom, preview.h * viewport->zoom};
+        SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
+        SDL_RenderRect(renderer, &rect);
+        char size[64];
+        snprintf(size, sizeof size, "%.0f x %.0f px", preview.w, preview.h);
+        pui_text_scaled(renderer, rect.x + 4, rect.y + 4, size, 0xFFFFFFFF, .875f);
+    }
 }
 
 bool vector_canvas_event(VectorDocument *document, PUIView *view, const SDL_Event *event) {
+    if (vector_artboard_tool_event(document, view, event)) {
+        return true;
+    }
     VectorViewport *viewport = &document->viewport;
     char id[96];
     snprintf(id, sizeof id, "vector_document_%u.canvas", document->id);

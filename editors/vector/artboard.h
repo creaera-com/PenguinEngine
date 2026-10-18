@@ -9,6 +9,6 @@ typedef struct {
     PUIRect rect; ///< Position and size in document pixels, independent of viewport zoom.
 } VectorArtboard;
 struct VectorDocument;
-/** @brief Create a 512x512 artboard through the document history. */
-bool vector_artboard_add(struct VectorDocument *document);
+/** @brief Create an artboard through history; rectangle must be finite and at least 1x1 pixel. */
+bool vector_artboard_add(struct VectorDocument *document, PUIRect rect);
 #endif
