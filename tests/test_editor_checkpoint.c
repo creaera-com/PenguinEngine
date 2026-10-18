@@ -682,8 +682,43 @@ static void test_resize_minimum_cancel_noop_and_checkpoint_redo(void) {
     assert_rect((PUIRect){30, 30, 180, 90}, document->artboards[0].rect);
 }
 
+static void assert_canvas_pixel(float x, float y, Uint8 expected) {
+    SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
+    TEST_ASSERT_NOT_NULL(surface);
+    Uint8 r, g, b, a;
+    bool read = SDL_ReadSurfacePixel(surface, (int)x, (int)y, &r, &g, &b, &a);
+    SDL_DestroySurface(surface);
+    TEST_ASSERT_TRUE(read);
+    TEST_ASSERT_EQUAL_UINT8(expected, r);
+    TEST_ASSERT_EQUAL_UINT8(expected, g);
+    TEST_ASSERT_EQUAL_UINT8(expected, b);
+}
+
+static void test_resize_renders_live_fill_and_white_handles_before_history_commit(void) {
+    VectorDocument *document = add_document();
+    PUIRect initial = {10, 20, 200, 100};
+    TEST_ASSERT_TRUE(vector_artboard_add(document, initial));
+    commit();
+    PUIRect screen = board_screen(document);
+    float x = screen.x + screen.w, y = screen.y + screen.h;
+    assert_canvas_pixel(x, y, 255); // White center of lower-right handle.
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+    selection_pointer(SDL_EVENT_MOUSE_MOTION, x + 60, y + 40);
+    assert_canvas_pixel(x + 30, y + 20, 242); // Added area is already filled during drag.
+    assert_rect(initial, document->artboards[0].rect);
+    TEST_ASSERT_EQUAL_INT(1, document->history.cursor);
+    selection_pointer(SDL_EVENT_MOUSE_MOTION, x - 60, y - 40);
+    assert_canvas_pixel(x - 30, y - 20, 104); // Removed area becomes canvas gray immediately.
+    assert_rect(initial, document->artboards[0].rect);
+    TEST_ASSERT_EQUAL_INT(1, document->history.cursor);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x - 60, y - 40);
+    assert_rect((PUIRect){10, 20, 140, 60}, document->artboards[0].rect);
+    TEST_ASSERT_EQUAL_INT(2, document->history.cursor);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_resize_renders_live_fill_and_white_handles_before_history_commit);
     RUN_TEST(test_all_eight_resize_handles_use_zoom_and_single_history_steps);
     RUN_TEST(test_resize_minimum_cancel_noop_and_checkpoint_redo);
     RUN_TEST(test_label_drag_only_preview_undo_redo_and_checkpoint);

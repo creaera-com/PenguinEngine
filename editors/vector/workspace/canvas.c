@@ -49,7 +49,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         PUIRect display = vector_artboard_display_rect(document, board);
         SDL_FRect rect = {area.x + viewport->x + display.x * viewport->zoom,
                           area.y + viewport->y + display.y * viewport->zoom,
-                          board->rect.w * viewport->zoom, board->rect.h * viewport->zoom};
+                          display.w * viewport->zoom, display.h * viewport->zoom};
         PUIRect label = vector_artboard_label_rect(document, board);
         pui_text_scaled(renderer, label.x, label.y, board->name,
                         board->id == document->active_artboard ? 0xE2AF7EFF : 0xEEEEEEFF, .875f);
@@ -75,7 +75,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
             for (int k = 0; k < 8; k++) {
                 PUIRect handle = vector_resize_handle_rect(screen, k, 7);
                 SDL_FRect r = {handle.x, handle.y, handle.w, handle.h};
-                SDL_SetRenderDrawColor(renderer, 38, 38, 38, 255);
+                SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
                 SDL_RenderFillRect(renderer, &r);
                 SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
                 SDL_RenderRect(renderer, &r);
