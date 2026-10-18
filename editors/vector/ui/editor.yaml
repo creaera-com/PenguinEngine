@@ -25,6 +25,13 @@ root:
                 - {type: label, text: "Vector workspace"}
                 - {type: label, text: "No document opened."}
                 - {type: spacer}
+        - type: tab
+          id: vector_document_tree_tab
+          text: Document
+          icon: folder
+          padding: 0
+          children:
+           - type: panel
     - type: column
       padding: 0
       gap: 3
