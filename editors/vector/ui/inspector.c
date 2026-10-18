@@ -34,6 +34,9 @@ static bool dimension(const char *text, float *value) {
 
 bool vector_inspector_action(VectorInspector *inspector, VectorDocuments *documents, PUIView *view,
                              const char *action) {
+    if (vector_rectangle_inspector_action(&inspector->rectangle, documents, view, action)) {
+        return true;
+    }
     bool visibility = !strcmp(action, "vector.artboard.visible"),
          lock = !strcmp(action, "vector.artboard.locked");
     if (!visibility && !lock && strcmp(action, "vector.artboard.name") &&
@@ -86,12 +89,28 @@ bool vector_inspector_action(VectorInspector *inspector, VectorDocuments *docume
 
 bool vector_inspector_sync(VectorInspector *inspector, VectorDocument *document, PUIView *view,
                            PUIContext *input, char *error, size_t capacity) {
+    bool rectangle = document && vector_rectangle_find(document, document->active_rectangle);
+    if (rectangle && inspector->mounted) {
+        if (!pui_view_replace_slot(view, input, "selection_properties", NULL, error, capacity)) {
+            return false;
+        }
+        inspector->mounted = false;
+    }
+    if (!vector_rectangle_inspector_sync(&inspector->rectangle, document, view, input, error,
+                                         capacity)) {
+        return false;
+    }
+    if (rectangle) {
+        inspector->document_id = 0;
+        inspector->artboard_id = 0;
+        return true;
+    }
     VectorArtboard *board = selected(document, document ? document->active_artboard : 0);
     bool mount = board != NULL;
     bool switched = inspector->document_id != (document ? document->id : 0) ||
                     inspector->artboard_id != (board ? board->id : 0);
     if (mount != inspector->mounted) {
-        if (!pui_view_replace_slot(view, input, "artboard_properties",
+        if (!pui_view_replace_slot(view, input, "selection_properties",
                                    mount ? inspector->artboard_layout : NULL, error, capacity)) {
             return false;
         }

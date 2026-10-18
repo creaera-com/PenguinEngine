@@ -4,6 +4,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+VectorArtboard *vector_artboard_find(VectorDocument *document, unsigned id) {
+    for (int i = 0; i < document->artboard_count; i++) {
+        if (document->artboards[i].id == id) {
+            return &document->artboards[i];
+        }
+    }
+    return NULL;
+}
+
 typedef struct {
     VectorArtboard artboard;
     int index;
@@ -19,6 +28,7 @@ static bool apply(void *state, const void *data) {
     }
     document->artboards[document->artboard_count++] = command->artboard;
     document->active_artboard = command->artboard.id;
+    document->active_rectangle = 0;
     return true;
 }
 
@@ -31,6 +41,7 @@ static bool revert(void *state, const void *data) {
     }
     document->artboard_count--;
     document->active_artboard = command->previous;
+    document->active_rectangle = 0;
     return true;
 }
 
@@ -233,12 +244,8 @@ bool vector_artboard_command_write(const VectorCommand *command, FILE *file) {
            fwrite(&data->previous, sizeof data->previous, 1, file) == 1;
 }
 
-bool vector_artboard_command_read(VectorCommand *command, FILE *file) {
-    unsigned kind;
+bool vector_artboard_command_read(VectorCommand *command, FILE *file, unsigned kind) {
     AddArtboard data;
-    if (fread(&kind, sizeof kind, 1, file) != 1) {
-        return false;
-    }
     if (kind == 2) {
         EditArtboard edit;
         if (fread(&edit, sizeof edit, 1, file) != 1 || !valid_board(edit.before) ||

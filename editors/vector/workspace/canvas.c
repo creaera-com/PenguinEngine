@@ -4,6 +4,8 @@
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/document/document.h"
 #include "editors/vector/geometry/resize.h"
+#include "editors/vector/rectangle/render.h"
+#include "editors/vector/rectangle/tool.h"
 #include "ruler.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,13 +61,15 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         vector_ruler_draw(renderer, rect, viewport->zoom);
         SDL_SetRenderDrawColor(renderer, 242, 242, 242, 255);
         SDL_RenderFillRect(renderer, &rect);
-        if (board->id == document->active_artboard) {
+        vector_rectangles_draw(document, board, renderer, rect);
+        if (board->id == document->active_artboard && !document->active_rectangle) {
             SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
             SDL_RenderRect(renderer, &rect);
         }
     }
     // Keep the selected object's handles above every board, in constant screen-pixel size.
-    if (!document->artboard_tool.enabled) {
+    if (!document->artboard_tool.enabled && !document->rectangle_tool.enabled &&
+        !document->active_rectangle) {
         for (int i = 0; i < document->artboard_count; i++) {
             VectorArtboard *board = &document->artboards[i];
             if (board->id != document->active_artboard ||
@@ -100,7 +104,8 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
 }
 
 bool vector_canvas_event(VectorDocument *document, PUIView *view, const SDL_Event *event) {
-    if (vector_artboard_tool_event(document, view, event)) {
+    if (vector_rectangle_tool_event(document, view, event) ||
+        vector_artboard_tool_event(document, view, event)) {
         return true;
     }
     VectorViewport *viewport = &document->viewport;

@@ -1,6 +1,7 @@
 /** @file @brief Vector editor lifecycle and routing to document, canvas and history modules. */
 #include "artboard/tool.h"
 #include "internal.h"
+#include "rectangle/tool.h"
 #include "ui/inspector.h"
 #include "ui/toolbar.h"
 #include "workspace/canvas.h"
@@ -27,6 +28,7 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
     pui_layout_free(root);
     vector_documents_init(&editor->documents);
     if (!editor->layout) {
+        pui_layout_free(editor->inspector.rectangle.layout);
         pui_layout_free(editor->inspector.artboard_layout);
         pui_layout_free(editor->layout);
         free(editor);
@@ -34,7 +36,9 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
     }
     editor->inspector.artboard_layout =
         editor_load_ui(services, "editors/vector/ui/artboard_inspector.yaml", error, capacity);
-    if (!editor->inspector.artboard_layout) {
+    editor->inspector.rectangle.layout =
+        editor_load_ui(services, "editors/vector/ui/rectangle_inspector.yaml", error, capacity);
+    if (!editor->inspector.artboard_layout || !editor->inspector.rectangle.layout) {
         vector_editor_destroy(editor);
         return NULL;
     }
@@ -51,6 +55,7 @@ void vector_editor_destroy(void *instance) {
     if (editor) {
         vector_workspace_cancel_inactive(&editor->documents, NULL);
         vector_documents_destroy(&editor->documents);
+        pui_layout_free(editor->inspector.rectangle.layout);
         pui_layout_free(editor->inspector.artboard_layout);
         pui_layout_free(editor->layout);
         free(editor);
@@ -67,6 +72,10 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
         return true;
     }
     VectorDocument *document = vector_document_tabs_active(&editor->documents, view);
+    if (vector_rectangle_tool_action(document, view, name)) {
+        vector_toolbar_sync(view, document);
+        return true;
+    }
     if (!strcmp(name, "vector.tool_selection")) {
         if (document) {
             vector_artboard_tool_cancel(document);

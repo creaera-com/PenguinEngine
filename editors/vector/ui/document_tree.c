@@ -1,15 +1,17 @@
-/** @file @brief Artboards become root rows; future groups/elements may supply deeper rows. */
+/** @file @brief Artboards and rectangle children become depth-first tree-table rows. */
 #include "document_tree.h"
-#include "editors/vector/artboard/selection.h"
 #include "editors/vector/artboard/tool.h"
 #include "toolbar.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+_Static_assert(VECTOR_MAX_ARTBOARDS + VECTOR_MAX_RECTANGLES <= PUI_LAYOUT_NODES,
+               "document rows must fit the runtime tree");
 
 static bool unchanged(const VectorDocumentTree *tree, const VectorDocument *document) {
     if (!tree->initialized || tree->document_id != (document ? document->id : 0) ||
-        tree->count != (document ? document->artboard_count : 0)) {
+        tree->count != (document ? document->artboard_count : 0) ||
+        tree->rectangle_count != (document ? document->rectangle_count : 0)) {
         return false;
     }
     for (int i = 0; i < tree->count; i++) {
@@ -19,18 +21,44 @@ static bool unchanged(const VectorDocumentTree *tree, const VectorDocument *docu
             return false;
         }
     }
-    return true;
+    return !document || !memcmp(tree->rectangles, document->rectangles,
+                                document->rectangle_count * sizeof *document->rectangles);
 }
 
 static void sync_selection(const VectorDocument *document, PUIView *view) {
     char id[64];
-    if (document && document->active_artboard) {
+    if (document && document->active_rectangle) {
+        snprintf(id, sizeof id, "vector_document_%u.rectangle_%u", document->id,
+                 document->active_rectangle);
+    } else if (document && document->active_artboard) {
         snprintf(id, sizeof id, "vector_document_%u.artboard_%u", document->id,
                  document->active_artboard);
-        pui_view_select_tree_item(view, "vector_document_tree", id);
     } else {
         pui_view_select_tree_item(view, "vector_document_tree", NULL);
+        return;
     }
+    pui_view_select_tree_item(view, "vector_document_tree", id);
+}
+
+static void fill(PUITreeItem *item, unsigned document, unsigned id, const char *name,
+                 const char *kind, unsigned flags, int depth) {
+    snprintf(item->id, sizeof item->id, "vector_document_%u.%s_%u", document, kind, id);
+    snprintf(item->text, sizeof item->text, "%s", name);
+    snprintf(item->icon, sizeof item->icon, "tabler:%s", kind);
+    snprintf(item->action, sizeof item->action, "vector.%s.select", kind);
+    item->depth = depth;
+    item->enabled = item->open = true;
+    item->cell_count = 2;
+    snprintf(item->cells[0].icon, sizeof item->cells[0].icon, "%s",
+             flags & VECTOR_OBJECT_HIDDEN ? "tabler:eye-off" : "tabler:eye");
+    snprintf(item->cells[0].action, sizeof item->cells[0].action, "vector.%s.visibility", kind);
+    item->cells[0].checked = !(flags & VECTOR_OBJECT_HIDDEN);
+    item->cells[0].enabled = true;
+    snprintf(item->cells[1].icon, sizeof item->cells[1].icon, "%s",
+             flags & VECTOR_OBJECT_LOCKED ? "tabler:lock" : "tabler:lock-open");
+    snprintf(item->cells[1].action, sizeof item->cells[1].action, "vector.%s.lock", kind);
+    item->cells[1].checked = (flags & VECTOR_OBJECT_LOCKED) != 0;
+    item->cells[1].enabled = true;
 }
 
 bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *document,
@@ -39,35 +67,27 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
         sync_selection(document, view);
         return true;
     }
-    int count = document ? document->artboard_count : 0;
+    int count = document ? document->artboard_count + document->rectangle_count : 0;
     PUITreeItem *items = count ? calloc(count, sizeof *items) : NULL;
     if (count && !items) {
         snprintf(error, capacity, "could not allocate document tree rows");
         return false;
     }
-    for (int i = 0; i < count; i++) {
-        const VectorArtboard *artboard = &document->artboards[i];
-        PUITreeItem *item = &items[i];
-        snprintf(item->id, sizeof item->id, "vector_document_%u.artboard_%u", document->id,
-                 artboard->id);
-        snprintf(item->text, sizeof item->text, "%s", artboard->name);
-        snprintf(item->icon, sizeof item->icon, "tabler:artboard");
-        snprintf(item->action, sizeof item->action, "vector.artboard.select");
-        item->cell_count = 2;
-        snprintf(item->cells[0].icon, sizeof item->cells[0].icon, "%s",
-                 artboard->flags & VECTOR_OBJECT_HIDDEN ? "tabler:eye-off" : "tabler:eye");
-        snprintf(item->cells[0].action, sizeof item->cells[0].action, "vector.artboard.visibility");
-        item->cells[0].checked = !(artboard->flags & VECTOR_OBJECT_HIDDEN);
-        item->cells[0].enabled = true;
-        snprintf(item->cells[1].icon, sizeof item->cells[1].icon, "%s",
-                 artboard->flags & VECTOR_OBJECT_LOCKED ? "tabler:lock" : "tabler:lock-open");
-        snprintf(item->cells[1].action, sizeof item->cells[1].action, "vector.artboard.lock");
-        item->cells[1].checked = (artboard->flags & VECTOR_OBJECT_LOCKED) != 0;
-        item->cells[1].enabled = true;
-        item->depth = 0;
-        item->enabled = item->open = true;
+    int row = 0;
+    if (document) {
+        for (int i = 0; i < document->artboard_count; i++) {
+            const VectorArtboard *board = &document->artboards[i];
+            fill(&items[row++], document->id, board->id, board->name, "artboard", board->flags, 0);
+            for (int j = 0; j < document->rectangle_count; j++) {
+                const VectorRectangle *rectangle = &document->rectangles[j];
+                if (rectangle->parent_id == board->id) {
+                    fill(&items[row++], document->id, rectangle->id, rectangle->name, "rectangle",
+                         rectangle->flags, 1);
+                }
+            }
+        }
     }
-    bool updated = pui_view_set_tree_items(view, "vector_document_tree", items, count);
+    bool updated = pui_view_set_tree_items(view, "vector_document_tree", items, row);
     free(items);
     if (!updated) {
         snprintf(error, capacity, "could not update vector_document_tree");
@@ -76,44 +96,63 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
     sync_selection(document, view);
     tree->initialized = true;
     tree->document_id = document ? document->id : 0;
-    tree->count = count;
-    for (int i = 0; i < count; i++) {
+    tree->count = document ? document->artboard_count : 0;
+    tree->rectangle_count = document ? document->rectangle_count : 0;
+    for (int i = 0; i < tree->count; i++) {
         tree->flags[i] = document->artboards[i].flags;
         tree->artboard_ids[i] = document->artboards[i].id;
         snprintf(tree->names[i], sizeof tree->names[i], "%s", document->artboards[i].name);
+    }
+    if (document) {
+        memcpy(tree->rectangles, document->rectangles,
+               document->rectangle_count * sizeof *document->rectangles);
     }
     return true;
 }
 
 bool vector_document_tree_action(VectorDocument *document, PUIView *view, const char *action,
                                  const char *widget) {
-    bool visibility = !strcmp(action, "vector.artboard.visibility"),
-         lock = !strcmp(action, "vector.artboard.lock");
-    if (!visibility && !lock && strcmp(action, "vector.artboard.select")) {
+    bool rectangle = !strncmp(action, "vector.rectangle.", 17);
+    const char *kind = rectangle ? "rectangle" : "artboard";
+    char expected[64];
+    snprintf(expected, sizeof expected, "vector.%s.visibility", kind);
+    bool visibility = !strcmp(action, expected);
+    snprintf(expected, sizeof expected, "vector.%s.lock", kind);
+    bool lock = !strcmp(action, expected);
+    snprintf(expected, sizeof expected, "vector.%s.select", kind);
+    if (!visibility && !lock && strcmp(action, expected)) {
         return false;
     }
-    if (document && widget && (visibility || lock || !document->artboard_tool.enabled)) {
-        for (int i = 0; i < document->artboard_count; i++) {
-            char id[64];
-            snprintf(id, sizeof id, "vector_document_%u.artboard_%u", document->id,
-                     document->artboards[i].id);
-            if (!strcmp(id, widget)) {
-                if (visibility || lock) {
-                    vector_selection_cancel(document);
-                    bool changed = vector_artboard_set_state(
-                        document, document->artboards[i].id,
-                        document->artboards[i].flags ^
-                            (visibility ? VECTOR_OBJECT_HIDDEN : VECTOR_OBJECT_LOCKED));
-                    pui_view_set_text(view, "status",
-                                      changed ? "Objektstatus aktualisiert"
-                                              : "Objektstatus konnte nicht geaendert werden");
-                } else {
-                    vector_artboard_tool_cancel(document);
-                    document->active_artboard = document->artboards[i].id;
-                }
-                break;
-            }
+    if (!document || !widget) {
+        return true;
+    }
+    if (!visibility && !lock &&
+        (document->artboard_tool.enabled || document->rectangle_tool.enabled)) {
+        return true;
+    }
+    int count = rectangle ? document->rectangle_count : document->artboard_count;
+    for (int i = 0; i < count; i++) {
+        unsigned object = rectangle ? document->rectangles[i].id : document->artboards[i].id;
+        char id[64];
+        snprintf(id, sizeof id, "vector_document_%u.%s_%u", document->id, kind, object);
+        if (strcmp(id, widget)) {
+            continue;
         }
+        vector_artboard_tool_cancel(document);
+        if (visibility || lock) {
+            unsigned flags =
+                rectangle ? document->rectangles[i].flags : document->artboards[i].flags;
+            flags ^= visibility ? VECTOR_OBJECT_HIDDEN : VECTOR_OBJECT_LOCKED;
+            bool changed = rectangle ? vector_rectangle_set_state(document, object, flags)
+                                     : vector_artboard_set_state(document, object, flags);
+            pui_view_set_text(view, "status",
+                              changed ? "Objektstatus aktualisiert"
+                                      : "Objektstatus konnte nicht geaendert werden");
+        } else {
+            document->active_artboard = rectangle ? document->rectangles[i].parent_id : object;
+            document->active_rectangle = rectangle ? object : 0;
+        }
+        break;
     }
     vector_toolbar_sync(view, document);
     return true;

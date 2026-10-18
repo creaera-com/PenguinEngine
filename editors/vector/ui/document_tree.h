@@ -11,6 +11,8 @@ typedef struct {
     char names[VECTOR_MAX_ARTBOARDS][64];
     unsigned flags[VECTOR_MAX_ARTBOARDS];
     int count;
+    VectorRectangle rectangles[VECTOR_MAX_RECTANGLES];
+    int rectangle_count;
 } VectorDocumentTree;
 
 /** @brief Select an artboard from its stable tree row ID. */

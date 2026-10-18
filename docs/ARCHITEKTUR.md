@@ -654,3 +654,8 @@ Host bleibt für Änderungen der Daten und Rückmeldung des neuen `checked`-Wert
 `tabler:eye-off` als passende Zustandsicons liefert. pengUI kennt dabei keine Objektzustände
 oder Editorbefehle. Statische YAML-`item`-Kinder erhalten dadurch keine zusätzlichen Zellen;
 die Spaltendaten gehören aktuell zur Runtime-API.
+
+
+Die programmatische Auswahl über `pui_view_select_tree_item()` öffnet die Vorfahren
+der ausgewählten Runtime-Zeile. Dadurch werden neu angelegte Kindelemente sichtbar,
+ohne den zuvor geschlossenen Zweig manuell öffnen zu müssen.

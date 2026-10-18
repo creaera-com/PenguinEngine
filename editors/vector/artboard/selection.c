@@ -51,7 +51,7 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
         vector_selection_cancel(document);
         return consumed;
     }
-    if (document->artboard_tool.enabled) {
+    if (document->artboard_tool.enabled || document->rectangle_tool.enabled) {
         return false;
     }
     if (tool->dragging) {
@@ -96,7 +96,8 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
     // Selected object's handles have priority over labels and board surfaces.
     for (int i = 0; i < document->artboard_count; i++) {
         VectorArtboard *board = &document->artboards[i];
-        if (board->id != document->active_artboard || (board->flags & VECTOR_OBJECT_STATE_MASK)) {
+        if (document->active_rectangle || board->id != document->active_artboard ||
+            (board->flags & VECTOR_OBJECT_STATE_MASK)) {
             continue;
         }
         const VectorViewport *v = &document->viewport;
@@ -122,6 +123,7 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
         }
         if (contains(vector_artboard_label_rect(document, board), x, y)) {
             document->active_artboard = board->id;
+            document->active_rectangle = 0;
             *tool = (VectorSelectionTool){
                 .dragging = true, .artboard_id = board->id, .start_x = x, .start_y = y};
             SDL_CaptureMouse(true);
@@ -131,10 +133,22 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
     x = (x - document->viewport.bounds.x - document->viewport.x) / document->viewport.zoom;
     y = (y - document->viewport.bounds.y - document->viewport.y) / document->viewport.zoom;
     document->active_artboard = 0;
+    document->active_rectangle = 0;
     for (int i = document->artboard_count - 1; i >= 0; i--) {
         if (!(document->artboards[i].flags & VECTOR_OBJECT_STATE_MASK) &&
             contains(document->artboards[i].rect, x, y)) {
             document->active_artboard = document->artboards[i].id;
+            for (int j = document->rectangle_count - 1; j >= 0; j--) {
+                VectorRectangle *rectangle = &document->rectangles[j];
+                if (rectangle->parent_id == document->active_artboard &&
+                    !(vector_rectangle_effective_flags(document, rectangle) &
+                      VECTOR_OBJECT_STATE_MASK) &&
+                    contains(rectangle->rect, x - document->artboards[i].rect.x,
+                             y - document->artboards[i].rect.y)) {
+                    document->active_rectangle = rectangle->id;
+                    break;
+                }
+            }
             break;
         }
     }

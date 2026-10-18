@@ -3,5 +3,5 @@ root:
   type: panel
   padding: 12
   children:
-    - {type: slot, id: artboard_properties}
+    - {type: slot, id: selection_properties}
     - {type: spacer}

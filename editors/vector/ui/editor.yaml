@@ -50,6 +50,7 @@ root:
             - {type: separator}
             - {type: toggle, id: vector_add_artboard, icon: tabler:artboard, action: vector.add_artboard, width: 30}
             - {type: separator}
+            - {type: toggle, id: vector_add_rect, icon: tabler:rectangle, action: vector.add_rect, width: 30}
             - {type: toggle, id: vector_selection, icon: tabler:pointer-2, action: vector.tool_selection, width: 30}
             - {type: spacer}
 

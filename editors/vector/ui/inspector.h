@@ -3,9 +3,11 @@
 #define PE_VECTOR_INSPECTOR_H
 #include "editor_host/editor.h"
 #include "editors/vector/document/document.h"
+#include "rectangle_inspector.h"
 
 typedef struct {
     PUILayout *artboard_layout;
+    VectorRectangleInspector rectangle;
     unsigned document_id, artboard_id;
     VectorArtboard presented;
     bool mounted;

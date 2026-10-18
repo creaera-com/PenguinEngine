@@ -5,6 +5,8 @@
 #include "editors/vector/artboard/artboard.h"
 #include "editors/vector/artboard/tool_state.h"
 #include "editors/vector/history/history.h"
+#include "editors/vector/rectangle/rectangle.h"
+#include "editors/vector/rectangle/tool_state.h"
 #include "editors/vector/workspace/viewport.h"
 #define VECTOR_MAX_DOCUMENTS 15
 
@@ -15,6 +17,10 @@ typedef struct VectorDocument {
     VectorArtboard artboards[VECTOR_MAX_ARTBOARDS];
     int artboard_count;
     unsigned next_artboard_id, active_artboard;
+    VectorRectangle rectangles[VECTOR_MAX_RECTANGLES];
+    int rectangle_count;
+    unsigned next_rectangle_id, active_rectangle;
+    VectorRectangleTool rectangle_tool;
     VectorHistory history;
     VectorViewport viewport;
     VectorArtboardTool artboard_tool;

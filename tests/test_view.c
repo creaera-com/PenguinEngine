@@ -615,6 +615,10 @@ static void test_runtime_tree_hierarchy_updates_and_mounts_preserve_state(void) 
     pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, runtime_tree_action, selected);
     TEST_ASSERT_EQUAL_STRING("b", selected);
     assert_pixel(1, 42, PUI_ACCENT);
+    TEST_ASSERT_TRUE(pui_view_select_tree_item(view, "objects", "child"));
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, runtime_tree_action, selected);
+    assert_pixel(1, 42, PUI_ACCENT); // Selecting a child reveals its previously collapsed parent.
+    TEST_ASSERT_EQUAL_STRING("b", selected); // Programmatic selection dispatches no action.
     items[0].depth = 1;
     TEST_ASSERT_FALSE(pui_view_set_tree_items(view, "objects", items, 3));
     TEST_ASSERT_EQUAL_INT(3, pui_view_tree_item_count(view, "objects"));

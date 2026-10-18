@@ -871,7 +871,7 @@ typedef struct {
  * Call between frames. count=0 clears the tree; invalid input leaves the old data intact.
  */
 bool pui_view_set_tree_items(PUIView *view, const char *tree, const PUITreeItem *items, int count);
-/** @brief Select a runtime tree row by ID; NULL clears selection without firing actions. */
+/** @brief Select a runtime tree row by ID and open its ancestors; NULL clears without actions. */
 bool pui_view_select_tree_item(PUIView *view, const char *tree, const char *item);
 /** @brief Runtime row count; -1 for a missing tree or a tree using YAML children. */
 int pui_view_tree_item_count(const PUIView *view, const char *tree);

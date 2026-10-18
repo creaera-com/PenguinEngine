@@ -521,7 +521,7 @@ Ein erneuter Klick auf das aktive Artboard-Werkzeug bricht es ab. Der Auswahlbut
 beendet das Werkzeug ebenfalls. Artboards lassen sich anschließend auf der Zeichenfläche
 oder im Dokument-Tree auswählen.
 
-Der Inspector enthält den Slot `artboard_properties`. Die UI-Anbindung
+Der Inspector enthält den Slot `selection_properties`. Die UI-Anbindung
 `editors/vector/ui/inspector.c` setzt dort bei vorhandener Auswahl die Beschreibung
 `artboard_inspector.yaml` ein und entfernt sie wieder ohne Auswahl. Die Felder werden
 bei Enter oder beim Feldwechsel mit Tab beziehungsweise Shift+Tab übernommen. Name, Breite und Höhe werden über
@@ -594,3 +594,41 @@ Inspector werden bei gesperrten Artboards abgewiesen und der bisherige Feldwert 
 wiederhergestellt. Im Tree können versteckte und gesperrte Einträge weiterhin ausgewählt
 werden, damit sie über Tree oder Inspector wieder eingeblendet oder entsperrt werden können.
 Die Zustandsbefehle selbst bleiben deshalb auch bei gesperrten Objekten verfügbar.
+
+
+## Rechtecke als Artboard-Kinder
+
+Der YAML-Button `vector_add_rect` mit Aktion `vector.add_rect` aktiviert das
+Rechteck-Werkzeug. Erneuter Klick, Escape, Fokusverlust oder Werkzeugwechsel brechen
+es ab. Eine linke Maustaste innerhalb eines sichtbaren, entsperrten Artboards beginnt
+die Vorschau. Der Endpunkt wird auf dessen Fläche begrenzt. Beim Loslassen erzeugt
+`vector_rectangle_add()` einen History-Befehl; vor dem Loslassen werden keine
+Rechteckdaten und keine History-Einträge angelegt. Nach Erfolg ist wieder das
+Auswahlwerkzeug aktiv.
+
+`rectangle/rectangle.h` beschreibt `VectorRectangle` mit stabiler ID, `parent_id`, Name,
+eigenen Objektflags und einem lokalen Rechteck. Positionen beziehen sich auf die linke
+obere Artboard-Ecke. `rectangle/tool.c` verarbeitet die Geste, `rectangle/render.c`
+wendet den Artboard-Transform an und beschneidet die Ausgabe auf das Artboard.
+Beim Verschieben des Artboards folgen die Kinder einschließlich der Live-Vorschau.
+Eine Artboard-Größenänderung verändert den Ausschnitt, skaliert jedoch keine Kinder.
+
+Der Dokument-Tree führt Kinder direkt nach ihrem Eltern-Artboard mit Tiefe 1 auf.
+Artboards und Rechtecke haben eigene ID-Räume; ihre Tree-IDs unterscheiden die Typen.
+Ein ausgewähltes Rechteck öffnet die zugehörigen Tree-Vorfahren. Auswahl ist im
+Auswahlwerkzeug per Zeichenfläche oder Tree möglich. Der Inspector lädt dann
+`rectangle_inspector.yaml` in den gemeinsamen Slot `selection_properties`.
+Name, Breite, Höhe, Sichtbarkeit und Sperre sind über eigene bindings in
+`ui/rectangle_inspector.c` bearbeitbar. Im Tree beziehen sich Auge und Schloss auf
+die eigenen Flags; effektive Sichtbarkeit und Sperre berücksichtigen zusätzlich
+die Flags des Eltern-Artboards. Eine eigene Sperre oder Elternsperre verhindert
+Geometrie- und Namensänderungen; eigene Zustandsflags bleiben bearbeitbar.
+
+Die History gehört weiterhin dem Dokument. `persistence/commands.c` verteilt native
+Befehlstypen an die jeweiligen Artboard- und Rechteck-Codecs. Checkpoints speichern
+Rechtecke, Eltern-IDs, Auswahl, ID-Zähler und die gesamte History einschließlich Redo.
+Es sind aktuell höchstens 64 Artboards und 64 Rechtecke pro Dokument vorgesehen; alle
+128 Tree-Zeilen passen in die bestehende Runtime-Tree-Grenze. Rechtecke erhalten
+zunächst eine feste blaue Füllung. Individuelle Farben sowie Verschieben und Skalieren
+der Rechtecke per Maus sind weitere Ausbauschritte; bisherige Mausgreifer bearbeiten
+weiterhin Artboards.

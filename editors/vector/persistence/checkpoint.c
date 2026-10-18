@@ -1,5 +1,6 @@
 /** @file @brief Pointer-free session snapshots; candidate restoration is transactional. */
 #include "checkpoint.h"
+#include "commands.h"
 #include "editors/vector/internal.h"
 #include "editors/vector/workspace/canvas.h"
 #include <math.h>
@@ -8,7 +9,7 @@
 
 /* Native integer/float representation is sufficient for a private file in this process.
  * Changing this schema requires a new signature. This is not an SVG or interchange format. */
-static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '0', '5'};
+static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '0', '6'};
 
 #define WRITE(value) (fwrite(&(value), sizeof(value), 1, file) == 1)
 #define READ(value) (fread(&(value), sizeof(value), 1, file) == 1)
@@ -64,13 +65,17 @@ static bool write_document(const VectorDocument *document, FILE *file) {
         !WRITE(document->active_artboard) || !WRITE(document->artboard_count) ||
         fwrite(document->artboards, sizeof *document->artboards, document->artboard_count, file) !=
             (size_t)document->artboard_count ||
+        !WRITE(document->next_rectangle_id) || !WRITE(document->active_rectangle) ||
+        !WRITE(document->rectangle_count) ||
+        fwrite(document->rectangles, sizeof *document->rectangles, document->rectangle_count,
+               file) != (size_t)document->rectangle_count ||
         !WRITE(document->viewport.x) || !WRITE(document->viewport.y) ||
         !WRITE(document->viewport.zoom) || !WRITE(document->history.count) ||
         !WRITE(document->history.cursor)) {
         return false;
     }
     for (int i = 0; i < document->history.count; i++) {
-        if (!vector_artboard_command_write(&document->history.commands[i], file)) {
+        if (!vector_command_write(&document->history.commands[i], file)) {
             return false;
         }
     }
@@ -107,6 +112,9 @@ static bool valid_history(const VectorDocument *document) {
     VectorDocument replay = {0};
     for (int i = 0; i < document->history.count; i++) {
         VectorCommand command = document->history.commands[i];
+        VectorRectangle rectangles_before[VECTOR_MAX_RECTANGLES];
+        int rectangle_count = replay.rectangle_count;
+        memcpy(rectangles_before, replay.rectangles, rectangle_count * sizeof *rectangles_before);
         VectorArtboard before[VECTOR_MAX_ARTBOARDS];
         int count = replay.artboard_count;
         memcpy(before, replay.artboards, count * sizeof *before);
@@ -123,7 +131,22 @@ static bool valid_history(const VectorDocument *document) {
                 }
             }
         }
-        if (!command.revert(&replay, command.data) || replay.artboard_count != count ||
+        for (int j = 0; j < replay.rectangle_count; j++) {
+            VectorRectangle *rectangle = &replay.rectangles[j];
+            if (!rectangle->id || rectangle->id >= document->next_rectangle_id ||
+                !vector_artboard_find(&replay, rectangle->parent_id)) {
+                return false;
+            }
+            for (int k = 0; k < j; k++) {
+                if (replay.rectangles[k].id == rectangle->id) {
+                    return false;
+                }
+            }
+        }
+        if (!command.revert(&replay, command.data) || replay.rectangle_count != rectangle_count ||
+            memcmp(rectangles_before, replay.rectangles,
+                   rectangle_count * sizeof *rectangles_before) ||
+            replay.artboard_count != count ||
             memcmp(before, replay.artboards, count * sizeof *before) ||
             !command.apply(&replay, command.data)) {
             return false;
@@ -135,7 +158,10 @@ static bool valid_history(const VectorDocument *document) {
             return false;
         }
     }
-    if (replay.artboard_count != document->artboard_count ||
+    if (replay.rectangle_count != document->rectangle_count ||
+        memcmp(replay.rectangles, document->rectangles,
+               replay.rectangle_count * sizeof *replay.rectangles) ||
+        replay.artboard_count != document->artboard_count ||
         (document->active_artboard && !document->artboard_count)) {
         return false;
     }
@@ -144,6 +170,18 @@ static bool valid_history(const VectorDocument *document) {
         if (a->flags != b->flags || !memchr(b->name, 0, sizeof b->name) ||
             strcmp(a->name, b->name) || a->id != b->id || a->rect.x != b->rect.x ||
             a->rect.y != b->rect.y || a->rect.w != b->rect.w || a->rect.h != b->rect.h) {
+            return false;
+        }
+    }
+    if (document->active_rectangle) {
+        bool found = false;
+        for (int i = 0; i < document->rectangle_count; i++) {
+            if (document->rectangles[i].id == document->active_rectangle &&
+                document->rectangles[i].parent_id == document->active_artboard) {
+                found = true;
+            }
+        }
+        if (!found) {
             return false;
         }
     }
@@ -167,6 +205,11 @@ static bool read_document(VectorDocument *document, unsigned expected_id, FILE *
         document->artboard_count > VECTOR_MAX_ARTBOARDS ||
         fread(document->artboards, sizeof *document->artboards, document->artboard_count, file) !=
             (size_t)document->artboard_count ||
+        !READ(document->next_rectangle_id) || !document->next_rectangle_id ||
+        !READ(document->active_rectangle) || !READ(document->rectangle_count) ||
+        document->rectangle_count < 0 || document->rectangle_count > VECTOR_MAX_RECTANGLES ||
+        fread(document->rectangles, sizeof *document->rectangles, document->rectangle_count,
+              file) != (size_t)document->rectangle_count ||
         !READ(document->viewport.x) || !READ(document->viewport.y) ||
         !READ(document->viewport.zoom) || !isfinite(document->viewport.x) ||
         !isfinite(document->viewport.y) || !isfinite(document->viewport.zoom) ||
@@ -177,7 +220,7 @@ static bool read_document(VectorDocument *document, unsigned expected_id, FILE *
         return false;
     }
     for (int i = 0; i < history_count; i++) {
-        if (!vector_artboard_command_read(&document->history.commands[i], file)) {
+        if (!vector_command_read(&document->history.commands[i], file)) {
             return false;
         }
         document->history.count++;

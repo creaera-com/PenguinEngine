@@ -1,12 +1,14 @@
 /** @file @brief Drag-to-create tool; intermediate previews never enter history. */
 #include "tool.h"
 #include "editors/vector/document/document.h"
+#include "editors/vector/rectangle/tool.h"
 #include "selection.h"
 #include <math.h>
 #include <stdio.h>
 
 void vector_artboard_tool_cancel(VectorDocument *document) {
     vector_selection_cancel(document);
+    vector_rectangle_tool_cancel(document);
     if (document->artboard_tool.dragging) {
         SDL_CaptureMouse(false);
     }

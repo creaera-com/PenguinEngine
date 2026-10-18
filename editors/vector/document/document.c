@@ -7,8 +7,10 @@ void vector_documents_init(VectorDocuments *documents) {
 }
 
 void vector_document_init(VectorDocument *document, unsigned id) {
-    *document = (VectorDocument){
-        .id = id, .next_artboard_id = 1, .viewport = {.x = 64, .y = 64, .zoom = 1}};
+    *document = (VectorDocument){.id = id,
+                                 .next_artboard_id = 1,
+                                 .next_rectangle_id = 1,
+                                 .viewport = {.x = 64, .y = 64, .zoom = 1}};
     snprintf(document->title, sizeof document->title, "Dokument %u", id);
 }
 

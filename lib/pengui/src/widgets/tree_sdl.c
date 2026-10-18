@@ -343,6 +343,13 @@ bool pui_view_select_tree_item(PUIView *view, const char *tree, const char *item
     if (data) {
         for (int i = 0; i < data->count; i++) {
             if (data->items[i].enabled && !strcmp(data->items[i].id, item)) {
+                int depth = data->items[i].depth;
+                for (int j = i - 1; j >= 0 && depth > 0; j--) {
+                    if (data->items[j].depth < depth) {
+                        data->open[j] = true;
+                        depth = data->items[j].depth;
+                    }
+                }
                 view->state[index].selected = pui_id(item);
                 return true;
             }
