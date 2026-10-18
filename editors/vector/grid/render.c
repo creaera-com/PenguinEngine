@@ -34,6 +34,21 @@ void vector_grid_draw(const VectorGrid *grid, SDL_Renderer *renderer, SDL_FRect 
         for (float y = start_y; y < clip.y + clip.h; y += h) {
             SDL_RenderLine(renderer, clip.x, y, clip.x + clip.w, y);
         }
+    } else if (grid->type == VECTOR_GRID_ISOMETRIC) {
+        float slope = h / w;
+        for (int direction = -1; direction <= 1; direction += 2) {
+            float m = direction * slope;
+            float left = clip.x - board.x, right = left + clip.w;
+            float top = clip.y - board.y, bottom = top + clip.h;
+            float low = fminf(top - m * left, top - m * right);
+            float high = fmaxf(bottom - m * left, bottom - m * right);
+            int first = (int)ceilf(low / h), last = (int)floorf(high / h);
+            for (int line = first; line <= last; line++) {
+                float offset = line * h;
+                SDL_RenderLine(renderer, clip.x, board.y + m * left + offset, clip.x + clip.w,
+                               board.y + m * right + offset);
+            }
+        }
     } else {
         /* Staggered rows; shared edges are emitted only once for uniform alpha. */
         int first = (int)floorf((clip.y - board.y) / (.75f * h)) - 1;

@@ -597,8 +597,43 @@ static void test_rectangle_hex_field_uses_the_same_fill_history(void) {
     TEST_ASSERT_EQUAL_HEX32(0xff800040, doc->rectangles[0].fill);
 }
 
+static void test_grid_snaps_rectangle_creation_move_resize_and_history(void) {
+    VectorDocument *doc = parent();
+    action("vector.grid.snap", "");
+    action("vector.add_rect", "");
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 18, 18);
+    local_pointer(doc, SDL_EVENT_MOUSE_MOTION, 61, 61);
+    TEST_ASSERT_EQUAL_INT(0, doc->rectangle_count);
+    PUIRect creation = vector_rectangle_tool_rect(&doc->rectangle_tool);
+    assert_rect((PUIRect){16, 16, 48, 48}, creation);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_UP, 61, 61);
+    commit();
+    assert_rect(creation, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_INT(2, doc->history.count);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 40, 40);
+    local_pointer(doc, SDL_EVENT_MOUSE_MOTION, 54, 54);
+    assert_rect(creation, doc->rectangles[0].rect);
+    assert_rect((PUIRect){32, 32, 48, 48}, vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_UP, 54, 54);
+    commit();
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    assert_rect((PUIRect){32, 32, 48, 48}, doc->rectangles[0].rect);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 80, 80);
+    local_pointer(doc, SDL_EVENT_MOUSE_MOTION, 94, 94);
+    assert_rect((PUIRect){32, 32, 64, 64}, vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_UP, 94, 94);
+    commit();
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+    action("editor.undo", "");
+    assert_rect((PUIRect){32, 32, 48, 48}, doc->rectangles[0].rect);
+    action("editor.redo", "");
+    assert_rect((PUIRect){32, 32, 64, 64}, doc->rectangles[0].rect);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_grid_snaps_rectangle_creation_move_resize_and_history);
     RUN_TEST(test_rectangle_hex_field_uses_the_same_fill_history);
     RUN_TEST(test_rectangle_color_slider_preview_single_commit_and_cancel);
     RUN_TEST(test_fill_alpha_history_and_checkpoint_ignore_transient_color);

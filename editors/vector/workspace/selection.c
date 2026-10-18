@@ -1,6 +1,7 @@
 /** @file @brief One move/resize interaction for artboards and rectangle children. */
 #include "selection.h"
 #include "editors/vector/geometry/resize.h"
+#include "editors/vector/grid/snap.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -31,8 +32,11 @@ PUIRect vector_artboard_display_rect(const VectorDocument *document, const Vecto
 PUIRect vector_rectangle_display_rect(const VectorDocument *document,
                                       const VectorRectangle *rectangle) {
     const VectorSelectionTool *tool = &document->selection_tool;
-    return tool->dragging && tool->rectangle_id == rectangle->id ? preview(rectangle->rect, tool)
-                                                                 : rectangle->rect;
+    return tool->dragging && tool->rectangle_id == rectangle->id
+               ? vector_grid_snap_rect(&document->grid, document->viewport.zoom, rectangle->rect,
+                                       tool->resize_edges, tool->offset_x, tool->offset_y,
+                                       VECTOR_MAX_ARTBOARD_SIZE)
+               : rectangle->rect;
 }
 
 static PUIRect screen_rect(const VectorDocument *document, PUIRect world) {

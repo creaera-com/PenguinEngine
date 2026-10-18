@@ -1,5 +1,7 @@
 #include "editor_host/host.h"
+#include "editors/vector/geometry/resize.h"
 #include "editors/vector/grid/render.h"
+#include "editors/vector/grid/snap.h"
 #include "editors/vector/internal.h"
 #include "shell/shell.h"
 #include "unity.h"
@@ -76,6 +78,14 @@ static void test_preferences_validate_isolate_and_survive_editor_unload(void) {
     action("vector.grid.type");
     TEST_ASSERT_TRUE(pui_view_set_color(shell.view, "vector_grid_color", 0xAABBCC99));
     action("vector.grid.color");
+    action("vector.grid.snap");
+    TEST_ASSERT_TRUE(doc->grid.snap_enabled);
+    TEST_ASSERT_EQUAL_FLOAT(5, doc->grid.snap_tolerance);
+    pui_view_set_text(shell.view, "vector_grid_tolerance", "8");
+    action("vector.grid.tolerance");
+    pui_view_set_text(shell.view, "vector_grid_tolerance", "nan");
+    action("vector.grid.tolerance");
+    TEST_ASSERT_EQUAL_FLOAT(8, doc->grid.snap_tolerance);
     TEST_ASSERT_EQUAL_INT(0, doc->history.count);
     action("vector.add_document");
     TEST_ASSERT_FALSE(document()->grid.visible);
@@ -85,6 +95,8 @@ static void test_preferences_validate_isolate_and_survive_editor_unload(void) {
     VectorEditor *editor = host.instance;
     doc = vector_documents_find(&editor->documents, 1);
     TEST_ASSERT_TRUE(doc->grid.visible);
+    TEST_ASSERT_TRUE(doc->grid.snap_enabled);
+    TEST_ASSERT_EQUAL_FLOAT(8, doc->grid.snap_tolerance);
     TEST_ASSERT_EQUAL_FLOAT(24, doc->grid.width);
     TEST_ASSERT_EQUAL_FLOAT(32, doc->grid.height);
     TEST_ASSERT_EQUAL_INT(VECTOR_GRID_HEXAGONAL, doc->grid.type);
@@ -96,6 +108,8 @@ static void test_preferences_validate_isolate_and_survive_editor_unload(void) {
     TEST_ASSERT_EQUAL_STRING("24", pui_view_text(shell.view, "vector_grid_width"));
     TEST_ASSERT_EQUAL_STRING("hexagonal", pui_view_value(shell.view, "vector_grid_type"));
     TEST_ASSERT_TRUE(pui_view_checked(shell.view, "vector_grid_toggle"));
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "vector_grid_snap"));
+    TEST_ASSERT_EQUAL_STRING("8", pui_view_text(shell.view, "vector_grid_tolerance"));
 }
 
 static Uint32 pixel(SDL_Surface *surface, int x, int y) {
@@ -134,6 +148,15 @@ static void test_grids_clip_follow_zoom_and_bound_dense_rendering(void) {
     SDL_DestroySurface(surface);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
+    grid.type = VECTOR_GRID_ISOMETRIC;
+    vector_grid_draw(&grid, renderer, (SDL_FRect){20, 20, 100, 100}, 1);
+    surface = SDL_RenderReadPixels(renderer, NULL);
+    TEST_ASSERT_NOT_NULL(surface);
+    TEST_ASSERT_EQUAL_HEX32(0xFF0000FF, pixel(surface, 28, 28));
+    TEST_ASSERT_EQUAL_HEX32(0x000000FF, pixel(surface, 36, 28));
+    SDL_DestroySurface(surface);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
     grid.width = grid.height = 1;
     vector_grid_draw(&grid, renderer, (SDL_FRect){-1000000, -1000000, 2000000, 2000000}, .1f);
     surface = SDL_RenderReadPixels(renderer, NULL);
@@ -142,8 +165,74 @@ static void test_grids_clip_follow_zoom_and_bound_dense_rendering(void) {
     SDL_DestroySurface(surface);
 }
 
+static void test_snap_points_use_screen_radius_for_all_lattices(void) {
+    VectorGrid grid = {.snap_enabled = true, .snap_tolerance = 5, .width = 16, .height = 16};
+    float x = 13, y = 25;
+    TEST_ASSERT_TRUE(vector_grid_snap_point(&grid, 1, &x, &y));
+    TEST_ASSERT_EQUAL_FLOAT(16, x);
+    TEST_ASSERT_EQUAL_FLOAT(25, y);
+    x = 13;
+    TEST_ASSERT_FALSE(vector_grid_snap_point(&grid, 2, &x, &y));
+    grid.snap_enabled = false;
+    TEST_ASSERT_FALSE(vector_grid_snap_point(&grid, 1, &x, &y));
+    grid.snap_enabled = true;
+    grid.type = VECTOR_GRID_ISOMETRIC;
+    x = 9;
+    y = 9;
+    TEST_ASSERT_TRUE(vector_grid_snap_point(&grid, 1, &x, &y));
+    TEST_ASSERT_EQUAL_FLOAT(8, x);
+    TEST_ASSERT_EQUAL_FLOAT(8, y);
+    x = -9;
+    y = -9;
+    TEST_ASSERT_TRUE(vector_grid_snap_point(&grid, 1, &x, &y));
+    TEST_ASSERT_EQUAL_FLOAT(-8, x);
+    TEST_ASSERT_EQUAL_FLOAT(-8, y);
+    grid.type = VECTOR_GRID_HEXAGONAL;
+    x = 9;
+    y = 1;
+    TEST_ASSERT_TRUE(vector_grid_snap_point(&grid, 1, &x, &y));
+    TEST_ASSERT_EQUAL_FLOAT(8, x);
+    TEST_ASSERT_EQUAL_FLOAT(0, y);
+    x = 1;
+    y = 5;
+    TEST_ASSERT_TRUE(vector_grid_snap_point(&grid, 1, &x, &y));
+    TEST_ASSERT_EQUAL_FLOAT(0, x);
+    TEST_ASSERT_EQUAL_FLOAT(4, y);
+}
+
+static void test_snap_move_and_eight_handles_preserve_geometry_constraints(void) {
+    VectorGrid grid = {.snap_enabled = true, .snap_tolerance = 5, .width = 16, .height = 16};
+    PUIRect original = {16, 16, 32, 32};
+    for (int i = 0; i < 8; i++) {
+        unsigned edges = vector_resize_handle_edges(i);
+        PUIRect rect = vector_grid_snap_rect(&grid, 1, original, edges, 14, 14, 1000);
+        PUIRect expected = vector_resize_rect(original, edges, 16, 16, 1000);
+        TEST_ASSERT_EQUAL_FLOAT(expected.x, rect.x);
+        TEST_ASSERT_EQUAL_FLOAT(expected.y, rect.y);
+        TEST_ASSERT_EQUAL_FLOAT(expected.w, rect.w);
+        TEST_ASSERT_EQUAL_FLOAT(expected.h, rect.h);
+    }
+    PUIRect moved = vector_grid_snap_rect(&grid, 1, original, 0, 14, 14, 1000);
+    TEST_ASSERT_EQUAL_FLOAT(32, moved.x);
+    TEST_ASSERT_EQUAL_FLOAT(32, moved.y);
+    TEST_ASSERT_EQUAL_FLOAT(original.w, moved.w);
+    // An edge that is already aligned must win over another nearby edge.
+    original.w = 30;
+    moved = vector_grid_snap_rect(&grid, 1, original, 0, 16, 0, 1000);
+    TEST_ASSERT_EQUAL_FLOAT(32, moved.x);
+    original = (PUIRect){3, 3, 10, 10};
+    moved = vector_grid_snap_rect(&grid, 1, original, 0, 0, 0, 1000);
+    TEST_ASSERT_EQUAL_FLOAT(3, moved.x);
+    TEST_ASSERT_EQUAL_FLOAT(3, moved.y);
+    PUIRect tiny = vector_grid_snap_rect(&grid, 1, original, VECTOR_RESIZE_LEFT, 100, 0, 1000);
+    TEST_ASSERT_TRUE(tiny.w >= 1);
+    TEST_ASSERT_EQUAL_FLOAT(original.x + original.w, tiny.x + tiny.w);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_snap_points_use_screen_radius_for_all_lattices);
+    RUN_TEST(test_snap_move_and_eight_handles_preserve_geometry_constraints);
     RUN_TEST(test_preferences_validate_isolate_and_survive_editor_unload);
     RUN_TEST(test_grids_clip_follow_zoom_and_bound_dense_rendering);
     return UNITY_END();

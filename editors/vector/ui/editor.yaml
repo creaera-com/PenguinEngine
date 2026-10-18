@@ -54,6 +54,7 @@ root:
             - {type: toggle, id: vector_selection, icon: tabler:pointer-2, action: vector.tool_selection, width: 30}
             - {type: separator}
             - {type: toggle, id: vector_grid_toggle, icon: tabler:grid-4x4, action: vector.grid.toggle, width: 30}
+            - {type: toggle, id: vector_grid_snap, icon: tabler:magnet, action: vector.grid.snap, width: 30}
             - {type: spacer}
 
         - type: tabs
@@ -63,9 +64,9 @@ root:
       id: vector_right_split
       axis: vertical
       flex: first
-      initial_last: 210
+      initial_last: 246
       minimum_first: 200
-      minimum_second: 180
+      minimum_second: 224
       gap: 9
       children:
         - type: tabs
@@ -93,21 +94,22 @@ root:
                       value: standard
                       height: 28
                       children:
-                        - {type: option, text: Standard, value: standard}
+                        - {type: option, text: Orthogonal, value: standard}
+                        - {type: option, text: Isometrisch, value: isometric}
                         - {type: option, text: Hexagonal, value: hexagonal}
                     - type: row
                       padding: 0
                       height: 28
                       gap: 8
                       children:
-                        - {type: label, text: Breite, width: 64}
+                        - {type: label, text: Breite, width: 80}
                         - {type: input, id: vector_grid_width, text: "16", action: vector.grid.width}
                     - type: row
                       padding: 0
                       height: 28
                       gap: 8
                       children:
-                        - {type: label, text: Hoehe, width: 64}
+                        - {type: label, text: Hoehe, width: 80}
                         - {type: input, id: vector_grid_height, text: "16", action: vector.grid.height}
                     - type: popup_button
                       text: Rasterfarbe
@@ -121,3 +123,10 @@ root:
                           padding: 12
                           children:
                             - {type: color_picker, id: vector_grid_color, value: "#80808080", action: vector.grid.color}
+                    - type: row
+                      padding: 0
+                      height: 28
+                      gap: 8
+                      children:
+                        - {type: label, text: Toleranz, width: 80}
+                        - {type: input, id: vector_grid_tolerance, text: "5", action: vector.grid.tolerance}

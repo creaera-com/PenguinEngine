@@ -1,6 +1,7 @@
 /** @file @brief Artboard-local rectangle creation with clipped drag preview. */
 #include "tool.h"
 #include "editors/vector/artboard/tool.h"
+#include "editors/vector/grid/snap.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -39,10 +40,11 @@ PUIRect vector_rectangle_tool_rect(const VectorRectangleTool *tool) {
 
 static void endpoint(VectorDocument *document, VectorArtboard *parent, float x, float y) {
     VectorViewport *v = &document->viewport;
-    document->rectangle_tool.end_x = fmaxf(
-        0, fminf(parent->rect.w, roundf((x - v->bounds.x - v->x) / v->zoom - parent->rect.x)));
-    document->rectangle_tool.end_y = fmaxf(
-        0, fminf(parent->rect.h, roundf((y - v->bounds.y - v->y) / v->zoom - parent->rect.y)));
+    float local_x = roundf((x - v->bounds.x - v->x) / v->zoom - parent->rect.x);
+    float local_y = roundf((y - v->bounds.y - v->y) / v->zoom - parent->rect.y);
+    vector_grid_snap_point(&document->grid, v->zoom, &local_x, &local_y);
+    document->rectangle_tool.end_x = fmaxf(0, fminf(parent->rect.w, local_x));
+    document->rectangle_tool.end_y = fmaxf(0, fminf(parent->rect.h, local_y));
 }
 
 bool vector_rectangle_tool_event(VectorDocument *document, PUIView *view, const SDL_Event *event) {

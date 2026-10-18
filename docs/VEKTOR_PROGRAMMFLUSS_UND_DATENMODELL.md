@@ -700,7 +700,7 @@ ungueltige Eingaben werden auf den vorherigen Wert zurueckgesetzt.
 `grid/state.h` enthaelt ausschliesslich Werte. Die Einstellungen sind
 Ansichtshilfen und erzeugen keine Schritte in der Artwork-History. Sie gelten
 je Dokument und werden beim Editorwechsel im temporaeren Checkpoint gesichert
-(Schema `PVCKPT08`). Es gibt damit noch keine dauerhafte Dokumentdatei.
+(Schema `PVCKPT09`). Es gibt damit noch keine dauerhafte Dokumentdatei.
 
 `grid/render.c` zeichnet die Linien artboardlokal ueber dem Artwork und erhaelt
 den SDL-Clip- und Blendzustand. Standardzellen sind rechteckig; Hexagonalzellen
@@ -710,4 +710,29 @@ gestreckt. Fuer regelmaessige Sechsecke ist Breite/Hoehe etwa 0,866.
 Zoom und Verschieben folgen der Zeichenflaeche. Rendering wird auf den sichtbaren
 Ausschnitt begrenzt; bei weniger als 4 Bildschirm-Pixeln Zellbreite oder -hoehe
 wird das Raster voruebergehend ausgelassen. Das verhindert ueberdichte Linien
-und unnoetige Zeichenarbeit. Das Raster richtet Objekte noch nicht automatisch aus.
+und unnoetige Zeichenarbeit. Der Magnet-Button (`vector.grid.snap`) aktiviert das Einrasten fuer Rechtecke,
+unabhaengig von der Rasteranzeige. Die Toleranz im Tools-Tab ist ein Fangabstand
+in **Bildschirm-Pixeln** (Standard 5, gueltig 0 bis 100). Dadurch bleibt das
+Mausgefuehl beim Zoomen gleich. 0 erlaubt nur exakt getroffene Rasterpunkte.
+
+`grid/snap.c` enthaelt wiederverwendbare Geometrie ohne Dokument-, SDL-Eingabe-
+oder UI-Abhaengigkeiten. `vector_grid_snap_point` dient dem Setzen neuer Punkte;
+`vector_grid_snap_rect` richtet verschobene oder skalierte Rechtecke aus.
+Das orthogonale Raster faengt beide Achsen unabhaengig; beim Verschieben wird
+die jeweils naechste Rechteckkante verwendet. Isometrische und hexagonale Raster
+fangen Rasterknoten. Verschieben behaelt die Groesse, Skalieren die gegenueberliegende
+Kante und die Mindestgroesse von einem Pixel bei. Seitengreifer veraendern weiterhin
+nur ihre eigene Achse. An Artboardgrenzen hat die Begrenzung der Erstellung Vorrang.
+
+`rectangle/tool.c` nutzt die Punktfunktion fuer Anfang und Ende neuer Rechtecke.
+`workspace/selection.c` nutzt die Rechteckfunktion fuer die Mausvorschau.
+Nur beim Loslassen wird das Ergebnis ueber die bestehende Dokument-History
+uebernommen; Esc verwirft die Vorschau. Formulareingaben und Artboardgesten
+bleiben direkte Werteingaben ohne Einrasten.
+
+Der zusaetzliche Typ `VECTOR_GRID_ISOMETRIC` zeichnet Rauten. Breite und Hoehe
+beschreiben die Diagonalen einer Raute und bestimmen die Schraegstellung
+(z.B. 32 x 16 fuer ein 2:1-Raster). Die UI-Werte `standard`, `hexagonal` und
+`isometric` sind stabil; Standard wird in der UI jetzt als Orthogonal bezeichnet.
+Magnetstatus und Toleranz werden mit den anderen Rastereinstellungen pro
+Dokument beim Editorwechsel wiederhergestellt.
