@@ -1,6 +1,7 @@
 /** @file @brief Pointer-free session snapshots; candidate restoration is transactional. */
 #include "checkpoint.h"
-#include "internal.h"
+#include "editors/vector/internal.h"
+#include "editors/vector/workspace/canvas.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,7 +82,7 @@ bool vector_editor_checkpoint(const void *instance, const PUIView *view, FILE *f
     const VectorEditor *editor = instance;
     const VectorDocuments *documents = &editor->documents;
     unsigned order[PUI_MAX_TABS], selected;
-    if (documents->pending || !capture_tabs(documents, view, order, &selected) ||
+    if (editor->document_tabs.pending || !capture_tabs(documents, view, order, &selected) ||
         !WRITE(signature) || !WRITE(documents->count) || !WRITE(selected) ||
         fwrite(order, sizeof *order, documents->count + 1, file) != (size_t)documents->count + 1) {
         return fail(error, capacity);

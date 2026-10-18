@@ -1,5 +1,7 @@
 /** @file @brief Light-gray document workspace with independent pan and zoom. */
-#include "document.h"
+#include "canvas.h"
+#include "editors/vector/artboard/tool.h"
+#include "editors/vector/document/document.h"
 #include "ruler.h"
 #include <stdio.h>
 #include <stdlib.h>

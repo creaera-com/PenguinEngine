@@ -61,15 +61,30 @@ resources/
 
 editors/
   vector/
-    adapter.c           Öffentliche Moduldefinition
-    editor.c            Private Instanz und Zusammenbau der UI
-    inspector.c         Laden des Inspectors; später dessen Bindings und Aktionen
-    internal.h          Nur innerhalb dieses Editors verwenden
+    adapter.c/.h        Schnittstelle zum Host
+    editor.c            Lebenszyklus und Weiterleitung
+    internal.h          Private Editorinstanz
+    document/
+      document.c/.h     Dokumentdaten, IDs und Speicherbesitz
+    artboard/
+      artboard.c/.h     Artboards und Änderungsbefehle
+      tool.c/.h         Aufziehen mit der Maus
+      tool_state.h      Reine Zustandsdaten der Mausgeste
+    workspace/
+      documents.c/.h    Tab-Anbindung und vorgemerkte Erstellungen
+      canvas.c/.h       Zeichenfläche, Zoom und Pan
+      viewport.h        Reine Viewport-Zustandsdaten
+      ruler.c/.h        Lineale
+    history/
+      history.c/.h      Undo-/Redo-Verwaltung
+    persistence/
+      checkpoint.c/.h   Temporäres Sichern und Wiederherstellen
     ui/
+      inspector.c/.h    Laden der Inspector-Oberfläche
       editor.yaml       Dreispaltiger Arbeitsbereich
       inspector.yaml    Inhalt des Inspector-Slots
-  scripts/              Gleiche Grundstruktur
-  game/                 Gleiche Grundstruktur
+  scripts/              Bisheriges kleines Editorgerüst
+  game/                 Bisheriges kleines Editorgerüst
 ```
 
 Nur [registry.c](../apps/demo/editor_host/registry.c) kennt alle konkreten Adapter. Die
@@ -81,6 +96,13 @@ Editoren; es stellt lediglich generische Slots und UI-Funktionen bereit.
 Für einen Bereich mit eigenem Verhalten kannst du später beispielsweise `explorer.c`,
 `toolbar.c` oder `canvas.c` im jeweiligen Editor ergänzen. Ein Bereich, der nur aus YAML
 besteht, braucht noch keine leere C-Datei. So bleiben die Dateien nach Aufgaben gegliedert.
+
+Die Unterverzeichnisse des Vektoreditors gruppieren fachlich zusammengehörigen Code.
+`document/` enthält keine Tab-, Statuszeilen- oder SDL-Ereignisaufrufe. Die Zuordnung
+zwischen UI-IDs und Modell-IDs liegt in `workspace/documents.c`; vorgemerkte Erstellungen
+stehen in `VectorDocumentTabs` außerhalb des Dokumentmodells. Zustandsheader für Viewport
+und Werkzeug enthalten keine Funktionen zur Ereignisverarbeitung. `editor.c` verbindet
+die Bereiche, während der Inspector nur den gemeinsamen Ressourcenvertrag benötigt.
 
 ## Der Adapter-Vertrag
 
@@ -255,13 +277,15 @@ Der Toolbar-Button mit `action: vector.add_document` ist über den Vector-Adapte
 
 1. `vector_editor_action()` merkt das Anlegen vor.
 2. `vector_editor_commit_ui()` ruft am Frame-Ende die Dokumentverwaltung auf.
-3. [document.c](../editors/vector/document.c) legt einen Eintrag mit ID und Titel an und
-   ergänzt über `pui_view_add_tab()` einen Tab in `vector_document_tabs`.
+3. [workspace/documents.c](../editors/vector/workspace/documents.c) bereitet über die
+   Dokumentverwaltung einen Eintrag mit ID und Titel vor und ergänzt über
+   `pui_view_add_tab()` einen Tab in `vector_document_tabs`. Erst nach Erfolg
+   übernimmt `vector_documents_append()` den Eintrag in die Dokumentverwaltung.
 4. Der neue Tab wird ausgewählt und bei Platzmangel in der Tab-Leiste sichtbar gescrollt.
 
 Jeder neue Dokument-Tab enthält eine direkt in C erzeugte Zeichenfläche, keine eigene
 Dokument-YAML. Die äußere Anordnung bleibt in `editors/vector/ui/editor.yaml`.
-[canvas.c](../editors/vector/canvas.c) zeichnet den hellgrauen Arbeitsbereich und die
+[canvas.c](../editors/vector/workspace/canvas.c) zeichnet den hellgrauen Arbeitsbereich und die
 Artboards; pengUI stellt nur den generischen, geclippten Canvas-Callback bereit.
 Der Host leitet Rendering und Eingabe über den Editor-Adapter weiter.
 
@@ -275,13 +299,13 @@ zurückgesetzt. Nach erfolgreichem Anlegen endet das Werkzeug; für ein weiteres
 klickst du erneut auf den Toolbar-Button.
 
 Jedes Artboard erhält oben und links ein dezentes Pixel-Lineal mit lokalem Nullpunkt.
-[ruler.c](../editors/vector/ruler.c) passt die Unterteilung dem Zoom an, während die
+[ruler.c](../editors/vector/workspace/ruler.c) passt die Unterteilung dem Zoom an, während die
 Dicke des Lineals auf dem Bildschirm gleich bleibt. Das Mausrad zoomt um den Mauszeiger;
 mit gedrückter mittlerer Maustaste verschiebst du den sichtbaren Ausschnitt. Während
 eines laufenden Aufziehens bleiben Zoom und Pan unverändert.
 
-[artboard.c](../editors/vector/artboard.c) erstellt dafür einen Befehl für
-[history.c](../editors/vector/history.c). Jedes Dokument besitzt eine eigene History:
+[artboard.c](../editors/vector/artboard/artboard.c) erstellt dafür einen Befehl für
+[history.c](../editors/vector/history/history.c). Jedes Dokument besitzt eine eigene History:
 `editor.undo` entfernt das zuletzt angelegte Artboard, `editor.redo` stellt dasselbe
 Artboard mit derselben ID wieder her. Eine neue Änderung nach Undo verwirft den
 bisherigen Redo-Zweig. Pan und Zoom verändern die History nicht. Dokumente werden
@@ -307,7 +331,7 @@ ihr letzter Checkpoint eingelesen und ihre Oberfläche vollständig vorbereitet.
 dem erfolgreichen UI-Austausch wird die alte Instanz zerstört. Bei einem Fehler bleibt
 der bisherige Editor aktiv. Auch F6/Reload verwendet den gerade frisch gesicherten Zustand.
 
-[checkpoint.c im Vektoreditor](../editors/vector/checkpoint.c) speichert:
+[checkpoint.c im Vektoreditor](../editors/vector/persistence/checkpoint.c) speichert:
 
 - IDs und Titel aller Dokumente sowie ihre Artboards und die nächste Artboard-ID.
 - Vollständige Undo-/Redo-History einschließlich eines noch vorhandenen Redo-Zweigs.

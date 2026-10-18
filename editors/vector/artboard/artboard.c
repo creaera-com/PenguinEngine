@@ -1,5 +1,5 @@
 /** @file @brief Undoable artboard creation. */
-#include "document.h"
+#include "editors/vector/document/document.h"
 #include <math.h>
 #include <stdlib.h>
 

@@ -1,5 +1,6 @@
 /** @file @brief Drag-to-create tool; intermediate previews never enter history. */
-#include "document.h"
+#include "tool.h"
+#include "editors/vector/document/document.h"
 #include <math.h>
 #include <stdio.h>
 

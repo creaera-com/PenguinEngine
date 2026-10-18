@@ -1,7 +1,7 @@
 /** @file @brief Artboard data and undoable creation commands. */
 #ifndef PE_VECTOR_ARTBOARD_H
 #define PE_VECTOR_ARTBOARD_H
-#include "history.h"
+#include "editors/vector/history/history.h"
 #include "pengui/pengui.h"
 #include <stdio.h>
 #define VECTOR_MAX_ARTBOARDS 64

@@ -1,5 +1,8 @@
 /** @file @brief Vector editor lifecycle and routing to document, canvas and history modules. */
+#include "artboard/tool.h"
 #include "internal.h"
+#include "ui/inspector.h"
+#include "workspace/canvas.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,6 +41,7 @@ const PUILayout *vector_editor_layout(const void *instance) {
 void vector_editor_destroy(void *instance) {
     VectorEditor *editor = instance;
     if (editor) {
+        vector_workspace_cancel_inactive(&editor->documents, NULL);
         vector_documents_destroy(&editor->documents);
         pui_layout_free(editor->layout);
         free(editor);
@@ -48,10 +52,10 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
     (void)widget;
     VectorEditor *editor = instance;
     if (!strcmp(name, "vector.add_document")) {
-        vector_documents_request(&editor->documents, view);
+        vector_document_tabs_request(&editor->document_tabs, &editor->documents, view);
         return true;
     }
-    VectorDocument *document = vector_documents_active(&editor->documents, view);
+    VectorDocument *document = vector_document_tabs_active(&editor->documents, view);
     if (!strcmp(name, "vector.add_artboard") || !strcmp(name, "editor.undo") ||
         !strcmp(name, "editor.redo")) {
         if (!document) {
@@ -86,12 +90,7 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
         char id[96];
         snprintf(id, sizeof id, "vector_document_%u.canvas", document->id);
         if (!strcmp(id, widget)) {
-            for (int j = 0; j < editor->documents.count; j++) {
-                if (j != i) {
-                    vector_artboard_tool_cancel(&editor->documents.items[j]);
-                    editor->documents.items[j].viewport.panning = false;
-                }
-            }
+            vector_workspace_cancel_inactive(&editor->documents, document);
             vector_canvas_draw(document, renderer, area);
             return;
         }
@@ -100,19 +99,14 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
 
 bool vector_editor_event(void *instance, PUIView *view, const SDL_Event *event) {
     VectorEditor *editor = instance;
-    VectorDocument *document = vector_documents_active(&editor->documents, view);
-    for (int i = 0; i < editor->documents.count; i++) {
-        VectorDocument *other = &editor->documents.items[i];
-        if (other != document) {
-            vector_artboard_tool_cancel(other);
-            other->viewport.panning = false;
-        }
-    }
+    VectorDocument *document = vector_document_tabs_active(&editor->documents, view);
+    vector_workspace_cancel_inactive(&editor->documents, document);
     return document && vector_canvas_event(document, view, event);
 }
 
 bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, char *error,
                              size_t capacity) {
     VectorEditor *editor = instance;
-    return vector_documents_commit(&editor->documents, view, input, error, capacity);
+    return vector_document_tabs_commit(&editor->document_tabs, &editor->documents, view, input,
+                                       error, capacity);
 }

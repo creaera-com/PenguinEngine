@@ -1,8 +1,9 @@
 #include "editor_host/checkpoint.h"
 #include "editor_host/host.h"
 #include "editors/vector/adapter.h"
-#include "editors/vector/checkpoint.h"
+#include "editors/vector/artboard/tool.h"
 #include "editors/vector/internal.h"
+#include "editors/vector/persistence/checkpoint.h"
 #include "platform/temp_file.h"
 #include "shell/shell.h"
 #include "unity.h"
@@ -33,7 +34,7 @@ static VectorDocument *add_document(void) {
     TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_document", ""));
     commit();
     VectorEditor *editor = host.instance;
-    return vector_documents_active(&editor->documents, shell.view);
+    return vector_document_tabs_active(&editor->documents, shell.view);
 }
 
 void setUp(void) {

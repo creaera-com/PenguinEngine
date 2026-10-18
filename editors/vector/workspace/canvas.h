@@ -2,14 +2,8 @@
 #ifndef PE_VECTOR_CANVAS_H
 #define PE_VECTOR_CANVAS_H
 #include "pengui/pengui.h"
+#include "viewport.h"
 struct VectorDocument;
-
-typedef struct {
-    PUIRect bounds;
-    float x, y, zoom;
-    float mouse_x, mouse_y;
-    bool panning;
-} VectorViewport;
 
 /** @brief Build a generic canvas node in C; no document YAML is needed. */
 PUILayout *vector_canvas_layout(char *error, size_t capacity);

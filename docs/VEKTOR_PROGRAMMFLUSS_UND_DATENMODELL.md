@@ -18,12 +18,13 @@ werden sie vorübergehend in Sitzungsdateien ausgelagert. Ein Artboard ist ein D
 | [editor.h](../apps/demo/editor_host/editor.h) | Definiert die gemeinsame Schnittstelle `EditorDefinition`. |
 | [adapter.c](../editors/vector/adapter.c) | Hinterlegt die Vector-Funktionen für diese Schnittstelle. |
 | [editor.c](../editors/vector/editor.c) | Ordnet Aktionen dem Dokument, Werkzeug oder der History zu. |
-| [document.c](../editors/vector/document.c) | Verwaltet Dokumente und ergänzt ihre Tabs am Frame-Ende. |
-| [artboard_tool.c](../editors/vector/artboard_tool.c) | Verarbeitet den Maus-Drag und hält die vorläufige Geometrie. |
-| [artboard.c](../editors/vector/artboard.c) | Erstellt den Änderungsbefehl und implementiert dessen `apply` und `revert`. |
-| [history.c](../editors/vector/history.c) | Führt Befehle aus und verwaltet Undo/Redo. |
-| [canvas.c](../editors/vector/canvas.c) | Zeichnet Dokumentdaten und Vorschau; verarbeitet Zoom und Pan. |
-| [ruler.c](../editors/vector/ruler.c) | Zeichnet die Pixel-Lineale aus Artboard-Geometrie und Zoom. |
+| [document/document.c](../editors/vector/document/document.c) | Initialisiert Dokumentdaten, sucht IDs und verwaltet ihren Besitz; ohne UI-Aufrufe. |
+| [workspace/documents.c](../editors/vector/workspace/documents.c) | Verbindet Dokumente mit Tabs, merkt Erstellungen vor und übernimmt sie am Frame-Ende. |
+| [artboard/tool.c](../editors/vector/artboard/tool.c) | Verarbeitet den Maus-Drag und hält die vorläufige Geometrie. |
+| [artboard.c](../editors/vector/artboard/artboard.c) | Erstellt den Änderungsbefehl und implementiert dessen `apply` und `revert`. |
+| [history.c](../editors/vector/history/history.c) | Führt Befehle aus und verwaltet Undo/Redo. |
+| [canvas.c](../editors/vector/workspace/canvas.c) | Zeichnet Dokumentdaten und Vorschau; verarbeitet Zoom und Pan. |
+| [ruler.c](../editors/vector/workspace/ruler.c) | Zeichnet die Pixel-Lineale aus Artboard-Geometrie und Zoom. |
 
 Der Host kennt die gemeinsame Schnittstelle, aber keine Artboard-Struktur.
 pengUI kennt Widgets und Canvas-Callbacks, aber keine Vector-Dokumente.
@@ -110,22 +111,22 @@ Sie erreichen damit ebenfalls `vector_editor_action()` des aktiven Editors.
 Der Aktionsname lautet `vector.add_document`. Hier wird während des
 Button-Callbacks noch kein Tab in den gerade durchlaufenen UI-Baum eingefügt.
 
-1. `vector_editor_action()` ruft `vector_documents_request()` auf.
-2. Die Dokumentverwaltung prüft das Tab-Limit und erhöht `documents.pending`.
+1. `vector_editor_action()` ruft `vector_document_tabs_request()` auf.
+2. Die Workspace-Anbindung prüft das Tab-Limit und erhöht `editor->document_tabs.pending`.
    Das ist ein Zähler vorgemerkter Dokumente, noch kein neues Dokument.
 3. Nach dem Zeichnen und `SDL_RenderPresent()` ruft die App am Frame-Ende
    `editor_host_commit()` auf.
 4. Ohne anstehenden Editorwechsel ruft der Host den Adapter-Eintrag `commit_ui`
    auf, also `vector_editor_commit_ui()`.
-5. `vector_documents_commit()` bereitet eine lokale `VectorDocument`-Struktur
-   vor: ID, Titel, nächste Artboard-ID sowie einen Viewport mit Zoom `1`.
+5. `vector_document_tabs_commit()` lässt `vector_document_init()` eine lokale
+   `VectorDocument`-Struktur vorbereiten: ID, Titel, nächste Artboard-ID sowie einen Viewport mit Zoom `1`.
 6. `vector_canvas_layout()` erzeugt in C ein Layout mit einem Canvas-Knoten.
    Eine eigene Dokument-YAML gibt es nicht.
 7. `pui_view_add_tab()` kopiert diesen Inhalt in die View, ergänzt den Tab und
    wählt ihn aus. Beispielsweise heißen Tab und Canvas danach
    `vector_document_1` und `vector_document_1.canvas`.
-8. Erst nach erfolgreichem Einfügen wird das vorbereitete Dokument nach
-   `documents.items[documents.count]` kopiert und `count` erhöht.
+8. Erst nach erfolgreichem Einfügen übernimmt `vector_documents_append()` das
+   vorbereitete Dokument in `documents.items[documents.count]` und erhöht `count`.
 9. Das temporäre Canvas-Layout wird mit `pui_layout_free()` freigegeben.
    Die View verwendet ihre eigene Kopie. Im nächsten Frame erscheint der Tab.
 
@@ -144,7 +145,7 @@ Die History wird bisher für das Anlegen von **Artboards innerhalb eines Dokumen
 
 ### Der Button aktiviert zunächst nur das Werkzeug
 
-Bei `vector.add_artboard` ermittelt `vector_documents_active()` anhand des
+Bei `vector.add_artboard` ermittelt `vector_document_tabs_active()` anhand des
 gewählten Tabs das zugehörige Dokument. Der Übersichtstab „Vector“ hat kein
 Dokument; dort erscheint lediglich eine Statusmeldung.
 
@@ -250,6 +251,8 @@ EditorApp                         lokale Struktur in editor_application_run()
     checkpoints ----------------> Liste aus Editordefinition + temporaerer FILE-Datei
     instance -------------------> VectorEditor             Heap: calloc()
                                     layout --------------> PUILayout
+                                    document_tabs          vorgemerkte UI-Anforderungen
+                                      pending
                                     documents              eingebettete Struktur
                                       items[15]             eingebettetes Array
                                         VectorDocument
@@ -270,11 +273,13 @@ EditorApp                         lokale Struktur in editor_application_run()
 
 Die tatsächlichen Definitionen stehen in
 [internal.h](../editors/vector/internal.h),
-[document.h](../editors/vector/document.h),
-[artboard.h](../editors/vector/artboard.h),
-[history.h](../editors/vector/history.h),
-[canvas.h](../editors/vector/canvas.h) und
-[artboard_tool.h](../editors/vector/artboard_tool.h).
+[document.h](../editors/vector/document/document.h),
+[artboard.h](../editors/vector/artboard/artboard.h),
+[history.h](../editors/vector/history/history.h),
+[viewport.h](../editors/vector/workspace/viewport.h) und
+[tool_state.h](../editors/vector/artboard/tool_state.h).
+Die letzten beiden Header beschreiben nur Zustandswerte. Renderer und Ereignisverarbeitung
+liegen getrennt in `workspace/canvas.c` bzw. `artboard/tool.c`.
 
 **Eingebettet** bedeutet: Diese Daten liegen direkt innerhalb der übergeordneten
 Struktur. Für ein einzelnes Artboard wird kein zusätzlicher Heap-Speicher
@@ -307,7 +312,7 @@ Gleitkomma-Struktur. Artboards sind derzeit weder ECS-Entities noch SVG-Knoten.
 
 Dokumente liegen nicht in der View. Die View hält beispielsweise Tab-Auswahl,
 Splitgrößen und Widgettexte; der Vektoreditor hält die fachlichen Daten.
-`vector_documents_active()` verbindet beides über die ausgewählte Tab-ID.
+`vector_document_tabs_active()` verbindet beides über die ausgewählte Tab-ID.
 Eine geänderte Tab-Reihenfolge sortiert deshalb nicht das Dokument-Array um.
 
 Da die Arrays nicht wachsen oder umgezogen werden, bleibt ein Zeiger auf einen
@@ -380,7 +385,7 @@ beim Verwerfen des Redo-Zweigs oder beim Zerstören der History freigegeben.
 | --- | --- |
 | `VectorEditor` und seine eingebetteten Arrays | Vom Editor mit `calloc()` angelegt; `vector_editor_destroy()` gibt die Instanz mit `free()` frei. |
 | Layout der Editorinstanz | Vom Vektoreditor gehalten; Freigabe mit `pui_layout_free()` beim Zerstören. |
-| Temporäres Canvas-Layout eines neuen Tabs | In `vector_documents_commit()` angelegt und nach dem Kopieren in die View sofort freigegeben. |
+| Temporäres Canvas-Layout eines neuen Tabs | In `vector_document_tabs_commit()` angelegt und nach dem Kopieren in die View sofort freigegeben. |
 | Zusammengesetztes View-Layout und Widgetzustände | Von der View verwaltet; beim Austausch bzw. Zerstören freigegeben. |
 | `AddArtboard` vor erfolgreichem `vector_history_execute()` | Gehört dem Aufrufer; `vector_artboard_add()` gibt es bei einem Fehler frei. |
 | `AddArtboard` nach erfolgreicher Übernahme | Gehört der History; Freigabe bei verworfenem Redo-Zweig oder `vector_history_destroy()`. |
@@ -404,8 +409,9 @@ hier keinen Hintergrundthread und keine parallele Dokumentbearbeitung.
 Beim Wechsel zwischen Dokument-Tabs bleiben die Dokumente im aktiven Vektoreditor
 im Speicher. Ein Wechsel zu einem anderen **Editor** oder ein Reload sichert nun
 zunächst einen Checkpoint und entlädt anschließend die Vectorinstanz.
-`vector_documents_destroy()` verwirft Gesten und gibt die History-Nutzdaten aller
-Dokumente frei. Anschließend wird die Instanz freigegeben. Der Checkpoint hält
+`vector_editor_destroy()` lässt zunächst über die Workspace-Anbindung alle
+nativen Gesten abbrechen. `vector_documents_destroy()` gibt anschließend die
+History-Nutzdaten aller Dokumente frei. Anschließend wird die Instanz freigegeben. Der Checkpoint hält
 keine Zeiger auf diese freigegebenen Daten.
 
 ### Checkpoint-Ablauf im Host
@@ -435,13 +441,13 @@ erhalten. Das Vorbereiten erfolgt vor dem Austausch der laufenden Oberfläche.
 
 ### Was steht in der temporären Datei?
 
-[checkpoint.c](../editors/vector/checkpoint.c) schreibt eine Versionssignatur,
+[checkpoint.c](../editors/vector/persistence/checkpoint.c) schreibt eine Versionssignatur,
 Dokumentanzahl, Tab-Reihenfolge und Tab-Auswahl. Danach folgen pro Dokument
 Identität, Titel, Artboard-Array, nächste und aktive Artboard-ID, Zoom/Verschiebung
 sowie History-Anzahl, Cursor und die Änderungsdaten aller Befehle.
 
 Die Einträge umfassen auch rückgängig gemachte Befehle: Redo funktioniert nach dem
-Zurückwechseln weiter. [artboard.c](../editors/vector/artboard.c) schreibt für diese
+Zurückwechseln weiter. [artboard.c](../editors/vector/artboard/artboard.c) schreibt für diese
 Befehle einen Typkennzeichner und die Artboard-Daten mit Einfügeindex und vorheriger
 aktiver ID. Funktionszeiger und Heap-Adressen werden niemals gespeichert.
 Beim Lesen werden neue Nutzdaten reserviert und die passenden lokalen `apply`-/

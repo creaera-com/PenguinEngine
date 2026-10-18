@@ -1,5 +1,6 @@
 #include "editor/config.h"
 #include "editor_host/host.h"
+#include "editors/vector/artboard/tool.h"
 #include "editors/vector/internal.h"
 #include "shell/shell.h"
 #include "unity.h"
@@ -320,7 +321,7 @@ static VectorDocument *add_vector_document(void) {
     TEST_ASSERT_TRUE(editor_host_commit(&host, shell.view, &shell.input, error, sizeof error));
     pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 800, 600}, NULL, NULL);
     VectorEditor *editor = host.instance;
-    return vector_documents_active(&editor->documents, shell.view);
+    return vector_document_tabs_active(&editor->documents, shell.view);
 }
 
 static void canvas_event(SDL_Event *event) {

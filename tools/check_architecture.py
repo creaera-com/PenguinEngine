@@ -67,6 +67,31 @@ for path in (root / 'apps').rglob('*.c'):
     for name in includes.findall(path.read_text()):
         if name.startswith('editors/'):
             errors.append(f'{path.relative_to(root)}: concrete editor includes belong in the registry')
+# Vector model/history may use plain state and geometry headers, but not UI/event wiring.
+vector = root / 'editors/vector'
+for area in ('document', 'history'):
+    pending = [p for p in (vector / area).rglob('*') if p.suffix in ('.c', '.h')]
+    visited = set()
+    while pending:
+        path = pending.pop()
+        if path in visited:
+            continue
+        visited.add(path)
+        for name in includes.findall(path.read_text()):
+            if name.startswith(('SDL', 'editor_host/')):
+                errors.append(f'{path.relative_to(root)}: model/history must not reach native UI or host APIs')
+            candidates = [path.parent / name, root / name]
+            target = next((p.resolve() for p in candidates if p.is_file()), None)
+            if not target or not target.is_relative_to(vector):
+                continue
+            relative = target.relative_to(vector).as_posix()
+            if (relative == 'internal.h' or relative.startswith(('ui/', 'persistence/')) or
+                    relative.startswith('workspace/') and relative != 'workspace/viewport.h' or
+                    relative == 'artboard/tool.h'):
+                errors.append(f'{path.relative_to(root)}: model/history reaches UI wiring {relative}')
+            else:
+                pending.append(target)
+
 for error in errors:
     print(error, file=sys.stderr)
 if errors:

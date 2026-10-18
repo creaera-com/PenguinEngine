@@ -1,6 +1,6 @@
 /** @file @brief Adapter exposes only the common editor contract to the registry. */
 #include "adapter.h"
-#include "checkpoint.h"
+#include "editors/vector/persistence/checkpoint.h"
 #include "internal.h"
 
 const EditorDefinition *vector_editor_definition(void) {
