@@ -21,6 +21,7 @@ bool editor_host_commit(EditorHost *host, PUIView *shell, PUIContext *input, cha
                         size_t capacity);
 /** @brief Forward an editor action through its adapter; false when unhandled. */
 bool editor_host_action(EditorHost *host, PUIView *view, const char *name, const char *widget);
+bool editor_host_event(EditorHost *host, PUIView *view, const SDL_Event *event);
 /** @brief Release the active instance; unmount its UI before continuing to draw the shell. */
 void editor_host_destroy(EditorHost *host);
 #endif

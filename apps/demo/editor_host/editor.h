@@ -18,6 +18,10 @@ typedef struct {
     bool (*action)(void *editor, PUIView *view, const char *name, const char *widget);
     /** @brief Optional: apply queued inspector/UI changes between frames. */
     bool (*commit_ui)(void *editor, PUIView *view, PUIContext *input, char *error, size_t capacity);
+    /** @brief Optional custom canvas rendering, clipped by the UI view. */
+    PUICanvasRenderer canvas;
+    /** @brief Optional editor input after the UI has processed an event. */
+    bool (*event)(void *editor, PUIView *view, const SDL_Event *event);
 } EditorDefinition;
 
 /** @brief Load a module-owned UI file relative to the configured resource root. */

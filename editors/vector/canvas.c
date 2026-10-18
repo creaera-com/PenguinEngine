@@ -1,0 +1,96 @@
+/** @file @brief Light-gray document workspace with independent pan and zoom. */
+#include "document.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+PUILayout *vector_canvas_layout(char *error, size_t capacity) {
+    PUILayout *layout = calloc(1, sizeof *layout);
+    if (!layout) {
+        snprintf(error, capacity, "could not allocate document canvas");
+        return NULL;
+    }
+    layout->count = 1;
+    layout->root = 0;
+    layout->nodes[0] = (PUINode){.type = PUI_NODE_CANVAS, .child = -1, .next = -1, .enabled = true};
+    snprintf(layout->nodes[0].name, sizeof layout->nodes[0].name, "canvas");
+    layout->nodes[0].id = pui_id("canvas");
+    return layout;
+}
+
+void vector_canvas_center(VectorDocument *document) {
+    VectorViewport *viewport = &document->viewport;
+    if (viewport->bounds.w <= 0 || viewport->bounds.h <= 0) {
+        return;
+    }
+    for (int i = 0; i < document->artboard_count; i++) {
+        VectorArtboard *board = &document->artboards[i];
+        if (board->id == document->active_artboard) {
+            viewport->x =
+                viewport->bounds.w / 2 - (board->rect.x + board->rect.w / 2) * viewport->zoom;
+            viewport->y =
+                viewport->bounds.h / 2 - (board->rect.y + board->rect.h / 2) * viewport->zoom;
+        }
+    }
+}
+
+void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRect area) {
+    VectorViewport *viewport = &document->viewport;
+    viewport->bounds = area;
+    SDL_SetRenderDrawColor(renderer, 104, 104, 104, 255);
+    SDL_FRect background = {area.x, area.y, area.w, area.h};
+    SDL_RenderFillRect(renderer, &background);
+    for (int i = 0; i < document->artboard_count; i++) {
+        VectorArtboard *board = &document->artboards[i];
+        SDL_FRect rect = {area.x + viewport->x + board->rect.x * viewport->zoom,
+                          area.y + viewport->y + board->rect.y * viewport->zoom,
+                          board->rect.w * viewport->zoom, board->rect.h * viewport->zoom};
+        SDL_SetRenderDrawColor(renderer, 242, 242, 242, 255);
+        SDL_RenderFillRect(renderer, &rect);
+        if (board->id == document->active_artboard) {
+            SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
+            SDL_RenderRect(renderer, &rect);
+        }
+    }
+}
+
+bool vector_canvas_event(VectorDocument *document, PUIView *view, const SDL_Event *event) {
+    VectorViewport *viewport = &document->viewport;
+    char id[96];
+    snprintf(id, sizeof id, "vector_document_%u.canvas", document->id);
+    if (event->type == SDL_EVENT_WINDOW_FOCUS_LOST) {
+        viewport->panning = false;
+    } else if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
+               event->button.button == SDL_BUTTON_MIDDLE &&
+               pui_view_hit(view, id, event->button.x, event->button.y)) {
+        viewport->panning = true;
+        viewport->mouse_x = event->button.x;
+        viewport->mouse_y = event->button.y;
+        return true;
+    } else if (event->type == SDL_EVENT_MOUSE_BUTTON_UP &&
+               event->button.button == SDL_BUTTON_MIDDLE) {
+        bool was_panning = viewport->panning;
+        viewport->panning = false;
+        return was_panning;
+    } else if (event->type == SDL_EVENT_MOUSE_MOTION && viewport->panning) {
+        viewport->x += event->motion.x - viewport->mouse_x;
+        viewport->y += event->motion.y - viewport->mouse_y;
+        viewport->mouse_x = event->motion.x;
+        viewport->mouse_y = event->motion.y;
+        return true;
+    } else if (event->type == SDL_EVENT_MOUSE_WHEEL &&
+               pui_view_hit(view, id, event->wheel.mouse_x, event->wheel.mouse_y)) {
+        float factor = event->wheel.y > 0 ? 1.1f : event->wheel.y < 0 ? 1 / 1.1f : 1;
+        if (event->wheel.direction == SDL_MOUSEWHEEL_FLIPPED) {
+            factor = 1 / factor;
+        }
+        float zoom = viewport->zoom * factor;
+        zoom = zoom < .1f ? .1f : zoom > 4 ? 4 : zoom;
+        float x = event->wheel.mouse_x - viewport->bounds.x;
+        float y = event->wheel.mouse_y - viewport->bounds.y;
+        viewport->x = x - (x - viewport->x) * zoom / viewport->zoom;
+        viewport->y = y - (y - viewport->y) * zoom / viewport->zoom;
+        viewport->zoom = zoom;
+        return true;
+    }
+    return false;
+}

@@ -19,4 +19,6 @@ bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, c
                              size_t capacity);
 /** @brief Load the inspector's separate UI description; caller owns the result. */
 PUILayout *vector_inspector_load(const EditorServices *services, char *error, size_t capacity);
+void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area, const char *widget);
+bool vector_editor_event(void *instance, PUIView *view, const SDL_Event *event);
 #endif

@@ -19,6 +19,9 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/adapter.c
  ${PROJECT_SOURCE_DIR}/editors/vector/editor.c
  ${PROJECT_SOURCE_DIR}/editors/vector/document.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/artboard.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/history.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/canvas.c
  ${PROJECT_SOURCE_DIR}/editors/vector/inspector.c
  ${PROJECT_SOURCE_DIR}/editors/scripts/adapter.c
  ${PROJECT_SOURCE_DIR}/editors/scripts/editor.c

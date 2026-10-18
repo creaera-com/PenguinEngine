@@ -144,3 +144,21 @@ bool pui_view_set_checked(PUIView *view, const char *id, bool checked) {
     }
     return true;
 }
+
+void pui_view_set_canvas_renderer(PUIView *view, PUICanvasRenderer draw, void *context) {
+    if (view) {
+        view->canvas_renderer = draw;
+        view->canvas_context = context;
+    }
+}
+
+bool pui_view_hit(const PUIView *view, const char *widget, float x, float y) {
+    if (view && widget) {
+        for (int i = 0; i < view->layout->count; i++) {
+            if (!strcmp(view->layout->nodes[i].name, widget)) {
+                return view->visible[i] && view->enabled[i] && pui_contains(view->hit[i], x, y);
+            }
+        }
+    }
+    return false;
+}

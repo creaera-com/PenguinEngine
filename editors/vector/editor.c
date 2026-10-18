@@ -1,4 +1,4 @@
-/** @file @brief Vector editor root; only UI assembly, no document or tool functionality. */
+/** @file @brief Vector editor lifecycle and routing to document, canvas and history modules. */
 #include "internal.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +21,8 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
     }
     pui_layout_free(inspector);
     pui_layout_free(root);
-    if (!editor->layout || !vector_documents_init(&editor->documents, services, error, capacity)) {
+    vector_documents_init(&editor->documents);
+    if (!editor->layout) {
         pui_layout_free(editor->layout);
         free(editor);
         return NULL;
@@ -50,7 +51,45 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
         vector_documents_request(&editor->documents, view);
         return true;
     }
+    VectorDocument *document = vector_documents_active(&editor->documents, view);
+    if (!strcmp(name, "vector.add_artboard") || !strcmp(name, "editor.undo") ||
+        !strcmp(name, "editor.redo")) {
+        if (!document) {
+            pui_view_set_text(view, "status", "Zuerst ein Dokument anlegen oder auswaehlen");
+            return true;
+        }
+        bool changed = !strcmp(name, "vector.add_artboard") ? vector_artboard_add(document)
+                       : !strcmp(name, "editor.undo")
+                           ? vector_history_undo(&document->history, document)
+                           : vector_history_redo(&document->history, document);
+        if (changed) {
+            vector_canvas_center(document);
+        }
+        pui_view_set_text(view, "status",
+                          changed ? "Dokument aktualisiert" : "Keine Aenderung moeglich");
+        return true;
+    }
     return false;
+}
+
+void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
+                          const char *widget) {
+    VectorEditor *editor = instance;
+    for (int i = 0; i < editor->documents.count; i++) {
+        VectorDocument *document = &editor->documents.items[i];
+        char id[96];
+        snprintf(id, sizeof id, "vector_document_%u.canvas", document->id);
+        if (!strcmp(id, widget)) {
+            vector_canvas_draw(document, renderer, area);
+            return;
+        }
+    }
+}
+
+bool vector_editor_event(void *instance, PUIView *view, const SDL_Event *event) {
+    VectorEditor *editor = instance;
+    VectorDocument *document = vector_documents_active(&editor->documents, view);
+    return document && vector_canvas_event(document, view, event);
 }
 
 bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, char *error,

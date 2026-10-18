@@ -1,7 +1,7 @@
 # Editor-Shell und modulare Editoren
 
 Die zusätzliche App `pengui_editor` bereitet drei eigenständige Arbeitsbereiche vor:
-`vector`, `scripts` und `game`. Scripts und Game enthalten zunächst nur UI-Gerüste. Vector kann leere Dokumente als Tabs
+`vector`, `scripts` und `game`. Scripts und Game enthalten zunächst nur UI-Gerüste. Vector kann Dokumente mit einer Zeichenfläche und Artboards als Tabs
 anlegen; Zeichenwerkzeuge, Skriptausführung und Spielfunktionen sind noch nicht implementiert.
 Die Widget-Demo `pengui_playground` bleibt separat erhalten.
 
@@ -251,28 +251,28 @@ Der Toolbar-Button mit `action: vector.add_document` ist über den Vector-Adapte
    ergänzt über `pui_view_add_tab()` einen Tab in `vector_document_tabs`.
 4. Der neue Tab wird ausgewählt und bei Platzmangel in der Tab-Leiste sichtbar gescrollt.
 
-Die Oberfläche jedes neuen Dokuments stammt aus
-[document.yaml](../editors/vector/ui/document.yaml). Diese Vorlage kannst du unabhängig
-von `editor.yaml` gestalten. Ihre expliziten Widget-IDs erhalten beim Einfügen ein Präfix,
-beispielsweise `vector_document_1.document_title`. Dadurch können mehrere Dokumente
-dieselbe Vorlage verwenden. Bestehende Feldwerte und die vom Benutzer geänderte Reihenfolge
-der bisherigen Tabs bleiben beim Ergänzen erhalten.
+Jeder neue Dokument-Tab enthält eine direkt in C erzeugte Zeichenfläche, keine eigene
+Dokument-YAML. Die äußere Anordnung bleibt in `editors/vector/ui/editor.yaml`.
+[canvas.c](../editors/vector/canvas.c) zeichnet den hellgrauen Arbeitsbereich und die
+Artboards; pengUI stellt nur den generischen, geclippten Canvas-Callback bereit.
+Der Host leitet Rendering und Eingabe über den Editor-Adapter weiter.
 
-Die allgemeine pengUI-Funktion `pui_view_add_tab()` kopiert die Vorlage und darf wie ein
-Slot-Austausch nur zwischen Frames aufgerufen werden. Fehler ändern den bisherigen Baum
-nicht. `pui_view_selected_tab()` liefert die ID des ausgewählten Tabs,
-`pui_view_tab_count()` die Anzahl. Die aktuelle Implementierung setzt beim Ergänzen Fokus,
-Capture und Popups zurück.
+`vector.add_artboard` legt im aktiven Dokument ein weißes Artboard mit 512 × 512 Pixeln an.
+Ohne aktives Dokument erscheint eine Statusmeldung. Weitere Artboards werden mit Abstand
+nebeneinander und darunter angeordnet. Das Mausrad zoomt um den Mauszeiger;
+mit gedrückter mittlerer Maustaste verschiebst du den sichtbaren Ausschnitt.
 
-Der vorhandene Vector-Tab bleibt als Übersicht bestehen. Zusätzlich sind höchstens 15
-Dokument-Tabs möglich; umfangreichere Vorlagen können vorher das gemeinsame Knotenlimit
-erreichen. Grenzen werden als Statusmeldung behandelt. Bei einem Fehler wird kein
-Dokumenteintrag für einen nicht angelegten Tab behalten.
+[artboard.c](../editors/vector/artboard.c) erstellt dafür einen Befehl für
+[history.c](../editors/vector/history.c). Jedes Dokument besitzt eine eigene History:
+`editor.undo` entfernt das zuletzt angelegte Artboard, `editor.redo` stellt dasselbe
+Artboard mit derselben ID wieder her. Eine neue Änderung nach Undo verwirft den
+bisherigen Redo-Zweig. Pan und Zoom verändern die History nicht. Dokumente werden
+weiterhin nicht gespeichert; beim Editorwechsel oder Reload werden sie samt History entladen.
 
-Die Dokumente enthalten bisher nur Identität und Titel, keine SVG-Daten oder Artboards.
-Sie werden nicht gespeichert und beim Entladen oder Reload des Vector-Editors freigegeben.
-Der Button `vector.add_artboard` sowie die Shell-Aktionen für Speichern, Undo und Redo
-sind durch diese Änderung noch nicht angebunden.
+`pui_view_add_tab()` und Slot-Austausch dürfen nur zwischen Frames stattfinden.
+Bestehende Widget-Zustände und Tab-Reihenfolgen bleiben erhalten; neue Tabs werden ausgewählt.
+Der Vector-Übersicht folgen maximal 15 Dokument-Tabs, pro Dokument maximal 64 Artboards.
+Die History fasst aktuell 128 Befehle; an dieser Grenze werden weitere Änderungen abgewiesen.
 
 ## Einen weiteren Editor ergänzen
 
@@ -289,9 +289,8 @@ Unabhängige Fachbereiche sollen nicht gegenseitig ihre privaten Header einbinde
 ## Was absichtlich noch offen ist
 
 Es gibt noch keinen SVG-Canvas, keine Skriptausführung und keine Game-Engine-Funktionen.
-Die Vector-Dokumente bestehen bislang nur aus ID und Titel. Deshalb existiert auch noch keine Prüfung auf ungespeicherte
-Dokumentänderungen. Diese Entscheidung muss vor einem späteren Editorwechsel ergänzt
-werden, sobald echte Dokumentdaten entstehen.
+Es gibt noch keine Speicherung oder Rückfrage bei ungespeicherten Dokumentänderungen.
+Editorwechsel und Reload verwerfen derzeit die Dokumente einschließlich ihrer Artboards.
 
 Die neue Struktur bereitet die UI-Zusammensetzung und den Lebenszyklus vor. Die nächsten
 Funktionen können dadurch im jeweiligen Editor und seinen einzelnen Bereichen entstehen.

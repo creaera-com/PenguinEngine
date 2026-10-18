@@ -1,5 +1,6 @@
 #include "editor/config.h"
 #include "editor_host/host.h"
+#include "editors/vector/internal.h"
 #include "shell/shell.h"
 #include "unity.h"
 #include <stdio.h>
@@ -312,8 +313,109 @@ static void test_failed_document_tab_does_not_consume_document_number(void) {
     pui_layout_free(replacement);
 }
 
+static VectorDocument *add_vector_document(void) {
+    char error[256];
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_document", ""));
+    TEST_ASSERT_TRUE(editor_host_commit(&host, shell.view, &shell.input, error, sizeof error));
+    pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 800, 600}, NULL, NULL);
+    VectorEditor *editor = host.instance;
+    return vector_documents_active(&editor->documents, shell.view);
+}
+
+static void test_artboard_history_is_per_document_and_discards_redo_branch(void) {
+    activate("vector");
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    VectorDocument *first = add_vector_document();
+    TEST_ASSERT_NOT_NULL(first);
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    TEST_ASSERT_EQUAL_INT(1, first->artboard_count);
+    unsigned original = first->active_artboard;
+    TEST_ASSERT_EQUAL_FLOAT(512, first->artboards[0].rect.w);
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.undo", ""));
+    TEST_ASSERT_EQUAL_INT(0, first->artboard_count);
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.redo", ""));
+    TEST_ASSERT_EQUAL_UINT(original, first->active_artboard);
+    VectorDocument *second = add_vector_document();
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.undo", ""));
+    TEST_ASSERT_EQUAL_INT(1, first->artboard_count);
+    TEST_ASSERT_EQUAL_INT(0, second->artboard_count);
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.undo", ""));
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    TEST_ASSERT_EQUAL_INT(1, second->artboard_count);
+    TEST_ASSERT_EQUAL_UINT(2, second->active_artboard);
+    TEST_ASSERT_FALSE(vector_history_redo(&second->history, second));
+    TEST_ASSERT_EQUAL_INT(1, first->history.cursor);
+    for (int i = 1; i < VECTOR_MAX_ARTBOARDS; i++) {
+        TEST_ASSERT_TRUE(vector_artboard_add(second));
+    }
+    TEST_ASSERT_FALSE(vector_artboard_add(second));
+    TEST_ASSERT_EQUAL_INT(VECTOR_MAX_ARTBOARDS, second->history.count);
+    for (int i = 0; i < VECTOR_MAX_ARTBOARDS; i++) {
+        TEST_ASSERT_TRUE(vector_history_undo(&second->history, second));
+    }
+    TEST_ASSERT_EQUAL_INT(0, second->artboard_count);
+    TEST_ASSERT_FALSE(vector_history_undo(&second->history, second));
+    for (int i = 0; i < VECTOR_MAX_ARTBOARDS; i++) {
+        TEST_ASSERT_TRUE(vector_history_redo(&second->history, second));
+    }
+    TEST_ASSERT_EQUAL_INT(VECTOR_MAX_ARTBOARDS, second->artboard_count);
+}
+
+static void test_canvas_is_clipped_and_zoom_keeps_point_under_pointer(void) {
+    activate("vector");
+    VectorDocument *document = add_vector_document();
+    TEST_ASSERT_TRUE(pui_view_hit(shell.view, "vector_document_1.canvas", 400, 300));
+    TEST_ASSERT_FALSE(pui_view_hit(shell.view, "vector_document_1.canvas", 10, 10));
+    SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
+    TEST_ASSERT_NOT_NULL(surface);
+    Uint8 r, g, b, a;
+    TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 400, 300, &r, &g, &b, &a));
+    TEST_ASSERT_EQUAL_UINT8(104, r);
+    TEST_ASSERT_EQUAL_UINT8(104, g);
+    SDL_DestroySurface(surface);
+    VectorViewport *viewport = &document->viewport;
+    float point = (400 - viewport->bounds.x - viewport->x) / viewport->zoom;
+    SDL_Event event = {.type = SDL_EVENT_MOUSE_WHEEL};
+    event.wheel.mouse_x = 400;
+    event.wheel.mouse_y = 300;
+    event.wheel.y = 1;
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &event));
+    TEST_ASSERT_EQUAL_FLOAT(1.1f, viewport->zoom);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, point,
+                             (400 - viewport->bounds.x - viewport->x) / viewport->zoom);
+    event.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
+    event.button.button = SDL_BUTTON_MIDDLE;
+    event.button.x = 400;
+    event.button.y = 300;
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &event));
+    float previous_x = viewport->x;
+    event.type = SDL_EVENT_MOUSE_MOTION;
+    event.motion.x = 425;
+    event.motion.y = 310;
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &event));
+    TEST_ASSERT_EQUAL_FLOAT(previous_x + 25, viewport->x);
+    event.type = SDL_EVENT_WINDOW_FOCUS_LOST;
+    editor_host_event(&host, shell.view, &event);
+    TEST_ASSERT_FALSE(viewport->panning);
+    event.type = SDL_EVENT_MOUSE_WHEEL;
+    event.wheel.mouse_y = 300;
+    event.wheel.mouse_x = 10;
+    TEST_ASSERT_FALSE(editor_host_event(&host, shell.view, &event));
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 800, 600}, NULL, NULL);
+    surface = SDL_RenderReadPixels(renderer, NULL);
+    TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 400, 300, &r, &g, &b, &a));
+    TEST_ASSERT_EQUAL_UINT8(242, r);
+    TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 100, 300, &r, &g, &b, &a));
+    TEST_ASSERT_NOT_EQUAL(242, r);
+    SDL_DestroySurface(surface);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_artboard_history_is_per_document_and_discards_redo_branch);
+    RUN_TEST(test_canvas_is_clipped_and_zoom_keeps_point_under_pointer);
     RUN_TEST(test_failed_document_tab_does_not_consume_document_number);
     RUN_TEST(test_add_document_button_appends_and_selects_tabs_between_frames);
     RUN_TEST(test_append_tab_retains_existing_input_values_and_dragged_order);

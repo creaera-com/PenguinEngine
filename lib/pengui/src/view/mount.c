@@ -116,6 +116,8 @@ static bool apply_layout(PUIView *view, PUIContext *context, PUILayout *layout, 
         return false;
     }
     next->owned_layout = layout;
+    next->canvas_renderer = view->canvas_renderer;
+    next->canvas_context = view->canvas_context;
     retain_state(view, next, slot);
     if (tabs && selected) {
         for (int i = 0; i < next->layout->count; i++) {

@@ -466,7 +466,8 @@ typedef enum {
     PUI_NODE_DROPDOWN,
     PUI_NODE_OPTION,
     PUI_NODE_POPUP_BUTTON,
-    PUI_NODE_SLOT
+    PUI_NODE_SLOT,
+    PUI_NODE_CANVAS
 } PUINodeType;
 
 /** @brief Geometry of a two/three-pane splitter; unused entries are zero. */
@@ -831,6 +832,15 @@ void pui_draw_image_button(SDL_Renderer *renderer, SDL_FRect rect, SDL_Texture *
 typedef void (*PUIAction)(void *context, const char *action, const char *widget);
 /** @brief Opaque view owns widget state and cached textures, borrows its layout and renderer. */
 typedef struct PUIView PUIView;
+/** @brief Application drawing callback inside a clipped generic canvas. No document domain
+ * belongs to pengUI. The callback must not replace/free the active view while drawing.
+ */
+typedef void (*PUICanvasRenderer)(void *context, SDL_Renderer *renderer, PUIRect area,
+                                  const char *widget);
+void pui_view_set_canvas_renderer(PUIView *view, PUICanvasRenderer draw, void *context);
+/** @brief True if an enabled, visible widget accepts input at the point (including popup scope). */
+bool pui_view_hit(const PUIView *view, const char *widget, float x, float y);
+
 /** @brief Create one independent view; layout/renderer must outlive it. NULL on failure. */
 PUIView *pui_view_new(const PUILayout *layout, SDL_Renderer *renderer);
 /** @brief Destroy before the renderer/layout; NULL is accepted. */

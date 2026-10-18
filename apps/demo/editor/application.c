@@ -42,10 +42,8 @@ static void action(void *context, const char *name, const char *widget) {
     if (pui_window_action(app->window, name)) {
         return;
     }
-    if (!strncmp(name, "editor.", 7)) {
-        if (!editor_host_request(&app->host, name + 7, false)) {
-            pui_view_set_text(app->shell.view, "status", "Unknown editor");
-        }
+    if (!strncmp(name, "editor.", 7) && editor_host_request(&app->host, name + 7, false)) {
+        return;
     } else if (!strcmp(name, "shell.reload") && app->host.active) {
         editor_host_request(&app->host, app->host.active->id, true);
     } else if (strncmp(name, "shell.", 6)) {
@@ -59,6 +57,9 @@ static void events(EditorApp *app) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         bool consumed = pui_view_event(app->shell.view, &app->shell.input, app->window, &event);
+        if (!consumed) {
+            consumed = editor_host_event(&app->host, app->shell.view, &event);
+        }
         if (event.type == SDL_EVENT_QUIT || event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED) {
             app->running = false;
         } else if (!consumed && event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat &&
@@ -149,9 +150,8 @@ int editor_application_run(int argc, char **argv) {
             break;
         }
         SDL_RenderPresent(app.renderer);
-        if (app.host.pending &&
-            !editor_host_commit(&app.host, app.shell.view, &app.shell.input, error, sizeof error)) {
-            fprintf(stderr, "Editor switch failed: %s\n", error);
+        if (!editor_host_commit(&app.host, app.shell.view, &app.shell.input, error, sizeof error)) {
+            fprintf(stderr, "Editor update failed: %s\n", error);
             pui_view_set_text(app.shell.view, "status", error);
             if (app.host.active) {
                 pui_view_set_checked(app.shell.view, app.host.active->id, true);

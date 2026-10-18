@@ -9,6 +9,8 @@ const EditorDefinition *vector_editor_definition(void) {
                                                 .layout = vector_editor_layout,
                                                 .destroy = vector_editor_destroy,
                                                 .action = vector_editor_action,
-                                                .commit_ui = vector_editor_commit_ui};
+                                                .commit_ui = vector_editor_commit_ui,
+                                                .canvas = vector_editor_canvas,
+                                                .event = vector_editor_event};
     return &definition;
 }

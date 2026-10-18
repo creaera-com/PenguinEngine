@@ -3,6 +3,17 @@
 #include "registry.h"
 #include <stdio.h>
 
+static void draw_canvas(void *context, SDL_Renderer *renderer, PUIRect area, const char *widget) {
+    EditorHost *host = context;
+    if (host->active && host->active->canvas) {
+        host->active->canvas(host->instance, renderer, area, widget);
+    }
+}
+
+bool editor_host_event(EditorHost *host, PUIView *view, const SDL_Event *event) {
+    return host->active && host->active->event && host->active->event(host->instance, view, event);
+}
+
 void editor_host_init(EditorHost *host, EditorServices services) {
     *host = (EditorHost){.services = services};
 }
@@ -45,6 +56,7 @@ bool editor_host_commit(EditorHost *host, PUIView *shell, PUIContext *input, cha
     }
     host->instance = candidate;
     host->active = next;
+    pui_view_set_canvas_renderer(shell, draw_canvas, host);
     pui_view_set_text(shell, "status", next->title);
     pui_view_set_checked(shell, next->id, true);
     return true;

@@ -24,6 +24,8 @@ struct PUIView {
     PUILayout *owned_layout; ///< Composed copy after slot replacement.
     SDL_Renderer *renderer;
     SDL_Window *window;
+    PUICanvasRenderer canvas_renderer;
+    void *canvas_context;
     Widget state[PUI_LAYOUT_NODES];
     PUIRect rect[PUI_LAYOUT_NODES], hit[PUI_LAYOUT_NODES];
     bool visible[PUI_LAYOUT_NODES], enabled[PUI_LAYOUT_NODES];

@@ -114,7 +114,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
         "column",    "row",    "panel",        "toolbar", "button",   "label",
         "separator", "tabs",   "tab",          "section", "input",    "tree",
         "item",      "split",  "spacer",       "toggle",  "checkbox", "button_group",
-        "dropdown",  "option", "popup_button", "slot"};
+        "dropdown",  "option", "popup_button", "slot",    "canvas"};
     if (depth >= PUI_LAYOUT_DEPTH || r->layout->count >= PUI_LAYOUT_NODES) {
         fail(r, yaml, "layout depth/node limit exceeded");
         return -1;
@@ -232,8 +232,8 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
         ((out->type == PUI_NODE_BUTTON || out->type == PUI_NODE_LABEL ||
           out->type == PUI_NODE_INPUT || out->type == PUI_NODE_TOGGLE ||
           out->type == PUI_NODE_CHECKBOX || out->type == PUI_NODE_OPTION ||
-          out->type == PUI_NODE_SLOT || out->type == PUI_NODE_SPACER ||
-          out->type == PUI_NODE_SEPARATOR) &&
+          out->type == PUI_NODE_CANVAS || out->type == PUI_NODE_SLOT ||
+          out->type == PUI_NODE_SPACER || out->type == PUI_NODE_SEPARATOR) &&
          count)) {
         fail(r, yaml, "invalid child count");
     }
