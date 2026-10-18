@@ -3,6 +3,7 @@
 #include "editors/vector/adapter.h"
 #include "editors/vector/artboard/selection.h"
 #include "editors/vector/artboard/tool.h"
+#include "editors/vector/geometry/resize.h"
 #include "editors/vector/internal.h"
 #include "editors/vector/persistence/checkpoint.h"
 #include "platform/temp_file.h"
@@ -599,8 +600,92 @@ static void test_label_drag_cancellation_noop_and_mode_guards(void) {
     TEST_ASSERT_EQUAL_FLOAT(10, document->artboards[0].rect.x);
 }
 
+static void assert_rect(PUIRect expected, PUIRect actual) {
+    TEST_ASSERT_EQUAL_FLOAT(expected.x, actual.x);
+    TEST_ASSERT_EQUAL_FLOAT(expected.y, actual.y);
+    TEST_ASSERT_EQUAL_FLOAT(expected.w, actual.w);
+    TEST_ASSERT_EQUAL_FLOAT(expected.h, actual.h);
+}
+
+static PUIRect board_screen(VectorDocument *document) {
+    VectorViewport *v = &document->viewport;
+    PUIRect r = document->artboards[0].rect;
+    return (PUIRect){v->bounds.x + v->x + r.x * v->zoom, v->bounds.y + v->y + r.y * v->zoom,
+                     r.w * v->zoom, r.h * v->zoom};
+}
+
+static void test_all_eight_resize_handles_use_zoom_and_single_history_steps(void) {
+    VectorDocument *document = add_document();
+    const PUIRect initial = {10, 20, 200, 100};
+    TEST_ASSERT_TRUE(vector_artboard_add(document, initial));
+    document->viewport.zoom = 2;
+    commit();
+    const PUIRect expected[8] = {{30, 30, 180, 90},  {10, 30, 200, 90},  {10, 30, 220, 90},
+                                 {10, 20, 220, 100}, {10, 20, 220, 110}, {10, 20, 200, 110},
+                                 {30, 20, 180, 110}, {30, 20, 180, 100}};
+    for (int i = 0; i < 8; i++) {
+        PUIRect handle = vector_resize_handle_rect(board_screen(document), i, 7);
+        float x = handle.x + 3.5f, y = handle.y + 3.5f;
+        selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+        TEST_ASSERT_EQUAL_UINT(vector_resize_handle_edges(i),
+                               document->selection_tool.resize_edges);
+        selection_pointer(SDL_EVENT_MOUSE_MOTION, x + 40, y + 20);
+        assert_rect(initial, document->artboards[0].rect);
+        assert_rect(expected[i], vector_artboard_display_rect(document, &document->artboards[0]));
+        TEST_ASSERT_EQUAL_INT(1, document->history.cursor);
+        selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 40, y + 20);
+        commit();
+        assert_rect(expected[i], document->artboards[0].rect);
+        TEST_ASSERT_EQUAL_INT(2, document->history.cursor);
+        TEST_ASSERT_EQUAL_INT(2, document->history.count);
+        TEST_ASSERT_TRUE(vector_history_undo(&document->history, document));
+        assert_rect(initial, document->artboards[0].rect);
+        TEST_ASSERT_TRUE(vector_history_redo(&document->history, document));
+        assert_rect(expected[i], document->artboards[0].rect);
+        TEST_ASSERT_TRUE(vector_history_undo(&document->history, document));
+        commit();
+    }
+}
+
+static void test_resize_minimum_cancel_noop_and_checkpoint_redo(void) {
+    VectorDocument *document = add_document();
+    PUIRect initial = {10, 20, 200, 100};
+    TEST_ASSERT_TRUE(vector_artboard_add(document, initial));
+    commit();
+    PUIRect h = vector_resize_handle_rect(board_screen(document), 0, 7);
+    float x = h.x + 3.5f, y = h.y + 3.5f;
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x, y);
+    TEST_ASSERT_EQUAL_INT(1, document->history.count);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+    selection_pointer(SDL_EVENT_MOUSE_MOTION, x + 500, y + 500);
+    assert_rect((PUIRect){209, 119, 1, 1},
+                vector_artboard_display_rect(document, &document->artboards[0]));
+    SDL_Event escape = {.type = SDL_EVENT_KEY_DOWN};
+    escape.key.key = SDLK_ESCAPE;
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &escape));
+    assert_rect(initial, document->artboards[0].rect);
+    TEST_ASSERT_EQUAL_INT(1, document->history.count);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 20, y + 10);
+    commit();
+    TEST_ASSERT_EQUAL_STRING("180", pui_view_text(shell.view, "artboard_width"));
+    TEST_ASSERT_EQUAL_STRING("90", pui_view_text(shell.view, "artboard_height"));
+    TEST_ASSERT_TRUE(vector_history_undo(&document->history, document));
+    activate("scripts");
+    activate("vector");
+    commit();
+    VectorEditor *editor = host.instance;
+    document = &editor->documents.items[0];
+    assert_rect(initial, document->artboards[0].rect);
+    TEST_ASSERT_TRUE(vector_history_redo(&document->history, document));
+    assert_rect((PUIRect){30, 30, 180, 90}, document->artboards[0].rect);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_all_eight_resize_handles_use_zoom_and_single_history_steps);
+    RUN_TEST(test_resize_minimum_cancel_noop_and_checkpoint_redo);
     RUN_TEST(test_label_drag_only_preview_undo_redo_and_checkpoint);
     RUN_TEST(test_label_drag_cancellation_noop_and_mode_guards);
     RUN_TEST(test_tab_commits_properties_and_preserves_next_field_selection);

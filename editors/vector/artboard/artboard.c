@@ -97,9 +97,11 @@ static bool edit_revert(void *state, const void *payload) {
     return replace_board(state, &edit->after, &edit->before);
 }
 
-bool vector_artboard_move(VectorDocument *document, unsigned id, float x, float y) {
-    if (!isfinite(x) || !isfinite(y) || fabsf(x) > VECTOR_MAX_ARTBOARD_SIZE ||
-        fabsf(y) > VECTOR_MAX_ARTBOARD_SIZE) {
+bool vector_artboard_set_rect(VectorDocument *document, unsigned id, PUIRect rect) {
+    if (!isfinite(rect.x) || !isfinite(rect.y) || !isfinite(rect.w) || !isfinite(rect.h) ||
+        fabsf(rect.x) > VECTOR_MAX_ARTBOARD_SIZE || fabsf(rect.y) > VECTOR_MAX_ARTBOARD_SIZE ||
+        rect.w < 1 || rect.h < 1 || rect.w > VECTOR_MAX_ARTBOARD_SIZE ||
+        rect.h > VECTOR_MAX_ARTBOARD_SIZE) {
         return false;
     }
     for (int i = 0; i < document->artboard_count; i++) {
@@ -107,7 +109,8 @@ bool vector_artboard_move(VectorDocument *document, unsigned id, float x, float 
         if (board.id != id) {
             continue;
         }
-        if (board.rect.x == x && board.rect.y == y) {
+        if (board.rect.x == rect.x && board.rect.y == rect.y && board.rect.w == rect.w &&
+            board.rect.h == rect.h) {
             return true;
         }
         EditArtboard *edit = calloc(1, sizeof *edit);
@@ -115,14 +118,25 @@ bool vector_artboard_move(VectorDocument *document, unsigned id, float x, float 
             return false;
         }
         edit->before = edit->after = board;
-        edit->after.rect.x = x;
-        edit->after.rect.y = y;
+        edit->after.rect = rect;
         if (vector_history_execute(&document->history, document,
                                    (VectorCommand){edit_apply, edit_revert, edit})) {
             return true;
         }
         free(edit);
         return false;
+    }
+    return false;
+}
+
+bool vector_artboard_move(VectorDocument *document, unsigned id, float x, float y) {
+    for (int i = 0; i < document->artboard_count; i++) {
+        if (document->artboards[i].id == id) {
+            PUIRect rect = document->artboards[i].rect;
+            rect.x = x;
+            rect.y = y;
+            return vector_artboard_set_rect(document, id, rect);
+        }
     }
     return false;
 }

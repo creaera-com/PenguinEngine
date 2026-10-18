@@ -1,4 +1,4 @@
-/** @file @brief Artboard data and undoable creation commands. */
+/** @file @brief Artboard data and undoable creation, geometry and property commands. */
 #ifndef PE_VECTOR_ARTBOARD_H
 #define PE_VECTOR_ARTBOARD_H
 #include "editors/vector/history/history.h"
@@ -13,6 +13,8 @@ typedef struct {
     PUIRect rect; ///< Position and size in document pixels, independent of viewport zoom.
 } VectorArtboard;
 struct VectorDocument;
+/** @brief Atomically change position and dimensions through a single history command. */
+bool vector_artboard_set_rect(struct VectorDocument *document, unsigned id, PUIRect rect);
 /** @brief Move an artboard through a single undoable position change. */
 bool vector_artboard_move(struct VectorDocument *document, unsigned id, float x, float y);
 /** @brief Change name and dimensions atomically through history. */

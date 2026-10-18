@@ -553,3 +553,20 @@ führt `vector_artboard_move()` genau einen Änderungsbefehl aus, sofern die Pos
 verändert wurde. Undo/Redo und temporäre Checkpoints verwenden den vorhandenen
 Vorher-/Nachher-Befehl. Escape, Fokusverlust, Dokument- oder Werkzeugwechsel verwerfen
 die Vorschau und geben den Maus-Capture frei.
+
+
+## Größe mit Auswahlgreifern ändern
+
+Das ausgewählte Artboard zeigt im Auswahlwerkzeug acht 7-Pixel-Greifer an Ecken und
+Kantenmitten. Ihre Bildschirmgröße bleibt beim Zoomen konstant; eine etwas größere
+Trefferfläche erleichtert die Bedienung. Ecken ändern beide Achsen, Kantenmitten nur
+ihre jeweilige Achse. Die gegenüberliegende Kante bleibt fest, Breite und Höhe werden
+auf mindestens einen Dokumentpixel begrenzt; ein Überkreuzen spiegelt das Artboard nicht.
+
+`geometry/resize.h` und `resize.c` enthalten die vom Objekttyp unabhängige Berechnung
+von Greiferpositionen, Trefferflächen und Rechteckänderungen. Sie kennen weder Artboards
+noch SDL-Ereignisse oder History. Weitere Objekte können diese Geometrie später verwenden.
+`artboard/selection.c` übernimmt die Mausinteraktion und Vorschau; beim Loslassen schreibt
+`vector_artboard_set_rect()` Position und Größe gemeinsam als einen History-Befehl.
+Inspector und Lineale folgen der übernommenen Größe. Abbrechen verwirft die Vorschau
+wie beim Verschieben.

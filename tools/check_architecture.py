@@ -92,6 +92,15 @@ for area in ('document', 'history'):
             else:
                 pending.append(target)
 
+# Rectangle geometry stays reusable across object types: no object, tool or host imports.
+for path in (vector / 'geometry').rglob('*'):
+    if path.suffix not in ('.c', '.h'):
+        continue
+    for name in includes.findall(path.read_text()):
+        target = next((p.resolve() for p in (path.parent / name, root / name) if p.is_file()), None)
+        if name.startswith(('SDL', 'editor_host/')) or (target and target.is_relative_to(vector) and not target.is_relative_to(vector / 'geometry')):
+            errors.append(f'{path.relative_to(root)}: rectangle geometry must stay independent of objects and UI')
+
 for error in errors:
     print(error, file=sys.stderr)
 if errors:

@@ -1,5 +1,6 @@
-/** @file @brief Transient label drags become one history command on release. */
+/** @file @brief Transient moves and handle resizes become one history command on release. */
 #include "selection.h"
+#include "editors/vector/geometry/resize.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -14,6 +15,10 @@ PUIRect vector_artboard_display_rect(const VectorDocument *document, const Vecto
     PUIRect rect = board->rect;
     const VectorSelectionTool *tool = &document->selection_tool;
     if (tool->dragging && tool->artboard_id == board->id) {
+        if (tool->resize_edges) {
+            return vector_resize_rect(rect, tool->resize_edges, tool->offset_x, tool->offset_y,
+                                      VECTOR_MAX_ARTBOARD_SIZE);
+        }
         rect.x += tool->offset_x;
         rect.y += tool->offset_y;
     }
@@ -60,16 +65,15 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
             for (int i = 0; i < document->artboard_count; i++) {
                 VectorArtboard *board = &document->artboards[i];
                 if (board->id == tool->artboard_id) {
-                    changed =
-                        vector_artboard_move(document, board->id, board->rect.x + tool->offset_x,
-                                             board->rect.y + tool->offset_y);
+                    changed = vector_artboard_set_rect(
+                        document, board->id, vector_artboard_display_rect(document, board));
                     break;
                 }
             }
             vector_selection_cancel(document);
             pui_view_set_text(view, "status",
-                              changed ? "Artboard positioniert"
-                                      : "Artboard konnte nicht verschoben werden");
+                              changed ? "Artboard aktualisiert"
+                                      : "Artboard konnte nicht geaendert werden");
             return true;
         }
         return event->type == SDL_EVENT_MOUSE_WHEEL || event->type == SDL_EVENT_MOUSE_BUTTON_DOWN;
@@ -82,6 +86,27 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
         return false;
     }
     float x = event->button.x, y = event->button.y;
+    // Selected object's handles have priority over labels and board surfaces.
+    for (int i = 0; i < document->artboard_count; i++) {
+        VectorArtboard *board = &document->artboards[i];
+        if (board->id != document->active_artboard) {
+            continue;
+        }
+        const VectorViewport *v = &document->viewport;
+        PUIRect screen = {v->bounds.x + v->x + board->rect.x * v->zoom,
+                          v->bounds.y + v->y + board->rect.y * v->zoom, board->rect.w * v->zoom,
+                          board->rect.h * v->zoom};
+        unsigned edges = vector_resize_hit(screen, x, y, 10);
+        if (edges) {
+            *tool = (VectorSelectionTool){.dragging = true,
+                                          .artboard_id = board->id,
+                                          .resize_edges = edges,
+                                          .start_x = x,
+                                          .start_y = y};
+            SDL_CaptureMouse(true);
+            return true;
+        }
+    }
     // Labels sit above their boards and take priority over board surfaces.
     for (int i = document->artboard_count - 1; i >= 0; i--) {
         VectorArtboard *board = &document->artboards[i];
