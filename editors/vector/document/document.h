@@ -18,6 +18,7 @@ typedef struct VectorDocument {
     VectorHistory history;
     VectorViewport viewport;
     VectorArtboardTool artboard_tool;
+    VectorSelectionTool selection_tool;
 } VectorDocument;
 
 /** @brief Owned collection of documents; only entries below count are live. */

@@ -1,6 +1,7 @@
 #include "editor_host/checkpoint.h"
 #include "editor_host/host.h"
 #include "editors/vector/adapter.h"
+#include "editors/vector/artboard/selection.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/internal.h"
 #include "editors/vector/persistence/checkpoint.h"
@@ -510,8 +511,98 @@ static void test_tab_commits_properties_and_preserves_next_field_selection(void)
     TEST_ASSERT_EQUAL_FLOAT(300, document->artboards[0].rect.h);
 }
 
+static void selection_pointer(SDL_EventType type, float x, float y) {
+    SDL_Event event = {.type = type};
+    if (type == SDL_EVENT_MOUSE_MOTION) {
+        event.motion.x = x;
+        event.motion.y = y;
+    } else {
+        event.button.button = SDL_BUTTON_LEFT;
+        event.button.x = x;
+        event.button.y = y;
+    }
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &event));
+    frame();
+}
+
+static void test_label_drag_only_preview_undo_redo_and_checkpoint(void) {
+    VectorDocument *document = add_document();
+    TEST_ASSERT_TRUE(vector_artboard_add(document, (PUIRect){10, 20, 100, 80}));
+    document->viewport.zoom = 2;
+    commit();
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "vector_selection"));
+    PUIRect label = vector_artboard_label_rect(document, &document->artboards[0]);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, label.x + 4, label.y + 45);
+    SDL_Event motion = {.type = SDL_EVENT_MOUSE_MOTION};
+    motion.motion.x = label.x + 50;
+    motion.motion.y = label.y + 70;
+    editor_host_event(&host, shell.view, &motion);
+    TEST_ASSERT_FALSE(document->selection_tool.dragging);
+    TEST_ASSERT_EQUAL_FLOAT(10, document->artboards[0].rect.x);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, label.x + 4, label.y + 4);
+    selection_pointer(SDL_EVENT_MOUSE_MOTION, label.x + 64, label.y + 44);
+    TEST_ASSERT_EQUAL_FLOAT(10, document->artboards[0].rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(40, vector_artboard_display_rect(document, &document->artboards[0]).x);
+    TEST_ASSERT_EQUAL_INT(1, document->history.count);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, label.x + 64, label.y + 44);
+    TEST_ASSERT_FALSE(document->selection_tool.dragging);
+    TEST_ASSERT_EQUAL_FLOAT(40, document->artboards[0].rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(40, document->artboards[0].rect.y);
+    TEST_ASSERT_EQUAL_INT(2, document->history.count);
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.undo", ""));
+    TEST_ASSERT_EQUAL_FLOAT(10, document->artboards[0].rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(20, document->artboards[0].rect.y);
+    activate("scripts");
+    activate("vector");
+    commit();
+    VectorEditor *editor = host.instance;
+    document = &editor->documents.items[0];
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.redo", ""));
+    TEST_ASSERT_EQUAL_FLOAT(40, document->artboards[0].rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(40, document->artboards[0].rect.y);
+}
+
+static void test_label_drag_cancellation_noop_and_mode_guards(void) {
+    VectorDocument *document = add_document();
+    TEST_ASSERT_TRUE(vector_artboard_add(document, (PUIRect){10, 20, 100, 80}));
+    commit();
+    PUIRect label = vector_artboard_label_rect(document, &document->artboards[0]);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, label.x + 4, label.y + 4);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, label.x + 4, label.y + 4);
+    TEST_ASSERT_EQUAL_INT(1, document->history.count);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, label.x + 4, label.y + 4);
+    selection_pointer(SDL_EVENT_MOUSE_MOTION, label.x + 60, label.y + 30);
+    SDL_Event key = {.type = SDL_EVENT_KEY_DOWN};
+    key.key.key = SDLK_ESCAPE;
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &key));
+    TEST_ASSERT_FALSE(document->selection_tool.dragging);
+    TEST_ASSERT_EQUAL_FLOAT(10, document->artboards[0].rect.x);
+    TEST_ASSERT_EQUAL_INT(1, document->history.count);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, label.x + 4, label.y + 4);
+    selection_pointer(SDL_EVENT_MOUSE_MOTION, label.x + 60, label.y + 30);
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    TEST_ASSERT_FALSE(document->selection_tool.dragging);
+    TEST_ASSERT_FALSE(pui_view_checked(shell.view, "vector_selection"));
+    document->active_artboard = 0;
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.artboard.select",
+                                        "vector_document_1.artboard_1"));
+    TEST_ASSERT_EQUAL_UINT(0, document->active_artboard);
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, label.x + 4, label.y + 4);
+    TEST_ASSERT_TRUE(document->artboard_tool.dragging);
+    TEST_ASSERT_FALSE(document->selection_tool.dragging);
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.tool_selection", ""));
+    selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, label.x + 4, label.y + 4);
+    SDL_Event lost = {.type = SDL_EVENT_WINDOW_FOCUS_LOST};
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &lost));
+    TEST_ASSERT_FALSE(document->selection_tool.dragging);
+    TEST_ASSERT_EQUAL_INT(1, document->history.count);
+    TEST_ASSERT_EQUAL_FLOAT(10, document->artboards[0].rect.x);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_label_drag_only_preview_undo_redo_and_checkpoint);
+    RUN_TEST(test_label_drag_cancellation_noop_and_mode_guards);
     RUN_TEST(test_tab_commits_properties_and_preserves_next_field_selection);
     RUN_TEST(test_artboard_inspector_updates_history_and_survives_editor_switch);
     RUN_TEST(test_artboard_selection_and_tool_toggle);

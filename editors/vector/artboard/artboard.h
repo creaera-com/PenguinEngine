@@ -13,6 +13,8 @@ typedef struct {
     PUIRect rect; ///< Position and size in document pixels, independent of viewport zoom.
 } VectorArtboard;
 struct VectorDocument;
+/** @brief Move an artboard through a single undoable position change. */
+bool vector_artboard_move(struct VectorDocument *document, unsigned id, float x, float y);
 /** @brief Change name and dimensions atomically through history. */
 bool vector_artboard_update(struct VectorDocument *document, unsigned id, const char *name,
                             float width, float height);

@@ -76,7 +76,7 @@ bool vector_document_tree_action(VectorDocument *document, PUIView *view, const 
     if (strcmp(action, "vector.artboard.select")) {
         return false;
     }
-    if (document && widget) {
+    if (document && widget && !document->artboard_tool.enabled) {
         for (int i = 0; i < document->artboard_count; i++) {
             char id[64];
             snprintf(id, sizeof id, "vector_document_%u.artboard_%u", document->id,

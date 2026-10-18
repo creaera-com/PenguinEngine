@@ -97,6 +97,36 @@ static bool edit_revert(void *state, const void *payload) {
     return replace_board(state, &edit->after, &edit->before);
 }
 
+bool vector_artboard_move(VectorDocument *document, unsigned id, float x, float y) {
+    if (!isfinite(x) || !isfinite(y) || fabsf(x) > VECTOR_MAX_ARTBOARD_SIZE ||
+        fabsf(y) > VECTOR_MAX_ARTBOARD_SIZE) {
+        return false;
+    }
+    for (int i = 0; i < document->artboard_count; i++) {
+        VectorArtboard board = document->artboards[i];
+        if (board.id != id) {
+            continue;
+        }
+        if (board.rect.x == x && board.rect.y == y) {
+            return true;
+        }
+        EditArtboard *edit = calloc(1, sizeof *edit);
+        if (!edit) {
+            return false;
+        }
+        edit->before = edit->after = board;
+        edit->after.rect.x = x;
+        edit->after.rect.y = y;
+        if (vector_history_execute(&document->history, document,
+                                   (VectorCommand){edit_apply, edit_revert, edit})) {
+            return true;
+        }
+        free(edit);
+        return false;
+    }
+    return false;
+}
+
 bool vector_artboard_update(VectorDocument *document, unsigned id, const char *name, float width,
                             float height) {
     if (!name || !*name || strlen(name) >= 64 || !isfinite(width) || !isfinite(height) ||
@@ -163,8 +193,7 @@ bool vector_artboard_command_read(VectorCommand *command, FILE *file) {
     if (kind == 2) {
         EditArtboard edit;
         if (fread(&edit, sizeof edit, 1, file) != 1 || !valid_board(edit.before) ||
-            !valid_board(edit.after) || edit.before.id != edit.after.id ||
-            edit.before.rect.x != edit.after.rect.x || edit.before.rect.y != edit.after.rect.y) {
+            !valid_board(edit.after) || edit.before.id != edit.after.id) {
             return false;
         }
         EditArtboard *owned = malloc(sizeof *owned);

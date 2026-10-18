@@ -536,3 +536,20 @@ seinen Dokumentnamen. Tab und Shift+Tab übernehmen den Wert des verlassenen Fel
 und fokussieren das nächste beziehungsweise vorherige Eingabefeld. Auswahl und UI-Beschriftungen
 sind keine eigenen Undo-Schritte. Die temporären Checkpoints sichern Namen, Geometrie,
 Auswahl sowie Erstellungs- und Änderungsbefehle einschließlich noch möglicher Redo-Schritte.
+
+
+## Auswahlwerkzeug und Verschieben
+
+Der Auswahlbutton `vector_selection` ist aktiv, solange das Artboard-Werkzeug nicht
+aktiv ist. Nur im Auswahlmodus können bestehende Artboards auf der Zeichenfläche
+oder im Tree ausgewählt werden. Ein Klick in die Artboard-Fläche wählt aus; ein
+Verschieben beginnt ausschließlich am Namen über dem Artboard.
+
+`artboard/selection.c` berechnet dieselben Label-Grenzen für Rendering und Hit-Test.
+Beim Ziehen enthält `VectorSelectionTool` nur den vorläufigen Versatz. Die Zeichenfläche
+stellt diesen dar, während die gespeicherte Artboard-Geometrie unverändert bleibt.
+Mausbewegungen werden durch den Zoom in Dokumentpixel umgerechnet. Beim Loslassen
+führt `vector_artboard_move()` genau einen Änderungsbefehl aus, sofern die Position
+verändert wurde. Undo/Redo und temporäre Checkpoints verwenden den vorhandenen
+Vorher-/Nachher-Befehl. Escape, Fokusverlust, Dokument- oder Werkzeugwechsel verwerfen
+die Vorschau und geben den Maus-Capture frei.
