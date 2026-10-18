@@ -5,6 +5,10 @@ Die zusätzliche App `pengui_editor` bereitet drei eigenständige Arbeitsbereich
 anlegen; Zeichenwerkzeuge, Skriptausführung und Spielfunktionen sind noch nicht implementiert.
 Die Widget-Demo `pengui_playground` bleibt separat erhalten.
 
+Für den detaillierten Weg vom Button-Klick bis zur Änderung eines Dokuments siehe
+[Programmfluss und Datenmodell des Vektoreditors](VEKTOR_PROGRAMMFLUSS_UND_DATENMODELL.md).
+Dort sind auch Undo/Redo, Speicherbesitz und Lebensdauer der Daten erklärt.
+
 ## Starten und Starteditor festlegen
 
 ```sh

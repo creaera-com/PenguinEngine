@@ -1,0 +1,436 @@
+# Vektoreditor: vom Button-Klick zur Dokumentänderung
+
+Diese Anleitung beschreibt den aktuellen Stand der App `pengui_editor` auf dem
+pengUI-Branch. Als Beispiele dienen „Add Document“, das Aufziehen eines Artboards
+und Undo/Redo. Alle genannten Funktionen existieren im aktuellen Code.
+
+Die Oberfläche und das Dokument haben unterschiedliche Aufgaben: YAML beschreibt
+Buttons, Tabs und Panels. Die fachlichen Daten liegen in C-Strukturen des
+Vektoreditors. Ein Artboard ist ein Datensatz im Dokument, kein eigenes UI-Widget.
+
+## 1. Welche Datei übernimmt welche Aufgabe?
+
+| Datei | Aufgabe |
+| --- | --- |
+| [editor.yaml](../editors/vector/ui/editor.yaml) | Beschreibt die Vector-Oberfläche und die Aktionsnamen der Buttons. |
+| [application.c](../apps/demo/editor/application.c) | Verarbeitet SDL-Ereignisse, zeichnet die Shell und verteilt Aktionen. |
+| [host.c](../apps/demo/editor_host/host.c) | Leitet an den aktiven Editor weiter und verwaltet dessen Lebensdauer. |
+| [editor.h](../apps/demo/editor_host/editor.h) | Definiert die gemeinsame Schnittstelle `EditorDefinition`. |
+| [adapter.c](../editors/vector/adapter.c) | Hinterlegt die Vector-Funktionen für diese Schnittstelle. |
+| [editor.c](../editors/vector/editor.c) | Ordnet Aktionen dem Dokument, Werkzeug oder der History zu. |
+| [document.c](../editors/vector/document.c) | Verwaltet Dokumente und ergänzt ihre Tabs am Frame-Ende. |
+| [artboard_tool.c](../editors/vector/artboard_tool.c) | Verarbeitet den Maus-Drag und hält die vorläufige Geometrie. |
+| [artboard.c](../editors/vector/artboard.c) | Erstellt den Änderungsbefehl und implementiert dessen `apply` und `revert`. |
+| [history.c](../editors/vector/history.c) | Führt Befehle aus und verwaltet Undo/Redo. |
+| [canvas.c](../editors/vector/canvas.c) | Zeichnet Dokumentdaten und Vorschau; verarbeitet Zoom und Pan. |
+| [ruler.c](../editors/vector/ruler.c) | Zeichnet die Pixel-Lineale aus Artboard-Geometrie und Zoom. |
+
+Der Host kennt die gemeinsame Schnittstelle, aber keine Artboard-Struktur.
+pengUI kennt Widgets und Canvas-Callbacks, aber keine Vector-Dokumente.
+
+## 2. Wie wird aus YAML ein Funktionsaufruf?
+
+Der Button steht beispielsweise so in der Vector-YAML:
+
+```yaml
+- {type: button, id: vector_add_artboard, icon: plus, action: vector.add_artboard, width: 30}
+```
+
+`id` identifiziert das Widget. `action` ist zunächst nur eine Zeichenkette.
+Der YAML-Parser sucht keine gleichnamige C-Funktion und ruft auch keine auf.
+
+Beim Laden speichert pengUI beides in einem `PUINode`. Die App übergibt beim
+Zeichnen ihren Callback `action` und ihren Anwendungskontext `&app`:
+
+```c
+pui_view_draw(app.shell.view, &app.shell.input, area, action, &app);
+```
+
+Wenn ein Button aktiviert wird, ruft pengUI diesen Callback sinngemäß so auf:
+
+```c
+action(&app, "vector.add_artboard", "vector_add_artboard");
+```
+
+Der zweite Parameter ist der Aktionsname, der dritte die Widget-ID. Unterschiedliche
+Buttons können dadurch dieselbe Aktion verwenden. Die Zuordnung zur fachlichen
+Funktion erfolgt in C, in diesem Fall durch die Vergleiche in `vector_editor_action()`.
+
+### Der Klick wird teilweise erst beim Zeichnen ausgewertet
+
+In [events.c](../lib/pengui/src/view/events.c) übernimmt `pui_view_event()` die
+SDL-Mausereignisse in den `PUIContext`. Der Kontext merkt unter anderem Position,
+Drücken und Loslassen. Viele Widgets werten diese Informationen erst im nächsten
+`pui_view_draw()` aus, wenn auch ihre aktuelle Bildschirmgeometrie bekannt ist.
+
+Für normale Buttons prüft `pui_button()` in
+[button.c](../lib/pengui/src/widgets/button.c), ob die Interaktion gültig ist.
+Typischerweise muss die Maustaste auf dem Button gedrückt und dort wieder
+losgelassen werden. [button_sdl.c](../lib/pengui/src/widgets/button_sdl.c)
+ruft anschließend den App-Callback mit Aktionsname und Widget-ID auf.
+
+`pui_view_event()` kann deshalb `false` zurückgeben, obwohl es Mauszustand
+aktualisiert hat. `false` bedeutet hier nicht „das Ereignis wurde überhaupt
+nicht betrachtet“, sondern erlaubt die weitere Verarbeitung durch den Editor.
+
+## 3. Der gemeinsame Weg durch App, Host und Adapter
+
+Für `vector.add_artboard` und `vector.add_document` sieht die Aufrufkette so aus:
+
+```text
+SDL-Mausereignisse
+  -> events() in application.c
+  -> pui_view_event() merkt den Pointer-Zustand
+
+Beim Zeichnen des Frames:
+  pui_view_draw()
+    -> pui_widget_button_draw()
+    -> pui_button() erkennt die Aktivierung
+    -> action(&app, Aktionsname, Widget-ID)
+    -> editor_host_action()
+    -> host->active->action(host->instance, ...)
+    -> vector_editor_action()
+```
+
+Die Felder `action`, `event`, `canvas` und `commit_ui` in `EditorDefinition` sind
+**Funktionszeiger**. `adapter.c` trägt beispielsweise
+`.action = vector_editor_action` ein. Der Host kann die Funktion dadurch aufrufen,
+ohne selbst den konkreten Vector-Header einzubinden.
+
+`host->instance` zeigt auf die vom aktiven Editor angelegte Instanz. Die gemeinsame
+Schnittstelle verwendet dafür `void *`; der Vektoreditor wandelt diesen Zeiger
+wieder in `VectorEditor *` um.
+
+Die App behandelt Fensteraktionen und Editorwechsel selbst. Aktionen wie
+`editor.undo` werden weitergereicht, weil `undo` keine registrierte Editor-ID ist.
+Sie erreichen damit ebenfalls `vector_editor_action()` des aktiven Editors.
+
+## 4. Beispiel: „Add Document“ erzeugt einen neuen Dokument-Tab
+
+Der Aktionsname lautet `vector.add_document`. Hier wird während des
+Button-Callbacks noch kein Tab in den gerade durchlaufenen UI-Baum eingefügt.
+
+1. `vector_editor_action()` ruft `vector_documents_request()` auf.
+2. Die Dokumentverwaltung prüft das Tab-Limit und erhöht `documents.pending`.
+   Das ist ein Zähler vorgemerkter Dokumente, noch kein neues Dokument.
+3. Nach dem Zeichnen und `SDL_RenderPresent()` ruft die App am Frame-Ende
+   `editor_host_commit()` auf.
+4. Ohne anstehenden Editorwechsel ruft der Host den Adapter-Eintrag `commit_ui`
+   auf, also `vector_editor_commit_ui()`.
+5. `vector_documents_commit()` bereitet eine lokale `VectorDocument`-Struktur
+   vor: ID, Titel, nächste Artboard-ID sowie einen Viewport mit Zoom `1`.
+6. `vector_canvas_layout()` erzeugt in C ein Layout mit einem Canvas-Knoten.
+   Eine eigene Dokument-YAML gibt es nicht.
+7. `pui_view_add_tab()` kopiert diesen Inhalt in die View, ergänzt den Tab und
+   wählt ihn aus. Beispielsweise heißen Tab und Canvas danach
+   `vector_document_1` und `vector_document_1.canvas`.
+8. Erst nach erfolgreichem Einfügen wird das vorbereitete Dokument nach
+   `documents.items[documents.count]` kopiert und `count` erhöht.
+9. Das temporäre Canvas-Layout wird mit `pui_layout_free()` freigegeben.
+   Die View verwendet ihre eigene Kopie. Im nächsten Frame erscheint der Tab.
+
+Schlägt das Einfügen fehl, bleibt der bisherige UI-Baum erhalten. Es wird kein
+Dokumenteintrag angehängt und keine Dokumentnummer verbraucht. Der verbleibende
+Anforderungszähler wird zurückgesetzt.
+
+Der Aufschub schützt die laufende UI-Traversierung. Eine einfache Änderung an
+Dokumentdaten muss dagegen keinen UI-Baum austauschen. Die beiden Fälle haben
+deshalb unterschiedliche Zeitpunkte für ihre Änderung.
+
+Das Anlegen eines **Dokuments** ist aktuell nicht Teil der Undo-History.
+Die History wird bisher für das Anlegen von **Artboards innerhalb eines Dokuments** verwendet.
+
+## 5. Beispiel: Ein Artboard mit der Maus aufziehen
+
+### Der Button aktiviert zunächst nur das Werkzeug
+
+Bei `vector.add_artboard` ermittelt `vector_documents_active()` anhand des
+gewählten Tabs das zugehörige Dokument. Der Übersichtstab „Vector“ hat kein
+Dokument; dort erscheint lediglich eine Statusmeldung.
+
+Mit aktivem Dokument ruft `vector_editor_action()`
+`vector_artboard_tool_arm(document)` auf. Dabei wird das Werkzeug aktiviert und
+eine eventuell vorherige Vorschau verworfen. Es entsteht noch kein Artboard und
+noch kein History-Eintrag.
+
+### Der Maus-Drag läuft über die Ereignis-Schnittstelle
+
+Nach dem Klick erhält der Editor die folgenden Mausereignisse über einen
+anderen Adapter-Eintrag als die Button-Aktion:
+
+```text
+SDL-Mausereignis
+  -> events() in application.c
+  -> pui_view_event()
+  -> falls nicht konsumiert: editor_host_event()
+  -> host->active->event(host->instance, ...)
+  -> vector_editor_event()
+  -> vector_canvas_event()
+  -> vector_artboard_tool_event()
+```
+
+Beim Drücken der linken Maustaste prüft das Werkzeug, ob der Canvas getroffen
+wurde. Es rechnet die Mausposition in Dokumentkoordinaten um und merkt den
+Startpunkt. Bei Bewegungen wird nur der Endpunkt der Vorschau aktualisiert.
+Die Anzahl der Artboards und die History bleiben währenddessen unverändert.
+
+Beim Loslassen normalisiert `vector_artboard_tool_rect()` das Rechteck.
+Es hat auch beim Ziehen nach links oder oben eine positive Breite und Höhe.
+Koordinaten werden auf ganze Dokument-Pixel gerundet. Breite und Höhe müssen
+mindestens einen Pixel betragen; ein einfacher Klick erzeugt kein Artboard.
+
+Escape oder Fokusverlust verwirft die Vorschau. Beim Wechsel des Dokument-Tabs
+wird das Werkzeug des bisherigen Dokuments ebenfalls zurückgesetzt.
+
+### Hier wird das Dokument tatsächlich verändert
+
+Für ein gültiges Rechteck führt das Loslassen zu dieser Kette:
+
+```text
+vector_artboard_tool_event()
+  -> vector_artboard_add(document, rect)
+  -> vector_history_execute(&document->history, document, command)
+  -> command.apply(document, command.data)
+  -> apply() in artboard.c
+  -> document->artboards[document->artboard_count++] = command->artboard
+```
+
+`vector_artboard_add()` prüft Geometrie und Kapazität. Danach reserviert es auf
+dem Heap einen `AddArtboard`-Datensatz mit der neuen Geometrie, Artboard-ID,
+Einfügeposition und vorherigen aktiven Artboard-ID.
+
+Der History wird dieser Datensatz zusammen mit zwei Funktionszeigern übergeben:
+
+```c
+(VectorCommand){apply, revert, command}
+```
+
+`apply` und `revert` sind `static`-Funktionen in `artboard.c`. Andere Dateien können
+sie nicht über ihren Namen aufrufen; über die übergebenen Funktionszeiger kann
+die History sie dennoch ausführen.
+
+Die **eigentliche Änderung am Artboard-Array** erfolgt in `apply()`. Es kopiert
+das Artboard an das Ende des gültigen Bereichs und setzt `active_artboard` auf
+dessen ID. Nach erfolgreichem Ausführen wird der Befehl in der History behalten;
+`next_artboard_id` wird erhöht. Das Werkzeug endet nach dem erfolgreichen Anlegen.
+
+## 6. Wie wird die Änderung sichtbar?
+
+Die View zeichnet ihren Canvas über einen registrierten Callback:
+
+```text
+pui_view_draw()
+  -> pui_view_draw_node(): PUI_NODE_CANVAS
+  -> draw_canvas() im Host
+  -> host->active->canvas(host->instance, ...)
+  -> vector_editor_canvas()
+  -> vector_canvas_draw()
+```
+
+Der Vektoreditor ordnet die Canvas-ID dem Dokument zu. `vector_canvas_draw()`
+liest dessen Artboard-Array und zeichnet die Rechtecke. `vector_ruler_draw()`
+berechnet die Lineale daraus. Während eines Drags kommt die Vorschau aus dem
+Werkzeugzustand hinzu.
+
+Es wird kein separates Widget pro Artboard erstellt. Nach einer Datenänderung
+reicht der nächste Frame, um das neue Ergebnis zu zeichnen. Das Dokument enthält
+auch kein fertig gerendertes Bild seiner Zeichenfläche.
+
+## 7. Das interne Speichermodell
+
+„Speichern im Arbeitsspeicher“ und „Speichern als Datei“ sind hier getrennte Dinge.
+Der aktuelle Vektoreditor hält Daten im RAM; SVG-Laden und -Speichern sind noch
+nicht implementiert. Der Save-Button hat noch keinen entsprechenden Vector-Handler.
+
+### Besitzstruktur
+
+```text
+EditorApp                         lokale Struktur in editor_application_run()
+  EditorHost
+    instance -------------------> VectorEditor             Heap: calloc()
+                                    layout --------------> PUILayout
+                                    documents              eingebettete Struktur
+                                      items[15]             eingebettetes Array
+                                        VectorDocument
+                                          id, title
+                                          artboards[64]     eingebettetes Array
+                                          artboard_count
+                                          next_artboard_id
+                                          active_artboard
+                                          history
+                                            commands[128]   eingebettetes Array
+                                              apply         Funktionszeiger
+                                              revert        Funktionszeiger
+                                              data -------> AddArtboard auf dem Heap
+                                            count, cursor
+                                          viewport
+                                          artboard_tool
+```
+
+Die tatsächlichen Definitionen stehen in
+[internal.h](../editors/vector/internal.h),
+[document.h](../editors/vector/document.h),
+[artboard.h](../editors/vector/artboard.h),
+[history.h](../editors/vector/history.h),
+[canvas.h](../editors/vector/canvas.h) und
+[artboard_tool.h](../editors/vector/artboard_tool.h).
+
+**Eingebettet** bedeutet: Diese Daten liegen direkt innerhalb der übergeordneten
+Struktur. Für ein einzelnes Artboard wird kein zusätzlicher Heap-Speicher
+reserviert. Das `calloc()` der Editorinstanz reserviert bereits Platz für alle
+15 Dokumentplätze einschließlich ihrer Arrays und History-Einträge. `count`
+bestimmt, welche Plätze tatsächlich verwendet werden. Das ist einfach und
+begrenzt, reserviert aber auch ungenutzte Kapazität.
+
+Zusätzlich werden die Nutzdaten erfolgreicher Änderungsbefehle einzeln mit
+`malloc()` angelegt. Die Größe der Strukturen in Bytes hängt von Plattform,
+Zeigergröße und Compiler-Ausrichtung ab; `sizeof(VectorEditor)` bzw.
+`sizeof(VectorDocument)` liefern die tatsächlichen Größen im jeweiligen Build.
+
+### Was enthält ein Dokument?
+
+| Daten | Bedeutung |
+| --- | --- |
+| `id`, `title[64]` | Laufende Dokument-ID und direkt gespeicherter Titeltext. |
+| `artboards[64]` | Artboard-Datensätze; jeder enthält `unsigned id` und `PUIRect rect`. |
+| `artboard_count` | Nur die Plätze von `0` bis `artboard_count - 1` gehören zum aktuellen Dokumentinhalt. |
+| `next_artboard_id` | Nächste ID; wird durch Undo nicht zurückgesetzt. Nach verworfenem Redo-Zweig können Nummernlücken entstehen. |
+| `active_artboard` | ID des zuletzt aktivierten Artboards, aktuell beim Anlegen bzw. Wiederherstellen gesetzt; `0` bedeutet keines. |
+| `history` | Befehle und Position innerhalb von Undo/Redo, getrennt pro Dokument. |
+| `viewport` | Bildschirmbereich, Verschiebung, Zoom und Zustand einer Pan-Geste. |
+| `artboard_tool` | Aktivierung und Start-/Endpunkt der vorläufigen Zeichenaktion. |
+
+`PUIRect` enthält `x`, `y`, `w`, `h` als `float`. Artboards verwenden Dokument-Pixel.
+Die Mausaktion rundet zwar auf ganze Pixel, die Speicherstruktur bleibt aber eine
+Gleitkomma-Struktur. Artboards sind derzeit weder ECS-Entities noch SVG-Knoten.
+
+Dokumente liegen nicht in der View. Die View hält beispielsweise Tab-Auswahl,
+Splitgrößen und Widgettexte; der Vektoreditor hält die fachlichen Daten.
+`vector_documents_active()` verbindet beides über die ausgewählte Tab-ID.
+Eine geänderte Tab-Reihenfolge sortiert deshalb nicht das Dokument-Array um.
+
+Da die Arrays nicht wachsen oder umgezogen werden, bleibt ein Zeiger auf einen
+Dokumenteintrag beim Ergänzen weiterer Dokumente gültig. Er darf aber nicht nach
+dem Entladen des Editors weiterverwendet werden. Eine vollständige Kopie eines
+bereits benutzten `VectorDocument` wäre keine unabhängige Kopie: Die
+History-`data`-Zeiger würden auf dieselben Heap-Daten zeigen. Solche Dokumente
+dürfen daher nicht einfach als besitzende Kopien weitergeführt und doppelt freigegeben werden.
+
+### Dokumentkoordinaten und Bildschirmkoordinaten
+
+Für die horizontale Achse gilt:
+
+```text
+Bildschirm-X = Canvas-X + Viewport-Verschiebung-X + Dokument-X * Zoom
+Dokument-X   = (Bildschirm-X - Canvas-X - Viewport-Verschiebung-X) / Zoom
+```
+
+Für Y gilt dieselbe Rechnung. Die Werkzeugfunktion `update_endpoint()` verwendet
+die zweite Formel und rundet das Ergebnis. `vector_canvas_draw()` verwendet die
+erste Formel zum Zeichnen.
+
+Zoom und Pan ändern also nicht die gespeicherte Artboard-Geometrie. Der Viewport
+wird pro Dokument aufbewahrt und ist nicht Teil der Undo-History. Undo/Redo kann
+die Ansicht allerdings auf das aktive Artboard zentrieren, weil
+`vector_editor_action()` nach erfolgreicher Änderung `vector_canvas_center()` aufruft.
+Die Lineale beginnen relativ zum jeweiligen Artboard bei `0`; ihre Unterteilung
+berücksichtigt den Zoom, ihre Dicke bleibt in Bildschirm-Pixeln konstant.
+
+## 8. Wie speichert die History Änderungen?
+
+Die History speichert **Befehle mit Änderungsdaten**, keine vollständigen
+Dokument-Snapshots und keine kompletten Bilder. Beim Anlegen eines Artboards
+enthält `AddArtboard` eine Kopie genau dieses Artboards sowie Einfügeindex und
+vorherige aktive ID. Die History benötigt keinen dauerhaften Zeiger auf das
+Dokument: Beim Ausführen bekommt sie den aktuellen Dokumentzeiger als Argument.
+
+`count` zählt alle gespeicherten Befehle einschließlich rückgängig gemachter.
+`cursor` zählt die momentan angewendeten Befehle:
+
+```text
+Nach A, B, C:        [ A B C ]    count = 3, cursor = 3
+Nach Undo:          [ A B | C ]  count = 3, cursor = 2
+Nach erneutem Undo: [ A | B C ]  count = 3, cursor = 1
+Nach Redo:          [ A B | C ]  count = 3, cursor = 2
+```
+
+Links vom Strich liegt der angewendete Teil; rechts stehen mögliche Redo-Schritte.
+
+- `vector_history_undo()` ruft `revert()` des Befehls bei `cursor - 1` auf und
+  verringert den Cursor nur bei Erfolg. Für das Anlegen entfernt `revert()` den
+  letzten gültigen Artboard-Eintrag und stellt die vorherige aktive ID wieder her.
+- `vector_history_redo()` ruft `apply()` bei `cursor` auf und erhöht den Cursor
+  bei Erfolg. Dasselbe Artboard mit derselben ID und Geometrie erscheint wieder.
+- Eine neue Änderung nach Undo verwirft den bisherigen Redo-Zweig. Erst wenn
+  der neue Befehl erfolgreich angewendet wurde, werden dessen alte Nutzdaten
+  freigegeben und die neue History fortgeschrieben.
+
+Beim Undo wird der Artboard-Arrayplatz nicht mit `free()` gelöscht: Er ist Teil
+der Editorstruktur. Stattdessen wird `artboard_count` verringert. Alte Bytes
+können im nun unbenutzten Platz liegen bleiben, gehören aber nicht mehr zum
+Dokument. Die Kopie im History-Befehl ermöglicht das spätere Redo.
+
+Die Nutzdaten eines Befehls bleiben auch nach Undo erhalten. Sie werden erst
+beim Verwerfen des Redo-Zweigs oder beim Zerstören der History freigegeben.
+
+### Wer gibt welchen Speicher frei?
+
+| Speicher | Besitzer und Freigabe |
+| --- | --- |
+| `VectorEditor` und seine eingebetteten Arrays | Vom Editor mit `calloc()` angelegt; `vector_editor_destroy()` gibt die Instanz mit `free()` frei. |
+| Layout der Editorinstanz | Vom Vektoreditor gehalten; Freigabe mit `pui_layout_free()` beim Zerstören. |
+| Temporäres Canvas-Layout eines neuen Tabs | In `vector_documents_commit()` angelegt und nach dem Kopieren in die View sofort freigegeben. |
+| Zusammengesetztes View-Layout und Widgetzustände | Von der View verwaltet; beim Austausch bzw. Zerstören freigegeben. |
+| `AddArtboard` vor erfolgreichem `vector_history_execute()` | Gehört dem Aufrufer; `vector_artboard_add()` gibt es bei einem Fehler frei. |
+| `AddArtboard` nach erfolgreicher Übernahme | Gehört der History; Freigabe bei verworfenem Redo-Zweig oder `vector_history_destroy()`. |
+| SDL-Renderer und Fenster | Gehören der App; werden beim Beenden nach der UI freigegeben. |
+
+Die Callback-Funktionen selbst sind Programmcode und werden nicht pro Befehl
+reserviert oder freigegeben. Nur die Daten hinter `VectorCommand.data` sind
+separate Heap-Allokationen.
+
+## 9. Grenzen und Lebensdauer im aktuellen Stand
+
+Es gibt höchstens 15 Dokumente zusätzlich zum Übersichtstab, 64 Artboards pro
+Dokument und 128 Befehlsplätze pro History. Das gemeinsame UI-Layout hat außerdem
+ein Limit von 128 Knoten. Grenzen führen zur Ablehnung weiterer Änderungen;
+die History entfernt nicht automatisch ihre ältesten Befehle.
+
+Alle beschriebenen Abläufe laufen synchron auf dem App-/UI-Thread. Es gibt
+hier keinen Hintergrundthread und keine parallele Dokumentbearbeitung.
+
+Beim Wechsel zwischen Dokument-Tabs bleiben die Dokumente im aktiven Vektoreditor
+im Speicher. Ein Wechsel zu einem anderen **Editor** oder ein Reload entlädt
+dagegen die Vectorinstanz. `vector_documents_destroy()` verwirft Gesten und gibt
+die History-Nutzdaten aller Dokumente frei. Anschließend wird die Instanz freigegeben.
+
+Der Host erzeugt beim Editorwechsel zunächst die neue Instanz und tauscht den
+UI-Bereich aus. Erst nach Erfolg zerstört er die alte Instanz. Für diesen
+Übergang können kurzzeitig beide Instanzen existieren. Die Module sind statisch
+verlinkt; „Entladen“ bezeichnet das Freigeben ihrer Laufzeitdaten, nicht das
+Entfernen von Maschinencode aus dem Prozess.
+
+Es gibt noch keine Rückfrage bei ungespeicherten Dokumentänderungen und keine
+Dateipersistenz. Nach Entladen oder Beenden sind die Dokumentdaten verloren.
+Die YAML-Dateien werden durch Dokumentänderungen ebenfalls nicht beschrieben.
+
+## 10. Wo setzt eine weitere Änderungsfunktion an?
+
+Für eine neue fachliche Bearbeitung sind die vorhandenen Stellen ein Muster:
+
+1. Einen Aktionsnamen in YAML eintragen, falls ein Button benötigt wird.
+2. Die Aktion in `vector_editor_action()` auflösen und das aktive Dokument bestimmen.
+3. Für eine Mausgeste zunächst nur vorläufigen Werkzeugzustand ändern.
+4. Die abgeschlossene Änderung als Befehl mit `apply`, `revert` und eigenen
+   Änderungsdaten an die History übergeben.
+5. Die Darstellung aus den aktuellen Dokumentdaten zeichnen.
+
+Die History fordert, dass `apply()` und `revert()` bei einem Fehler keine
+Teiländerung hinterlassen. Neue Befehle müssen ihre erforderlichen Prüfungen
+entsprechend vor der eigentlichen Mutation durchführen. Wenn die Nutzdaten
+später ihrerseits Heap-Zeiger enthalten, muss auch der Freigabevertrag erweitert
+werden: Aktuell ruft die History lediglich `free(command.data)` auf.
+
+Damit bleiben UI-Beschreibung, Interaktionszustand, fachliche Mutation und
+Undo/Redo nachvollziehbar getrennt. Die konkrete Struktur für zukünftige
+Vektorformen oder einen SVG-Import ist damit noch nicht festgelegt.

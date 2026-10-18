@@ -14,6 +14,10 @@ Ergänzen eigener Widgets.
 `pengui_editor`-App, den konfigurierbaren Starteditor, die Modulstruktur und austauschbare
 YAML-Bereiche.
 
+[Programmfluss und Datenmodell des Vektoreditors](docs/VEKTOR_PROGRAMMFLUSS_UND_DATENMODELL.md)
+verfolgt Button-Klicks bis zur Dokumentänderung und erklärt Mausgesten, History,
+interne Datenstrukturen, Speicherbesitz und Freigabe.
+
 ## Starten
 
 ```sh
