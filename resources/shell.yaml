@@ -31,9 +31,9 @@ root:
           width: 100
           gap: 2
           children:
-            - {type: button, id: game, icon: tabler:table, action: editor.game}
-            - {type: button, id: scripts, icon: tabler:file-code, action: editor.scripts}
-            - {type: button, id: vector, icon: tabler:pencil, action: editor.vector}
+            - {type: button, id: game, icon: tabler:device-gamepad, action: editor.game}
+            - {type: button, id: scripts, icon: tabler:code, action: editor.scripts}
+            - {type: button, id: vector, icon: tabler:vector-bezier-2, action: editor.vector}
         - {type: separator}
         - {type: button, icon: tabler:refresh, action: shell.reload, width: 32}
         - {type: spacer}
