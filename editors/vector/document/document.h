@@ -29,6 +29,7 @@ typedef struct VectorDocument {
     VectorGrid grid;
     VectorArtboardTool artboard_tool;
     VectorSelectionTool selection_tool;
+    VectorRectangleSelection selection;
 } VectorDocument;
 
 /** @brief Owned collection of documents; only entries below count are live. */

@@ -1,13 +1,21 @@
 /** @file @brief One move/resize interaction for artboards and rectangle children. */
 #include "selection.h"
+#include "editors/vector/document/selection.h"
 #include "editors/vector/geometry/resize.h"
 #include "editors/vector/grid/snap.h"
+#include "editors/vector/rectangle/transform.h"
+#include "marquee.h"
 #include <math.h>
 #include <stdio.h>
 
 void vector_selection_cancel(VectorDocument *document) {
-    if (document->selection_tool.dragging) {
+    if (document->selection_tool.dragging || document->selection_tool.marquee) {
         SDL_CaptureMouse(false);
+    }
+    if (document->selection_tool.marquee) {
+        document->selection = document->selection_tool.before;
+        document->active_artboard = document->selection_tool.previous_board;
+        document->active_rectangle = document->selection_tool.previous_rectangle;
     }
     document->selection_tool = (VectorSelectionTool){0};
 }
@@ -32,11 +40,32 @@ PUIRect vector_artboard_display_rect(const VectorDocument *document, const Vecto
 PUIRect vector_rectangle_display_rect(const VectorDocument *document,
                                       const VectorRectangle *rectangle) {
     const VectorSelectionTool *tool = &document->selection_tool;
-    return tool->dragging && tool->rectangle_id == rectangle->id
-               ? vector_grid_snap_rect(&document->grid, document->viewport.zoom, rectangle->rect,
-                                       tool->resize_edges, tool->offset_x, tool->offset_y,
-                                       VECTOR_MAX_ARTBOARD_SIZE)
-               : rectangle->rect;
+    if (!tool->dragging || tool->marquee || !tool->rectangle_id ||
+        !vector_document_is_selected(document, rectangle->id)) {
+        return rectangle->rect;
+    }
+    if (tool->before.count > 1) {
+        const VectorRectangle *reference = NULL;
+        for (int i = 0; i < document->rectangle_count; i++) {
+            if (document->rectangles[i].id == tool->rectangle_id) {
+                reference = &document->rectangles[i];
+                break;
+            }
+        }
+        if (!reference) {
+            return rectangle->rect;
+        }
+        PUIRect snapped =
+            vector_grid_snap_rect(&document->grid, document->viewport.zoom, reference->rect, 0,
+                                  tool->offset_x, tool->offset_y, VECTOR_MAX_ARTBOARD_SIZE);
+        PUIRect rect = rectangle->rect;
+        rect.x += snapped.x - reference->rect.x;
+        rect.y += snapped.y - reference->rect.y;
+        return rect;
+    }
+    return vector_grid_snap_rect(&document->grid, document->viewport.zoom, rectangle->rect,
+                                 tool->resize_edges, tool->offset_x, tool->offset_y,
+                                 VECTOR_MAX_ARTBOARD_SIZE);
 }
 
 static PUIRect screen_rect(const VectorDocument *document, PUIRect world) {
@@ -75,6 +104,31 @@ bool vector_selection_bounds(VectorDocument *document, PUIRect *bounds) {
         PUIRect local = vector_rectangle_display_rect(document, rectangle);
         world = (PUIRect){world.x + local.x, world.y + local.y, local.w, local.h};
     }
+    if (document->selection.count > 1) {
+        bool first = true;
+        for (int i = 0; i < document->rectangle_count; i++) {
+            VectorRectangle *rectangle = &document->rectangles[i];
+            if (!vector_document_is_selected(document, rectangle->id) ||
+                !editable(document, rectangle->parent_id, rectangle->id)) {
+                continue;
+            }
+            VectorArtboard *parent = vector_artboard_find(document, rectangle->parent_id);
+            PUIRect r = vector_rectangle_display_rect(document, rectangle);
+            r.x += parent->rect.x;
+            r.y += parent->rect.y;
+            if (first) {
+                world = r;
+                first = false;
+            } else {
+                float right = fmaxf(world.x + world.w, r.x + r.w),
+                      bottom = fmaxf(world.y + world.h, r.y + r.h);
+                world.x = fminf(world.x, r.x);
+                world.y = fminf(world.y, r.y);
+                world.w = right - world.x;
+                world.h = bottom - world.y;
+            }
+        }
+    }
     *bounds = screen_rect(document, world);
     return true;
 }
@@ -92,6 +146,9 @@ void vector_selection_draw_handles(VectorDocument *document, SDL_Renderer *rende
         SDL_FRect outline = {screen.x, screen.y, screen.w, screen.h};
         SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
         SDL_RenderRect(renderer, &outline);
+    }
+    if (document->selection.count > 1) {
+        return;
     }
     for (int i = 0; i < 8; i++) {
         PUIRect handle = vector_resize_handle_rect(screen, i, 7);
@@ -116,7 +173,8 @@ static void begin(VectorDocument *document, unsigned board, unsigned rectangle, 
                                                      .rectangle_id = rectangle,
                                                      .resize_edges = edges,
                                                      .start_x = x,
-                                                     .start_y = y};
+                                                     .start_y = y,
+                                                     .before = document->selection};
     SDL_CaptureMouse(true);
 }
 
@@ -128,6 +186,16 @@ static void update(VectorDocument *document, float x, float y) {
 
 static bool finish(VectorDocument *document) {
     VectorSelectionTool *tool = &document->selection_tool;
+    if (tool->rectangle_id && tool->before.count > 1) {
+        VectorRectangle *reference = vector_rectangle_find(document, tool->rectangle_id);
+        if (!reference) {
+            return false;
+        }
+        PUIRect moved = vector_rectangle_display_rect(document, reference);
+        return vector_rectangles_translate(document, tool->before.ids, tool->before.count,
+                                           moved.x - reference->rect.x,
+                                           moved.y - reference->rect.y);
+    }
     if (tool->rectangle_id) {
         VectorRectangle *rectangle = vector_rectangle_find(document, tool->rectangle_id);
         return rectangle &&
@@ -141,6 +209,16 @@ static bool finish(VectorDocument *document) {
 
 static bool gesture_event(VectorDocument *document, PUIView *view, const SDL_Event *event) {
     VectorSelectionTool *tool = &document->selection_tool;
+    if (tool->marquee) {
+        return vector_marquee_event(document, event);
+    }
+    for (int i = 0; tool->before.count > 1 && i < tool->before.count; i++) {
+        VectorRectangle *rectangle = vector_rectangle_find(document, tool->before.ids[i]);
+        if (!rectangle || !editable(document, rectangle->parent_id, rectangle->id)) {
+            vector_selection_cancel(document);
+            return true;
+        }
+    }
     if (!editable(document, tool->artboard_id, tool->rectangle_id)) {
         vector_selection_cancel(document);
         return true;
@@ -163,14 +241,19 @@ static bool gesture_event(VectorDocument *document, PUIView *view, const SDL_Eve
 bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_Event *event) {
     if (event->type == SDL_EVENT_WINDOW_FOCUS_LOST ||
         (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_ESCAPE)) {
-        bool consumed = document->selection_tool.dragging;
+        bool consumed = document->selection_tool.dragging || document->selection_tool.marquee;
         vector_selection_cancel(document);
         return consumed;
     }
     if (document->artboard_tool.enabled || document->rectangle_tool.enabled) {
         return false;
     }
-    if (document->selection_tool.dragging) {
+    if (document->selection_tool.marquee && event->type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
+        event->button.button == SDL_BUTTON_LEFT) {
+        document->selection_tool.marquee = false;
+        vector_selection_cancel(document);
+    }
+    if (document->selection_tool.dragging || document->selection_tool.marquee) {
         return gesture_event(document, view, event);
     }
     char canvas[96];
@@ -182,7 +265,8 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
     }
     float x = event->button.x, y = event->button.y;
     PUIRect screen;
-    if (vector_selection_bounds(document, &screen)) {
+    bool additive = (SDL_GetModState() & SDL_KMOD_SHIFT) != 0;
+    if (!additive && document->selection.count <= 1 && vector_selection_bounds(document, &screen)) {
         unsigned edges = vector_resize_hit(screen, x, y, 10);
         if (edges) {
             begin(document, document->active_artboard, document->active_rectangle, edges, x, y);
@@ -194,6 +278,7 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
         VectorArtboard *board = &document->artboards[i];
         if (!(board->flags & VECTOR_OBJECT_STATE_MASK) &&
             contains(vector_artboard_label_rect(document, board), x, y)) {
+            vector_document_select(document, 0);
             begin(document, board->id, 0, 0, x, y);
             return true;
         }
@@ -209,28 +294,40 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
         VectorArtboard *board = vector_artboard_find(document, rectangle->parent_id);
         if (!contains(board->rect, world_x, world_y) &&
             contains(rectangle->rect, world_x - board->rect.x, world_y - board->rect.y)) {
-            begin(document, board->id, rectangle->id, 0, x, y);
+            if (additive) {
+                vector_document_toggle(document, rectangle->id);
+            } else {
+                begin(document, board->id, rectangle->id, 0, x, y);
+            }
             return true;
         }
     }
-    document->active_artboard = 0;
-    document->active_rectangle = 0;
+    unsigned empty_board = 0;
     for (int i = document->artboard_count - 1; i >= 0; i--) {
         VectorArtboard *board = &document->artboards[i];
         if ((board->flags & VECTOR_OBJECT_STATE_MASK) || !contains(board->rect, world_x, world_y)) {
             continue;
         }
-        document->active_artboard = board->id;
+        empty_board = board->id;
         for (int j = document->rectangle_count - 1; j >= 0; j--) {
             VectorRectangle *rectangle = &document->rectangles[j];
-            if (rectangle->parent_id == board->id &&
-                !(rectangle->flags & VECTOR_OBJECT_STATE_MASK) &&
-                contains(rectangle->rect, world_x - board->rect.x, world_y - board->rect.y)) {
-                begin(document, board->id, rectangle->id, 0, x, y);
-                break;
+            if (rectangle->parent_id != board->id ||
+                (rectangle->flags & VECTOR_OBJECT_STATE_MASK) ||
+                !contains(rectangle->rect, world_x - board->rect.x, world_y - board->rect.y)) {
+                continue;
             }
+            if (additive) {
+                vector_document_toggle(document, rectangle->id);
+            } else {
+                if (!vector_document_is_selected(document, rectangle->id)) {
+                    vector_document_select(document, rectangle->id);
+                }
+                begin(document, board->id, rectangle->id, 0, x, y);
+            }
+            return true;
         }
         break;
     }
+    vector_marquee_begin(document, x, y, additive, empty_board);
     return true;
 }

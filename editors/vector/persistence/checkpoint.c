@@ -9,7 +9,7 @@
 
 /* Native integer/float representation is sufficient for a private file in this process.
  * Changing this schema requires a new signature. This is not an SVG or interchange format. */
-static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '0', '9'};
+static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '1', '0'};
 
 #define WRITE(value) (fwrite(&(value), sizeof(value), 1, file) == 1)
 #define READ(value) (fread(&(value), sizeof(value), 1, file) == 1)
@@ -61,12 +61,18 @@ static bool capture_tabs(const VectorDocuments *documents, const PUIView *view,
 }
 
 static bool write_document(const VectorDocument *document, FILE *file) {
+    /* A marquee is a selection preview, just like a live geometry gesture. */
+    const VectorSelectionTool *tool = &document->selection_tool;
+    VectorRectangleSelection selection = tool->marquee ? tool->before : document->selection;
+    unsigned active_board = tool->marquee ? tool->previous_board : document->active_artboard;
+    unsigned active_rectangle =
+        tool->marquee ? tool->previous_rectangle : document->active_rectangle;
     unsigned grid_visible = document->grid.visible, grid_snap = document->grid.snap_enabled;
     if (!WRITE(document->id) || !WRITE(document->title) || !WRITE(document->next_artboard_id) ||
-        !WRITE(document->active_artboard) || !WRITE(document->artboard_count) ||
+        !WRITE(active_board) || !WRITE(document->artboard_count) ||
         fwrite(document->artboards, sizeof *document->artboards, document->artboard_count, file) !=
             (size_t)document->artboard_count ||
-        !WRITE(document->next_rectangle_id) || !WRITE(document->active_rectangle) ||
+        !WRITE(document->next_rectangle_id) || !WRITE(active_rectangle) ||
         !WRITE(document->rectangle_count) ||
         fwrite(document->rectangles, sizeof *document->rectangles, document->rectangle_count,
                file) != (size_t)document->rectangle_count ||
@@ -75,7 +81,9 @@ static bool write_document(const VectorDocument *document, FILE *file) {
         !WRITE(document->grid.snap_tolerance) || !WRITE(document->grid.type) ||
         !WRITE(document->grid.width) || !WRITE(document->grid.height) ||
         !WRITE(document->grid.color) || !WRITE(document->history.count) ||
-        !WRITE(document->history.cursor)) {
+        !WRITE(document->history.cursor) || !WRITE(selection.count) ||
+        fwrite(selection.ids, sizeof *selection.ids, selection.count, file) !=
+            (size_t)selection.count) {
         return false;
     }
     for (int i = 0; i < document->history.count; i++) {
@@ -232,6 +240,27 @@ static bool read_document(VectorDocument *document, unsigned expected_id, FILE *
         document->grid.height > 10000 || !READ(history_count) || history_count < 0 ||
         history_count > VECTOR_HISTORY_CAPACITY || !READ(document->history.cursor) ||
         document->history.cursor < 0 || document->history.cursor > history_count) {
+        return false;
+    }
+    if (!READ(document->selection.count) || document->selection.count < 0 ||
+        document->selection.count > VECTOR_MAX_RECTANGLES ||
+        fread(document->selection.ids, sizeof *document->selection.ids, document->selection.count,
+              file) != (size_t)document->selection.count) {
+        return false;
+    }
+    bool primary = document->selection.count == 0;
+    for (int i = 0; i < document->selection.count; i++) {
+        if (!vector_rectangle_find(document, document->selection.ids[i])) {
+            return false;
+        }
+        for (int j = 0; j < i; j++) {
+            if (document->selection.ids[j] == document->selection.ids[i]) {
+                return false;
+            }
+        }
+        primary |= document->selection.ids[i] == document->active_rectangle;
+    }
+    if (!primary) {
         return false;
     }
     document->grid.visible = grid_visible != 0;

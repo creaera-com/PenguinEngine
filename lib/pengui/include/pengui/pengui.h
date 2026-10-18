@@ -882,6 +882,8 @@ typedef struct {
     bool enabled, open;
     int cell_count; ///< Optional trailing button columns, zero for an ordinary tree row.
     PUITreeCell cells[PUI_TREE_MAX_CELLS];
+    bool selected; ///< Optional application-controlled selection highlight in addition to the
+                   ///< primary row.
 } PUITreeItem;
 
 /** @brief Replace runtime rows of a tree, retaining open state/selection by stable ID.

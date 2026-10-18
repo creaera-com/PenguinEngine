@@ -1,5 +1,6 @@
 /** @file @brief Vector editor lifecycle and routing to document, canvas and history modules. */
 #include "artboard/tool.h"
+#include "document/selection.h"
 #include "internal.h"
 #include "rectangle/tool.h"
 #include "ui/grid.h"
@@ -29,6 +30,7 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
     pui_layout_free(root);
     vector_documents_init(&editor->documents);
     if (!editor->layout) {
+        pui_layout_free(editor->inspector.multi_layout);
         pui_layout_free(editor->inspector.rectangle.layout);
         pui_layout_free(editor->inspector.artboard_layout);
         pui_layout_free(editor->layout);
@@ -39,7 +41,10 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         editor_load_ui(services, "editors/vector/ui/artboard_inspector.yaml", error, capacity);
     editor->inspector.rectangle.layout =
         editor_load_ui(services, "editors/vector/ui/rectangle_inspector.yaml", error, capacity);
-    if (!editor->inspector.artboard_layout || !editor->inspector.rectangle.layout) {
+    editor->inspector.multi_layout =
+        editor_load_ui(services, "editors/vector/ui/multi_selection.yaml", error, capacity);
+    if (!editor->inspector.artboard_layout || !editor->inspector.rectangle.layout ||
+        !editor->inspector.multi_layout) {
         vector_editor_destroy(editor);
         return NULL;
     }
@@ -56,6 +61,7 @@ void vector_editor_destroy(void *instance) {
     if (editor) {
         vector_workspace_cancel_inactive(&editor->documents, NULL);
         vector_documents_destroy(&editor->documents);
+        pui_layout_free(editor->inspector.multi_layout);
         pui_layout_free(editor->inspector.rectangle.layout);
         pui_layout_free(editor->inspector.artboard_layout);
         pui_layout_free(editor->layout);
@@ -162,6 +168,9 @@ bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, c
         return false;
     }
     VectorDocument *active = vector_document_tabs_active(&editor->documents, view);
+    if (active) {
+        vector_document_selection_sync(active);
+    }
     if (!vector_inspector_sync(&editor->inspector, active, view, input, error, capacity)) {
         return false;
     }

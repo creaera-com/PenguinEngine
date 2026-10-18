@@ -538,7 +538,7 @@ static void test_label_drag_only_preview_undo_redo_and_checkpoint(void) {
     motion.motion.x = label.x + 50;
     motion.motion.y = label.y + 70;
     editor_host_event(&host, shell.view, &motion);
-    TEST_ASSERT_FALSE(document->selection_tool.dragging);
+    TEST_ASSERT_TRUE(document->selection_tool.marquee);
     TEST_ASSERT_EQUAL_FLOAT(10, document->artboards[0].rect.x);
     selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, label.x + 4, label.y + 4);
     selection_pointer(SDL_EVENT_MOUSE_MOTION, label.x + 64, label.y + 44);

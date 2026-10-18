@@ -18,6 +18,8 @@ add_library(pengui_editor_support STATIC
  editor_host/host.c editor_host/checkpoint.c editor_host/registry.c editor_host/resources.c
  ${PROJECT_SOURCE_DIR}/editors/vector/adapter.c
  ${PROJECT_SOURCE_DIR}/editors/vector/editor.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/document/selection.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/transform.c
  ${PROJECT_SOURCE_DIR}/editors/vector/document/document.c
  ${PROJECT_SOURCE_DIR}/editors/vector/persistence/checkpoint.c
  ${PROJECT_SOURCE_DIR}/editors/vector/persistence/commands.c
@@ -27,6 +29,7 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/rectangle_inspector.c
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard/artboard.c
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard/tool.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/workspace/marquee.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/selection.c
  ${PROJECT_SOURCE_DIR}/editors/vector/geometry/resize.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/ruler.c

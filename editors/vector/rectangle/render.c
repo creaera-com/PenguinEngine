@@ -1,5 +1,6 @@
 /** @file @brief Render rectangle children and creation previews inside their artboard. */
 #include "render.h"
+#include "editors/vector/document/selection.h"
 #include "editors/vector/workspace/selection.h"
 #include "tool.h"
 #include <math.h>
@@ -60,7 +61,7 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
                 : rectangle->fill;
         draw(renderer, board, document->viewport.zoom,
              vector_rectangle_display_rect(document, rectangle),
-             document->active_rectangle == rectangle->id, false, fill);
+             vector_document_is_selected(document, rectangle->id), false, fill);
     }
     if (document->rectangle_tool.dragging && document->rectangle_tool.parent_id == parent->id) {
         draw(renderer, board, document->viewport.zoom,

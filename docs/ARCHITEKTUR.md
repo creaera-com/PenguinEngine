@@ -729,3 +729,14 @@ Feldbindungen. Eingabefelder bleiben normale `input`-Widgets. Die Kernfunktionen
 `pui_color_to_hsl()`, `pui_color_from_hsl()`, `pui_color_parse_hex()` und
 `pui_color_format_hex()` sind auch ohne SDL nutzbar. Das Widget erhält keine Rechteck-,
 Dokument- oder History-Zeiger.
+
+
+### Anwendungsseitige Mehrfachmarkierung im Tree
+
+Runtime-Zeilen (`PUITreeItem`) koennen `selected = true` setzen. Das hebt sie
+zusaetzlich zur primaeren Zeile hervor. Die Anwendung verwaltet die Auswahl-IDs
+und reicht bei Aenderungen einen neuen Snapshot ueber `pui_view_set_tree_items`
+ein. `pui_view_select_tree_item` bleibt fuer primaere Auswahl und Aufklappen der
+Vorfahren zustaendig. Die Markierung aendert keine Klickaktionen und setzt keine
+Mehrfachauswahl-Strategie voraus; Shift, Rahmen und fachliche Sperrregeln bleiben
+Aufgabe der jeweiligen Anwendung. Statische YAML-Zeilen haben dieses Feld nicht.

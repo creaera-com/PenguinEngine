@@ -6,7 +6,8 @@
 #include "rectangle_inspector.h"
 
 typedef struct {
-    PUILayout *artboard_layout;
+    PUILayout *artboard_layout, *multi_layout;
+    bool multi_mounted;
     VectorRectangleInspector rectangle;
     unsigned document_id, artboard_id;
     VectorArtboard presented;

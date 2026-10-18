@@ -15,7 +15,8 @@ bool vector_selection_bounds(VectorDocument *document, PUIRect *bounds);
 void vector_selection_draw_handles(VectorDocument *document, SDL_Renderer *renderer);
 /** @brief Cancel the preview and release mouse capture. */
 void vector_selection_cancel(VectorDocument *document);
-/** @brief Select only in selection mode; drag artboard labels or rectangle bodies to move; handles
- * resize. */
+/** @brief Selection-mode gestures: Shift toggles rectangles, free-area drag selects a frame.
+ * Selected rectangles move together; resize handles remain available for single objects.
+ * Artboard movement remains label-only. */
 bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_Event *event);
 #endif

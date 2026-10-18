@@ -196,7 +196,7 @@ void pui_widget_tree_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
             continue;
         }
         bool enabled = data ? row_enabled[k] : v->enabled[index];
-        bool selected = s->selected == item->id;
+        bool selected = s->selected == item->id || (data && data->items[index].selected);
         Uint32 background = selected                           ? PUI_ACCENT
                             : (enabled && pui_hovered(pui, r)) ? PUI_HOVER
                             : k % 2                            ? PUI_SURFACE

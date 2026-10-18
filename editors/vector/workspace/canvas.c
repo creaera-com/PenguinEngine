@@ -6,6 +6,7 @@
 #include "editors/vector/rectangle/render.h"
 #include "editors/vector/rectangle/tool.h"
 #include "editors/vector/workspace/selection.h"
+#include "marquee.h"
 #include "ruler.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,6 +70,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         }
     }
     vector_selection_draw_handles(document, renderer);
+    vector_marquee_draw(document, renderer);
     if (document->artboard_tool.dragging) {
         PUIRect preview = vector_artboard_tool_rect(&document->artboard_tool);
         SDL_FRect rect = {area.x + viewport->x + preview.x * viewport->zoom,

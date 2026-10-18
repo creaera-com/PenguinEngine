@@ -13,6 +13,8 @@ typedef struct {
     int count;
     VectorRectangle rectangles[VECTOR_MAX_RECTANGLES];
     int rectangle_count;
+    VectorRectangleSelection selection;
+    unsigned primary;
 } VectorDocumentTree;
 
 /** @brief Select an artboard from its stable tree row ID. */

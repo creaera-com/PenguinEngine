@@ -94,6 +94,29 @@ bool vector_inspector_action(VectorInspector *inspector, VectorDocuments *docume
 
 bool vector_inspector_sync(VectorInspector *inspector, VectorDocument *document, PUIView *view,
                            PUIContext *input, char *error, size_t capacity) {
+    bool multi = document && document->selection.count > 1;
+    if (multi) {
+        if (!inspector->multi_mounted) {
+            if (!pui_view_replace_slot(view, input, "selection_properties", inspector->multi_layout,
+                                       error, capacity)) {
+                return false;
+            }
+            inspector->mounted = inspector->rectangle.mounted = false;
+            inspector->document_id = inspector->artboard_id = 0;
+            inspector->rectangle.document_id = inspector->rectangle.rectangle_id = 0;
+            inspector->multi_mounted = true;
+        }
+        char text[64];
+        snprintf(text, sizeof text, "%d Rechtecke ausgewaehlt", document->selection.count);
+        pui_view_set_text(view, "vector_selection_count", text);
+        return true;
+    }
+    if (inspector->multi_mounted) {
+        if (!pui_view_replace_slot(view, input, "selection_properties", NULL, error, capacity)) {
+            return false;
+        }
+        inspector->multi_mounted = false;
+    }
     bool rectangle = document && vector_rectangle_find(document, document->active_rectangle);
     if (rectangle && inspector->mounted) {
         if (!pui_view_replace_slot(view, input, "selection_properties", NULL, error, capacity)) {

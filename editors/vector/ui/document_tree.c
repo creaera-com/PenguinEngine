@@ -1,6 +1,7 @@
 /** @file @brief Artboards and rectangle children become depth-first tree-table rows. */
 #include "document_tree.h"
 #include "editors/vector/artboard/tool.h"
+#include "editors/vector/document/selection.h"
 #include "toolbar.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +13,10 @@ static bool unchanged(const VectorDocumentTree *tree, const VectorDocument *docu
     if (!tree->initialized || tree->document_id != (document ? document->id : 0) ||
         tree->count != (document ? document->artboard_count : 0) ||
         tree->rectangle_count != (document ? document->rectangle_count : 0)) {
+        return false;
+    }
+    if (document && (tree->primary != document->active_rectangle ||
+                     memcmp(&tree->selection, &document->selection, sizeof tree->selection))) {
         return false;
     }
     for (int i = 0; i < tree->count; i++) {
@@ -81,6 +86,7 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
             for (int j = 0; j < document->rectangle_count; j++) {
                 const VectorRectangle *rectangle = &document->rectangles[j];
                 if (rectangle->parent_id == board->id) {
+                    items[row].selected = vector_document_is_selected(document, rectangle->id);
                     fill(&items[row++], document->id, rectangle->id, rectangle->name, "rectangle",
                          rectangle->flags, 1);
                 }
@@ -103,6 +109,8 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
         tree->artboard_ids[i] = document->artboards[i].id;
         snprintf(tree->names[i], sizeof tree->names[i], "%s", document->artboards[i].name);
     }
+    tree->selection = document ? document->selection : (VectorRectangleSelection){0};
+    tree->primary = document ? document->active_rectangle : 0;
     if (document) {
         memcpy(tree->rectangles, document->rectangles,
                document->rectangle_count * sizeof *document->rectangles);
@@ -150,7 +158,11 @@ bool vector_document_tree_action(VectorDocument *document, PUIView *view, const 
                                       : "Objektstatus konnte nicht geaendert werden");
         } else {
             document->active_artboard = rectangle ? document->rectangles[i].parent_id : object;
-            document->active_rectangle = rectangle ? object : 0;
+            if (rectangle && (SDL_GetModState() & SDL_KMOD_SHIFT)) {
+                vector_document_toggle(document, object);
+            } else {
+                vector_document_select(document, rectangle ? object : 0);
+            }
         }
         break;
     }

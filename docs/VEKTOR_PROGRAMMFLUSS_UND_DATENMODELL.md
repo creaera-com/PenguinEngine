@@ -700,7 +700,7 @@ ungueltige Eingaben werden auf den vorherigen Wert zurueckgesetzt.
 `grid/state.h` enthaelt ausschliesslich Werte. Die Einstellungen sind
 Ansichtshilfen und erzeugen keine Schritte in der Artwork-History. Sie gelten
 je Dokument und werden beim Editorwechsel im temporaeren Checkpoint gesichert
-(Schema `PVCKPT09`). Es gibt damit noch keine dauerhafte Dokumentdatei.
+(Schema `PVCKPT10`). Es gibt damit noch keine dauerhafte Dokumentdatei.
 
 `grid/render.c` zeichnet die Linien artboardlokal ueber dem Artwork und erhaelt
 den SDL-Clip- und Blendzustand. Standardzellen sind rechteckig; Hexagonalzellen
@@ -736,3 +736,41 @@ beschreiben die Diagonalen einer Raute und bestimmen die Schraegstellung
 `isometric` sind stabil; Standard wird in der UI jetzt als Orthogonal bezeichnet.
 Magnetstatus und Toleranz werden mit den anderen Rastereinstellungen pro
 Dokument beim Editorwechsel wiederhergestellt.
+
+
+## Mehrfachauswahl von Rechtecken
+
+Im Auswahlwerkzeug ersetzt ein Klick auf ein unmarkiertes Rechteck die Auswahl.
+Shift-Klick fuegt ein Rechteck hinzu oder entfernt es; das funktioniert auch im
+Dokument-Tree. Ein Klick auf ein bereits markiertes Rechteck behaelt die Gruppe,
+damit man sie durch Ziehen gemeinsam verschieben kann. Ein Klick auf freie
+Flaeche hebt die Rechteckauswahl auf. Artboards bleiben einzeln auswaehlbar.
+
+Ziehen auf freier Zeichen- oder Artboardflaeche spannt einen Auswahlrahmen auf.
+Ab drei Bildschirm-Pixeln Bewegung werden die sichtbaren Rechteckflaechen auf
+Ueberschneidung getestet, auch bei rueckwaerts gezogenem Rahmen. Mit Shift
+bleibt die bisherige Auswahl erhalten. Ausgeblendete oder gesperrte Objekte und
+deren Kinder werden uebersprungen. Esc oder Fokusverlust verwirft den Rahmen
+und stellt die Auswahl vor der Geste wieder her. Die Auswahl kann mehrere
+Artboards umfassen.
+
+`document/selection.c` verwaltet stabile IDs in `VectorDocument.selection`.
+`active_rectangle` bezeichnet weiterhin das primaere Objekt, etwa fuer die
+Navigation im Tree. `workspace/marquee.c` verarbeitet Rahmen und Overlay;
+`workspace/selection.c` verarbeitet Klicks und Bewegungen. Die transiente
+Geste merkt sich ihre Teilnehmer. Beim Rasterfangen bestimmt das angeklickte
+Rechteck einen gemeinsamen Versatz; Abstaende und Groessen bleiben erhalten.
+
+`rectangle/transform.c` fuehrt eine gemeinsame Verschiebung als **einen**
+History-Befehl aus. Er prueft alle IDs, Sperren und Zielkoordinaten vor der
+Mutation. Fehlt ein Teilnehmer oder ist ein Ziel ungueltig, bleibt die ganze
+Gruppe unveraendert. Undo/Redo wendet die gespeicherten Vorher-/Nachher-Rechtecke
+atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT10` speichert
+zusaetzlich die Auswahl-IDs. Ein Editorwechsel verwirft Gestenvorschauen,
+behaelt aber Auswahl und abgeschlossene Gruppenbewegungen.
+
+Der Inspector laedt bei mehreren Rechtecken `ui/multi_selection.yaml` mit
+Auswahlanzahl und Bedienhinweisen. Gemeinsames Skalieren und gemeinsame
+Eigenschaftseingaben sind noch nicht enthalten; Groessen und Eigenschaften
+werden weiterhin an einzeln ausgewaehlten Rechtecken bearbeitet. Markierungen
+erscheinen sowohl auf der Zeichenflaeche als auch im Dokument-Tree.
