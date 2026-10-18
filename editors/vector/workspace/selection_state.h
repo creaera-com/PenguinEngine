@@ -1,6 +1,7 @@
 /** @file @brief Plain transient selection gesture state for vector objects. */
 #ifndef PE_VECTOR_SELECTION_STATE_H
 #define PE_VECTOR_SELECTION_STATE_H
+#include "pengui/pengui.h"
 #include <stdbool.h>
 
 /** @brief Stable rectangle IDs; the active rectangle is the primary selection. */
@@ -18,5 +19,8 @@ typedef struct {
     unsigned rectangle_id; ///< Zero selects the artboard itself; otherwise its rectangle child.
     unsigned resize_edges; ///< Zero for movement, otherwise a rectangular resize edge mask.
     float start_x, start_y, offset_x, offset_y;
+    PUIRect group_bounds;
+    PUIRect group_originals[64]; ///< Parent-local snapshot; never modified during a gesture.
+    PUIRect group_parents[64];   ///< Parent positions captured alongside original geometry.
 } VectorSelectionTool;
 #endif

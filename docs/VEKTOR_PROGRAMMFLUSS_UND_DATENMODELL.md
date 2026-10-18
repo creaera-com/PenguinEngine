@@ -700,7 +700,7 @@ ungueltige Eingaben werden auf den vorherigen Wert zurueckgesetzt.
 `grid/state.h` enthaelt ausschliesslich Werte. Die Einstellungen sind
 Ansichtshilfen und erzeugen keine Schritte in der Artwork-History. Sie gelten
 je Dokument und werden beim Editorwechsel im temporaeren Checkpoint gesichert
-(Schema `PVCKPT10`). Es gibt damit noch keine dauerhafte Dokumentdatei.
+(Schema `PVCKPT11`). Es gibt damit noch keine dauerhafte Dokumentdatei.
 
 `grid/render.c` zeichnet die Linien artboardlokal ueber dem Artwork und erhaelt
 den SDL-Clip- und Blendzustand. Standardzellen sind rechteckig; Hexagonalzellen
@@ -765,12 +765,39 @@ Rechteck einen gemeinsamen Versatz; Abstaende und Groessen bleiben erhalten.
 History-Befehl aus. Er prueft alle IDs, Sperren und Zielkoordinaten vor der
 Mutation. Fehlt ein Teilnehmer oder ist ein Ziel ungueltig, bleibt die ganze
 Gruppe unveraendert. Undo/Redo wendet die gespeicherten Vorher-/Nachher-Rechtecke
-atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT10` speichert
+atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT11` speichert
 zusaetzlich die Auswahl-IDs. Ein Editorwechsel verwirft Gestenvorschauen,
 behaelt aber Auswahl und abgeschlossene Gruppenbewegungen.
 
 Der Inspector laedt bei mehreren Rechtecken `ui/multi_selection.yaml` mit
-Auswahlanzahl und Bedienhinweisen. Gemeinsames Skalieren und gemeinsame
-Eigenschaftseingaben sind noch nicht enthalten; Groessen und Eigenschaften
-werden weiterhin an einzeln ausgewaehlten Rechtecken bearbeitet. Markierungen
+Auswahlanzahl und Bedienhinweisen. Gemeinsame Eigenschaftseingaben sind noch
+nicht enthalten; Formulare bearbeiten weiterhin einzeln ausgewaehlte Rechtecke. Markierungen
 erscheinen sowohl auf der Zeichenflaeche als auch im Dokument-Tree.
+
+
+### Greifer und gemeinsames Skalieren
+
+Auch die Mehrfachauswahl besitzt acht weisse Greifer am gemeinsamen Rahmen.
+Ecken skalieren beide Achsen, Kanten nur eine. Die gegenueberliegende Kante
+bleibt fest; ein Ueberziehen spiegelt die Gruppe nicht. Die Abstaende und
+Groessen innerhalb der Gruppe werden relativ zum gemeinsamen Rahmen skaliert.
+Das gilt auch fuer Rechtecke in unterschiedlichen Artboards: Die Rechnung erfolgt
+in Weltkoordinaten, das Ergebnis wird wieder relativ zum jeweiligen Eltern-Artboard
+gespeichert. Elternzuordnungen bleiben erhalten.
+
+`workspace/group_transform.c` erfasst beim Start Originalrechtecke und Elternpositionen
+in der transienten Geste. Jede Vorschau entsteht neu aus diesem Snapshot, ohne
+kumulative Rundungsfehler. `geometry/scale.c` beschreibt die unabhaengige Abbildung
+eines Rechtecks zwischen Ausgangs- und Zielrahmen. Der Rasterfang wirkt auf den
+Gruppenrahmen relativ zum Artboard des primaeren Rechtecks. Mindest- und
+Maximalgroessen begrenzen die gemeinsame Skalierung so, dass kein Mitglied
+kleiner als ein Pixel wird. Ungueltige Zielkoordinaten werden fuer die ganze
+Vorschau verworfen; Groessenbeschraenkungen haben Vorrang vor dem Rasterfang.
+
+Beim Loslassen uebergibt `vector_group_commit` alle Zielrechtecke an
+`vector_rectangles_set_rects`. `rectangle/transform.c` verwendet fuer Verschieben
+und Skalieren denselben atomaren Vorher-/Nachher-Befehl (Checkpoint-Typ 5).
+Damit entstehen fuer eine gemeinsame Skalierung genau ein Undo-Schritt und
+vollstaendig wiederherstellbare Redo-Daten. Esc, Fokusverlust und Editorwechsel
+verwerfen die laufende Groessenvorschau. Abgeschlossene Skalierungen bleiben
+beim Editorwechsel inklusive History erhalten (Schema `PVCKPT11`).

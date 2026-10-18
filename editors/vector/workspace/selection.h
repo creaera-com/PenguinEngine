@@ -16,7 +16,7 @@ void vector_selection_draw_handles(VectorDocument *document, SDL_Renderer *rende
 /** @brief Cancel the preview and release mouse capture. */
 void vector_selection_cancel(VectorDocument *document);
 /** @brief Selection-mode gestures: Shift toggles rectangles, free-area drag selects a frame.
- * Selected rectangles move together; resize handles remain available for single objects.
+ * Selected rectangles move and resize together through the shared eight handles.
  * Artboard movement remains label-only. */
 bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_Event *event);
 #endif

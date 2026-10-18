@@ -4,6 +4,7 @@
 #include "editors/vector/geometry/resize.h"
 #include "editors/vector/grid/snap.h"
 #include "editors/vector/rectangle/transform.h"
+#include "group_transform.h"
 #include "marquee.h"
 #include <math.h>
 #include <stdio.h>
@@ -43,6 +44,9 @@ PUIRect vector_rectangle_display_rect(const VectorDocument *document,
     if (!tool->dragging || tool->marquee || !tool->rectangle_id ||
         !vector_document_is_selected(document, rectangle->id)) {
         return rectangle->rect;
+    }
+    if (tool->before.count > 1 && tool->resize_edges) {
+        return vector_group_display_rect(document, rectangle);
     }
     if (tool->before.count > 1) {
         const VectorRectangle *reference = NULL;
@@ -147,9 +151,6 @@ void vector_selection_draw_handles(VectorDocument *document, SDL_Renderer *rende
         SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
         SDL_RenderRect(renderer, &outline);
     }
-    if (document->selection.count > 1) {
-        return;
-    }
     for (int i = 0; i < 8; i++) {
         PUIRect handle = vector_resize_handle_rect(screen, i, 7);
         SDL_FRect rect = {handle.x, handle.y, handle.w, handle.h};
@@ -175,6 +176,10 @@ static void begin(VectorDocument *document, unsigned board, unsigned rectangle, 
                                                      .start_x = x,
                                                      .start_y = y,
                                                      .before = document->selection};
+    if (edges && document->selection.count > 1 && !vector_group_capture(document)) {
+        vector_selection_cancel(document);
+        return;
+    }
     SDL_CaptureMouse(true);
 }
 
@@ -186,6 +191,9 @@ static void update(VectorDocument *document, float x, float y) {
 
 static bool finish(VectorDocument *document) {
     VectorSelectionTool *tool = &document->selection_tool;
+    if (tool->rectangle_id && tool->before.count > 1 && tool->resize_edges) {
+        return vector_group_commit(document);
+    }
     if (tool->rectangle_id && tool->before.count > 1) {
         VectorRectangle *reference = vector_rectangle_find(document, tool->rectangle_id);
         if (!reference) {
@@ -266,7 +274,7 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
     float x = event->button.x, y = event->button.y;
     PUIRect screen;
     bool additive = (SDL_GetModState() & SDL_KMOD_SHIFT) != 0;
-    if (!additive && document->selection.count <= 1 && vector_selection_bounds(document, &screen)) {
+    if (!additive && vector_selection_bounds(document, &screen)) {
         unsigned edges = vector_resize_hit(screen, x, y, 10);
         if (edges) {
             begin(document, document->active_artboard, document->active_rectangle, edges, x, y);
