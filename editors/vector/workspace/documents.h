@@ -19,4 +19,6 @@ bool vector_document_tabs_commit(VectorDocumentTabs *tabs, VectorDocuments *docu
                                  PUIView *view, PUIContext *input, char *error, size_t capacity);
 /** @brief Cancel native interactions in all documents except active (NULL cancels all). */
 void vector_workspace_cancel_inactive(VectorDocuments *documents, const VectorDocument *active);
+/** @brief Show the active artboard name, falling back to the document title. */
+void vector_document_tabs_captions(VectorDocuments *documents, PUIView *view);
 #endif

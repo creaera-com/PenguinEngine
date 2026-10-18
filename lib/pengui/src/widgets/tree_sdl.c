@@ -260,3 +260,24 @@ int pui_view_tree_item_count(const PUIView *view, const char *tree) {
     int index = find_tree(view, tree);
     return index >= 0 && view->state[index].tree ? view->state[index].tree->count : -1;
 }
+
+bool pui_view_select_tree_item(PUIView *view, const char *tree, const char *item) {
+    int index = find_tree(view, tree);
+    if (index < 0) {
+        return false;
+    }
+    if (!item) {
+        view->state[index].selected = 0;
+        return true;
+    }
+    TreeData *data = view->state[index].tree;
+    if (data) {
+        for (int i = 0; i < data->count; i++) {
+            if (data->items[i].enabled && !strcmp(data->items[i].id, item)) {
+                view->state[index].selected = pui_id(item);
+                return true;
+            }
+        }
+    }
+    return false;
+}

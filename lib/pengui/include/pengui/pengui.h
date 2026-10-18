@@ -862,6 +862,8 @@ typedef struct {
  */
 bool pui_view_set_tree_items(PUIView *view, const char *tree, const PUITreeItem *items, int count);
 /** @brief Runtime row count; -1 for a missing tree or a tree using YAML children. */
+/** @brief Select a runtime tree row by ID; NULL clears selection without firing actions. */
+bool pui_view_select_tree_item(PUIView *view, const char *tree, const char *item);
 int pui_view_tree_item_count(const PUIView *view, const char *tree);
 
 /** @brief Create one independent view; layout/renderer must outlive it. NULL on failure. */
@@ -900,10 +902,11 @@ void pui_view_apply_theme(const PUILayout *layout);
 bool pui_view_event(PUIView *view, PUIContext *pui, SDL_Window *window, const SDL_Event *event);
 /** @brief Draw a frame; callbacks may change app state but must not free the active view/layout. */
 void pui_view_draw(PUIView *view, PUIContext *pui, PUIRect area, PUIAction action, void *context);
-/** @brief Read an input value by YAML id; NULL for unknown/non-input widgets. Borrowed until free.
+/** @brief Read input, label or tab text by YAML id; NULL for other widgets. Borrowed until
+ * mutation.
  */
 const char *pui_view_text(const PUIView *view, const char *id);
-/** @brief Set input/label text without modifying YAML; false for wrong kinds or excessive text. */
+/** @brief Set input, label or tab text; tab widths follow the new caption. */
 bool pui_view_set_text(PUIView *view, const char *id, const char *text);
 /** @brief Read a toggle, checkbox or grouped button. False for unchecked/invalid IDs. */
 bool pui_view_checked(const PUIView *view, const char *id);

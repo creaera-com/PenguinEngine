@@ -714,6 +714,13 @@ static void test_empty_tabs_can_draw_receive_first_document_and_use_checked_defa
     TEST_ASSERT_TRUE(
         pui_view_add_tab(view, &pui, "documents", "one", "One", content, error, sizeof error));
     TEST_ASSERT_EQUAL_STRING("one", pui_view_selected_tab(view, "documents"));
+    TEST_ASSERT_TRUE(pui_view_set_text(view, "one", "Renamed document"));
+    TEST_ASSERT_EQUAL_STRING("Renamed document", pui_view_text(view, "one"));
+    TEST_ASSERT_TRUE(
+        pui_view_add_tab(view, &pui, "documents", "two", "Two", content, error, sizeof error));
+    TEST_ASSERT_EQUAL_STRING("Renamed document", pui_view_text(view, "one"));
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+
     TEST_ASSERT_EQUAL_STRING("document", pui_view_selected_tab(view, "navigation"));
     pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
     pui_layout_free(content);

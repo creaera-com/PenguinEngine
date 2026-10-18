@@ -72,7 +72,9 @@ const char *pui_view_text(const PUIView *view, const char *id) {
         return NULL;
     }
     for (int i = 0; i < view->layout->count; i++) {
-        if (view->layout->nodes[i].type == PUI_NODE_INPUT &&
+        if ((view->layout->nodes[i].type == PUI_NODE_INPUT ||
+             view->layout->nodes[i].type == PUI_NODE_LABEL ||
+             view->layout->nodes[i].type == PUI_NODE_TAB) &&
             !strcmp(view->layout->nodes[i].name, id)) {
             return view->state[i].text;
         }
@@ -86,15 +88,30 @@ bool pui_view_set_text(PUIView *view, const char *id, const char *text) {
     }
     for (int i = 0; i < view->layout->count; i++) {
         const PUINode *n = &view->layout->nodes[i];
-        if (!strcmp(n->name, id) && (n->type == PUI_NODE_INPUT || n->type == PUI_NODE_LABEL)) {
+        if (!strcmp(n->name, id) &&
+            (n->type == PUI_NODE_INPUT || n->type == PUI_NODE_LABEL || n->type == PUI_NODE_TAB)) {
             char copy[256] = {0};
             PUITextEdit edit = {0};
             if (n->type == PUI_NODE_INPUT &&
                 !pui_text_edit_insert(&edit, copy, sizeof copy, text)) {
                 return false;
             }
-            if (n->type == PUI_NODE_LABEL) {
+            if (n->type == PUI_NODE_LABEL || n->type == PUI_NODE_TAB) {
                 snprintf(copy, sizeof copy, "%s", text);
+            }
+            if (n->type == PUI_NODE_TAB) {
+                for (int j = 0; j < view->layout->count; j++) {
+                    if (view->layout->nodes[j].type != PUI_NODE_TABS) {
+                        continue;
+                    }
+                    for (int k = 0; k < view->state[j].tabs.count; k++) {
+                        if (view->state[j].tabs.items[k].id == n->id) {
+                            view->state[j].tabs.items[k].width =
+                                pui_tab_content_width(pui_icon_from_name(n->icon), copy) +
+                                PUI_TAB_GAP;
+                        }
+                    }
+                }
             }
             memcpy(view->state[i].text, copy, sizeof copy);
             pui_text_edit_init(&view->state[i].edit, view->state[i].text, false);

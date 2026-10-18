@@ -4,6 +4,7 @@
 #include "editor_host/editor.h"
 #include "editors/vector/document/document.h"
 #include "ui/document_tree.h"
+#include "ui/inspector.h"
 #include "workspace/documents.h"
 
 typedef struct {
@@ -11,6 +12,7 @@ typedef struct {
     VectorDocuments documents;
     VectorDocumentTabs document_tabs;
     VectorDocumentTree document_tree;
+    VectorInspector inspector;
 } VectorEditor;
 
 void *vector_editor_create(const EditorServices *services, char *error, size_t capacity);

@@ -8,7 +8,7 @@
 
 /* Native integer/float representation is sufficient for a private file in this process.
  * Changing this schema requires a new signature. This is not an SVG or interchange format. */
-static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '0', '3'};
+static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '0', '4'};
 
 #define WRITE(value) (fwrite(&(value), sizeof(value), 1, file) == 1)
 #define READ(value) (fread(&(value), sizeof(value), 1, file) == 1)
@@ -107,19 +107,25 @@ static bool valid_history(const VectorDocument *document) {
     VectorDocument replay = {0};
     for (int i = 0; i < document->history.count; i++) {
         VectorCommand command = document->history.commands[i];
-        unsigned previous = replay.active_artboard;
-        int previous_count = replay.artboard_count;
-        if (!command.apply(&replay, command.data) ||
-            replay.active_artboard >= document->next_artboard_id) {
+        VectorArtboard before[VECTOR_MAX_ARTBOARDS];
+        int count = replay.artboard_count;
+        memcpy(before, replay.artboards, count * sizeof *before);
+        if (!command.apply(&replay, command.data)) {
             return false;
         }
-        for (int j = 0; j < replay.artboard_count - 1; j++) {
-            if (replay.artboards[j].id == replay.active_artboard) {
+        for (int j = 0; j < replay.artboard_count; j++) {
+            if (!replay.artboards[j].id || replay.artboards[j].id >= document->next_artboard_id) {
                 return false;
             }
+            for (int k = 0; k < j; k++) {
+                if (replay.artboards[k].id == replay.artboards[j].id) {
+                    return false;
+                }
+            }
         }
-        if (!command.revert(&replay, command.data) || replay.active_artboard != previous ||
-            replay.artboard_count != previous_count || !command.apply(&replay, command.data)) {
+        if (!command.revert(&replay, command.data) || replay.artboard_count != count ||
+            memcmp(before, replay.artboards, count * sizeof *before) ||
+            !command.apply(&replay, command.data)) {
             return false;
         }
     }
@@ -130,15 +136,24 @@ static bool valid_history(const VectorDocument *document) {
         }
     }
     if (replay.artboard_count != document->artboard_count ||
-        replay.active_artboard != document->active_artboard) {
+        (document->active_artboard && !document->artboard_count)) {
         return false;
     }
     for (int i = 0; i < replay.artboard_count; i++) {
         const VectorArtboard *a = &replay.artboards[i], *b = &document->artboards[i];
-        if (a->id != b->id || a->rect.x != b->rect.x || a->rect.y != b->rect.y ||
-            a->rect.w != b->rect.w || a->rect.h != b->rect.h) {
+        if (!memchr(b->name, 0, sizeof b->name) || strcmp(a->name, b->name) || a->id != b->id ||
+            a->rect.x != b->rect.x || a->rect.y != b->rect.y || a->rect.w != b->rect.w ||
+            a->rect.h != b->rect.h) {
             return false;
         }
+    }
+    if (document->active_artboard) {
+        for (int i = 0; i < document->artboard_count; i++) {
+            if (document->artboards[i].id == document->active_artboard) {
+                return true;
+            }
+        }
+        return false;
     }
     return true;
 }

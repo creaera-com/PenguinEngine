@@ -66,3 +66,18 @@ void vector_workspace_cancel_inactive(VectorDocuments *documents, const VectorDo
         }
     }
 }
+
+void vector_document_tabs_captions(VectorDocuments *documents, PUIView *view) {
+    for (int i = 0; i < documents->count; i++) {
+        VectorDocument *doc = &documents->items[i];
+        const char *caption = doc->title;
+        for (int j = 0; j < doc->artboard_count; j++) {
+            if (doc->artboards[j].id == doc->active_artboard) {
+                caption = doc->artboards[j].name;
+            }
+        }
+        char tab[64];
+        snprintf(tab, sizeof tab, "vector_document_%u", doc->id);
+        pui_view_set_text(view, tab, caption);
+    }
+}

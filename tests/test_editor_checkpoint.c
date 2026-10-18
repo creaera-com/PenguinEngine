@@ -395,8 +395,87 @@ static void test_empty_restored_checkpoint_gets_a_default_document(void) {
     TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
 }
 
+static void property(const char *id, const char *value, const char *action) {
+    TEST_ASSERT_TRUE(pui_view_set_text(shell.view, id, value));
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, action, id));
+    commit();
+}
+
+static void test_artboard_inspector_updates_history_and_survives_editor_switch(void) {
+    VectorDocument *document = add_document();
+    TEST_ASSERT_NULL(pui_view_text(shell.view, "artboard_name"));
+    TEST_ASSERT_TRUE(vector_artboard_add(document, (PUIRect){10, 20, 200, 300}));
+    commit();
+    TEST_ASSERT_EQUAL_STRING("Artboard 1", pui_view_text(shell.view, "artboard_name"));
+    property("artboard_name", "Menu", "vector.artboard.name");
+    TEST_ASSERT_EQUAL_STRING("Menu", pui_view_text(shell.view, "vector_document_1"));
+    property("artboard_width", "640", "vector.artboard.width");
+    property("artboard_height", "480", "vector.artboard.height");
+    TEST_ASSERT_EQUAL_STRING("Menu", document->artboards[0].name);
+    TEST_ASSERT_EQUAL_FLOAT(640, document->artboards[0].rect.w);
+    TEST_ASSERT_EQUAL_FLOAT(480, document->artboards[0].rect.h);
+    int count = document->history.count;
+    property("artboard_width", "1e30", "vector.artboard.width");
+    property("artboard_width", "nan", "vector.artboard.width");
+    property("artboard_width", "0", "vector.artboard.width");
+    property("artboard_height", "12junk", "vector.artboard.height");
+    property("artboard_name", "", "vector.artboard.name");
+    TEST_ASSERT_EQUAL_INT(count, document->history.count);
+    TEST_ASSERT_EQUAL_STRING("640", pui_view_text(shell.view, "artboard_width"));
+    TEST_ASSERT_EQUAL_STRING("Menu", pui_view_text(shell.view, "artboard_name"));
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.undo", ""));
+    commit();
+    TEST_ASSERT_EQUAL_STRING("300", pui_view_text(shell.view, "artboard_height"));
+    activate("scripts");
+    activate("vector");
+    commit();
+    VectorEditor *editor = host.instance;
+    document = &editor->documents.items[0];
+    TEST_ASSERT_EQUAL_STRING("Menu", document->artboards[0].name);
+    TEST_ASSERT_EQUAL_FLOAT(640, document->artboards[0].rect.w);
+    TEST_ASSERT_EQUAL_FLOAT(300, document->artboards[0].rect.h);
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.redo", ""));
+    commit();
+    TEST_ASSERT_EQUAL_STRING("480", pui_view_text(shell.view, "artboard_height"));
+}
+
+static void test_artboard_selection_and_tool_toggle(void) {
+    VectorDocument *document = add_document();
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    TEST_ASSERT_TRUE(document->artboard_tool.enabled);
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    TEST_ASSERT_FALSE(document->artboard_tool.enabled);
+    TEST_ASSERT_TRUE(vector_artboard_add(document, (PUIRect){10, 20, 200, 300}));
+    TEST_ASSERT_TRUE(vector_artboard_add(document, (PUIRect){250, 20, 200, 300}));
+    commit();
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.artboard.select",
+                                        "vector_document_1.artboard_1"));
+    commit();
+    TEST_ASSERT_EQUAL_UINT(1, document->active_artboard);
+    TEST_ASSERT_EQUAL_STRING("Artboard 1", pui_view_text(shell.view, "artboard_name"));
+    property("artboard_name", "First", "vector.artboard.name");
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_artboard", ""));
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.tool_selection", ""));
+    TEST_ASSERT_FALSE(document->artboard_tool.enabled);
+    activate("scripts");
+    activate("vector");
+    commit();
+    VectorEditor *editor = host.instance;
+    document = &editor->documents.items[0];
+    TEST_ASSERT_EQUAL_UINT(1, document->active_artboard);
+    TEST_ASSERT_EQUAL_STRING("First", pui_view_text(shell.view, "artboard_name"));
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "editor.undo", ""));
+    commit();
+    TEST_ASSERT_EQUAL_STRING("Artboard 1", pui_view_text(shell.view, "artboard_name"));
+    document->active_artboard = 0;
+    commit();
+    TEST_ASSERT_NULL(pui_view_text(shell.view, "artboard_name"));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_artboard_inspector_updates_history_and_survives_editor_switch);
+    RUN_TEST(test_artboard_selection_and_tool_toggle);
     RUN_TEST(test_empty_restored_checkpoint_gets_a_default_document);
     RUN_TEST(test_empty_workspace_gets_one_default_document_without_duplicates);
     RUN_TEST(test_navigation_tab_selection_survives_document_changes_editor_switch_and_reload);

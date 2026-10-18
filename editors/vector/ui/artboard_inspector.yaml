@@ -1,0 +1,28 @@
+schema: pengui/v1
+root:
+  type: panel
+  padding: 0
+  gap: 8
+  children:
+    - {type: label, text: Artboard, height: 24}
+    - type: row
+      padding: 0
+      gap: 8
+      height: 28
+      children:
+        - {type: label, text: Name, width: 64}
+        - {type: input, id: artboard_name, action: vector.artboard.name}
+    - type: row
+      padding: 0
+      gap: 8
+      height: 28
+      children:
+        - {type: label, text: Breite, width: 64}
+        - {type: input, id: artboard_width, action: vector.artboard.width}
+    - type: row
+      padding: 0
+      gap: 8
+      height: 28
+      children:
+        - {type: label, text: Hoehe, width: 64}
+        - {type: input, id: artboard_height, action: vector.artboard.height}

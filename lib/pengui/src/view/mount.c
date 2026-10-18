@@ -121,6 +121,23 @@ static bool apply_layout(PUIView *view, PUIContext *context, PUILayout *layout, 
     next->canvas_renderer = view->canvas_renderer;
     next->canvas_context = view->canvas_context;
     retain_state(view, next, slot);
+    for (int i = 0; i < next->layout->count; i++) {
+        const PUINode *node = &next->layout->nodes[i];
+        if (node->type != PUI_NODE_TABS) {
+            continue;
+        }
+        for (int j = node->child; j >= 0; j = next->layout->nodes[j].next) {
+            const PUINode *tab = &next->layout->nodes[j];
+            for (int k = 0; k < next->state[i].tabs.count; k++) {
+                if (next->state[i].tabs.items[k].id == tab->id) {
+                    next->state[i].tabs.items[k].width =
+                        pui_tab_content_width(pui_icon_from_name(tab->icon), next->state[j].text) +
+                        PUI_TAB_GAP;
+                }
+            }
+        }
+    }
+
     if (tabs && selected) {
         for (int i = 0; i < next->layout->count; i++) {
             if (next->layout->nodes[i].type == PUI_NODE_TABS &&

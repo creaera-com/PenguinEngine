@@ -513,3 +513,25 @@ benötigen außerdem eine Erweiterung des Checkpoint-Codecs.
 Damit bleiben UI-Beschreibung, Interaktionszustand, fachliche Mutation und
 Undo/Redo nachvollziehbar getrennt. Die konkrete Struktur für zukünftige
 Vektorformen oder einen SVG-Import ist damit noch nicht festgelegt.
+
+
+## Artboard-Auswahl und Eigenschaften
+
+Ein erneuter Klick auf das aktive Artboard-Werkzeug bricht es ab. Der Auswahlbutton
+beendet das Werkzeug ebenfalls. Artboards lassen sich anschließend auf der Zeichenfläche
+oder im Dokument-Tree auswählen.
+
+Der Inspector enthält den Slot `artboard_properties`. Die UI-Anbindung
+`editors/vector/ui/inspector.c` setzt dort bei vorhandener Auswahl die Beschreibung
+`artboard_inspector.yaml` ein und entfernt sie wieder ohne Auswahl. Die Felder werden
+bei Enter oder Fokuswechsel übernommen. Name, Breite und Höhe werden über
+`vector_artboard_update()` als ein Vorher-/Nachher-Befehl in die dokumenteigene History
+aufgenommen. Ungültige Werte verändern das Dokument nicht; das Feld zeigt wieder den
+bisherigen Wert. Größen sind Dokumentpixel und liegen zwischen 1 und 1.000.000; Namen
+haben maximal 63 UTF-8-Bytes.
+
+Die Artboard-ID bleibt beim Umbenennen unverändert. Beschriftung über der Zeichenfläche,
+Tree-Zeile und Dokument-Tab lesen den Namen aus demselben Artboard. Der Tab zeigt den
+Namen des ausgewählten Artboards, sonst den Dokumentnamen. Auswahl und UI-Beschriftungen
+sind keine eigenen Undo-Schritte. Die temporären Checkpoints sichern Namen, Geometrie,
+Auswahl sowie Erstellungs- und Änderungsbefehle einschließlich noch möglicher Redo-Schritte.

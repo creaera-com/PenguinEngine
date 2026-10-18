@@ -47,6 +47,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         SDL_FRect rect = {area.x + viewport->x + board->rect.x * viewport->zoom,
                           area.y + viewport->y + board->rect.y * viewport->zoom,
                           board->rect.w * viewport->zoom, board->rect.h * viewport->zoom};
+        pui_text_scaled(renderer, rect.x, rect.y - 30, board->name, 0xEEEEEEFF, .875f);
         vector_ruler_draw(renderer, rect, viewport->zoom);
         SDL_SetRenderDrawColor(renderer, 242, 242, 242, 255);
         SDL_RenderFillRect(renderer, &rect);
@@ -75,6 +76,22 @@ bool vector_canvas_event(VectorDocument *document, PUIView *view, const SDL_Even
     VectorViewport *viewport = &document->viewport;
     char id[96];
     snprintf(id, sizeof id, "vector_document_%u.canvas", document->id);
+    if (!document->artboard_tool.enabled && event->type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
+        event->button.button == SDL_BUTTON_LEFT &&
+        pui_view_hit(view, id, event->button.x, event->button.y)) {
+        float x = (event->button.x - viewport->bounds.x - viewport->x) / viewport->zoom;
+        float y = (event->button.y - viewport->bounds.y - viewport->y) / viewport->zoom;
+        document->active_artboard = 0;
+        for (int i = document->artboard_count - 1; i >= 0; i--) {
+            VectorArtboard *b = &document->artboards[i];
+            if (x >= b->rect.x && x <= b->rect.x + b->rect.w && y >= b->rect.y &&
+                y <= b->rect.y + b->rect.h) {
+                document->active_artboard = b->id;
+                break;
+            }
+        }
+        return true;
+    }
     if (event->type == SDL_EVENT_WINDOW_FOCUS_LOST) {
         viewport->panning = false;
     } else if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN &&

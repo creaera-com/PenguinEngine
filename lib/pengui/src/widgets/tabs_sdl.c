@@ -29,16 +29,18 @@ void pui_widget_tabs_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
     pui_tabs_update(pui, &s->tabs, bar, 100);
     for (int k = 0; k < s->tabs.count; k++) {
         const PUINode *tab = NULL;
+        int tab_index = -1;
         for (int c = n->child; c >= 0; c = v->layout->nodes[c].next) {
             if (v->layout->nodes[c].id == s->tabs.items[k].id) {
                 tab = &v->layout->nodes[c];
+                tab_index = c;
                 break;
             }
         }
         PUIRect r = pui_tab_rect(&s->tabs, bar, 100, k);
-        pui_draw_tab(v->renderer, pui_frect(r), pui_icon_from_name(tab->icon), tab->text,
-                     s->tabs.selected == tab->id, !pui->blocked && tab->enabled,
-                     pui_hovered(pui, r));
+        pui_draw_tab(v->renderer, pui_frect(r), pui_icon_from_name(tab->icon),
+                     v->state[tab_index].text, s->tabs.selected == tab->id,
+                     !pui->blocked && tab->enabled, pui_hovered(pui, r));
     }
     for (int k = n->child; k >= 0; k = v->layout->nodes[k].next) {
         if (v->layout->nodes[k].id == s->tabs.selected) {
