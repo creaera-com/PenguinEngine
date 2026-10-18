@@ -441,7 +441,7 @@ PUIRect pui_image_fit(PUIRect bounds, float width, float height, float padding);
 
 /** @file @brief SDL-free, validated YAML widget descriptions. */
 #define PUI_LAYOUT_NODES 128
-#define PUI_LAYOUT_DEPTH 12
+#define PUI_LAYOUT_DEPTH 24
 
 /** @brief Generic widget kinds; no application or document domains. */
 /** @brief HSL lightness color: hue in degrees, saturation/lightness/alpha in [0,1]. */

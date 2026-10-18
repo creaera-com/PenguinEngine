@@ -9,7 +9,7 @@
 
 /* Native integer/float representation is sufficient for a private file in this process.
  * Changing this schema requires a new signature. This is not an SVG or interchange format. */
-static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '0', '7'};
+static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '0', '8'};
 
 #define WRITE(value) (fwrite(&(value), sizeof(value), 1, file) == 1)
 #define READ(value) (fread(&(value), sizeof(value), 1, file) == 1)
@@ -61,6 +61,7 @@ static bool capture_tabs(const VectorDocuments *documents, const PUIView *view,
 }
 
 static bool write_document(const VectorDocument *document, FILE *file) {
+    unsigned grid_visible = document->grid.visible;
     if (!WRITE(document->id) || !WRITE(document->title) || !WRITE(document->next_artboard_id) ||
         !WRITE(document->active_artboard) || !WRITE(document->artboard_count) ||
         fwrite(document->artboards, sizeof *document->artboards, document->artboard_count, file) !=
@@ -70,7 +71,9 @@ static bool write_document(const VectorDocument *document, FILE *file) {
         fwrite(document->rectangles, sizeof *document->rectangles, document->rectangle_count,
                file) != (size_t)document->rectangle_count ||
         !WRITE(document->viewport.x) || !WRITE(document->viewport.y) ||
-        !WRITE(document->viewport.zoom) || !WRITE(document->history.count) ||
+        !WRITE(document->viewport.zoom) || !WRITE(grid_visible) || !WRITE(document->grid.type) ||
+        !WRITE(document->grid.width) || !WRITE(document->grid.height) ||
+        !WRITE(document->grid.color) || !WRITE(document->history.count) ||
         !WRITE(document->history.cursor)) {
         return false;
     }
@@ -198,6 +201,7 @@ static bool valid_history(const VectorDocument *document) {
 
 static bool read_document(VectorDocument *document, unsigned expected_id, FILE *file) {
     int history_count;
+    unsigned grid_visible;
     if (!READ(document->id) || document->id != expected_id || !READ(document->title) ||
         !memchr(document->title, 0, sizeof document->title) || !READ(document->next_artboard_id) ||
         !document->next_artboard_id || !READ(document->active_artboard) ||
@@ -213,12 +217,19 @@ static bool read_document(VectorDocument *document, unsigned expected_id, FILE *
         !READ(document->viewport.x) || !READ(document->viewport.y) ||
         !READ(document->viewport.zoom) || !isfinite(document->viewport.x) ||
         !isfinite(document->viewport.y) || !isfinite(document->viewport.zoom) ||
-        document->viewport.zoom < .1f || document->viewport.zoom > 4 || !READ(history_count) ||
-        history_count < 0 || history_count > VECTOR_HISTORY_CAPACITY ||
-        !READ(document->history.cursor) || document->history.cursor < 0 ||
-        document->history.cursor > history_count) {
+        document->viewport.zoom < .1f || document->viewport.zoom > 4 || !READ(grid_visible) ||
+        grid_visible > 1 || !READ(document->grid.type) || !READ(document->grid.width) ||
+        !READ(document->grid.height) || !READ(document->grid.color) ||
+        (document->grid.type != VECTOR_GRID_STANDARD &&
+         document->grid.type != VECTOR_GRID_HEXAGONAL) ||
+        !isfinite(document->grid.width) || !isfinite(document->grid.height) ||
+        document->grid.width < 1 || document->grid.width > 10000 || document->grid.height < 1 ||
+        document->grid.height > 10000 || !READ(history_count) || history_count < 0 ||
+        history_count > VECTOR_HISTORY_CAPACITY || !READ(document->history.cursor) ||
+        document->history.cursor < 0 || document->history.cursor > history_count) {
         return false;
     }
+    document->grid.visible = grid_visible != 0;
     for (int i = 0; i < history_count; i++) {
         if (!vector_command_read(&document->history.commands[i], file)) {
             return false;

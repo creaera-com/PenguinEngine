@@ -4,6 +4,7 @@
 #define PE_VECTOR_DOCUMENT_H
 #include "editors/vector/artboard/artboard.h"
 #include "editors/vector/artboard/tool_state.h"
+#include "editors/vector/grid/state.h"
 #include "editors/vector/history/history.h"
 #include "editors/vector/rectangle/rectangle.h"
 #include "editors/vector/rectangle/tool_state.h"
@@ -25,6 +26,7 @@ typedef struct VectorDocument {
     VectorFillPreview fill_preview;
     VectorHistory history;
     VectorViewport viewport;
+    VectorGrid grid;
     VectorArtboardTool artboard_tool;
     VectorSelectionTool selection_tool;
 } VectorDocument;

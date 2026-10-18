@@ -35,6 +35,8 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/documents.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/grid/render.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/grid.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/toolbar.c
  ${PROJECT_SOURCE_DIR}/editors/scripts/adapter.c
  ${PROJECT_SOURCE_DIR}/editors/scripts/editor.c

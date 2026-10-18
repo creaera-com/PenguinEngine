@@ -2,6 +2,7 @@
 #include "artboard/tool.h"
 #include "internal.h"
 #include "rectangle/tool.h"
+#include "ui/grid.h"
 #include "ui/inspector.h"
 #include "ui/toolbar.h"
 #include "workspace/canvas.h"
@@ -77,6 +78,9 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
         return true;
     }
     VectorDocument *document = vector_document_tabs_active(&editor->documents, view);
+    if (vector_grid_action(document, view, name)) {
+        return true;
+    }
     if (vector_rectangle_tool_action(document, view, name)) {
         vector_toolbar_sync(view, document);
         return true;
@@ -162,6 +166,7 @@ bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, c
         return false;
     }
     vector_toolbar_sync(view, active);
+    vector_grid_sync(view, active, &editor->grid_document_id);
     return vector_document_tree_sync(&editor->document_tree,
                                      vector_document_tabs_active(&editor->documents, view), view,
                                      error, capacity);

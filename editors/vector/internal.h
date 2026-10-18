@@ -13,6 +13,7 @@ typedef struct {
     VectorDocumentTabs document_tabs;
     VectorDocumentTree document_tree;
     VectorInspector inspector;
+    unsigned grid_document_id;
 } VectorEditor;
 
 void *vector_editor_create(const EditorServices *services, char *error, size_t capacity);

@@ -467,6 +467,17 @@ static void color_pointer(SDL_EventType type, float x, float y) {
 }
 
 static void color_origin(float *x, float *y) {
+    bool opened = false;
+    for (int row = 0; row < 800 && !opened; row += 4) {
+        for (int column = 0; column < 1280; column += 4) {
+            if (pui_view_hit(shell.view, "rectangle_fill_button", column, row)) {
+                color_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, column, row);
+                color_pointer(SDL_EVENT_MOUSE_BUTTON_UP, column, row);
+                opened = true;
+                break;
+            }
+        }
+    }
     for (int row = 0; row < 800; row += 4) {
         for (int column = 0; column < 1280; column += 4) {
             if (pui_view_hit(shell.view, "rectangle_fill", column, row)) {

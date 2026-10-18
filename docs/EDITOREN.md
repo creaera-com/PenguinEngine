@@ -213,7 +213,7 @@ Verwende explizite IDs für Werte, Auswahl und Zustände, die erhalten bleiben s
 einschließlich betroffener Tree-Einträge und Tabs. Relative Bildpfade beziehen sich auf
 die YAML-Datei, aus der das jeweilige Element stammt.
 
-Die bisherige Grenze von 128 Knoten und 12 Ebenen gilt für den gesamten zusammengesetzten
+Die bisherige Grenze von 128 Knoten und 24 Ebenen gilt für den gesamten zusammengesetzten
 Baum. Zu große Oberflächen und doppelte IDs führen zu einem Fehler, ohne die bisherige
 Oberfläche zu ersetzen. Größere dynamische UIs können später eine Erweiterung dieser
 Grenzen benötigen.

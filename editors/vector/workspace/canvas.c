@@ -2,6 +2,7 @@
 #include "canvas.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/document/document.h"
+#include "editors/vector/grid/render.h"
 #include "editors/vector/rectangle/render.h"
 #include "editors/vector/rectangle/tool.h"
 #include "editors/vector/workspace/selection.h"
@@ -61,6 +62,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         SDL_SetRenderDrawColor(renderer, 242, 242, 242, 255);
         SDL_RenderFillRect(renderer, &rect);
         vector_rectangles_draw(document, board, renderer, rect);
+        vector_grid_draw(&document->grid, renderer, rect, viewport->zoom);
         if (board->id == document->active_artboard && !document->active_rectangle) {
             SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
             SDL_RenderRect(renderer, &rect);

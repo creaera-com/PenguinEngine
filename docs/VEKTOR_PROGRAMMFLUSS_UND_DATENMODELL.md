@@ -682,3 +682,32 @@ Greifer bleiben als Editorhilfen sichtbar. Die vorherige Renderer-Blendeinstellu
 wird wiederhergestellt. Checkpoints sichern die gespeicherte Füllfarbe einschließlich
 Undo- und Redo-Befehlen, jedoch keine aktive Farbvorschau. Nach Undo/Redo oder
 Editorwechsel synchronisiert der Inspector den Modellwert zurück in den Picker.
+
+## Raster und Tools-Panel
+
+Die rechte Spalte in `editors/vector/ui/editor.yaml` ist ein vertikaler Split:
+oben Inspector, unten Tools. `initial_last` legt die Anfangshoehe des unteren
+Bereichs fest; der Greifer veraendert die Aufteilung. Die Rasterfarbe oeffnet
+wie die Rechteck-Fuellfarbe einen Popup-Farbwaehler, damit beide Panels auch
+bei kleiner Hoehe bedienbar bleiben.
+
+`vector.grid.toggle` schaltet die Darstellung ueber den Toolbar-Button um.
+`ui/grid.c` bindet Rastertyp, Breite, Hoehe und Farbe aus den YAML-Widgets an
+`VectorDocument.grid`. Das Raster startet ausgeblendet mit 16 x 16 px und
+halbtransparentem Grau. Breite und Hoehe akzeptieren 1 bis 10000 Dokumentpixel;
+ungueltige Eingaben werden auf den vorherigen Wert zurueckgesetzt.
+
+`grid/state.h` enthaelt ausschliesslich Werte. Die Einstellungen sind
+Ansichtshilfen und erzeugen keine Schritte in der Artwork-History. Sie gelten
+je Dokument und werden beim Editorwechsel im temporaeren Checkpoint gesichert
+(Schema `PVCKPT08`). Es gibt damit noch keine dauerhafte Dokumentdatei.
+
+`grid/render.c` zeichnet die Linien artboardlokal ueber dem Artwork und erhaelt
+den SDL-Clip- und Blendzustand. Standardzellen sind rechteckig; Hexagonalzellen
+haben die Spitze oben und versetzte Zeilen. Breite/Hoehe beschreiben deren
+umschliessendes Rechteck; bei gleichen Werten sind die Sechsecke entsprechend
+gestreckt. Fuer regelmaessige Sechsecke ist Breite/Hoehe etwa 0,866.
+Zoom und Verschieben folgen der Zeichenflaeche. Rendering wird auf den sichtbaren
+Ausschnitt begrenzt; bei weniger als 4 Bildschirm-Pixeln Zellbreite oder -hoehe
+wird das Raster voruebergehend ausgelassen. Das verhindert ueberdichte Linien
+und unnoetige Zeichenarbeit. Das Raster richtet Objekte noch nicht automatisch aus.
