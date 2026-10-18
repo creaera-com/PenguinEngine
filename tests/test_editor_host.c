@@ -222,31 +222,34 @@ static void document_action(void *context, const char *name, const char *widget)
 
 static void test_add_document_button_appends_and_selects_tabs_between_frames(void) {
     activate("vector");
-    TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_EQUAL_INT(0, pui_view_tab_count(shell.view, "vector_document_tabs"));
     pui_pointer(&shell.input, 279, 70, true);
     pui_pointer(&shell.input, 279, 70, false);
     pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 800, 600}, document_action, &host);
-    TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_EQUAL_INT(0, pui_view_tab_count(shell.view, "vector_document_tabs"));
     char error[256];
     TEST_ASSERT_TRUE_MESSAGE(
         editor_host_commit(&host, shell.view, &shell.input, error, sizeof error), error);
-    TEST_ASSERT_EQUAL_INT(2, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
     TEST_ASSERT_EQUAL_STRING("vector_document_1",
                              pui_view_selected_tab(shell.view, "vector_document_tabs"));
-    for (int i = 1; i < PUI_MAX_TABS - 1; i++) {
+    for (int i = 1; i < VECTOR_MAX_DOCUMENTS; i++) {
         TEST_ASSERT_TRUE(
             editor_host_action(&host, shell.view, "vector.add_document", "vector_add_document"));
         TEST_ASSERT_TRUE_MESSAGE(
             editor_host_commit(&host, shell.view, &shell.input, error, sizeof error), error);
     }
-    TEST_ASSERT_EQUAL_INT(PUI_MAX_TABS, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_EQUAL_INT(VECTOR_MAX_DOCUMENTS,
+                          pui_view_tab_count(shell.view, "vector_document_tabs"));
     TEST_ASSERT_TRUE(
         editor_host_action(&host, shell.view, "vector.add_document", "vector_add_document"));
     TEST_ASSERT_TRUE(editor_host_commit(&host, shell.view, &shell.input, error, sizeof error));
-    TEST_ASSERT_EQUAL_INT(PUI_MAX_TABS, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_EQUAL_INT(VECTOR_MAX_DOCUMENTS,
+                          pui_view_tab_count(shell.view, "vector_document_tabs"));
     activate("scripts");
     activate("vector");
-    TEST_ASSERT_EQUAL_INT(PUI_MAX_TABS, pui_view_tab_count(shell.view, "vector_document_tabs"));
+    TEST_ASSERT_EQUAL_INT(VECTOR_MAX_DOCUMENTS,
+                          pui_view_tab_count(shell.view, "vector_document_tabs"));
 }
 
 static void test_append_tab_retains_existing_input_values_and_dragged_order(void) {

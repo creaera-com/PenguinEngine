@@ -146,8 +146,8 @@ Die History wird bisher für das Anlegen von **Artboards innerhalb eines Dokumen
 ### Der Button aktiviert zunächst nur das Werkzeug
 
 Bei `vector.add_artboard` ermittelt `vector_document_tabs_active()` anhand des
-gewählten Tabs das zugehörige Dokument. Der Übersichtstab „Vector“ hat kein
-Dokument; dort erscheint lediglich eine Statusmeldung.
+gewählten Tabs das zugehörige Dokument. Beim Start ist die Dokument-Tab-Leiste
+leer. Ohne Dokument erscheint bei dieser Aktion lediglich eine Statusmeldung.
 
 Mit aktivem Dokument ruft `vector_editor_action()`
 `vector_artboard_tool_arm(document)` auf. Dabei wird das Werkzeug aktiviert und
@@ -401,7 +401,7 @@ separate Heap-Allokationen.
 
 ## 9. Grenzen und Lebensdauer im aktuellen Stand
 
-Es gibt höchstens 15 Dokumente zusätzlich zum Übersichtstab, 64 Artboards pro
+Es gibt höchstens 15 Dokumente, 64 Artboards pro
 Dokument und 128 Befehlsplätze pro History. Das gemeinsame UI-Layout hat außerdem
 ein Limit von 128 Knoten. Grenzen führen zur Ablehnung weiterer Änderungen;
 die History entfernt nicht automatisch ihre ältesten Befehle.

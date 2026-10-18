@@ -690,8 +690,46 @@ static void test_complete_tabler_catalog_and_filled_variants_are_available_offli
     TEST_ASSERT_NULL(pui_image_load_memory(renderer, NULL, 0));
 }
 
+static void test_empty_tabs_can_draw_receive_first_document_and_use_checked_default(void) {
+    pui_view_free(view);
+    pui_layout_free(layout);
+    char error[256];
+    const char *yaml = "schema: pengui/v1\nroot: {type: column, padding: 0, children: ["
+                       "{type: tabs, id: navigation, height: 80, children: ["
+                       "{type: tab, id: explorer, text: Explorer},"
+                       "{type: tab, id: document, text: Document, checked: true}]},"
+                       "{type: tabs, id: documents}]}";
+    layout = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+    view = pui_view_new(layout, renderer);
+    TEST_ASSERT_NOT_NULL(view);
+    pui_init(&pui);
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    TEST_ASSERT_EQUAL_STRING("document", pui_view_selected_tab(view, "navigation"));
+    TEST_ASSERT_EQUAL_INT(0, pui_view_tab_count(view, "documents"));
+    TEST_ASSERT_NULL(pui_view_selected_tab(view, "documents"));
+    const char *content_yaml = "schema: pengui/v1\nroot: {type: label, text: Canvas}";
+    PUILayout *content = pui_layout_parse(content_yaml, strlen(content_yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL(content);
+    TEST_ASSERT_TRUE(
+        pui_view_add_tab(view, &pui, "documents", "one", "One", content, error, sizeof error));
+    TEST_ASSERT_EQUAL_STRING("one", pui_view_selected_tab(view, "documents"));
+    TEST_ASSERT_EQUAL_STRING("document", pui_view_selected_tab(view, "navigation"));
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    pui_layout_free(content);
+    const char *empty_yaml = "schema: pengui/v1\nroot: {type: tabs, children: []}";
+    PUILayout *empty = pui_layout_parse(empty_yaml, strlen(empty_yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL(empty);
+    pui_layout_free(empty);
+    PUITabs tabs;
+    TEST_ASSERT_TRUE(pui_tabs_init(&tabs, NULL, 0, 0));
+    TEST_ASSERT_EQUAL_INT(0, tabs.count);
+    TEST_ASSERT_EQUAL_UINT(0, tabs.selected);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_empty_tabs_can_draw_receive_first_document_and_use_checked_default);
     RUN_TEST(test_complete_tabler_catalog_and_filled_variants_are_available_offline);
     RUN_TEST(test_tabler_icons_resolve_render_and_tint_cached_masks);
     RUN_TEST(test_runtime_tree_hierarchy_updates_and_mounts_preserve_state);

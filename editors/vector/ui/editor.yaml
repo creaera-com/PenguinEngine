@@ -29,6 +29,7 @@ root:
         - type: tab
           id: vector_document_tree_tab
           text: Document
+          checked: true
           icon: tabler:stack-2
           padding: 0
           children:
@@ -52,19 +53,7 @@ root:
 
         - type: tabs
           id: vector_document_tabs
-          children:
-            - type: tab
-              id: vector_workspace_tab
-              text: Vector
-              padding: 0
-              children:
-                - type: panel
-                  padding: 16
-                  gap: 8
-                  children:
-                    - {type: label, text: "Vector Editor", height: 30}
-                    - {type: label, text: "No document opened."}
-                    - {type: spacer}
+          children: []
     - type: tabs
       children:
         - type: tab

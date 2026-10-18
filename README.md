@@ -100,6 +100,34 @@ Unity prüft den übernommenen UI-Kern, YAML-Validierung und native SDL-Eingaben
 
 Enthaltene Fremdsoftware: libyaml (MIT), stb_image (MIT/Public Domain), Unity (MIT), Tabler Icons (MIT) und JetBrains Mono (SIL OFL). Die jeweiligen Lizenztexte bleiben bei den Quellen erhalten. SDL3 wird separat bezogen (zlib-Lizenz). Keine JavaScript-, Engine-, Terminal- oder SVG-Abhängigkeiten werden gebaut.
 
+## Anfangs aktiver Tab und leere Tab-Leisten
+
+Mit `checked: true` am gewünschten **tab** bestimmst du die Anfangsauswahl:
+
+```yaml
+type: tabs
+id: navigation
+children:
+  - {type: tab, id: explorer, text: Explorer}
+  - {type: tab, id: document, text: Document, checked: true}
+```
+
+Setze die Eigenschaft an genau einem Tab; ohne Angabe beginnt die Leiste beim ersten.
+Eine bereits vorhandene Auswahl bleibt beim UI-Umbau erhalten; Checkpoints stellen die
+zuletzt verwendete Auswahl wieder her. Die YAML-Angabe ist der Anfangswert.
+
+Eine leere Leiste ist ebenfalls erlaubt:
+
+```yaml
+type: tabs
+id: vector_document_tabs
+children: []
+```
+
+`children` kann auch ganz fehlen. Anfangs gibt es weder einen ausgewählten Tab noch
+Dokumentinhalt. `pui_view_add_tab()` ergänzt später zwischen Frames den ersten Tab
+und wählt ihn aus. Der Vektoreditor startet genau so und links mit „Document“ aktiv.
+
 ## Tabler Icons
 
 Der vollständige Tabler-Katalog von v3.49.0 ist eingebettet: **6.238 Icons**,

@@ -3,10 +3,17 @@
 #include <string.h>
 
 bool pui_tabs_init(PUITabs *t, const PUITab *items, int count, PUIId selected) {
-    if (count < 1 || count > PUI_MAX_TABS) {
+    if (count < 0 || count > PUI_MAX_TABS || (count && !items)) {
         return false;
     }
 
+    if (!count) {
+        if (selected) {
+            return false;
+        }
+        *t = (PUITabs){.gap = PUI_TAB_GAP};
+        return true;
+    }
     bool found = false;
     for (int i = 0; i < count; i++) {
         if (!items[i].id || !isfinite(items[i].width) || items[i].width < 0 ||

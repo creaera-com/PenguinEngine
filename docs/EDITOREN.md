@@ -319,8 +319,14 @@ sie samt History temporär gesichert, ihre Laufzeitdaten freigegeben und bei Rü
 
 `pui_view_add_tab()` und Slot-Austausch dürfen nur zwischen Frames stattfinden.
 Bestehende Widget-Zustände und Tab-Reihenfolgen bleiben erhalten; neue Tabs werden ausgewählt.
-Der Vector-Übersicht folgen maximal 15 Dokument-Tabs, pro Dokument maximal 64 Artboards.
+Der Vektoreditor beginnt mit einer leeren Dokument-Tab-Leiste, ohne Übersichtstab.
+Es sind maximal 15 Dokument-Tabs möglich, pro Dokument maximal 64 Artboards.
 Die History fasst aktuell 128 Befehle; an dieser Grenze werden weitere Änderungen abgewiesen.
+
+Der linke Tab „Document“ verwendet `checked: true` als Anfangswert. Allgemein darf
+`tabs` ohne Kinder oder mit `children: []` beginnen. Der erste Dokument-Tab entsteht
+erst durch „Add Document“. Ein leerer Editor lässt sich ebenfalls als Checkpoint
+sichern und wiederherstellen; das erzeugt kein leeres Platzhalterdokument.
 
 ## Dokument-Tree im linken Panel
 
@@ -371,7 +377,7 @@ der bisherige Editor aktiv. Auch F6/Reload verwendet den gerade frisch gesichert
 - IDs und Titel aller Dokumente sowie ihre Artboards und die nächste Artboard-ID.
 - Vollständige Undo-/Redo-History einschließlich eines noch vorhandenen Redo-Zweigs.
 - Zoom und Verschiebung pro Dokument.
-- Reihenfolge und Auswahl der Dokument-Tabs, einschließlich des Übersichtstabs.
+- Reihenfolge und Auswahl der Dokument-Tabs; bei leerer Leiste gibt es keine Auswahl.
 - Auswahl des linken Navigationstabs (Explorer oder Document).
 
 Maus-Capture, laufende Werkzeug-Vorschauen, SDL-Ressourcen und sonstige Widgetzustände

@@ -247,6 +247,14 @@ static void test_tab_scroll_and_duplicates(void) {
     items[1].id = 1;
     TEST_ASSERT_FALSE(pui_tabs_init(&t, items, 2, 1));
     TEST_ASSERT_FALSE(pui_tabs_init(&t, items, 0, 1));
+    TEST_ASSERT_TRUE(pui_tabs_init(&t, NULL, 0, 0));
+    TEST_ASSERT_EQUAL_INT(0, t.count);
+    TEST_ASSERT_EQUAL_UINT(0, t.selected);
+    PUIContext context;
+    pui_init(&context);
+    TEST_ASSERT_FALSE(pui_tabs_update(&context, &t, (PUIRect){0, 0, 300, 30}, 100));
+    TEST_ASSERT_FALSE(pui_tabs_init(&t, NULL, 1, 1));
+    TEST_ASSERT_EQUAL_INT(0, t.count);
 }
 
 static void test_variable_tab_geometry_and_scroll(void) {

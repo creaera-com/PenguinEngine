@@ -5,8 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-_Static_assert(VECTOR_MAX_DOCUMENTS + 1 <= PUI_MAX_TABS,
-               "document capacity exceeds workspace tabs");
+_Static_assert(VECTOR_MAX_DOCUMENTS <= PUI_MAX_TABS, "document capacity exceeds workspace tabs");
 
 VectorDocument *vector_document_tabs_active(VectorDocuments *documents, const PUIView *view) {
     const char *tab = pui_view_selected_tab(view, "vector_document_tabs");

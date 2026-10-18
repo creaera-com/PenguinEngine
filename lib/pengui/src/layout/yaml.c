@@ -228,7 +228,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     }
     if ((out->type == PUI_NODE_POPUP_BUTTON && count != 1) ||
         (out->type == PUI_NODE_SPLIT && (count < 2 || count > 3)) ||
-        (out->type == PUI_NODE_TABS && (count < 1 || count > PUI_MAX_TABS)) ||
+        (out->type == PUI_NODE_TABS && count > PUI_MAX_TABS) ||
         ((out->type == PUI_NODE_BUTTON || out->type == PUI_NODE_LABEL ||
           out->type == PUI_NODE_INPUT || out->type == PUI_NODE_TOGGLE ||
           out->type == PUI_NODE_CHECKBOX || out->type == PUI_NODE_OPTION ||

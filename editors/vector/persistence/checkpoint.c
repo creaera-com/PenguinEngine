@@ -8,7 +8,7 @@
 
 /* Native integer/float representation is sufficient for a private file in this process.
  * Changing this schema requires a new signature. This is not an SVG or interchange format. */
-static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '0', '2'};
+static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '0', '3'};
 
 #define WRITE(value) (fwrite(&(value), sizeof(value), 1, file) == 1)
 #define READ(value) (fread(&(value), sizeof(value), 1, file) == 1)
@@ -21,24 +21,24 @@ static bool fail(char *error, size_t capacity) {
 }
 
 static void tab_name(char *name, size_t capacity, unsigned id) {
-    if (id) {
-        snprintf(name, capacity, "vector_document_%u", id);
-    } else {
-        snprintf(name, capacity, "vector_workspace_tab");
-    }
+    snprintf(name, capacity, "vector_document_%u", id);
 }
 
 static bool capture_tabs(const VectorDocuments *documents, const PUIView *view,
                          unsigned order[PUI_MAX_TABS], unsigned *selected) {
-    if (pui_view_tab_count(view, "vector_document_tabs") != documents->count + 1) {
+    if (pui_view_tab_count(view, "vector_document_tabs") != documents->count) {
         return false;
     }
     const char *active = pui_view_selected_tab(view, "vector_document_tabs");
-    bool seen[PUI_MAX_TABS] = {0}, found = false;
-    for (int i = 0; i <= documents->count; i++) {
+    if (!documents->count) {
+        *selected = 0;
+        return active == NULL;
+    }
+    bool seen[PUI_MAX_TABS + 1] = {0}, found = false;
+    for (int i = 0; i < documents->count; i++) {
         const char *tab = pui_view_tab_at(view, "vector_document_tabs", i);
         bool matched = false;
-        for (unsigned id = 0; id <= (unsigned)documents->count; id++) {
+        for (unsigned id = 1; id <= (unsigned)documents->count; id++) {
             char name[64];
             tab_name(name, sizeof name, id);
             if (tab && !strcmp(tab, name) && !seen[id]) {
@@ -84,7 +84,7 @@ bool vector_editor_checkpoint(const void *instance, const PUIView *view, FILE *f
     unsigned order[PUI_MAX_TABS], selected;
     if (editor->document_tabs.pending || !capture_tabs(documents, view, order, &selected) ||
         !WRITE(signature) || !WRITE(documents->count) || !WRITE(selected) ||
-        fwrite(order, sizeof *order, documents->count + 1, file) != (size_t)documents->count + 1) {
+        fwrite(order, sizeof *order, documents->count, file) != (size_t)documents->count) {
         return fail(error, capacity);
     }
     for (int i = 0; i < documents->count; i++) {
@@ -175,15 +175,15 @@ static bool read_documents(VectorDocuments *documents, unsigned order[PUI_MAX_TA
     char actual[sizeof signature];
     if (!READ(actual) || memcmp(actual, signature, sizeof signature) || !READ(documents->count) ||
         documents->count < 0 || documents->count > VECTOR_MAX_DOCUMENTS || !READ(*selected) ||
-        *selected > (unsigned)documents->count ||
-        fread(order, sizeof *order, documents->count + 1, file) != (size_t)documents->count + 1) {
+        *selected > (unsigned)documents->count || (documents->count && !*selected) ||
+        fread(order, sizeof *order, documents->count, file) != (size_t)documents->count) {
         /* Keep cleanup bounded even for an invalid count. */
         documents->count = 0;
         return false;
     }
-    bool seen[PUI_MAX_TABS] = {0};
-    for (int i = 0; i <= documents->count; i++) {
-        if (order[i] > (unsigned)documents->count || seen[order[i]]) {
+    bool seen[PUI_MAX_TABS + 1] = {0};
+    for (int i = 0; i < documents->count; i++) {
+        if (!order[i] || order[i] > (unsigned)documents->count || seen[order[i]]) {
             return false;
         }
         seen[order[i]] = true;
@@ -208,8 +208,12 @@ static bool restore_tab_order(PUILayout *layout, const VectorDocuments *document
         if (tabs->type != PUI_NODE_TABS || strcmp(tabs->name, "vector_document_tabs")) {
             continue;
         }
+        if (!documents->count) {
+            tabs->child = -1;
+            return selected == 0;
+        }
         int indices[PUI_MAX_TABS];
-        for (int j = 0; j <= documents->count; j++) {
+        for (int j = 0; j < documents->count; j++) {
             char name[64];
             tab_name(name, sizeof name, order[j]);
             indices[j] = -1;
@@ -225,8 +229,8 @@ static bool restore_tab_order(PUILayout *layout, const VectorDocuments *document
             }
         }
         tabs->child = indices[0];
-        for (int j = 0; j <= documents->count; j++) {
-            layout->nodes[indices[j]].next = j < documents->count ? indices[j + 1] : -1;
+        for (int j = 0; j < documents->count; j++) {
+            layout->nodes[indices[j]].next = j + 1 < documents->count ? indices[j + 1] : -1;
         }
         return true;
     }

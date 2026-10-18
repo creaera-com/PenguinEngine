@@ -50,7 +50,7 @@ void pui_widget_tabs_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
 }
 
 bool pui_widget_tabs_scroll(PUIView *view, int i, const SDL_Event *event) {
-    if (view->layout->nodes[i].type != PUI_NODE_TABS ||
+    if (view->layout->nodes[i].type != PUI_NODE_TABS || !view->state[i].tabs.count ||
         event->wheel.mouse_y >= view->rect[i].y + 30) {
         return false;
     }
@@ -74,7 +74,7 @@ void pui_widget_tabs_init(PUIView *view, int i) {
             (PUITab){tab->id, tab->enabled,
                      pui_tab_content_width(pui_icon_from_name(tab->icon), tab->text) + PUI_TAB_GAP};
     }
-    pui_tabs_init(&view->state[i].tabs, tabs, count, selected ? selected : tabs[0].id);
+    pui_tabs_init(&view->state[i].tabs, tabs, count, selected ? selected : count ? tabs[0].id : 0);
 }
 
 static int tabs_index(const PUIView *view, const char *tabs) {
