@@ -139,7 +139,7 @@ root:
               padding: 0
               children:
                 - type: panel
-                  padding: 12
+                  padding: 4
                   gap: 8
                   children:
                     - type: section

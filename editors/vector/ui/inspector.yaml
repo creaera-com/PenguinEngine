@@ -1,6 +1,6 @@
 schema: pengui/v1
 root:
   type: panel
-  padding: 12
+  padding: 4
   children:
     - {type: slot, id: selection_properties}
