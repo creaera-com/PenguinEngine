@@ -42,6 +42,9 @@ typedef struct {
 void vector_documents_init(VectorDocuments *documents);
 /** @brief Initialize an empty document with its title, next artboard ID and default viewport. */
 void vector_document_init(VectorDocument *document, unsigned id);
+/** @brief Initialize the automatic startup document with one selected 1920x1080 artboard.
+ * Creation uses history and returns false on allocation failure. */
+bool vector_document_init_default(VectorDocument *document, unsigned id);
 /** @brief Find a document by its model ID; NULL when it does not exist. */
 VectorDocument *vector_documents_find(VectorDocuments *documents, unsigned id);
 /** @brief Append a prepared empty document by value.

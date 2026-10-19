@@ -141,7 +141,11 @@ deshalb unterschiedliche Zeitpunkte für ihre Änderung.
 Bei einer leeren Dokumentverwaltung merkt `vector_document_tabs_commit()` automatisch
 eine Erstellung vor, falls nicht bereits eine explizite Anforderung vorliegt. Das gilt
 auch nach dem Einlesen eines leeren Checkpoints. Die übrige Erstellung läuft über
-denselben oben beschriebenen Weg; es gibt keinen zweiten Erzeugungsmechanismus.
+denselben oben beschriebenen Weg. Das automatisch erzeugte Anfangsdokument bekommt
+über `vector_document_init_default()` ein ausgewähltes Artboard bei (0, 0) mit
+1920 × 1080 Pixeln. Dessen Erstellung läuft über `vector_artboard_add()` und ist damit
+rückgängig machbar und im Checkpoint enthalten. Explizit angelegte weitere Dokumente
+bleiben zunächst leer. Ein bereits vorhandenes Dokument wird nicht erneut befüllt.
 
 Das Anlegen eines **Dokuments** ist aktuell nicht Teil der Undo-History.
 Die History wird bisher für das Anlegen von **Artboards innerhalb eines Dokuments** verwendet.

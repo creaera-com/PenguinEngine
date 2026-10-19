@@ -365,18 +365,33 @@ static void test_empty_workspace_gets_one_default_document_without_duplicates(vo
     commit();
     TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
     VectorEditor *editor = host.instance;
-    TEST_ASSERT_EQUAL_INT(0, editor->documents.items[0].artboard_count);
-    TEST_ASSERT_EQUAL_INT(0, editor->documents.items[0].history.count);
+    TEST_ASSERT_EQUAL_INT(1, editor->documents.items[0].artboard_count);
+    TEST_ASSERT_EQUAL_FLOAT(1920, editor->documents.items[0].artboards[0].rect.w);
+    TEST_ASSERT_EQUAL_FLOAT(1080, editor->documents.items[0].artboards[0].rect.h);
+    TEST_ASSERT_EQUAL_UINT(1, editor->documents.items[0].active_artboard);
+    TEST_ASSERT_EQUAL_UINT(2, editor->documents.items[0].next_artboard_id);
+    TEST_ASSERT_EQUAL_INT(1, editor->documents.items[0].history.count);
     activate("scripts");
     activate("vector");
     commit();
     TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
     TEST_ASSERT_FALSE(pui_view_checked(shell.view, "vector_add_artboard"));
-    TEST_ASSERT_EQUAL_INT(0, pui_view_tree_item_count(shell.view, "vector_document_tree"));
+    TEST_ASSERT_EQUAL_INT(1, pui_view_tree_item_count(shell.view, "vector_document_tree"));
+    VectorDocument *restored = &((VectorEditor *)host.instance)->documents.items[0];
+    TEST_ASSERT_EQUAL_INT(1, restored->artboard_count);
+    TEST_ASSERT_EQUAL_FLOAT(1920, restored->artboards[0].rect.w);
+    TEST_ASSERT_EQUAL_FLOAT(1080, restored->artboards[0].rect.h);
+    TEST_ASSERT_TRUE(vector_history_undo(&restored->history, restored));
+    commit();
+    TEST_ASSERT_EQUAL_INT(0, restored->artboard_count);
+    TEST_ASSERT_TRUE(vector_history_redo(&restored->history, restored));
+    commit();
+    TEST_ASSERT_EQUAL_INT(1, restored->artboard_count);
     TEST_ASSERT_TRUE(editor_host_request(&host, "vector", true));
     commit();
     TEST_ASSERT_EQUAL_INT(1, pui_view_tab_count(shell.view, "vector_document_tabs"));
-    add_document();
+    VectorDocument *manual = add_document();
+    TEST_ASSERT_EQUAL_INT(0, manual->artboard_count);
     TEST_ASSERT_EQUAL_INT(2, pui_view_tab_count(shell.view, "vector_document_tabs"));
 }
 

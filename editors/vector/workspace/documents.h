@@ -13,8 +13,8 @@ VectorDocument *vector_document_tabs_active(VectorDocuments *documents, const PU
 /** @brief Queue one tab creation or show a status message if the capacity is reached. */
 void vector_document_tabs_request(VectorDocumentTabs *tabs, const VectorDocuments *documents,
                                   PUIView *view);
-/** @brief Add tabs between frames, ensuring one document when empty; append model data only after
- * successful UI composition. */
+/** @brief Add tabs between frames, ensuring a startup document with a 1920x1080 artboard when
+ * empty; append model data only after successful UI composition. */
 bool vector_document_tabs_commit(VectorDocumentTabs *tabs, VectorDocuments *documents,
                                  PUIView *view, PUIContext *input, char *error, size_t capacity);
 /** @brief Cancel native interactions in all documents except active (NULL cancels all). */

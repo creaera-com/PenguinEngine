@@ -34,12 +34,21 @@ bool vector_document_tabs_commit(VectorDocumentTabs *tabs, VectorDocuments *docu
                                  PUIView *view, PUIContext *input, char *error, size_t capacity) {
     /* A fresh or empty restored workspace gets one document. An explicit request
      * already provides that document, so do not queue a second one. */
-    if (!documents->count && !tabs->pending) {
+    bool automatic = !documents->count && !tabs->pending;
+    if (automatic) {
         tabs->pending = 1;
     }
     while (tabs->pending > 0) {
         VectorDocument document;
-        vector_document_init(&document, (unsigned)documents->count + 1);
+        if (automatic) {
+            if (!vector_document_init_default(&document, (unsigned)documents->count + 1)) {
+                snprintf(error, capacity, "could not create the startup artboard");
+                tabs->pending = 0;
+                return false;
+            }
+        } else {
+            vector_document_init(&document, (unsigned)documents->count + 1);
+        }
         char tab_id[64];
         snprintf(tab_id, sizeof tab_id, "vector_document_%u", document.id);
         PUILayout *canvas = vector_canvas_layout(error, capacity);
@@ -47,6 +56,7 @@ bool vector_document_tabs_commit(VectorDocumentTabs *tabs, VectorDocuments *docu
                                                 document.title, canvas, error, capacity);
         pui_layout_free(canvas);
         if (!added) {
+            vector_history_destroy(&document.history);
             tabs->pending = 0;
             return false;
         }

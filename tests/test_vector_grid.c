@@ -46,6 +46,9 @@ void setUp(void) {
     editor_host_init(&host, (EditorServices){PENGUI_EDITOR_RESOURCES});
     activate("vector");
     commit();
+    /* These feature fixtures build their own scene independently of startup content. */
+    vector_history_destroy(&document()->history);
+    vector_document_init(document(), document()->id);
 }
 
 void tearDown(void) {

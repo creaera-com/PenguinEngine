@@ -47,6 +47,10 @@ void setUp(void) {
     editor_host_init(&host, (EditorServices){PENGUI_EDITOR_RESOURCES});
     activate("vector");
     commit();
+    /* These feature fixtures build their own scene independently of startup content. */
+    vector_history_destroy(&document()->history);
+    vector_document_init(document(), document()->id);
+
     VectorDocument *doc = document();
     TEST_ASSERT_TRUE(vector_artboard_add(doc, (PUIRect){0, 0, 300, 220}));
     TEST_ASSERT_TRUE(vector_rectangle_add(doc, 1, (PUIRect){20, 20, 40, 30}));

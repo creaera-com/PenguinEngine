@@ -16,6 +16,11 @@ void vector_document_init(VectorDocument *document, unsigned id) {
     snprintf(document->title, sizeof document->title, "Dokument %u", id);
 }
 
+bool vector_document_init_default(VectorDocument *document, unsigned id) {
+    vector_document_init(document, id);
+    return vector_artboard_add(document, (PUIRect){0, 0, 1920, 1080});
+}
+
 VectorDocument *vector_documents_find(VectorDocuments *documents, unsigned id) {
     for (int i = 0; i < documents->count; i++) {
         if (documents->items[i].id == id) {
