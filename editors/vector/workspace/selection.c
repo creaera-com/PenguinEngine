@@ -3,11 +3,14 @@
 #include "editors/vector/document/selection.h"
 #include "editors/vector/geometry/constraints.h"
 #include "editors/vector/geometry/resize.h"
+#include "editors/vector/geometry/rotation.h"
 #include "editors/vector/grid/snap.h"
 #include "editors/vector/rectangle/transform.h"
 #include "group_transform.h"
 #include "marquee.h"
 #include "modifiers.h"
+#include "oriented_resize.h"
+#include "rotation.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -44,6 +47,9 @@ PUIRect vector_artboard_display_rect(const VectorDocument *document, const Vecto
 PUIRect vector_rectangle_display_rect(const VectorDocument *document,
                                       const VectorRectangle *rectangle) {
     const VectorSelectionTool *tool = &document->selection_tool;
+    if (tool->rotating) {
+        return vector_rotation_display_rect(document, rectangle);
+    }
     if (!tool->dragging || tool->marquee || !tool->rectangle_id ||
         !vector_document_is_selected(document, rectangle->id)) {
         return rectangle->rect;
@@ -63,12 +69,15 @@ PUIRect vector_rectangle_display_rect(const VectorDocument *document,
             return rectangle->rect;
         }
         PUIRect snapped =
-            vector_grid_snap_rect(&document->grid, document->viewport.zoom, reference->rect, 0,
-                                  tool->offset_x, tool->offset_y, VECTOR_MAX_ARTBOARD_SIZE);
+            vector_grid_snap_rotated_rect(&document->grid, document->viewport.zoom, reference->rect,
+                                          reference->angle, tool->offset_x, tool->offset_y);
         PUIRect rect = rectangle->rect;
         rect.x += snapped.x - reference->rect.x;
         rect.y += snapped.y - reference->rect.y;
         return rect;
+    }
+    if (tool->resize_edges && rectangle->angle != 0) {
+        return vector_oriented_resize(document, rectangle);
     }
     if (tool->resize_edges) {
         return vector_grid_resize_constrained(
@@ -76,9 +85,19 @@ PUIRect vector_rectangle_display_rect(const VectorDocument *document,
             tool->offset_x, tool->offset_y, tool->keep_aspect, tool->from_center, 1, 1,
             VECTOR_MAX_ARTBOARD_SIZE, VECTOR_MAX_ARTBOARD_SIZE);
     }
+    if (!tool->resize_edges && rectangle->angle != 0) {
+        return vector_grid_snap_rotated_rect(&document->grid, document->viewport.zoom,
+                                             rectangle->rect, rectangle->angle, tool->offset_x,
+                                             tool->offset_y);
+    }
     return vector_grid_snap_rect(&document->grid, document->viewport.zoom, rectangle->rect,
                                  tool->resize_edges, tool->offset_x, tool->offset_y,
                                  VECTOR_MAX_ARTBOARD_SIZE);
+}
+
+float vector_rectangle_display_angle(const VectorDocument *document,
+                                     const VectorRectangle *rectangle) {
+    return vector_rotation_display_angle(document, rectangle);
 }
 
 static PUIRect screen_rect(const VectorDocument *document, PUIRect world) {
@@ -116,6 +135,7 @@ bool vector_selection_bounds(VectorDocument *document, PUIRect *bounds) {
         VectorRectangle *rectangle = vector_rectangle_find(document, document->active_rectangle);
         PUIRect local = vector_rectangle_display_rect(document, rectangle);
         world = (PUIRect){world.x + local.x, world.y + local.y, local.w, local.h};
+        world = vector_rotated_bounds(world, vector_rectangle_display_angle(document, rectangle));
     }
     if (document->selection.count > 1) {
         bool first = true;
@@ -129,6 +149,7 @@ bool vector_selection_bounds(VectorDocument *document, PUIRect *bounds) {
             PUIRect r = vector_rectangle_display_rect(document, rectangle);
             r.x += parent->rect.x;
             r.y += parent->rect.y;
+            r = vector_rotated_bounds(r, vector_rectangle_display_angle(document, rectangle));
             if (first) {
                 world = r;
                 first = false;
@@ -146,6 +167,40 @@ bool vector_selection_bounds(VectorDocument *document, PUIRect *bounds) {
     return true;
 }
 
+PUIRect vector_selection_handle_rect(VectorDocument *document, int index, float size) {
+    PUIRect bounds;
+    if (!vector_selection_bounds(document, &bounds)) {
+        return (PUIRect){0};
+    }
+    float angle = 0;
+    if (document->active_rectangle && document->selection.count <= 1) {
+        VectorRectangle *rectangle = vector_rectangle_find(document, document->active_rectangle);
+        VectorArtboard *parent = vector_artboard_find(document, rectangle->parent_id);
+        bounds = vector_rectangle_display_rect(document, rectangle);
+        bounds.x += parent->rect.x;
+        bounds.y += parent->rect.y;
+        bounds = screen_rect(document, bounds);
+        angle = vector_rectangle_display_angle(document, rectangle);
+    }
+    PUIRect handle = vector_resize_handle_rect(bounds, index, size);
+    float x = handle.x + size / 2, y = handle.y + size / 2;
+    vector_rotate_point(&x, &y, bounds.x + bounds.w / 2, bounds.y + bounds.h / 2, angle);
+    handle.x = x - size / 2;
+    handle.y = y - size / 2;
+    return handle;
+}
+
+static unsigned handle_hit(VectorDocument *document, float x, float y) {
+    const int order[8] = {0, 2, 4, 6, 1, 3, 5, 7};
+    for (int i = 0; i < 8; i++) {
+        PUIRect r = vector_selection_handle_rect(document, order[i], 10);
+        if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h) {
+            return vector_resize_handle_edges(order[i]);
+        }
+    }
+    return 0;
+}
+
 void vector_selection_draw_handles(VectorDocument *document, SDL_Renderer *renderer) {
     if (document->artboard_tool.enabled || document->rectangle_tool.enabled) {
         return;
@@ -158,15 +213,40 @@ void vector_selection_draw_handles(VectorDocument *document, SDL_Renderer *rende
         // A selected child's bounds remain visible when it extends beyond artboard clipping.
         SDL_FRect outline = {screen.x, screen.y, screen.w, screen.h};
         SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
-        SDL_RenderRect(renderer, &outline);
+        if (document->selection.count <= 1) {
+            VectorRectangle *rectangle =
+                vector_rectangle_find(document, document->active_rectangle);
+            VectorArtboard *parent = vector_artboard_find(document, rectangle->parent_id);
+            PUIRect rect = vector_rectangle_display_rect(document, rectangle);
+            rect.x += parent->rect.x;
+            rect.y += parent->rect.y;
+            rect = screen_rect(document, rect);
+            PUIRect corners[4];
+            vector_rotated_corners(rect, vector_rectangle_display_angle(document, rectangle),
+                                   corners);
+            SDL_FPoint points[5];
+            for (int i = 0; i < 5; i++) {
+                points[i] = (SDL_FPoint){corners[i % 4].x, corners[i % 4].y};
+            }
+            SDL_RenderLines(renderer, points, 5);
+        } else {
+            SDL_RenderRect(renderer, &outline);
+        }
+    }
+    if (document->selection_tool.rotating) {
+        vector_rotation_draw(document, renderer, screen);
+        return;
     }
     for (int i = 0; i < 8; i++) {
-        PUIRect handle = vector_resize_handle_rect(screen, i, 7);
+        PUIRect handle = vector_selection_handle_rect(document, i, 7);
         SDL_FRect rect = {handle.x, handle.y, handle.w, handle.h};
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderFillRect(renderer, &rect);
         SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
         SDL_RenderRect(renderer, &rect);
+    }
+    if (document->active_rectangle) {
+        vector_rotation_draw(document, renderer, screen);
     }
 }
 
@@ -229,6 +309,9 @@ static bool finish(VectorDocument *document) {
 
 static bool gesture_event(VectorDocument *document, PUIView *view, const SDL_Event *event) {
     VectorSelectionTool *tool = &document->selection_tool;
+    if (tool->rotating) {
+        return vector_rotation_event(document, view, event);
+    }
     if (tool->marquee) {
         return vector_marquee_event(document, event);
     }
@@ -291,9 +374,13 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
     PUIRect screen;
     bool additive = (SDL_GetModState() & SDL_KMOD_SHIFT) != 0;
     if (vector_selection_bounds(document, &screen)) {
-        unsigned edges = vector_resize_hit(screen, x, y, 10);
+        unsigned edges = handle_hit(document, x, y);
         if (edges) {
             begin(document, document->active_artboard, document->active_rectangle, edges, x, y);
+            return true;
+        }
+        if (document->active_rectangle && vector_rotation_hit(screen, x, y)) {
+            vector_rotation_begin(document, screen, x, y);
             return true;
         }
     }
@@ -317,7 +404,8 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
         VectorRectangle *rectangle = vector_rectangle_find(document, document->active_rectangle);
         VectorArtboard *board = vector_artboard_find(document, rectangle->parent_id);
         if (!contains(board->rect, world_x, world_y) &&
-            contains(rectangle->rect, world_x - board->rect.x, world_y - board->rect.y)) {
+            vector_rotated_contains(rectangle->rect, rectangle->angle, world_x - board->rect.x,
+                                    world_y - board->rect.y)) {
             if (additive) {
                 vector_document_toggle(document, rectangle->id);
             } else {
@@ -337,7 +425,8 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
             VectorRectangle *rectangle = &document->rectangles[j];
             if (rectangle->parent_id != board->id ||
                 (rectangle->flags & VECTOR_OBJECT_STATE_MASK) ||
-                !contains(rectangle->rect, world_x - board->rect.x, world_y - board->rect.y)) {
+                !vector_rotated_contains(rectangle->rect, rectangle->angle, world_x - board->rect.x,
+                                         world_y - board->rect.y)) {
                 continue;
             }
             if (additive) {

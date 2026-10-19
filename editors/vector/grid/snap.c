@@ -2,6 +2,7 @@
 #include "snap.h"
 #include "editors/vector/geometry/constraints.h"
 #include "editors/vector/geometry/resize.h"
+#include "editors/vector/geometry/rotation.h"
 #include <float.h>
 #include <math.h>
 
@@ -147,4 +148,45 @@ PUIRect vector_grid_resize_constrained(const VectorGrid *grid, float zoom, PUIRe
     return vector_resize_constrained(original, edges, horizontal ? sx - ox : 0,
                                      vertical ? sy - oy : 0, aspect, centered, min_w, min_h, max_w,
                                      max_h);
+}
+
+PUIRect vector_grid_snap_rotated_rect(const VectorGrid *grid, float zoom, PUIRect original,
+                                      float angle, float dx, float dy) {
+    PUIRect rect = original;
+    rect.x += dx;
+    rect.y += dy;
+    if (!enabled(grid, zoom) || (dx == 0 && dy == 0)) {
+        return rect;
+    }
+    PUIRect corners[4];
+    vector_rotated_corners(rect, angle, corners);
+    float radius = grid->snap_tolerance / zoom;
+    float best = FLT_MAX, best_x = FLT_MAX, best_y = FLT_MAX, cx = 0, cy = 0;
+    for (int i = 0; i < 4; i++) {
+        float x = corners[i].x, y = corners[i].y;
+        if (grid->type == VECTOR_GRID_STANDARD) {
+            float sx = roundf(x / grid->width) * grid->width - x;
+            float sy = roundf(y / grid->height) * grid->height - y;
+            if (fabsf(sx) <= radius && fabsf(sx) < best_x) {
+                best_x = fabsf(sx);
+                cx = sx;
+            }
+            if (fabsf(sy) <= radius && fabsf(sy) < best_y) {
+                best_y = fabsf(sy);
+                cy = sy;
+            }
+        } else {
+            float sx = x, sy = y;
+            vertex(grid, x, y, &sx, &sy);
+            float distance = hypotf(sx - x, sy - y);
+            if (distance <= radius && distance < best) {
+                best = distance;
+                cx = sx - x;
+                cy = sy - y;
+            }
+        }
+    }
+    rect.x += cx;
+    rect.y += cy;
+    return rect;
 }

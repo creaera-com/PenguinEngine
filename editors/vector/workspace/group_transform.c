@@ -1,6 +1,7 @@
 /** @file @brief Resize selected rectangles relative to their shared world-space bounds. */
 #include "group_transform.h"
 #include "editors/vector/geometry/resize.h"
+#include "editors/vector/geometry/rotation.h"
 #include "editors/vector/geometry/scale.h"
 #include "editors/vector/grid/snap.h"
 #include "editors/vector/rectangle/transform.h"
@@ -18,10 +19,12 @@ bool vector_group_capture(VectorDocument *document) {
             return false;
         }
         tool->group_originals[i] = rectangle->rect;
+        tool->group_angles[i] = rectangle->angle;
         tool->group_parents[i] = parent->rect;
         PUIRect world = rectangle->rect;
         world.x += parent->rect.x;
         world.y += parent->rect.y;
+        world = vector_rotated_bounds(world, rectangle->angle);
         if (i == 0) {
             tool->group_bounds = world;
         } else {
@@ -40,8 +43,10 @@ bool vector_group_capture(VectorDocument *document) {
 static PUIRect target_bounds(const VectorDocument *document) {
     const VectorSelectionTool *tool = &document->selection_tool;
     PUIRect source = tool->group_bounds, origin = {0};
+    bool aspect = tool->keep_aspect;
     float minimum_x = 0, minimum_y = 0, maximum_x = FLT_MAX, maximum_y = FLT_MAX;
     for (int i = 0; i < tool->before.count; i++) {
+        aspect |= tool->group_angles[i] != 0;
         PUIRect r = tool->group_originals[i];
         minimum_x = fmaxf(minimum_x, 1 / r.w);
         minimum_y = fmaxf(minimum_y, 1 / r.h);
@@ -56,8 +61,8 @@ static PUIRect target_bounds(const VectorDocument *document) {
     local.y -= origin.y;
     PUIRect target = vector_grid_resize_constrained(
         &document->grid, document->viewport.zoom, local, tool->resize_edges, tool->offset_x,
-        tool->offset_y, tool->keep_aspect, tool->from_center, source.w * minimum_x,
-        source.h * minimum_y, source.w * maximum_x, source.h * maximum_y);
+        tool->offset_y, aspect, tool->from_center, source.w * minimum_x, source.h * minimum_y,
+        source.w * maximum_x, source.h * maximum_y);
     target.x += origin.x;
     target.y += origin.y;
     return target;

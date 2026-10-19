@@ -702,7 +702,7 @@ ungueltige Eingaben werden auf den vorherigen Wert zurueckgesetzt.
 `grid/state.h` enthaelt ausschliesslich Werte. Die Einstellungen sind
 Ansichtshilfen und erzeugen keine Schritte in der Artwork-History. Sie gelten
 je Dokument und werden beim Editorwechsel im temporaeren Checkpoint gesichert
-(Schema `PVCKPT11`). Es gibt damit noch keine dauerhafte Dokumentdatei.
+(Schema `PVCKPT12`). Es gibt damit noch keine dauerhafte Dokumentdatei.
 
 `grid/render.c` zeichnet die Linien artboardlokal ueber dem Artwork und erhaelt
 den SDL-Clip- und Blendzustand. Standardzellen sind rechteckig; Hexagonalzellen
@@ -767,7 +767,7 @@ Rechteck einen gemeinsamen Versatz; Abstaende und Groessen bleiben erhalten.
 History-Befehl aus. Er prueft alle IDs, Sperren und Zielkoordinaten vor der
 Mutation. Fehlt ein Teilnehmer oder ist ein Ziel ungueltig, bleibt die ganze
 Gruppe unveraendert. Undo/Redo wendet die gespeicherten Vorher-/Nachher-Rechtecke
-atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT11` speichert
+atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT12` speichert
 zusaetzlich die Auswahl-IDs. Ein Editorwechsel verwirft Gestenvorschauen,
 behaelt aber Auswahl und abgeschlossene Gruppenbewegungen.
 
@@ -802,7 +802,7 @@ und Skalieren denselben atomaren Vorher-/Nachher-Befehl (Checkpoint-Typ 5).
 Damit entstehen fuer eine gemeinsame Skalierung genau ein Undo-Schritt und
 vollstaendig wiederherstellbare Redo-Daten. Esc, Fokusverlust und Editorwechsel
 verwerfen die laufende Groessenvorschau. Abgeschlossene Skalierungen bleiben
-beim Editorwechsel inklusive History erhalten (Schema `PVCKPT11`).
+beim Editorwechsel inklusive History erhalten (Schema `PVCKPT12`).
 
 ### Shift und Alt waehrend Zeichnen und Skalieren
 
@@ -837,3 +837,43 @@ Die Flags werden weder in die Dokument-History noch in Checkpoints aufgenommen.
 Erst beim Loslassen wird die resultierende Geometrie als ein bestehender
 Einzel- oder Gruppenbefehl gespeichert. Abbrechen und Undo/Redo funktionieren
 unabhaengig davon, welche Tasten beim Zeichnen oder Skalieren gehalten wurden.
+
+
+### Rotationsring in der Mitte der Auswahl
+
+Im Auswahlwerkzeug erscheint fuer einzelne Rechtecke und Mehrfachauswahlen ein
+runder Greifer am Mittelpunkt. Den **Ringrand** mit der linken Maustaste greifen
+und um die Mitte ziehen; das innere Loch bleibt zum Verschieben verfuegbar.
+Der Ring hat bei jeder Zoomstufe dieselbe Bildschirmgroesse. Artboards werden
+weiterhin nicht gedreht. Shift rastet die Drehung relativ zum Gestenstart in
+15-Grad-Schritten ein, auch beim Druecken/Loslassen ohne weitere Mausbewegung.
+Der Mittelpunkt bleibt waehrend der Rotation fest, Alt aendert ihn nicht.
+
+`VectorRectangle.angle` speichert einen im Uhrzeigersinn laufenden Winkel in
+Grad, normalisiert auf [-180,180). `rect` beschreibt weiterhin Groesse und
+Lage vor der Drehung; gedreht wird um dessen Mittelpunkt. Die Winkel sind
+Teil von History und temporaeren Checkpoints (Schema `PVCKPT12`).
+
+`geometry/rotation.c` berechnet Punkte, Ecken, umschliessende Rahmen und exakte
+Trefferflaechen ohne SDL oder Objektwissen. `workspace/rotation.c` besitzt die
+transiente Geste: urspruengliche Positionen/Winkel/Elternpositionen, gemeinsamen
+Pivot und momentanen Drehwinkel. Bei einer Gruppe drehen sich die Rechteckmitten
+um den gemeinsamen Pivot und die individuellen Winkel werden entsprechend
+weitergedreht. Groessen und Eltern-IDs bleiben erhalten. `rectangle/transform.c`
+uebernimmt Geometrien und Winkel beim Loslassen als einen atomaren Befehl.
+Esc, Fokusverlust, Werkzeug- und Editorwechsel verwerfen die Vorschau.
+
+`rectangle/render.c` zeichnet gedrehte Rechtecke als zwei Dreiecke mit
+transparenter Fuellfarbe und behaelt das Clipping am Artboard bei. Auswahltests
+und Auswahlrahmen pruefen die gedrehte Form, nicht deren alte Flaeche.
+Einzelne Groessengreifer drehen mit dem Rechteck mit; `workspace/oriented_resize.c`
+uebersetzt Mausbewegungen in dessen lokale Achsen und erhaelt die gegenueberliegende
+Kante beziehungsweise den Mittelpunkt bei Alt. Rasterfang nutzt die tatsaechlichen
+gedrehten Ecken oder den bewegten Greifer.
+
+Gruppen werden weiterhin ueber ihren achsenparallelen gemeinsamen Rahmen
+skaliert. Sobald eine Gruppe gedrehte Mitglieder enthaelt, wird dabei immer
+proportional skaliert: Eine freie nichtproportionale Skalierung wuerde sonst
+Scherungen erzeugen, die das Rechteckmodell mit Winkel und zwei Groessen nicht
+abbilden kann. Individuell gedrehte Rechtecke lassen sich an ihren eigenen
+Achsen weiterhin frei skalieren.

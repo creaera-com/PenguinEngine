@@ -32,7 +32,8 @@ unsigned vector_rectangle_effective_flags(VectorDocument *document,
 
 static bool valid(VectorRectangle rectangle) {
     PUIRect r = rectangle.rect;
-    return rectangle.id && rectangle.parent_id && !(rectangle.flags & ~VECTOR_OBJECT_STATE_MASK) &&
+    return isfinite(rectangle.angle) && rectangle.angle >= -180 && rectangle.angle < 180 &&
+           rectangle.id && rectangle.parent_id && !(rectangle.flags & ~VECTOR_OBJECT_STATE_MASK) &&
            memchr(rectangle.name, 0, sizeof rectangle.name) && *rectangle.name && isfinite(r.x) &&
            isfinite(r.y) && fabsf(r.x) <= VECTOR_MAX_ARTBOARD_SIZE &&
            fabsf(r.y) <= VECTOR_MAX_ARTBOARD_SIZE && isfinite(r.w) && isfinite(r.h) && r.w >= 1 &&

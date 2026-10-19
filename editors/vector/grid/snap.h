@@ -13,6 +13,9 @@ bool vector_grid_snap_point(const VectorGrid *grid, float zoom, float *x, float 
  */
 PUIRect vector_grid_snap_rect(const VectorGrid *grid, float zoom, PUIRect original, unsigned edges,
                               float dx, float dy, float maximum);
+/** @brief Translate using the actual corners of a rotated rectangle as grid anchors. */
+PUIRect vector_grid_snap_rotated_rect(const VectorGrid *grid, float zoom, PUIRect original,
+                                      float angle, float dx, float dy);
 /** @brief Resize with live aspect/center constraints and per-axis size limits.
  * Snapping proposes an active-handle position; geometry constraints take precedence. */
 PUIRect vector_grid_resize_constrained(const VectorGrid *grid, float zoom, PUIRect original,

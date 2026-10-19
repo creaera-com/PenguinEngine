@@ -8,6 +8,7 @@
 typedef struct {
     unsigned id;
     PUIRect before, after;
+    float before_angle, after_angle;
 } TransformItem;
 
 typedef struct {
@@ -27,13 +28,16 @@ static bool replace(VectorDocument *document, const Transform *command, bool rev
         const TransformItem *item = &command->items[i];
         VectorRectangle *rectangle = vector_rectangle_find(document, item->id);
         const PUIRect *before = revert ? &item->after : &item->before;
-        if (!rectangle || memcmp(&rectangle->rect, before, sizeof *before)) {
+        if (!rectangle || memcmp(&rectangle->rect, before, sizeof *before) ||
+            rectangle->angle != (revert ? item->after_angle : item->before_angle)) {
             return false;
         }
     }
     for (int i = 0; i < command->count; i++) {
         const TransformItem *item = &command->items[i];
-        vector_rectangle_find(document, item->id)->rect = revert ? item->before : item->after;
+        VectorRectangle *rectangle = vector_rectangle_find(document, item->id);
+        rectangle->rect = revert ? item->before : item->after;
+        rectangle->angle = revert ? item->before_angle : item->after_angle;
     }
     return true;
 }
@@ -46,8 +50,8 @@ static bool revert(void *document, const void *command) {
     return replace(document, command, true);
 }
 
-bool vector_rectangles_set_rects(VectorDocument *document, const unsigned *ids,
-                                 const PUIRect *rects, int count) {
+bool vector_rectangles_set_transforms(VectorDocument *document, const unsigned *ids,
+                                      const PUIRect *rects, const float *angles, int count) {
     if (!ids || !rects || count < 1 || count > VECTOR_MAX_RECTANGLES) {
         return false;
     }
@@ -62,7 +66,8 @@ bool vector_rectangles_set_rects(VectorDocument *document, const unsigned *ids,
         bool valid =
             rectangle &&
             !(vector_rectangle_effective_flags(document, rectangle) & VECTOR_OBJECT_STATE_MASK) &&
-            valid_rect(rects[i]);
+            valid_rect(rects[i]) &&
+            (!angles || (isfinite(angles[i]) && angles[i] >= -180 && angles[i] < 180));
         for (int j = 0; j < i; j++) {
             valid = valid && ids[j] != ids[i];
         }
@@ -70,8 +75,10 @@ bool vector_rectangles_set_rects(VectorDocument *document, const unsigned *ids,
             free(command);
             return false;
         }
-        command->items[i] = (TransformItem){ids[i], rectangle->rect, rects[i]};
-        changed |= memcmp(&rectangle->rect, &rects[i], sizeof rects[i]) != 0;
+        command->items[i] = (TransformItem){ids[i], rectangle->rect, rects[i], rectangle->angle,
+                                            angles ? angles[i] : rectangle->angle};
+        changed |= memcmp(&rectangle->rect, &rects[i], sizeof rects[i]) != 0 ||
+                   rectangle->angle != command->items[i].after_angle;
     }
     if (!changed) {
         free(command);
@@ -83,6 +90,11 @@ bool vector_rectangles_set_rects(VectorDocument *document, const unsigned *ids,
         return false;
     }
     return true;
+}
+
+bool vector_rectangles_set_rects(VectorDocument *document, const unsigned *ids,
+                                 const PUIRect *rects, int count) {
+    return vector_rectangles_set_transforms(document, ids, rects, NULL, count);
 }
 
 bool vector_rectangles_translate(VectorDocument *document, const unsigned *ids, int count, float dx,
@@ -128,7 +140,10 @@ bool vector_rectangles_transform_read(VectorCommand *command, FILE *file) {
     }
     for (int i = 0; valid && i < owned->count; i++) {
         TransformItem *item = &owned->items[i];
-        valid = item->id && valid_rect(item->before) && valid_rect(item->after);
+        valid = item->id && valid_rect(item->before) && valid_rect(item->after) &&
+                isfinite(item->before_angle) && item->before_angle >= -180 &&
+                item->before_angle < 180 && isfinite(item->after_angle) &&
+                item->after_angle >= -180 && item->after_angle < 180;
         for (int j = 0; j < i; j++) {
             valid = valid && owned->items[j].id != item->id;
         }

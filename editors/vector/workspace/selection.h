@@ -9,6 +9,11 @@ PUIRect vector_artboard_display_rect(const VectorDocument *document, const Vecto
 /** @brief Rectangle preview in parent-local coordinates; persistent geometry stays unchanged. */
 PUIRect vector_rectangle_display_rect(const VectorDocument *document,
                                       const VectorRectangle *rectangle);
+/** @brief Clockwise preview angle, including a captured rotation gesture. */
+float vector_rectangle_display_angle(const VectorDocument *document,
+                                     const VectorRectangle *rectangle);
+/** @brief Screen-space square grip bounds, oriented with a single rotated object. */
+PUIRect vector_selection_handle_rect(VectorDocument *document, int index, float size);
 /** @brief Visible editable selection bounds in screen pixels, including drag preview. */
 bool vector_selection_bounds(VectorDocument *document, PUIRect *bounds);
 /** @brief Draw shared white resize handles above document content. */

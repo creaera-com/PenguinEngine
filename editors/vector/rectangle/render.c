@@ -1,12 +1,13 @@
 /** @file @brief Render rectangle children and creation previews inside their artboard. */
 #include "render.h"
 #include "editors/vector/document/selection.h"
+#include "editors/vector/geometry/rotation.h"
 #include "editors/vector/workspace/selection.h"
 #include "tool.h"
 #include <math.h>
 
 static void draw(SDL_Renderer *renderer, SDL_FRect board, float zoom, PUIRect local, bool selected,
-                 bool preview, uint32_t fill) {
+                 bool preview, uint32_t fill, float angle) {
     SDL_FRect rect = {board.x + local.x * zoom, board.y + local.y * zoom, local.w * zoom,
                       local.h * zoom};
     SDL_BlendMode blend;
@@ -18,12 +19,35 @@ static void draw(SDL_Renderer *renderer, SDL_FRect board, float zoom, PUIRect lo
     }
     SDL_SetRenderDrawColor(renderer, fill >> 24, (fill >> 16) & 255, (fill >> 8) & 255,
                            (Uint8)alpha);
-    SDL_RenderFillRect(renderer, &rect);
+    if (angle == 0) {
+        SDL_RenderFillRect(renderer, &rect);
+    } else {
+        PUIRect corners[4];
+        vector_rotated_corners((PUIRect){rect.x, rect.y, rect.w, rect.h}, angle, corners);
+        SDL_Vertex vertices[4];
+        SDL_FColor color = {(fill >> 24) / 255.f, ((fill >> 16) & 255) / 255.f,
+                            ((fill >> 8) & 255) / 255.f, alpha / 255.f};
+        for (int i = 0; i < 4; i++) {
+            vertices[i] = (SDL_Vertex){.position = {corners[i].x, corners[i].y}, .color = color};
+        }
+        const int indices[6] = {0, 1, 2, 0, 2, 3};
+        SDL_RenderGeometry(renderer, NULL, vertices, 4, indices, 6);
+    }
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer, selected || preview ? 194 : 66, selected || preview ? 142 : 89,
                            selected || preview ? 92 : 109,
                            selected || preview ? 255 : (Uint8)alpha);
-    SDL_RenderRect(renderer, &rect);
+    if (angle == 0) {
+        SDL_RenderRect(renderer, &rect);
+    } else {
+        PUIRect corners[4];
+        vector_rotated_corners((PUIRect){rect.x, rect.y, rect.w, rect.h}, angle, corners);
+        SDL_FPoint points[5];
+        for (int i = 0; i < 5; i++) {
+            points[i] = (SDL_FPoint){corners[i % 4].x, corners[i % 4].y};
+        }
+        SDL_RenderLines(renderer, points, 5);
+    }
     SDL_SetRenderDrawBlendMode(renderer, blend);
 }
 
@@ -61,12 +85,13 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
                 : rectangle->fill;
         draw(renderer, board, document->viewport.zoom,
              vector_rectangle_display_rect(document, rectangle),
-             vector_document_is_selected(document, rectangle->id), false, fill);
+             vector_document_is_selected(document, rectangle->id), false, fill,
+             vector_rectangle_display_angle(document, rectangle));
     }
     if (document->rectangle_tool.dragging && document->rectangle_tool.parent_id == parent->id) {
         draw(renderer, board, document->viewport.zoom,
              vector_rectangle_tool_rect(&document->rectangle_tool), true, true,
-             VECTOR_RECTANGLE_DEFAULT_FILL);
+             VECTOR_RECTANGLE_DEFAULT_FILL, 0);
     }
     SDL_SetRenderClipRect(renderer, clipped ? &outer : NULL);
 }

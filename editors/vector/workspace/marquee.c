@@ -1,6 +1,7 @@
 /** @file @brief Live rectangle selection by visible-area intersection. */
 #include "marquee.h"
 #include "editors/vector/document/selection.h"
+#include "editors/vector/geometry/rotation.h"
 #include "selection.h"
 #include <math.h>
 
@@ -50,11 +51,14 @@ static void update(VectorDocument *document, float x, float y) {
             continue;
         }
         VectorArtboard *board = vector_artboard_find(document, rectangle->parent_id);
-        float rx = board->rect.x + fmaxf(0, rectangle->rect.x);
-        float ry = board->rect.y + fmaxf(0, rectangle->rect.y);
-        float rr = board->rect.x + fminf(board->rect.w, rectangle->rect.x + rectangle->rect.w);
-        float rb = board->rect.y + fminf(board->rect.h, rectangle->rect.y + rectangle->rect.h);
-        if (rr > rx && rb > ry && rx < right && ry < bottom && rr > left && rb > top &&
+        float rx = fmaxf(board->rect.x, left), ry = fmaxf(board->rect.y, top);
+        float rr = fminf(board->rect.x + board->rect.w, right),
+              rb = fminf(board->rect.y + board->rect.h, bottom);
+        PUIRect world = rectangle->rect;
+        world.x += board->rect.x;
+        world.y += board->rect.y;
+        if (vector_rotated_intersects(world, rectangle->angle,
+                                      (PUIRect){rx, ry, rr - rx, rb - ry}) &&
             !vector_document_is_selected(document, rectangle->id)) {
             vector_document_toggle(document, rectangle->id);
         }

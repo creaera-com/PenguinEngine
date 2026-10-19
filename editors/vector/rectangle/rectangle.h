@@ -11,6 +11,7 @@ typedef struct {
     uint32_t fill; ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
     char name[64];
     PUIRect rect;
+    float angle; ///< Clockwise degrees around the rectangle center, normalized to [-180,180).
 } VectorRectangle;
 struct VectorDocument;
 /** @brief Find a rectangle by stable model ID. */

@@ -1,11 +1,13 @@
 #include "editor_host/host.h"
 #include "editors/vector/document/selection.h"
 #include "editors/vector/geometry/resize.h"
+#include "editors/vector/geometry/rotation.h"
 #include "editors/vector/internal.h"
 #include "editors/vector/rectangle/transform.h"
 #include "editors/vector/workspace/selection.h"
 #include "shell/shell.h"
 #include "unity.h"
+#include <math.h>
 
 static SDL_Window *window;
 static SDL_Renderer *renderer;
@@ -408,8 +410,186 @@ static void test_group_resize_live_aspect_and_center_modifiers(void) {
     assert_geometry((PUIRect){108, 74, 56, 42}, doc->rectangles[1].rect);
 }
 
+static void test_single_rotation_live_hit_testing_and_oriented_resize(void) {
+    VectorDocument *doc = document();
+    click(40, 35, false);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 48, 35);
+    TEST_ASSERT_TRUE(doc->selection_tool.rotating);
+    pointer(SDL_EVENT_MOUSE_MOTION, 40, 65);
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_FLOAT(90, vector_rectangle_display_angle(doc, &doc->rectangles[0]));
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 40, 65);
+    TEST_ASSERT_EQUAL_FLOAT(90, doc->rectangles[0].angle);
+    assert_geometry((PUIRect){20, 20, 40, 30}, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+    vector_document_select(doc, 0);
+    doc->active_artboard = 0;
+    commit();
+    click(58, 22, false); // Inside the former rectangle, outside the rotated shape.
+    TEST_ASSERT_EQUAL_UINT(0, doc->active_rectangle);
+    click(40, 53, false); // Inside the rotated extension beyond its former bottom edge.
+    TEST_ASSERT_EQUAL_UINT(1, doc->active_rectangle);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 40, 55);
+    TEST_ASSERT_EQUAL_UINT(VECTOR_RESIZE_RIGHT, doc->selection_tool.resize_edges);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 40, 65);
+    assert_geometry((PUIRect){15, 25, 50, 30}, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_FLOAT(90, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_INT(5, doc->history.count);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[0].angle);
+}
+
+static void test_group_rotation_is_atomic_and_history_survives_editor_switch(void) {
+    VectorDocument *doc = document();
+    select_pair();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 88, 60);
+    pointer(SDL_EVENT_MOUSE_MOTION, 80, 100);
+    assert_geometry((PUIRect){85, 5, 40, 30},
+                    vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    assert_geometry((PUIRect){35, 85, 40, 30},
+                    vector_rectangle_display_rect(doc, &doc->rectangles[1]));
+    TEST_ASSERT_EQUAL_FLOAT(90, vector_rectangle_display_angle(doc, &doc->rectangles[1]));
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[1].angle);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 80, 100);
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    activate("scripts");
+    activate("vector");
+    commit();
+    doc = document();
+    TEST_ASSERT_TRUE(vector_history_redo(&doc->history, doc));
+    commit();
+    TEST_ASSERT_EQUAL_FLOAT(90, doc->rectangles[0].angle);
+    assert_geometry((PUIRect){35, 85, 40, 30}, doc->rectangles[1].rect);
+    // Axis-aligned scaling of a rotated group stays uniform, avoiding shear.
+    PUIRect bounds;
+    TEST_ASSERT_TRUE(vector_selection_bounds(doc, &bounds));
+    float hx =
+        (bounds.x + bounds.w - doc->viewport.bounds.x - doc->viewport.x) / doc->viewport.zoom;
+    float hy =
+        (bounds.y + bounds.h / 2 - doc->viewport.bounds.y - doc->viewport.y) / doc->viewport.zoom;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, hx, hy);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, hx + 16, hy);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 40.f / 30,
+                             doc->rectangles[0].rect.w / doc->rectangles[0].rect.h);
+    TEST_ASSERT_EQUAL_FLOAT(90, doc->rectangles[0].angle);
+}
+
+static void test_rotation_cancel_noop_shift_and_locked_member(void) {
+    VectorDocument *doc = document();
+    select_pair();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 88, 60);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 88, 60);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 88, 60);
+    pointer(SDL_EVENT_MOUSE_MOTION, 110, 70);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 18.43495f,
+                             vector_rectangle_display_angle(doc, &doc->rectangles[0]));
+    group_modifier_key(SDLK_LSHIFT, true, SDL_KMOD_SHIFT);
+    TEST_ASSERT_EQUAL_FLOAT(15, vector_rectangle_display_angle(doc, &doc->rectangles[0]));
+    cancel();
+    SDL_SetModState(0);
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 88, 60);
+    pointer(SDL_EVENT_MOUSE_MOTION, 80, 100);
+    TEST_ASSERT_TRUE(vector_rectangle_set_state(doc, 1, VECTOR_OBJECT_LOCKED));
+    commit();
+    pointer(SDL_EVENT_MOUSE_MOTION, 60, 80);
+    TEST_ASSERT_FALSE(doc->selection_tool.rotating);
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[1].angle);
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+}
+
+static void test_rotation_across_artboards_preserves_parents_and_atomic_guards(void) {
+    VectorDocument *doc = document();
+    TEST_ASSERT_TRUE(vector_artboard_add(doc, (PUIRect){320, 0, 180, 200}));
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 2, (PUIRect){20, 20, 40, 30}));
+    vector_document_select(doc, 1);
+    vector_document_toggle(doc, 3);
+    commit();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 208, 35);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 200, 195);
+    assert_geometry((PUIRect){180, -140, 40, 30}, doc->rectangles[0].rect);
+    assert_geometry((PUIRect){-140, 180, 40, 30}, doc->rectangles[2].rect);
+    TEST_ASSERT_EQUAL_UINT(1, doc->rectangles[0].parent_id);
+    TEST_ASSERT_EQUAL_UINT(2, doc->rectangles[2].parent_id);
+    unsigned ids[] = {1, 3};
+    PUIRect rects[] = {doc->rectangles[0].rect, doc->rectangles[2].rect};
+    float invalid[] = {45, NAN};
+    TEST_ASSERT_FALSE(vector_rectangles_set_transforms(doc, ids, rects, invalid, 2));
+    TEST_ASSERT_EQUAL_FLOAT(90, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_INT(6, doc->history.count);
+}
+
+static Uint8 world_red(float x, float y) {
+    const VectorViewport *v = &document()->viewport;
+    SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
+    TEST_ASSERT_NOT_NULL(surface);
+    Uint8 r, g, b, a;
+    TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, (int)(v->bounds.x + v->x + x * v->zoom),
+                                          (int)(v->bounds.y + v->y + y * v->zoom), &r, &g, &b, &a));
+    SDL_DestroySurface(surface);
+    return r;
+}
+
+static void test_rotated_rendering_alpha_clipping_and_marquee(void) {
+    VectorDocument *doc = document();
+    unsigned id = 1;
+    PUIRect rect = doc->rectangles[0].rect;
+    float angle = 90;
+    TEST_ASSERT_TRUE(vector_rectangles_set_transforms(doc, &id, &rect, &angle, 1));
+    vector_document_select(doc, 0);
+    doc->active_artboard = 0;
+    commit();
+    TEST_ASSERT_EQUAL_UINT8(115, world_red(40, 52));
+    TEST_ASSERT_EQUAL_UINT8(242, world_red(23, 25));
+    TEST_ASSERT_TRUE(vector_rectangle_set_fill(doc, 1, 0xFF000080));
+    commit();
+    TEST_ASSERT_UINT8_WITHIN(2, 248, world_red(40, 52));
+    Uint8 outside = world_red(-2, 30);
+    rect = (PUIRect){-10, 20, 40, 30};
+    TEST_ASSERT_TRUE(vector_rectangles_set_transforms(doc, &id, &rect, &angle, 1));
+    commit();
+    TEST_ASSERT_EQUAL_UINT8(outside, world_red(-2, 30));
+    // Marquee sees actual rotated geometry, not the old unrotated rectangle.
+    rect = (PUIRect){20, 20, 40, 30};
+    TEST_ASSERT_TRUE(vector_rectangles_set_transforms(doc, &id, &rect, &angle, 1));
+    commit();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 38, 56);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 43, 51);
+    TEST_ASSERT_TRUE(vector_document_is_selected(doc, 1));
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 18, 18);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 24, 26);
+    TEST_ASSERT_FALSE(vector_document_is_selected(doc, 1));
+}
+
+static void test_editor_switch_discards_rotation_preview(void) {
+    VectorDocument *doc = document();
+    select_pair();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 88, 60);
+    pointer(SDL_EVENT_MOUSE_MOTION, 80, 100);
+    TEST_ASSERT_EQUAL_FLOAT(90, vector_rectangle_display_angle(doc, &doc->rectangles[0]));
+    activate("scripts");
+    activate("vector");
+    commit();
+    doc = document();
+    TEST_ASSERT_FALSE(doc->selection_tool.rotating);
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[0].angle);
+    assert_geometry((PUIRect){20, 20, 40, 30}, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_rotated_rendering_alpha_clipping_and_marquee);
+    RUN_TEST(test_editor_switch_discards_rotation_preview);
+    RUN_TEST(test_single_rotation_live_hit_testing_and_oriented_resize);
+    RUN_TEST(test_group_rotation_is_atomic_and_history_survives_editor_switch);
+    RUN_TEST(test_rotation_cancel_noop_shift_and_locked_member);
+    RUN_TEST(test_rotation_across_artboards_preserves_parents_and_atomic_guards);
     RUN_TEST(test_group_resize_live_aspect_and_center_modifiers);
     RUN_TEST(test_all_group_handles_scale_relative_positions_with_single_history_steps);
     RUN_TEST(test_group_resize_minimum_cancel_noop_and_checkpoint_redo);

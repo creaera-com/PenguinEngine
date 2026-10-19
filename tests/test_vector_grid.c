@@ -1,6 +1,7 @@
 #include "editor_host/host.h"
 #include "editors/vector/geometry/constraints.h"
 #include "editors/vector/geometry/resize.h"
+#include "editors/vector/geometry/rotation.h"
 #include "editors/vector/grid/render.h"
 #include "editors/vector/grid/snap.h"
 #include "editors/vector/internal.h"
@@ -254,8 +255,28 @@ static void test_modifier_geometry_all_handles_preserves_ratio_and_center(void) 
     TEST_ASSERT_FLOAT_WITHIN(.001f, 60, snapped.y + snapped.h / 2);
 }
 
+static void test_rotation_geometry_bounds_and_exact_intersections(void) {
+    PUIRect original = {20, 20, 40, 20};
+    PUIRect rotated = vector_rotated_bounds(original, 90);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 30, rotated.x);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 10, rotated.y);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 20, rotated.w);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 40, rotated.h);
+    TEST_ASSERT_TRUE(vector_rotated_contains(original, 90, 40, 15));
+    TEST_ASSERT_FALSE(vector_rotated_contains(original, 90, 22, 22));
+    TEST_ASSERT_TRUE(vector_rotated_intersects(original, 90, (PUIRect){35, 12, 2, 2}));
+    TEST_ASSERT_FALSE(vector_rotated_intersects(original, 90, (PUIRect){21, 21, 2, 2}));
+    TEST_ASSERT_EQUAL_FLOAT(-180, vector_angle_normalize(180));
+    TEST_ASSERT_EQUAL_FLOAT(90, vector_angle_normalize(450));
+    VectorGrid grid = {.snap_enabled = true, .snap_tolerance = 5, .width = 16, .height = 16};
+    PUIRect moved = vector_grid_snap_rotated_rect(&grid, 1, (PUIRect){30, 30, 40, 20}, 90, 5, 7);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 34, moved.x);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 34, moved.y);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_rotation_geometry_bounds_and_exact_intersections);
     RUN_TEST(test_modifier_geometry_all_handles_preserves_ratio_and_center);
     RUN_TEST(test_snap_points_use_screen_radius_for_all_lattices);
     RUN_TEST(test_snap_move_and_eight_handles_preserve_geometry_constraints);
