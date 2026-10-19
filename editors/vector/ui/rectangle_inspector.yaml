@@ -55,42 +55,50 @@ root:
                 value: "#7393AFFF"
                 action: vector.rectangle.fill
                 preview_action: vector.rectangle.fill_preview
-    - type: row
-      padding: 0
-      gap: 8
-      height: 28
+    - type: section
+      id: section_boarder_settings
+      text: Rahmen
       children:
-        - {type: checkbox, id: rectangle_visible, text: Sichtbar, action: vector.rectangle.visible, height: 28}
-        - {type: checkbox, id: rectangle_locked, text: Gesperrt, action: vector.rectangle.locked, height: 28}
-    - {type: label, id: rectangle_edit_hint, text: "", height: 24}
-    - type: row
-      padding: 0
-      gap: 8
-      height: 28
+      - type: row
+        padding: 0
+        gap: 8
+        height: 28
+        children:
+          - {type: label, text: Rahmen, width: 64}
+          - {type: input, id: rectangle_stroke_width, action: vector.rectangle.stroke_width}
+          - {type: label, text: px, width: 24}
+      - type: button_group
+        padding: 0
+        gap: 2
+        height: 28
+        children:
+          - {type: button, id: rectangle_stroke_inside, text: Innen, action: vector.rectangle.stroke_inside}
+          - {type: button, id: rectangle_stroke_center, text: Mittig, action: vector.rectangle.stroke_center}
+          - {type: button, id: rectangle_stroke_outside, text: Aussen, action: vector.rectangle.stroke_outside}
+      - type: popup_button
+        id: rectangle_stroke_button
+        text: Rahmenfarbe
+        placement: below
+        popup_width: 260
+        popup_height: 304
+        children:
+          - type: panel
+            padding: 12
+            children:
+              - type: color_picker
+                id: rectangle_stroke_color
+                mode: hsl
+                value: "#303030FF"
+                action: vector.rectangle.stroke_color
+    - type: section
+      id: section_layer_settings
+      text: Ebene
       children:
-        - {type: label, text: Rahmen, width: 64}
-        - {type: input, id: rectangle_stroke_width, action: vector.rectangle.stroke_width}
-        - {type: label, text: px, width: 24}
-    - type: button_group
-      padding: 0
-      gap: 2
-      height: 28
-      children:
-        - {type: button, id: rectangle_stroke_inside, text: Innen, action: vector.rectangle.stroke_inside}
-        - {type: button, id: rectangle_stroke_center, text: Mittig, action: vector.rectangle.stroke_center}
-        - {type: button, id: rectangle_stroke_outside, text: Aussen, action: vector.rectangle.stroke_outside}
-    - type: popup_button
-      id: rectangle_stroke_button
-      text: Rahmenfarbe
-      placement: below
-      popup_width: 260
-      popup_height: 304
-      children:
-        - type: panel
-          padding: 12
-          children:
-            - type: color_picker
-              id: rectangle_stroke_color
-              mode: hsl
-              value: "#303030FF"
-              action: vector.rectangle.stroke_color
+      - type: row
+        padding: 0
+        gap: 8
+        height: 28
+        children:
+          - {type: checkbox, id: rectangle_visible, text: Sichtbar, action: vector.rectangle.visible, height: 28}
+          - {type: checkbox, id: rectangle_locked, text: Gesperrt, action: vector.rectangle.locked, height: 28}
+      - {type: label, id: rectangle_edit_hint, text: "", height: 24}

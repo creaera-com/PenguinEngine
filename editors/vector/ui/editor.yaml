@@ -55,6 +55,7 @@ root:
             - {type: separator}
             - {type: toggle, id: vector_grid_toggle, icon: tabler:grid-4x4, action: vector.grid.toggle, width: 30}
             - {type: toggle, id: vector_grid_snap, icon: tabler:magnet, action: vector.grid.snap, width: 30}
+            - {type: toggle, id: vector_element_snap, icon: tabler:magnetic, action: vector.element.snap, width: 30}
             - {type: spacer}
             - type: radial_menu
               id: vector_object_menu
