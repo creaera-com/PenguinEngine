@@ -31,3 +31,19 @@ if(PENGUI_BUILD_SDL)
   FetchContent_MakeAvailable(SDL3)
  endif()
 endif()
+
+if(PENGUI_BUILD_APP)
+# SGI Free Software License B; pinned vendored C source, no network needed when building.
+add_library(pengui_tess STATIC
+ ${PROJECT_SOURCE_DIR}/third_party/libtess2/Source/bucketalloc.c
+ ${PROJECT_SOURCE_DIR}/third_party/libtess2/Source/dict.c
+ ${PROJECT_SOURCE_DIR}/third_party/libtess2/Source/geom.c
+ ${PROJECT_SOURCE_DIR}/third_party/libtess2/Source/mesh.c
+ ${PROJECT_SOURCE_DIR}/third_party/libtess2/Source/priorityq.c
+ ${PROJECT_SOURCE_DIR}/third_party/libtess2/Source/sweep.c
+ ${PROJECT_SOURCE_DIR}/third_party/libtess2/Source/tess.c)
+target_include_directories(pengui_tess PUBLIC ${PROJECT_SOURCE_DIR}/third_party/libtess2/Include)
+if(NOT MSVC)
+ target_link_libraries(pengui_tess PUBLIC m)
+endif()
+endif()

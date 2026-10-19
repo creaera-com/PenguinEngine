@@ -33,16 +33,34 @@ unsigned vector_rectangle_effective_flags(VectorDocument *document,
 
 bool vector_rectangle_valid(VectorRectangle rectangle) {
     PUIRect r = rectangle.rect;
-    return isfinite(rectangle.stroke.width) && rectangle.stroke.width >= 0 &&
-           rectangle.stroke.width <= VECTOR_MAX_ARTBOARD_SIZE &&
-           rectangle.stroke.alignment >= VECTOR_STROKE_CENTER &&
-           rectangle.stroke.alignment <= VECTOR_STROKE_OUTSIDE && isfinite(rectangle.angle) &&
-           rectangle.angle >= -360 && rectangle.angle <= 360 && rectangle.id &&
-           rectangle.parent_id && !(rectangle.flags & ~VECTOR_OBJECT_STATE_MASK) &&
-           memchr(rectangle.name, 0, sizeof rectangle.name) && *rectangle.name && isfinite(r.x) &&
-           isfinite(r.y) && fabsf(r.x) <= VECTOR_MAX_ARTBOARD_SIZE &&
-           fabsf(r.y) <= VECTOR_MAX_ARTBOARD_SIZE && isfinite(r.w) && isfinite(r.h) && r.w >= 1 &&
-           r.h >= 1 && r.w <= VECTOR_MAX_ARTBOARD_SIZE && r.h <= VECTOR_MAX_ARTBOARD_SIZE;
+    if (!vector_path_valid(&rectangle.path)) {
+        return false;
+    }
+    for (unsigned i = 0; i < rectangle.path.count; i++) {
+        VectorPoint p = rectangle.path.points[i];
+        if (p.x < -.00001f || p.x > 1.00001f || p.y < -.00001f || p.y > 1.00001f) {
+            return false;
+        }
+    }
+    bool valid = isfinite(rectangle.stroke.width) && rectangle.stroke.width >= 0 &&
+                 rectangle.stroke.width <= VECTOR_MAX_ARTBOARD_SIZE &&
+                 rectangle.stroke.alignment >= VECTOR_STROKE_CENTER &&
+                 rectangle.stroke.alignment <= VECTOR_STROKE_OUTSIDE && isfinite(rectangle.angle) &&
+                 rectangle.angle >= -360 && rectangle.angle <= 360 && rectangle.id &&
+                 rectangle.parent_id && !(rectangle.flags & ~VECTOR_OBJECT_STATE_MASK) &&
+                 memchr(rectangle.name, 0, sizeof rectangle.name) && *rectangle.name &&
+                 isfinite(r.x) && isfinite(r.y) && fabsf(r.x) <= VECTOR_MAX_ARTBOARD_SIZE &&
+                 fabsf(r.y) <= VECTOR_MAX_ARTBOARD_SIZE && isfinite(r.w) && isfinite(r.h) &&
+                 r.w >= 1 && r.h >= 1 && r.w <= VECTOR_MAX_ARTBOARD_SIZE &&
+                 r.h <= VECTOR_MAX_ARTBOARD_SIZE;
+    if (valid && rectangle.path.count && rectangle.stroke.width > 0) {
+        VectorPath path = vector_shape_path(&rectangle, rectangle.rect, rectangle.angle), outline;
+        int placement = rectangle.stroke.alignment == VECTOR_STROKE_INSIDE    ? -1
+                        : rectangle.stroke.alignment == VECTOR_STROKE_OUTSIDE ? 1
+                                                                              : 0;
+        valid = vector_path_outline(&path, rectangle.stroke.width, placement, &outline);
+    }
+    return valid;
 }
 
 static bool add_apply(void *state, const void *payload) {

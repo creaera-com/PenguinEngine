@@ -409,8 +409,7 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
         VectorRectangle *rectangle = vector_rectangle_find(document, document->active_rectangle);
         VectorArtboard *board = vector_artboard_find(document, rectangle->parent_id);
         if (!contains(board->rect, world_x, world_y) &&
-            vector_rotated_contains(rectangle->rect, rectangle->angle, world_x - board->rect.x,
-                                    world_y - board->rect.y)) {
+            vector_shape_contains(rectangle, world_x - board->rect.x, world_y - board->rect.y)) {
             if (additive) {
                 vector_document_toggle(document, rectangle->id);
             } else {
@@ -430,8 +429,8 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
             VectorRectangle *rectangle = &document->rectangles[j];
             if (rectangle->parent_id != board->id ||
                 (rectangle->flags & VECTOR_OBJECT_STATE_MASK) ||
-                !vector_rotated_contains(rectangle->rect, rectangle->angle, world_x - board->rect.x,
-                                         world_y - board->rect.y)) {
+                !vector_shape_contains(rectangle, world_x - board->rect.x,
+                                       world_y - board->rect.y)) {
                 continue;
             }
             if (additive) {

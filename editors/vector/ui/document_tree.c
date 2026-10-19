@@ -89,6 +89,10 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
                     items[row].selected = vector_document_is_selected(document, rectangle->id);
                     fill(&items[row++], document->id, rectangle->id, rectangle->name, "rectangle",
                          rectangle->flags, 1);
+                    if (rectangle->path.count) {
+                        snprintf(items[row - 1].icon, sizeof items[row - 1].icon,
+                                 "tabler:vector-bezier-2");
+                    }
                 }
             }
         }

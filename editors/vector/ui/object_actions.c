@@ -5,6 +5,7 @@
 #include "editors/vector/geometry/rotation.h"
 #include "editors/vector/object/alignment.h"
 #include "editors/vector/object/order.h"
+#include "path_actions.h"
 #include <string.h>
 
 /** @brief Bind YAML IDs and semantic actions to the domain without expanding the routing chain. */
@@ -26,6 +27,9 @@ bool vector_object_actions_action(VectorObjectActions *actions, VectorDocument *
         return false;
     }
     if (!document) {
+        return true;
+    }
+    if (vector_path_actions_action(document, view, name)) {
         return true;
     }
     vector_artboard_tool_cancel(document);
@@ -79,7 +83,7 @@ static void select_at(VectorDocument *d, float x, float y) {
             !pui_contains(b->rect, wx, wy)) {
             continue;
         }
-        if (vector_rotated_contains(r->rect, r->angle, wx - b->rect.x, wy - b->rect.y)) {
+        if (vector_shape_contains(r, wx - b->rect.x, wy - b->rect.y)) {
             if (!vector_document_is_selected(d, r->id)) {
                 vector_document_select(d, r->id);
             }
@@ -187,6 +191,7 @@ void vector_object_actions_commit(VectorObjectActions *actions, VectorDocument *
             align |= enabled;
         }
         pui_view_set_radial_enabled(view, "vector_alignment_menu", align);
+        vector_path_actions_sync(document, view);
         pui_view_open_radial(view, "vector_object_menu", actions->x, actions->y);
         actions->pending = false;
     }

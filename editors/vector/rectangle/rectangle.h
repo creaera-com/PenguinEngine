@@ -5,30 +5,9 @@
 #define VECTOR_MAX_RECTANGLES 64
 #define VECTOR_RECTANGLE_DEFAULT_FILL 0x7393afffu
 
-/** @brief Placement relative to the unmodified rectangle edge. */
-typedef enum {
-    VECTOR_STROKE_CENTER,
-    VECTOR_STROKE_INSIDE,
-    VECTOR_STROKE_OUTSIDE
-} VectorStrokeAlignment;
-
-/** @brief Solid stroke in document pixels; width zero disables it. */
-typedef struct {
-    uint32_t color; ///< Packed 0xRRGGBBAA.
-    float width;
-    VectorStrokeAlignment alignment;
-} VectorStroke;
-
-/** @brief Rectangle geometry is relative to parent_id, never to the viewport. */
-typedef struct {
-    unsigned id, parent_id, flags;
-    uint32_t fill; ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
-    VectorStroke stroke;
-    char name[64];
-    PUIRect rect;
-    float angle; ///< Clockwise degrees around the rectangle center, signed in [-360,360], including
-                 ///< full turns.
-} VectorRectangle;
+#include "editors/vector/object/shape.h"
+/** @brief Compatibility name for the existing shape collection and rectangle property APIs. */
+typedef VectorShape VectorRectangle;
 struct VectorDocument;
 /** @brief Validate a value before accepting clipboard or checkpoint data. */
 bool vector_rectangle_valid(VectorRectangle rectangle);

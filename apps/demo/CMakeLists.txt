@@ -26,6 +26,12 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/rectangle.c
  ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/tool.c
  ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/stroke_render.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/geometry/path.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/geometry/path_tess.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/object/shape.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/path/operations.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/path/render.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/path_actions.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/alignment.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/order.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/clipboard.c
@@ -61,7 +67,7 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/game/editor.c
  ${PROJECT_SOURCE_DIR}/editors/game/inspector.c)
 target_include_directories(pengui_editor_support PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR})
-target_link_libraries(pengui_editor_support PUBLIC pengUI::sdl PRIVATE pengui_yaml_parser)
+target_link_libraries(pengui_editor_support PUBLIC pengUI::sdl PRIVATE pengui_yaml_parser pengui_tess)
 add_executable(pengui_editor editor/main.c editor/application.c)
 target_link_libraries(pengui_editor PRIVATE pengui_editor_support)
 set_target_properties(pengui_editor PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})

@@ -2,6 +2,7 @@
 #include "render.h"
 #include "editors/vector/document/selection.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/path/render.h"
 #include "editors/vector/workspace/selection.h"
 #include "stroke_render.h"
 #include "tool.h"
@@ -89,6 +90,13 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
             document->fill_preview.active && document->fill_preview.rectangle_id == rectangle->id
                 ? document->fill_preview.color
                 : rectangle->fill;
+        if (rectangle->path.count) {
+            vector_path_draw(
+                renderer, rectangle, vector_rectangle_display_rect(document, rectangle),
+                vector_rectangle_display_angle(document, rectangle), board, document->viewport.zoom,
+                fill, vector_document_is_selected(document, rectangle->id));
+            continue;
+        }
         draw(renderer, board, document->viewport.zoom,
              vector_rectangle_display_rect(document, rectangle),
              vector_document_is_selected(document, rectangle->id), false, fill,

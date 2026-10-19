@@ -1,5 +1,6 @@
 /** @file @brief Optional artboard property panel and committed field-to-command bindings. */
 #include "inspector.h"
+#include "editors/vector/document/selection.h"
 #include "editors/vector/workspace/selection.h"
 
 #include <errno.h>
@@ -107,7 +108,15 @@ bool vector_inspector_sync(VectorInspector *inspector, VectorDocument *document,
             inspector->multi_mounted = true;
         }
         char text[64];
-        snprintf(text, sizeof text, "%d Rechtecke ausgewaehlt", document->selection.count);
+        int paths = 0;
+        for (int i = 0; i < document->rectangle_count; i++) {
+            paths += document->rectangles[i].path.count &&
+                     vector_document_is_selected(document, document->rectangles[i].id);
+        }
+        const char *kind = paths == document->selection.count ? "Pfade"
+                           : paths                            ? "Objekte"
+                                                              : "Rechtecke";
+        snprintf(text, sizeof text, "%d %s ausgewaehlt", document->selection.count, kind);
         pui_view_set_text(view, "vector_selection_count", text);
         return true;
     }

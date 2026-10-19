@@ -32,6 +32,12 @@ static bool replace(VectorDocument *document, const Transform *command, bool rev
             rectangle->angle != (revert ? item->after_angle : item->before_angle)) {
             return false;
         }
+        VectorShape candidate = *rectangle;
+        candidate.rect = revert ? item->before : item->after;
+        candidate.angle = revert ? item->before_angle : item->after_angle;
+        if (!vector_rectangle_valid(candidate)) {
+            return false;
+        }
     }
     for (int i = 0; i < command->count; i++) {
         const TransformItem *item = &command->items[i];

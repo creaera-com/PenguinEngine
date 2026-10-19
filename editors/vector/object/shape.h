@@ -1,0 +1,40 @@
+/** @file @brief Common vector shape values: geometry, style, transform and hierarchy identity. */
+#ifndef PE_VECTOR_OBJECT_SHAPE_H
+#define PE_VECTOR_OBJECT_SHAPE_H
+#include "editors/vector/artboard/artboard.h"
+#include "editors/vector/geometry/path.h"
+
+/** @brief Placement relative to the geometric shape contour. */
+typedef enum {
+    VECTOR_STROKE_CENTER,
+    VECTOR_STROKE_INSIDE,
+    VECTOR_STROKE_OUTSIDE
+} VectorStrokeAlignment;
+
+/** @brief Solid stroke in document pixels; width zero disables it. */
+typedef struct {
+    uint32_t color; ///< Packed 0xRRGGBBAA.
+    float width;
+    VectorStrokeAlignment alignment;
+} VectorStroke;
+
+/** @brief Shape geometry is relative to parent_id; rect maps normalized path points and defines the
+ * pivot. */
+typedef struct {
+    unsigned id, parent_id, flags;
+    uint32_t fill; ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
+    VectorStroke stroke;
+    VectorPath path; ///< Empty for parametric rectangles; otherwise normalized closed contours.
+    char name[64];
+    PUIRect rect;
+    float angle; ///< Clockwise degrees around the rectangle center, signed in [-360,360], including
+                 ///< full turns.
+} VectorShape;
+
+/** @brief Map normalized geometry to parent-local space, including object rotation. */
+VectorPath vector_shape_path(const VectorShape *shape, PUIRect rect, float angle);
+/** @brief Filled-area hit test; holes allow selecting objects behind this shape. */
+bool vector_shape_contains(const VectorShape *shape, float x, float y);
+/** @brief Filled-area intersection with a parent-local box. */
+bool vector_shape_intersects(const VectorShape *shape, PUIRect box);
+#endif

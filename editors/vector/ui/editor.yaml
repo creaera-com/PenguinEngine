@@ -89,6 +89,19 @@ root:
                     - {type: button, id: vector_align_bottom, text: Unten, icon: tabler:align-box-bottom-center, action: vector.objects.align_bottom}
                     - {type: button, id: vector_distribute_y, text: V. Abstand, icon: tabler:spacing-vertical, action: vector.objects.distribute_y}
 
+                - type: radial_menu
+                  id: vector_paths_menu
+                  text: Flaechen
+                  icon: tabler:vector-bezier-2
+                  children:
+                    - {type: button, id: vector_path_convert, text: In Pfad, icon: tabler:vector-bezier-2, action: vector.objects.path_convert}
+                    - {type: button, id: vector_path_stroke, text: Kontur zu Pfad, icon: tabler:border-outer, action: vector.objects.path_stroke}
+                    - {type: button, id: vector_path_union, text: Vereinigen, icon: tabler:vector-union, action: vector.objects.path_union}
+                    - {type: button, id: vector_path_subtract, text: Subtrahieren, icon: tabler:vector-diff, action: vector.objects.path_subtract}
+                    - {type: button, id: vector_path_intersect, text: Schnittmenge, icon: tabler:vector-intersection, action: vector.objects.path_intersect}
+                    - {type: button, id: vector_path_xor, text: XOR, icon: tabler:vector-bezier, action: vector.objects.path_xor}
+                    - {type: button, id: vector_path_divide, text: Aufteilen, icon: tabler:vector-triangle, action: vector.objects.path_divide}
+
         - type: tabs
           id: vector_document_tabs
           children: []

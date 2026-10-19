@@ -54,11 +54,8 @@ static void update(VectorDocument *document, float x, float y) {
         float rx = fmaxf(board->rect.x, left), ry = fmaxf(board->rect.y, top);
         float rr = fminf(board->rect.x + board->rect.w, right),
               rb = fminf(board->rect.y + board->rect.h, bottom);
-        PUIRect world = rectangle->rect;
-        world.x += board->rect.x;
-        world.y += board->rect.y;
-        if (vector_rotated_intersects(world, rectangle->angle,
-                                      (PUIRect){rx, ry, rr - rx, rb - ry}) &&
+        if (vector_shape_intersects(
+                rectangle, (PUIRect){rx - board->rect.x, ry - board->rect.y, rr - rx, rb - ry}) &&
             !vector_document_is_selected(document, rectangle->id)) {
             vector_document_toggle(document, rectangle->id);
         }

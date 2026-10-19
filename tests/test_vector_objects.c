@@ -287,7 +287,7 @@ static void test_radial_disabled_paste_outside_click_and_focus_loss_are_safe(voi
     VectorDocument *d = document();
     int count = d->history.count;
     click(SDL_BUTTON_RIGHT, 630, 400);
-    radial_click(630, 400, 2, 7); // Paste is unavailable in an empty clipboard.
+    radial_click(630, 400, 2, 8); // Paste is unavailable in an empty clipboard.
     TEST_ASSERT_EQUAL_INT(count, d->history.count);
     TEST_ASSERT_EQUAL_INT(2, d->rectangle_count);
     click(SDL_BUTTON_RIGHT, 630, 400);
@@ -414,11 +414,11 @@ static void test_layer_submenu_back_navigation_tree_rendering_and_hit_order_agre
                              pui_view_tree_item_at(shell.view, "vector_document_tree", 65, 130));
     int count = d->history.count;
     click(SDL_BUTTON_RIGHT, 630, 400);
-    radial_click(630, 400, 5, 7); // Root submenu: Ebenen.
+    radial_click(630, 400, 5, 8); // Root submenu: Ebenen.
     key(SDLK_ESCAPE, 0);          // Back to root, not closed.
-    radial_click(630, 400, 5, 7);
+    radial_click(630, 400, 5, 8);
     click(SDL_BUTTON_LEFT, 630, 400); // Center: back.
-    radial_click(630, 400, 5, 7);
+    radial_click(630, 400, 5, 8);
     TEST_ASSERT_EQUAL_INT(count, d->history.count); // Navigation is never a model command.
     click(SDL_BUTTON_LEFT, 630, 296);               // Four-sector submenu: Ganz nach oben.
     commit();
@@ -556,7 +556,7 @@ static void test_alignment_radial_action_and_checkpoint_redo(void) {
     PUIRect original[2] = {d->rectangles[0].rect, d->rectangles[1].rect};
     int count = d->history.count;
     click(SDL_BUTTON_RIGHT, 630, 400);
-    radial_click(630, 400, 6, 7); // Ausrichten.
+    radial_click(630, 400, 6, 8); // Ausrichten.
     radial_click(630, 400, 0, 8); // Links.
     commit();
     PUIRect a = world_bounds(d, 1), b = world_bounds(d, 2);

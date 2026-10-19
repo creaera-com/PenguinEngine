@@ -702,7 +702,7 @@ ungueltige Eingaben werden auf den vorherigen Wert zurueckgesetzt.
 `grid/state.h` enthaelt ausschliesslich Werte. Die Einstellungen sind
 Ansichtshilfen und erzeugen keine Schritte in der Artwork-History. Sie gelten
 je Dokument und werden beim Editorwechsel im temporaeren Checkpoint gesichert
-(Schema `PVCKPT16`). Es gibt damit noch keine dauerhafte Dokumentdatei.
+(Schema `PVCKPT17`). Es gibt damit noch keine dauerhafte Dokumentdatei.
 
 `grid/render.c` zeichnet die Linien artboardlokal ueber dem Artwork und erhaelt
 den SDL-Clip- und Blendzustand. Standardzellen sind rechteckig; Hexagonalzellen
@@ -771,7 +771,7 @@ Rechteck einen gemeinsamen Versatz; Abstaende und Groessen bleiben erhalten.
 History-Befehl aus. Er prueft alle IDs, Sperren und Zielkoordinaten vor der
 Mutation. Fehlt ein Teilnehmer oder ist ein Ziel ungueltig, bleibt die ganze
 Gruppe unveraendert. Undo/Redo wendet die gespeicherten Vorher-/Nachher-Rechtecke
-atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT16` speichert
+atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT17` speichert
 zusaetzlich die Auswahl-IDs. Ein Editorwechsel verwirft Gestenvorschauen,
 behaelt aber Auswahl und abgeschlossene Gruppenbewegungen.
 
@@ -806,7 +806,7 @@ und Skalieren denselben atomaren Vorher-/Nachher-Befehl (Checkpoint-Typ 5).
 Damit entstehen fuer eine gemeinsame Skalierung genau ein Undo-Schritt und
 vollstaendig wiederherstellbare Redo-Daten. Esc, Fokusverlust und Editorwechsel
 verwerfen die laufende Groessenvorschau. Abgeschlossene Skalierungen bleiben
-beim Editorwechsel inklusive History erhalten (Schema `PVCKPT16`).
+beim Editorwechsel inklusive History erhalten (Schema `PVCKPT17`).
 
 ### Shift und Alt waehrend Zeichnen und Skalieren
 
@@ -856,7 +856,7 @@ Der Mittelpunkt bleibt waehrend der Rotation fest, Alt aendert ihn nicht.
 `VectorRectangle.angle` speichert einen im Uhrzeigersinn laufenden Winkel in
 Grad, mit vorzeichenbehafteter Darstellung von -360 bis 360. `rect` beschreibt weiterhin Groesse und
 Lage vor der Drehung; gedreht wird um dessen Mittelpunkt. Die Winkel sind
-Teil von History und temporaeren Checkpoints (Schema `PVCKPT16`).
+Teil von History und temporaeren Checkpoints (Schema `PVCKPT17`).
 
 `geometry/rotation.c` berechnet Punkte, Ecken, umschliessende Rahmen und exakte
 Trefferflaechen ohne SDL oder Objektwissen. `workspace/rotation.c` besitzt die
@@ -905,7 +905,7 @@ beim Begrenzen auf eine Umdrehung, etwa 450 auf 90 oder -450 auf -90.
 `geometry/rotation.c` trennt diese Darstellung (`vector_angle_turn`) von der
 kurzen Winkeldifferenz (`vector_angle_normalize`) fuer die Gestenberechnung.
 Die Checkpoint-Validierung fuer Einzel- und Gruppenbefehle akzeptiert die
-vorzeichenbehafteten Winkel einschliesslich voller Umdrehungen (Schema `PVCKPT16`).
+vorzeichenbehafteten Winkel einschliesslich voller Umdrehungen (Schema `PVCKPT17`).
 
 
 ## Einfarbige Rechteckrahmen
@@ -935,7 +935,7 @@ keine zusaetzliche Kontur; Auswahlmarkierungen bleiben davon unabhaengig sichtba
 
 Rahmenaenderungen verwenden die vorhandenen vollstaendigen Vorher-/Nachher-Snapshots
 von Rechteckbefehlen (Codec 4). Undo/Redo und temporaere Editor-Checkpoints erhalten
-alle Rahmenwerte; die private Checkpoint-Signatur lautet jetzt `PVCKPT16`.
+alle Rahmenwerte; die private Checkpoint-Signatur lautet jetzt `PVCKPT17`.
 
 
 ## Objektbefehle und dokumentuebergreifende Zwischenablage
@@ -990,7 +990,7 @@ Artboard vor dem Loeschen. Fehler durch Kapazitaet, Sperren oder ungueltige Wert
 lassen Dokument und Zwischenablage unveraendert.
 
 `persistence/commands.c` registriert den strukturellen Befehl als Codec 6.
-Checkpoint-Schema `PVCKPT16` speichert ihn und die Objektzwischenablage. Beim Laden
+Checkpoint-Schema `PVCKPT17` speichert ihn und die Objektzwischenablage. Beim Laden
 werden Objektwerte, Eltern, Auswahl und der gesamte History-Verlauf validiert.
 
 
@@ -1025,7 +1025,7 @@ oder UI-Zustand. Beim Anwenden werden Reihenfolge, IDs und Elternzuordnung gepru
 bevor die Objektarrays umgeordnet werden. Auswahl, Namen, Flags und Geometrie bleiben
 erhalten. Die Objektzwischenablage wird nicht veraendert.
 
-Der private Befehl hat Codec 7 und wird im Checkpoint `PVCKPT16` gespeichert.
+Der private Befehl hat Codec 7 und wird im Checkpoint `PVCKPT17` gespeichert.
 Beim Editorwechsel bleiben Reihenfolge und vollstaendige Undo/Redo-History erhalten.
 Das Untermenue selbst wird ueber verschachtelte `radial_menu`-Eintraege in
 `editors/vector/ui/editor.yaml` beschrieben; die UI-Anbindung bleibt in
@@ -1069,3 +1069,101 @@ Sperrpruefung fehl, wird kein Objekt bewegt. Undo/Redo und Editor-Checkpoints br
 keinen neuen Befehlstyp oder ein neues Schema. Die acht Menueeintraege stehen in
 `ui/editor.yaml`; `ui/object_actions.c` ordnet deren Aktionen und Verfuegbarkeit
 ueber eine Tabelle den fachlichen Ausrichtungsoperationen zu.
+
+
+## Pfadgrundlage und boolesche Flaechenoperationen
+
+Unter **Flaechen** im radialen Menue stehen **In Pfad**, **Kontur zu Pfad**,
+**Vereinigen**, **Subtrahieren**, **Schnittmenge**, **XOR** und **Aufteilen** bereit.
+Konvertieren benoetigt mindestens eine Form; die fuenf booleschen Operationen
+benoetigen mindestens zwei sichtbare, entsperrte Objekte im **selben Artboard**.
+Bereits konvertierte Pfade koennen gemeinsam mit Rechtecken weiterverarbeitet werden.
+
+### Fachliche Daten und Abhaengigkeiten
+
+`object/shape.h` beschreibt `VectorShape`, den gemeinsamen Wertetyp fuer Geometrie,
+Transformation, Eltern-ID, Name, Fuellung und Rahmen. Die vorhandene Sammlung
+`document.rectangles` und ihre Properties-/Transform-APIs behalten vorerst ihre Namen;
+`VectorRectangle` ist dazu ein dokumentierter Kompatibilitaetsalias auf `VectorShape`.
+Pfadalgorithmen sind deshalb keine Erweiterungen des Rechteck-Zeichenwerkzeugs:
+
+- `geometry/path.h`, `path.c`: geschlossene Konturen, Bounds, Winding, Komponenten und Hit-Tests.
+- `geometry/path_tess.c`: reine C-Anbindung von libtess2 fuer Flaechen, Dreiecke und Konturbaender.
+- `object/shape.c`: normierte Pfadpunkte in Elternkoordinaten abbilden und drehen.
+- `path/operations.c`: Konvertierung, boolesche Plaene und atomare Ersetzung der Auswahl.
+- `path/render.c`: SDL-Darstellung der gefuellten Flaechen, Loecher und Rahmen.
+- `ui/path_actions.c`: YAML-Aktionen und Verfuegbarkeit an die Fachfunktionen binden.
+
+libtess2 ist als C-Quellcode mit fester Revision und SGI Free Software License B unter
+`third_party/libtess2` enthalten. Der Build benoetigt dafuer keinen Download und keinen
+C++-Compiler. Nur `pengui_editor_support` verwendet diese Bibliothek; pengUI und der
+SDL-freie Core bekommen keine Pfad- oder Tessellierungsabhaengigkeit.
+
+### Pfadgeometrie und Konvertierung
+
+`VectorPath` speichert bis zu **128 Punkte** und **32 geschlossene Konturen** als Werte.
+Konturenden sind exklusive Indizes. Aeussere Konturen haben positive Umlaufrichtung,
+Loecher negative; die Fuellung folgt der Nonzero-Winding-Regel. Mehrere getrennte
+Flaechen duerfen zu einem Pfadobjekt gehoeren.
+
+Ein parametrisches Rechteck hat ein leeres `shape.path`. **In Pfad** ersetzt dies durch
+eine geschlossene Kontur mit vier Punkten; Objekt-ID, Name, Ebenenposition, Auswahl,
+primaeres Objekt, Winkel, Fuellung und Rahmen bleiben erhalten. Die gespeicherten
+Punkte sind auf das Transformationsrechteck normiert. Breite/Hoehe aendern, Skalieren,
+Verschieben und Drehen funktionieren deshalb weiterhin mit denselben Werkzeugen.
+Sehr duenne boolesche Ergebnisse verwenden wegen der bestehenden Transform-Grenze
+ein mindestens 1 px grosses Bezugsrechteck; die eigentliche Flaeche wird nicht vergroessert.
+
+Diese erste Grundlage beschreibt **Polygonpfade mit geraden Segmenten**. Ein
+Knotenwerkzeug, Bezier-Kurven und Ellipsen sind noch nicht implementiert. Ein spaeteres
+Kurvenmodell kann hier ergaenzt und fuer Flaechenberechnungen kontrolliert abgeflacht werden.
+Es gibt durch diese Aenderung noch keinen SVG-Dateiimport oder -export.
+
+### Fuellung, Kontur und Loecher
+
+Fuellfarbe und `VectorStroke` bleiben getrennt von der Pfadgeometrie. Der Renderer
+trianguliert nur die gefuellten Bereiche; Loecher bleiben frei, auch bei Transparenz.
+Rahmen werden als zusammenhaengende Flaechenbaender mit Miter-Ecken (an sehr spitzen
+Ecken begrenzt/bevel) berechnet. Zentrierte Rahmen liegen beidseitig der Kontur;
+innen- und aussenliegende Rahmen werden an der gefuellten Flaeche geclippt. Das gilt
+auch an den Raendern von Loechern. Dreiecke ueberlappen sich nicht, sodass Alpha nicht
+mehrfach angewendet wird. Breite ist weiterhin in Dokument-Pixeln; Zoom veraendert
+nur die Darstellung. Artboard-Clipping gilt fuer Fuellung und Kontur.
+
+**Kontur zu Pfad** macht den Rahmen selbst zu einer gefuellten Flaeche mit der bisherigen
+Rahmenfarbe. Die alte Fuellung entfaellt dabei, die Rahmenstaerke des neuen Pfads ist 0.
+Diese Operation ist getrennt von **In Pfad**, das das gesamte Aussehen erhaelt.
+Hit-Tests und Auswahlrahmen pruefen bei Pfaden die tatsaechlich gefuellte Geometrie;
+ein Klick in ein Loch kann ein dahinterliegendes Objekt auswaehlen.
+
+### Ergebnisse, Reihenfolge und History
+
+Boolesche Berechnungen verwenden die gedrehte Geometrie in Elternkoordinaten, nicht
+Bildschirmkoordinaten oder das Raster. Die Ausrichtung des Ergebnisses wird in die
+Punkte eingerechnet, sein gespeicherter Drehwinkel ist danach 0.
+
+- **Vereinigen:** alle gefuellten Bereiche zusammenfassen.
+- **Subtrahieren:** alle weiter vorne liegenden Auswahlobjekte von der hintersten
+  ausgewaehlten Flaeche abziehen; die Ebenenreihenfolge bestimmt die Operanden.
+- **Schnittmenge:** nur die von allen ausgewaehlten Objekten belegte Flaeche behalten.
+- **XOR:** Bereiche mit ungerader Ueberdeckungszahl behalten.
+- **Aufteilen:** an allen Ueberschneidungen zerlegen und jede zusammenhaengende
+  Teilflaeche als eigenes Objekt erzeugen, einschliesslich eventueller Loecher.
+
+Die Ergebnisse erben Fuellung und Rahmen des hintersten ausgewaehlten Objekts.
+Originalrahmen werden nicht automatisch als Flaeche mitverrechnet; dafuer vorher
+**Kontur zu Pfad** benutzen. Alle Operanden werden durch frisch benannte Pfadobjekte
+mit neuen IDs an der obersten bisherigen Auswahlposition ersetzt. Unbeteiligte
+Objekte behalten ihre relative Reihenfolge. Die Ergebnisse werden ausgewaehlt.
+Eine leere Schnittmenge oder vollstaendige Subtraktion entfernt die Operanden.
+
+`vector_objects_replace_selection()` verwendet den strukturellen Snapshot-Befehl
+(Codec 6): Berechnung, Geometriepruefung und Kapazitaetspruefung passieren vor der
+Modellaenderung. Jede Operation ist ein Undo-Schritt; Undo stellt die Originalformen
+samt Eigenschaften und Auswahl wieder her. Pfadwerte werden auch beim Kopieren,
+Ausschneiden, Duplizieren, tabuebergreifenden Einfuegen und Editorwechsel erhalten.
+Die Checkpoint-Signatur lautet wegen des erweiterten Formwerts nun **PVCKPT17**.
+
+Die bisherigen 64 Objekte pro Dokument bleiben als Grenze bestehen. Ueberschreitet
+ein Ergebnis das Punkt-, Kontur- oder Objektlimit oder scheitert die Berechnung,
+bleiben Dokument, Zwischenablage und History unveraendert. Das Menue meldet den Fehler.

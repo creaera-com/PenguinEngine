@@ -2,7 +2,8 @@
 
 Die zusätzliche App `pengui_editor` bereitet drei eigenständige Arbeitsbereiche vor:
 `vector`, `scripts` und `game`. Scripts und Game enthalten zunächst nur UI-Gerüste. Vector kann Dokumente mit einer Zeichenfläche und Artboards als Tabs
-anlegen; Zeichenwerkzeuge, Skriptausführung und Spielfunktionen sind noch nicht implementiert.
+anlegen und Rechtecke sowie polygonale Pfadflächen mit Füllung, Rahmen, Transformationen,
+Flächenoperationen und Undo/Redo bearbeiten. Skriptausführung und Spielfunktionen sind noch nicht implementiert.
 Die Widget-Demo `pengui_playground` bleibt separat erhalten.
 
 Für den detaillierten Weg vom Button-Klick bis zur Änderung eines Dokuments siehe

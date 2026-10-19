@@ -98,7 +98,7 @@ Einzelne Widgets lassen sich auch direkt in C über `pengui/pengui.h` nutzen, oh
 
 Unity prüft den übernommenen UI-Kern, YAML-Validierung und native SDL-Eingaben. Zusätzlich startet die App mit `--smoke` aus einem anderen Arbeitsverzeichnis. `--screenshot datei.bmp` nimmt die Oberfläche auf. `PENGUI_SANITIZERS=ON` aktiviert ASan/UBSan. Die Architekturprüfung verhindert App-/Engine-Abhängigkeiten in der Bibliothek. Tests, Formatierung und Desktop-Builds für Linux, Windows und macOS sind in GitHub Actions eingerichtet.
 
-Enthaltene Fremdsoftware: libyaml (MIT), stb_image (MIT/Public Domain), Unity (MIT), Tabler Icons (MIT) und JetBrains Mono (SIL OFL). Die jeweiligen Lizenztexte bleiben bei den Quellen erhalten. SDL3 wird separat bezogen (zlib-Lizenz). Keine JavaScript-, Engine-, Terminal- oder SVG-Abhängigkeiten werden gebaut.
+Enthaltene Fremdsoftware: libtess2 (SGI Free Software License B, nur Vektoreditor), libyaml (MIT), stb_image (MIT/Public Domain), Unity (MIT), Tabler Icons (MIT) und JetBrains Mono (SIL OFL). Die jeweiligen Lizenztexte bleiben bei den Quellen erhalten. SDL3 wird separat bezogen (zlib-Lizenz). Keine JavaScript-, Engine-, Terminal- oder SVG-Abhängigkeiten werden gebaut.
 
 ## Anfangs aktiver Tab und leere Tab-Leisten
 

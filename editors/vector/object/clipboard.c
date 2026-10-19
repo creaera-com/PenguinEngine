@@ -2,6 +2,7 @@
 #include "clipboard.h"
 #include <limits.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -190,6 +191,86 @@ bool vector_objects_delete(VectorDocument *d) {
     edit->after.rectangle = 0;
     edit->after.selection = (VectorRectangleSelection){0};
     return execute(d, edit);
+}
+
+bool vector_objects_replace_selection(VectorDocument *d, const VectorShape *shapes, int count) {
+    if (!d->active_rectangle || count < 0 || count > VECTOR_MAX_RECTANGLES || (count && !shapes) ||
+        !vector_objects_can_delete(d)) {
+        return false;
+    }
+    ObjectEdit *edit = calloc(1, sizeof *edit);
+    if (!edit) {
+        return false;
+    }
+    edit->before = capture(d);
+    edit->after = edit->before;
+    VectorClipboard *objects = &edit->after.objects;
+    VectorShape result[VECTOR_MAX_RECTANGLES];
+    unsigned next = d->next_rectangle_id;
+    for (int i = 0; i < count; i++) {
+        result[i] = shapes[i];
+        if (!result[i].id) {
+            if (!next || next == UINT_MAX) {
+                free(edit);
+                return false;
+            }
+            result[i].id = next++;
+            snprintf(result[i].name, sizeof result[i].name, "Pfad %u", result[i].id);
+        } else if (!vector_document_is_selected(d, result[i].id)) {
+            free(edit);
+            return false;
+        }
+    }
+    int selected = 0, last = -1;
+    for (int i = 0; i < d->rectangle_count; i++) {
+        if (vector_document_is_selected(d, d->rectangles[i].id)) {
+            selected++;
+            last = i;
+        }
+    }
+    if (d->rectangle_count - selected + count > VECTOR_MAX_RECTANGLES) {
+        free(edit);
+        return false;
+    }
+    bool in_place = count == selected;
+    for (int i = 0; i < count; i++) {
+        in_place &= shapes[i].id != 0;
+    }
+    if (in_place) {
+        for (int i = 0; i < objects->rectangle_count; i++) {
+            for (int j = 0; j < count; j++) {
+                if (objects->rectangles[i].id == result[j].id) {
+                    objects->rectangles[i] = result[j];
+                }
+            }
+        }
+    } else {
+        objects->rectangle_count = 0;
+        for (int i = 0; i < d->rectangle_count; i++) {
+            if (!vector_document_is_selected(d, d->rectangles[i].id)) {
+                objects->rectangles[objects->rectangle_count++] = d->rectangles[i];
+            }
+            if (i == last) {
+                for (int j = 0; j < count; j++) {
+                    objects->rectangles[objects->rectangle_count++] = result[j];
+                }
+            }
+        }
+    }
+    if (!in_place) {
+        edit->after.selection = (VectorRectangleSelection){0};
+        edit->after.rectangle = 0;
+        for (int i = 0; i < count; i++) {
+            edit->after.selection.ids[edit->after.selection.count++] = result[i].id;
+            edit->after.rectangle = result[i].id;
+            edit->after.board = result[i].parent_id;
+        }
+    }
+    if (!execute(d, edit)) {
+        return false;
+    }
+    d->next_rectangle_id = next;
+    return true;
 }
 
 bool vector_objects_cut(VectorDocument *d, VectorClipboard *clipboard) {

@@ -69,8 +69,9 @@ for path in (root / 'apps').rglob('*.c'):
             errors.append(f'{path.relative_to(root)}: concrete editor includes belong in the registry')
 # Vector model/history may use plain state and geometry headers, but not UI/event wiring.
 vector = root / 'editors/vector'
-for area in ('document', 'history', 'object'):
-    pending = [p for p in (vector / area).rglob('*') if p.suffix in ('.c', '.h')]
+for area in ('document', 'history', 'object', 'path'):
+    pending = [p for p in (vector / area).rglob('*') if p.suffix in ('.c', '.h')
+               and not (area == 'path' and p.name in ('render.c', 'render.h'))]
     visited = set()
     while pending:
         path = pending.pop()
@@ -87,7 +88,7 @@ for area in ('document', 'history', 'object'):
             relative = target.relative_to(vector).as_posix()
             if (relative == 'internal.h' or relative.startswith(('ui/', 'persistence/')) or
                     relative.startswith('workspace/') and relative not in ('workspace/viewport.h', 'workspace/selection_state.h') or
-                    relative in ('artboard/tool.h', 'rectangle/tool.h', 'rectangle/render.h')):
+                    relative in ('artboard/tool.h', 'rectangle/tool.h', 'rectangle/render.h', 'path/render.h')):
                 errors.append(f'{path.relative_to(root)}: model/history reaches UI wiring {relative}')
             else:
                 pending.append(target)

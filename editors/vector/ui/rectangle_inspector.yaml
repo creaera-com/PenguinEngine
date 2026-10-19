@@ -4,7 +4,7 @@ root:
   padding: 0
   gap: 8
   children:
-    - {type: label, text: Rechteck, height: 24}
+    - {type: label, id: rectangle_kind, text: Rechteck, height: 24}
     - type: row
       padding: 0
       gap: 8
