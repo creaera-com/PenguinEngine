@@ -276,7 +276,18 @@ test_tree_context_selects_row_without_collapsing_and_text_shortcuts_stay_in_inpu
     TEST_ASSERT_EQUAL_INT(1, d->selection.count);
     TEST_ASSERT_EQUAL_INT(1, d->active_rectangle);
     key(SDLK_ESCAPE, 0);
-    click(SDL_BUTTON_LEFT, 1160, 138); // Rectangle name input.
+    /* Locate the input by ID so inspector sections/padding can change independently. */
+    bool found = false;
+    for (int y = 80; y < 800 && !found; y += 4) {
+        for (int x = 1030; x < 1280; x += 4) {
+            if (pui_view_hit(shell.view, "rectangle_name", (float)x, (float)y)) {
+                click(SDL_BUTTON_LEFT, (float)x, (float)y);
+                found = true;
+                break;
+            }
+        }
+    }
+    TEST_ASSERT_TRUE(found);
     key(SDLK_A, SDL_KMOD_CTRL);
     key(SDLK_C, SDL_KMOD_CTRL);
     TEST_ASSERT_EQUAL_INT(0, ((VectorEditor *)host.instance)->object_actions.clipboard.board_count);

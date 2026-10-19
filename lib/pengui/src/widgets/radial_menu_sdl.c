@@ -236,6 +236,17 @@ static void draw_sector(PUIView *view, float cx, float cy, float inner, float ou
     }
 }
 
+/* A radial chevron identifies navigation independently of hover or the active branch. */
+static void draw_submenu_hint(PUIView *view, float cx, float cy, float radius, float angle,
+                              uint32_t color) {
+    float dx = cosf(angle), dy = sinf(angle);
+    float x = cx + dx * radius, y = cy + dy * radius;
+    SDL_SetRenderDrawColor(view->renderer, color >> 24, (color >> 16) & 255, (color >> 8) & 255,
+                           color & 255);
+    SDL_RenderLine(view->renderer, x - dx * 3 - dy * 3, y - dy * 3 + dx * 3, x + dx, y + dy);
+    SDL_RenderLine(view->renderer, x + dx, y + dy, x - dx * 3 + dy * 3, y - dy * 3 - dx * 3);
+}
+
 void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, void *context) {
     if (view->radial_pending >= 0) {
         int item = view->radial_pending;
@@ -304,6 +315,10 @@ void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, 
             uint32_t foreground = !enabled ? pui_theme.disabled
                                   : active ? pui_theme.accent
                                            : pui_theme.text;
+            if (node->type == PUI_NODE_RADIAL_MENU) {
+                draw_submenu_hint(view, cx, cy, outer - 8, angle,
+                                  enabled ? pui_theme.accent : pui_theme.disabled);
+            }
             bool has_icon = *node->icon != 0;
             if (has_icon) {
                 pui_icon(view->renderer, pui_icon_from_name(node->icon), x - 9, y - 9, 18,

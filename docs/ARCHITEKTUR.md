@@ -807,6 +807,8 @@ zwei bis acht Sektoren. Untermenues erscheinen als konzentrische aeussere Ringe.
 Alle inneren Ringe bleiben sichtbar und anklickbar. Ein anderer Zweig ersetzt nur
 die Ringe ausserhalb der angeklickten Ebene. Schmale orange Kanten zeigen den
 aktiven Zweig und den Eintrag unter dem Mauszeiger; die Sektoren bleiben grau.
+Ein kleiner, radial nach aussen gerichteter Pfeil kennzeichnet jeden Eintrag mit
+Untermenue bereits vor dem Anklicken. Deaktivierte Untermenues zeigen ihn grau.
 Eintraege mit Icon zeigen ihren vollstaendigen Namen beim Darueberfahren unter
 dem Menue, Eintraege ohne Icon ihren Text direkt im Ring.
 `pui_view_radial_item_center()` liefert die Mitte eines aktuell sichtbaren Eintrags,
