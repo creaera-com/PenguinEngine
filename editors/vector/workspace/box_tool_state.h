@@ -6,6 +6,7 @@
 
 typedef struct {
     bool enabled, dragging;
+    bool text;    ///< Create a text frame.
     bool polygon; ///< Choose the parametric polygon factory.
     bool ellipse; ///< Choose the ellipse factory; otherwise the rectangle factory.
     bool keep_aspect, from_center;

@@ -3,9 +3,11 @@
 #define PE_VECTOR_RECTANGLE_INSPECTOR_H
 #include "editor_host/editor.h"
 #include "editors/vector/document/document.h"
+#include "text.h"
 
 typedef struct {
     PUILayout *layout, *polygon_layout;
+    VectorTextInspector text;
     unsigned document_id, rectangle_id, dirty;
     VectorRectangle presented;
     bool mounted, angle_preview, polygon_mounted;

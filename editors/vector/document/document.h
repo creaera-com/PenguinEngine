@@ -8,6 +8,7 @@
 #include "editors/vector/grid/state.h"
 #include "editors/vector/history/history.h"
 #include "editors/vector/rectangle/rectangle.h"
+#include "editors/vector/text/tool_state.h"
 #include "editors/vector/workspace/box_tool_state.h"
 #include "editors/vector/workspace/selection_state.h"
 #include "editors/vector/workspace/viewport.h"
@@ -25,6 +26,7 @@ typedef struct VectorDocument {
     unsigned next_rectangle_id, active_rectangle;
     VectorRectangleTool rectangle_tool;
     VectorCurveTool curve_tool;
+    VectorTextTool text_tool;
     VectorFillPreview fill_preview;
     VectorHistory history;
     VectorViewport viewport;

@@ -6,16 +6,8 @@
 bool vector_curve_shape(VectorShape *shape, const VectorBezier *parent_curve);
 /** @brief Map normalized anchors/handles to parent pixels, including rotation. */
 VectorBezier vector_curve_parent(const VectorShape *shape);
-/** @brief Add a normalized curve-based shape with supplied name/style through one command.
- * The borrowed shape must have ID zero; a fresh ID is assigned on success. */
-bool vector_curve_add_shape(VectorDocument *document, const VectorShape *shape);
 /** @brief Add an open/closed curve with a fresh ID through one history command. */
 bool vector_curve_add(VectorDocument *document, unsigned parent, const VectorBezier *curve);
 /** @brief Commit node changes to one existing curve; preserves other selected/grouped shapes. */
 bool vector_curve_update(VectorDocument *document, unsigned id, const VectorBezier *curve);
-/** @brief Commit a normalized curve shape preserving its parametric identity; honors locks. */
-bool vector_curve_update_shape(VectorDocument *document, const VectorShape *shape);
-/** @brief Native value codec for curve command kind 8. */
-bool vector_curve_command_write(const VectorCommand *command, FILE *file);
-bool vector_curve_command_read(VectorCommand *command, FILE *file);
 #endif

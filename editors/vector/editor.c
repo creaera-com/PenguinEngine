@@ -2,6 +2,7 @@
 #include "artboard/tool.h"
 #include "curve/tool.h"
 #include "document/selection.h"
+#include "editors/vector/text/tool.h"
 #include "editors/vector/ui/inspector/inspector.h"
 #include "editors/vector/ui/toolbar/toolbar.h"
 #include "editors/vector/ui/tools/grid.h"
@@ -34,11 +35,20 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         pui_layout_free(editor->inspector.multi_layout);
         pui_layout_free(editor->inspector.rectangle.layout);
         pui_layout_free(editor->inspector.rectangle.polygon_layout);
+        pui_layout_free(editor->inspector.rectangle.text.layout);
+        vector_text_renderer_destroy(editor->text_renderer);
+        pui_fonts_destroy(editor->fonts);
         pui_layout_free(editor->inspector.artboard_layout);
         pui_layout_free(editor->layout);
         free(editor);
         return NULL;
     }
+    editor->fonts = pui_fonts_create(services->resource_root);
+    editor->text_renderer = editor->fonts ? vector_text_renderer_create(editor->fonts) : NULL;
+    editor->inspector.rectangle.text.fonts = editor->fonts;
+    editor->inspector.rectangle.text.renderer = editor->text_renderer;
+    editor->inspector.rectangle.text.layout =
+        editor_load_ui(services, "editors/vector/ui/inspector/text.yaml", error, capacity);
     editor->inspector.artboard_layout =
         editor_load_ui(services, "editors/vector/ui/inspector/artboard.yaml", error, capacity);
     editor->inspector.rectangle.layout =
@@ -48,7 +58,12 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
     editor->inspector.multi_layout =
         editor_load_ui(services, "editors/vector/ui/inspector/selection.yaml", error, capacity);
     if (!editor->inspector.artboard_layout || !editor->inspector.rectangle.layout ||
-        !editor->inspector.multi_layout || !editor->inspector.rectangle.polygon_layout) {
+        !editor->inspector.multi_layout || !editor->inspector.rectangle.polygon_layout ||
+        !editor->text_renderer || !editor->inspector.rectangle.text.layout) {
+        if (!editor->text_renderer) {
+            snprintf(error, capacity,
+                     "could not load bundled fonts; build the editor resource target");
+        }
         vector_editor_destroy(editor);
         return NULL;
     }
@@ -68,6 +83,9 @@ void vector_editor_destroy(void *instance) {
         pui_layout_free(editor->inspector.multi_layout);
         pui_layout_free(editor->inspector.rectangle.layout);
         pui_layout_free(editor->inspector.rectangle.polygon_layout);
+        pui_layout_free(editor->inspector.rectangle.text.layout);
+        vector_text_renderer_destroy(editor->text_renderer);
+        pui_fonts_destroy(editor->fonts);
         pui_layout_free(editor->inspector.artboard_layout);
         pui_layout_free(editor->layout);
         free(editor);
@@ -76,11 +94,13 @@ void vector_editor_destroy(void *instance) {
 
 bool vector_editor_action(void *instance, PUIView *view, const char *name, const char *widget) {
     VectorEditor *editor = instance;
+    vector_text_tool_end(vector_document_tabs_active(&editor->documents, view));
     if (!strncmp(name, "vector.objects.", 15) || !strcmp(name, "vector.tool_selection") ||
         !strcmp(name, "vector.add_rect") || !strcmp(name, "vector.add_ellipse") ||
-        !strcmp(name, "vector.add_polygon") || !strcmp(name, "vector.add_artboard") ||
-        !strcmp(name, "vector.tool_pen") || !strcmp(name, "vector.tool_nodes") ||
-        !strcmp(name, "editor.undo") || !strcmp(name, "editor.redo")) {
+        !strcmp(name, "vector.add_polygon") || !strcmp(name, "vector.add_text") ||
+        !strcmp(name, "vector.add_artboard") || !strcmp(name, "vector.tool_pen") ||
+        !strcmp(name, "vector.tool_nodes") || !strcmp(name, "editor.undo") ||
+        !strcmp(name, "editor.redo")) {
         vector_inspector_cancel_color(&editor->inspector, &editor->documents, view);
     }
     if (vector_inspector_action(&editor->inspector, &editor->documents, view, name)) {
@@ -166,7 +186,7 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
         snprintf(id, sizeof id, "vector_document_%u.canvas", document->id);
         if (!strcmp(id, widget)) {
             vector_workspace_cancel_inactive(&editor->documents, document);
-            vector_canvas_draw(document, renderer, area);
+            vector_canvas_draw(document, renderer, area, editor->text_renderer);
             return;
         }
     }
@@ -176,7 +196,14 @@ bool vector_editor_event(void *instance, PUIView *view, const SDL_Event *event) 
     VectorEditor *editor = instance;
     VectorDocument *document = vector_document_tabs_active(&editor->documents, view);
     vector_workspace_cancel_inactive(&editor->documents, document);
-    bool consumed = vector_curve_tool_event(document, view, event) ||
+    if (event->type == SDL_EVENT_KEY_DOWN && !event->key.repeat &&
+        (event->key.mod & (SDL_KMOD_CTRL | SDL_KMOD_GUI)) &&
+        (event->key.key == SDLK_Z || event->key.key == SDLK_Y)) {
+        bool redo = event->key.key == SDLK_Y || (event->key.mod & SDL_KMOD_SHIFT);
+        return vector_editor_action(instance, view, redo ? "editor.redo" : "editor.undo", "");
+    }
+    bool consumed = vector_text_tool_event(document, editor->text_renderer, view, event) ||
+                    vector_curve_tool_event(document, view, event) ||
                     vector_object_actions_event(&editor->object_actions, document, view, event) ||
                     (document && vector_canvas_event(document, view, event));
     vector_toolbar_sync(view, document);

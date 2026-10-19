@@ -5,6 +5,8 @@
 #include "editors/vector/geometry/constraints.h"
 #include "editors/vector/grid/snap.h"
 #include "editors/vector/polygon/polygon.h"
+#include "editors/vector/text/text.h"
+#include "editors/vector/text/tool.h"
 #include "editors/vector/workspace/modifiers.h"
 #include <math.h>
 #include <stdio.h>
@@ -20,26 +22,29 @@ void vector_rectangle_tool_cancel(VectorDocument *document) {
 }
 
 bool vector_rectangle_tool_action(VectorDocument *document, PUIView *view, const char *action) {
+    bool text = !strcmp(action, "vector.add_text");
     bool polygon = !strcmp(action, "vector.add_polygon");
     bool ellipse = !strcmp(action, "vector.add_ellipse");
-    if (!polygon && !ellipse && strcmp(action, "vector.add_rect")) {
+    if (!text && !polygon && !ellipse && strcmp(action, "vector.add_rect")) {
         return false;
     }
     if (!document) {
         pui_view_set_text(view, "status", "Zuerst ein Dokument und Artboard anlegen");
         return true;
     }
-    bool enabled = document->rectangle_tool.enabled &&
-                   document->rectangle_tool.ellipse == ellipse &&
-                   document->rectangle_tool.polygon == polygon;
+    bool enabled =
+        document->rectangle_tool.enabled && document->rectangle_tool.ellipse == ellipse &&
+        document->rectangle_tool.polygon == polygon && document->rectangle_tool.text == text;
     vector_artboard_tool_cancel(document);
     document->rectangle_tool.enabled = !enabled;
     document->rectangle_tool.ellipse = ellipse;
     document->rectangle_tool.polygon = polygon;
+    document->rectangle_tool.text = text;
     document->viewport.panning = false;
     pui_view_set_text(
         view, "status",
         enabled   ? "Auswahlwerkzeug aktiv"
+        : text    ? "Textfeld aufziehen; danach schreiben; Esc: Bearbeitung beenden"
         : polygon ? "Polygon aufziehen; Shift: gleiche Achsen; Alt: Mittelpunkt; Esc: abbrechen"
         : ellipse ? "Ellipse aufziehen; Shift: Kreis; Alt: Mittelpunkt; Esc: abbrechen"
                   : "Rechteck in einem entsperrten Artboard aufziehen; Esc: abbrechen");
@@ -128,12 +133,18 @@ bool vector_rectangle_tool_event(VectorDocument *document, PUIView *view, const 
         PUIRect rect = vector_rectangle_tool_rect(tool);
         tool->dragging = false;
         SDL_CaptureMouse(false);
-        bool added = tool->polygon   ? vector_polygon_add(document, parent->id, rect, 6)
+        bool added = tool->text      ? vector_text_add(document, parent->id, rect)
+                     : tool->polygon ? vector_polygon_add(document, parent->id, rect, 6)
                      : tool->ellipse ? vector_ellipse_add(document, parent->id, rect)
                                      : vector_rectangle_add(document, parent->id, rect);
+        if (added && tool->text) {
+            vector_text_tool_begin(document, document->active_rectangle,
+                                   SDL_GetWindowFromID(event->button.windowID));
+        }
         pui_view_set_text(view, "status",
                           added
-                              ? (tool->polygon   ? "Polygon angelegt; weitere aufziehen oder Esc"
+                              ? (tool->text ? "Text schreiben; Enter: Absatz; Strg+Enter: fertig"
+                                 : tool->polygon ? "Polygon angelegt; weitere aufziehen oder Esc"
                                  : tool->ellipse ? "Ellipse angelegt; weitere aufziehen oder Esc"
                                                  : "Rechteck angelegt; weiteres aufziehen oder Esc")
                               : "Form konnte nicht angelegt werden (mindestens 1 x 1 px)");

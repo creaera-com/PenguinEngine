@@ -2,6 +2,7 @@
 #ifndef PE_VECTOR_RECTANGLE_RENDER_H
 #define PE_VECTOR_RECTANGLE_RENDER_H
 #include "editors/vector/document/document.h"
+#include "editors/vector/text/render.h"
 void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *parent,
-                            SDL_Renderer *renderer, SDL_FRect board);
+                            SDL_Renderer *renderer, SDL_FRect board, VectorTextRenderer *text);
 #endif

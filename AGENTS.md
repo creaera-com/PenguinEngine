@@ -35,6 +35,9 @@ Refactorings und Fehlerkorrekturen:
 - `workspace/`: Zeichenfläche, Lineale, Anbindung der Dokument-Tabs und gemeinsame
   Aufzieh-Geste für Rechtecke/Ellipsen/Polygone (`box_tool.c`, reine Werte in `box_tool_state.h`).
 - `polygon/`: Parametrische Polygone und Eckenzahl-Aenderungen ueber History.
+- `text/`: Textwerte, Umbruch/Spaltenfluss, Rendering und native Texteingabe getrennt halten.
+  Schriftensuche/Rasterisierung liegt hinter dem App-Service-Vertrag `editor_host/fonts.h`;
+  das Textmodell kennt weder Systemschriften noch SDL-Ressourcen.
 - `ellipse/`: Ellipsen-Geometrie und Erzeugung; keine eigene Kopie der Mausverarbeitung.
 - `history/`: Ausführung von Befehlen sowie Undo/Redo.
 - `persistence/`: Temporäres Sichern und Wiederherstellen.

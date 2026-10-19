@@ -4,6 +4,7 @@
 #include "editors/vector/artboard/artboard.h"
 #include "editors/vector/geometry/bezier.h"
 #include "editors/vector/geometry/path.h"
+#include "editors/vector/text/state.h"
 
 /** @brief Placement relative to the geometric shape contour. */
 typedef enum {
@@ -29,6 +30,7 @@ typedef struct {
     unsigned group_id; ///< Zero for independent objects; group members share an artboard and ID.
     uint32_t fill;     ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
     VectorStroke stroke;
+    VectorText text;     ///< Editable text frame; disabled for geometric shapes.
     unsigned curve_kind; ///< Validated VectorCurveKind; zero for non-curve shapes.
     VectorBezier curve; ///< Editable cubic controls; count zero selects rectangle/polygon geometry.
     VectorPath path;    ///< Empty for parametric rectangles; otherwise normalized closed contours.

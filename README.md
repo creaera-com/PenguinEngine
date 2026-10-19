@@ -380,3 +380,10 @@ Der schließende Klick wird verbraucht und aktiviert kein darunterliegendes Elem
 verschachtelten Popups wird zuerst das oberste geschlossen. Texteingaben und Tab-Navigation
 bleiben auf die Textfelder im obersten Panel beschränkt. Fenster-Fokusverlust schließt alle
 Popups. Anfangszustände und ausgewählte Werte werden bei YAML-Neuladen zurückgesetzt.
+
+
+## Textwerkzeug im Vektoreditor
+
+Mit dem Textwerkzeug lassen sich Textfelder aufziehen und direkt bearbeiten.
+Schriftwahl, Typografie und mehrspaltiger Textfluss stehen im Inspector unter
+**Typografie**. [Bedienung, Architektur und aktueller Umfang](docs/VEKTOR_TEXT.md).

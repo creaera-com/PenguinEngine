@@ -4,6 +4,7 @@
 - stb_image: bounded PNG decoding; license in stb/LICENSE and stb_image.h.
 - Unity: C tests; license in unity/LICENSE.txt.
 - JetBrains Mono 2.304: source font and SIL OFL in resources/ui/fonts.
+- stb_truetype 1.26: text rasterization; fetched and SHA-256 verified by cmake/TextFonts.cmake; MIT/public-domain license in the header.
 - SDL3 3.2.10: found or fetched by CMake; not vendored here.
 
 The previous engine-only dependencies are excluded from this branch.

@@ -435,3 +435,8 @@ in `inspector/artboard.yaml` und die Mehrfachauswahl in `inspector/selection.yam
 Die jeweilige C-Anbindung liegt im selben Bereich. Fachliche Änderungen werden weiter
 an `object/`, `artboard/`, `curve/` usw. delegiert. Neue UI-Dateien gehören in ihren
 zuständigen Bereich; die Modell-/UI-Grenze bleibt unverändert.
+
+
+## Textfelder
+
+Bedienung, Datenmodell, Schriftservice und Grenzen stehen in [Textfelder im Vektoreditor](VEKTOR_TEXT.md).

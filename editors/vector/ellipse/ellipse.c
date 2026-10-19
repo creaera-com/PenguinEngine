@@ -1,6 +1,6 @@
 /** @file @brief The ellipse factory owns its geometry; mouse gestures remain in the workspace. */
 #include "ellipse.h"
-#include "editors/vector/curve/curve.h"
+#include "editors/vector/object/commands.h"
 #include <math.h>
 
 bool vector_ellipse_shape(PUIRect rect, VectorShape *out) {
@@ -34,5 +34,5 @@ bool vector_ellipse_add(VectorDocument *document, unsigned parent, PUIRect rect)
     }
     shape.parent_id = parent;
     snprintf(shape.name, sizeof shape.name, "Ellipse %u", document->next_rectangle_id);
-    return vector_curve_add_shape(document, &shape);
+    return vector_shape_add(document, &shape);
 }

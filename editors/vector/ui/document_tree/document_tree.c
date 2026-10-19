@@ -125,7 +125,10 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
                     items[row].selected = vector_document_is_selected(document, child->id);
                     fill(&items[row++], document->id, child->id, child->name, "rectangle",
                          child->flags, group ? 2 : 1);
-                    if (child->curve_kind == VECTOR_CURVE_POLYGON) {
+                    if (child->text.enabled) {
+                        snprintf(items[row - 1].icon, sizeof items[row - 1].icon,
+                                 "tabler:typography");
+                    } else if (child->curve_kind == VECTOR_CURVE_POLYGON) {
                         snprintf(items[row - 1].icon, sizeof items[row - 1].icon, "tabler:polygon");
                     } else if (child->curve_kind == VECTOR_CURVE_ELLIPSE) {
                         snprintf(items[row - 1].icon, sizeof items[row - 1].icon, "tabler:oval");

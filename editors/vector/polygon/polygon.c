@@ -1,6 +1,6 @@
 /** @file @brief Polygon geometry and history-backed parameter changes. */
 #include "polygon.h"
-#include "editors/vector/curve/curve.h"
+#include "editors/vector/object/commands.h"
 #include <math.h>
 
 bool vector_polygon_shape(PUIRect rect, unsigned sides, VectorShape *out) {
@@ -34,7 +34,7 @@ bool vector_polygon_add(VectorDocument *document, unsigned parent, PUIRect rect,
     }
     shape.parent_id = parent;
     snprintf(shape.name, sizeof shape.name, "Polygon %u", document->next_rectangle_id);
-    return vector_curve_add_shape(document, &shape);
+    return vector_shape_add(document, &shape);
 }
 
 bool vector_polygon_set_sides(VectorDocument *document, unsigned id, unsigned sides) {
@@ -46,5 +46,5 @@ bool vector_polygon_set_sides(VectorDocument *document, unsigned id, unsigned si
     VectorShape after = *current;
     after.curve = geometry.curve;
     after.path = geometry.path;
-    return vector_curve_update_shape(document, &after);
+    return vector_shape_update(document, &after);
 }

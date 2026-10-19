@@ -33,7 +33,10 @@ unsigned vector_rectangle_effective_flags(VectorDocument *document,
 
 bool vector_rectangle_valid(VectorRectangle rectangle) {
     PUIRect r = rectangle.rect;
-    if (!vector_path_valid(&rectangle.path) || !vector_bezier_valid(&rectangle.curve) ||
+    if (!vector_text_valid(&rectangle.text) ||
+        (rectangle.text.enabled &&
+         (rectangle.curve.count || rectangle.path.count || rectangle.curve_kind)) ||
+        !vector_path_valid(&rectangle.path) || !vector_bezier_valid(&rectangle.curve) ||
         rectangle.curve.count == 1 || rectangle.curve_kind > VECTOR_CURVE_POLYGON ||
         (rectangle.curve_kind == VECTOR_CURVE_POLYGON &&
          (rectangle.curve.count < 3 || !rectangle.curve.closed)) ||

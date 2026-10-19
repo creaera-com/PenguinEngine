@@ -43,7 +43,8 @@ void vector_canvas_center(VectorDocument *document) {
     }
 }
 
-void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRect area) {
+void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRect area,
+                        VectorTextRenderer *text) {
     VectorViewport *viewport = &document->viewport;
     viewport->bounds = area;
     float pointer_x, pointer_y;
@@ -71,7 +72,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         }
         SDL_SetRenderDrawColor(renderer, 242, 242, 242, 255);
         SDL_RenderFillRect(renderer, &rect);
-        vector_rectangles_draw(document, board, renderer, rect);
+        vector_rectangles_draw(document, board, renderer, rect, text);
         vector_grid_draw(&document->grid, renderer, rect, viewport->zoom);
         if (board->id == document->active_artboard && !document->active_rectangle) {
             SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);

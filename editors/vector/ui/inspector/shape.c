@@ -68,6 +68,11 @@ static bool stroke_action(VectorRectangleInspector *inspector, VectorDocument *d
 bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
                                        VectorDocuments *documents, PUIView *view,
                                        const char *action) {
+    if (vector_text_inspector_action(&inspector->text,
+                                     vector_documents_find(documents, inspector->document_id),
+                                     inspector->rectangle_id, view, action)) {
+        return true;
+    }
     if (!strcmp(action, "vector.polygon.sides")) {
         VectorDocument *d = vector_documents_find(documents, inspector->document_id);
         const char *text = pui_view_text(view, "polygon_sides");
@@ -181,6 +186,10 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
         inspector->polygon_mounted = false;
         switched = true;
     }
+    if (rectangle && !vector_text_inspector_sync(&inspector->text, document, rectangle, view, input,
+                                                 switched, error, capacity)) {
+        return false;
+    }
     if (rectangle) {
         bool polygon = rectangle->curve_kind == VECTOR_CURVE_POLYGON;
         if (polygon != inspector->polygon_mounted) {
@@ -199,7 +208,8 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
             pui_view_set_text(view, "polygon_sides", corners);
         }
         pui_view_set_text(view, "rectangle_kind",
-                          rectangle->curve_kind == VECTOR_CURVE_POLYGON   ? "Polygon"
+                          rectangle->text.enabled                         ? "Textfeld"
+                          : rectangle->curve_kind == VECTOR_CURVE_POLYGON ? "Polygon"
                           : rectangle->curve_kind == VECTOR_CURVE_ELLIPSE ? "Ellipse"
                           : rectangle->curve.count                        ? "Bezierkurve"
                           : rectangle->path.count                         ? "Pfad"

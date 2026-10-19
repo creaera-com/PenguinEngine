@@ -64,7 +64,7 @@ static void draw(SDL_Renderer *renderer, SDL_FRect board, float zoom, PUIRect lo
 }
 
 void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *parent,
-                            SDL_Renderer *renderer, SDL_FRect board) {
+                            SDL_Renderer *renderer, SDL_FRect board, VectorTextRenderer *text) {
     bool clipped = SDL_RenderClipEnabled(renderer);
     SDL_Rect outer, clip = {0};
     SDL_GetRenderClipRect(renderer, &outer);
@@ -96,6 +96,18 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
                 ? document->fill_preview.color
                 : rectangle->fill;
         const VectorShape *shown = vector_curve_display_shape(document, rectangle);
+        if (shown->text.enabled) {
+            if (shown->stroke.width > 0) {
+                draw(renderer, board, document->viewport.zoom,
+                     vector_rectangle_display_rect(document, shown), false, false, 0,
+                     vector_rectangle_display_angle(document, shown), shown->stroke);
+            }
+            vector_text_draw(
+                text, renderer, document, shown, vector_rectangle_display_rect(document, shown),
+                vector_rectangle_display_angle(document, shown), board, document->viewport.zoom,
+                fill, vector_document_is_selected(document, shown->id));
+            continue;
+        }
         if (shown->curve_kind == VECTOR_CURVE_ELLIPSE) {
             vector_ellipse_draw(renderer, shown, vector_rectangle_display_rect(document, shown),
                                 vector_rectangle_display_angle(document, shown), board,
@@ -123,7 +135,11 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
              vector_rectangle_display_angle(document, rectangle), rectangle->stroke);
     }
     if (document->rectangle_tool.dragging && document->rectangle_tool.parent_id == parent->id) {
-        if (document->rectangle_tool.polygon) {
+        if (document->rectangle_tool.text) {
+            draw(renderer, board, document->viewport.zoom,
+                 vector_rectangle_tool_rect(&document->rectangle_tool), true, true, 0, 0,
+                 (VectorStroke){0});
+        } else if (document->rectangle_tool.polygon) {
             VectorShape polygon;
             if (vector_polygon_shape(vector_rectangle_tool_rect(&document->rectangle_tool), 6,
                                      &polygon)) {
