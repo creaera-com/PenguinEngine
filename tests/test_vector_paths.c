@@ -393,13 +393,12 @@ static void test_native_radial_path_conversion_and_rotated_booleans(void) {
     e.type = SDL_EVENT_MOUSE_BUTTON_UP;
     pui_view_event(shell.view, &shell.input, window, &e);
     commit();
-    float angle = -1.570796327f + 7 * 6.283185307f / 8;
-    float positions[2][2] = {{630 + cosf(angle) * 104, 400 + sinf(angle) * 104}, {630, 296}};
+    const char *items[] = {"vector_paths_menu", "vector_path_convert"};
     for (int i = 0; i < 2; i++) {
         e.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
         e.button.button = SDL_BUTTON_LEFT;
-        e.button.x = positions[i][0];
-        e.button.y = positions[i][1];
+        TEST_ASSERT_TRUE(
+            pui_view_radial_item_center(shell.view, items[i], &e.button.x, &e.button.y));
         TEST_ASSERT_TRUE(pui_view_event(shell.view, &shell.input, window, &e));
         commit();
         e.type = SDL_EVENT_MOUSE_BUTTON_UP;

@@ -746,8 +746,10 @@ Aufgabe der jeweiligen Anwendung. Statische YAML-Zeilen haben dieses Feld nicht.
 
 `radial_menu` ist ein Overlay und belegt in einer Row, Column oder Toolbar keinen
 Layoutplatz. Seine zwei bis acht Kinder (`button` oder weitere `radial_menu`) stehen im
-Uhrzeigersinn ab der oberen Position. Der Durchmesser wird mit `popup_width`
-angegeben. Das Menue wird an den View-Grenzen gehalten.
+Uhrzeigersinn ab der oberen Position. `popup_width` skaliert die kompakten Ringe
+(320 entspricht der Standardgroesse). Das Menue reserviert beim Oeffnen Platz fuer
+alle moeglichen Ebenen und verkleinert sich bei Bedarf an den View-Grenzen.
+Dadurch bleibt der Mittelpunkt beim Oeffnen eines Untermenues unveraendert.
 
 ```yaml
 - type: radial_menu
@@ -801,10 +803,17 @@ Menueebene oeffnet. Es braucht keine Anwendungsaktion zum Navigieren:
 ```
 
 Diesen Block als Kind des aeusseren Menues einsetzen. Jede Ebene hat weiterhin
-zwei bis acht Sektoren. Untermenues behalten Mittelpunkt und Durchmesser bei.
+zwei bis acht Sektoren. Untermenues erscheinen als konzentrische aeussere Ringe.
+Alle inneren Ringe bleiben sichtbar und anklickbar. Ein anderer Zweig ersetzt nur
+die Ringe ausserhalb der angeklickten Ebene. Schmale orange Kanten zeigen den
+aktiven Zweig und den Eintrag unter dem Mauszeiger; die Sektoren bleiben grau.
+Eintraege mit Icon zeigen ihren vollstaendigen Namen beim Darueberfahren unter
+dem Menue, Eintraege ohne Icon ihren Text direkt im Ring.
+`pui_view_radial_item_center()` liefert die Mitte eines aktuell sichtbaren Eintrags,
+auch wenn dieser deaktiviert ist. Nicht geoeffnete Zweige liefern `false`.
 Der Menue-Stack liegt ausschliesslich in der View und ist durch die Layouttiefe
 begrenzt. Ein Klick auf die Mitte **Zurueck** oder `Esc` kehrt zur Eltern-Ebene
-zurueck. Ausserhalb klicken, Fokusverlust und `pui_view_close_radial()` schliessen
+zurueck, indem nur der aeusserste Ring geschlossen wird. Ausserhalb klicken, Fokusverlust und `pui_view_close_radial()` schliessen
 den gesamten Stack. Das Austauschen des Layouts setzt ihn ebenfalls zurueck.
 Nur Blattaktionen gelangen zum `PUIAction`-Callback; reine Navigation aendert
 keine Anwendungsdaten. `pui_view_set_radial_enabled()` funktioniert auch fuer

@@ -218,16 +218,17 @@ static void ui_click(int button, float x, float y) {
     commit();
 }
 
-static void radial(float cx, float cy, int index, int count) {
-    float angle = -1.570796327f + index * 6.283185307f / count;
-    ui_click(SDL_BUTTON_LEFT, cx + cosf(angle) * 104, cy + sinf(angle) * 104);
+static void radial(const char *id) {
+    float x, y;
+    TEST_ASSERT_TRUE(pui_view_radial_item_center(shell.view, id, &x, &y));
+    ui_click(SDL_BUTTON_LEFT, x, y);
 }
 
 static void test_native_transform_submenu_and_single_shape_inspector_angle(void) {
     unsigned id = hole();
     ui_click(SDL_BUTTON_RIGHT, 900, 600);
-    radial(900, 600, 6, 8); // Transformieren.
-    radial(900, 600, 4, 5); // Rechts 90 Grad.
+    radial("vector_transform_menu"); // Transformieren.
+    radial("vector_rotate_right");   // Rechts 90 Grad.
     commit();
     TEST_ASSERT_EQUAL_FLOAT(90, vector_rectangle_find(document(), id)->angle);
     TEST_ASSERT_EQUAL_STRING("90", pui_view_text(shell.view, "rectangle_angle"));

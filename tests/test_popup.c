@@ -237,8 +237,130 @@ static void test_focus_loss_dismisses_popup(void) {
     TEST_ASSERT_EQUAL_STRING("behind", last_action);
 }
 
+/* Native clicks exercise modal routing and the deferred navigation during drawing. */
+static void radial_click_item(const char *id) {
+    SDL_Event event = {.type = SDL_EVENT_MOUSE_BUTTON_DOWN};
+    event.button.button = SDL_BUTTON_LEFT;
+    TEST_ASSERT_TRUE(pui_view_radial_item_center(view, id, &event.button.x, &event.button.y));
+    TEST_ASSERT_TRUE(pui_view_event(view, &pui, window, &event));
+    frame();
+    event.type = SDL_EVENT_MOUSE_BUTTON_UP;
+    TEST_ASSERT_TRUE(pui_view_event(view, &pui, window, &event));
+    frame();
+}
+
+static void radial_fixture(float x, float y) {
+    const char *yaml = "schema: pengui/v1\nroot: {type: column, children: ["
+                       "{type: radial_menu, id: root, children: ["
+                       "{type: button, id: copy, text: Copy, action: copy}, "
+                       "{type: radial_menu, id: transform, text: Transform, children: ["
+                       "{type: button, id: flip, text: Flip, action: flip}, "
+                       "{type: radial_menu, id: align, text: Align, children: ["
+                       "{type: button, id: left, text: Left, action: left}, "
+                       "{type: button, id: right, text: Right, action: right}]}]}, "
+                       "{type: radial_menu, id: layers, text: Layers, children: ["
+                       "{type: button, id: front, text: Front, action: front}, "
+                       "{type: button, id: back, text: Back, action: back}]}]}, "
+                       "{type: button, id: behind, action: behind}]}";
+    pui_view_free(view);
+    pui_layout_free(layout);
+    char error[256];
+    layout = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+    view = pui_view_new(layout, renderer);
+    frame();
+    TEST_ASSERT_TRUE(pui_view_open_radial(view, "root", x, y));
+    frame();
+}
+
+static bool radial_visible(const char *id) {
+    float x, y;
+    return pui_view_radial_item_center(view, id, &x, &y);
+}
+
+static void test_concentric_rings_keep_ancestors_interactive_and_replace_only_the_branch(void) {
+    radial_fixture(200, 150);
+    TEST_ASSERT_FALSE(radial_visible("flip"));
+    radial_click_item("transform");
+    radial_click_item("align");
+    TEST_ASSERT_TRUE(radial_visible("copy"));
+    TEST_ASSERT_TRUE(radial_visible("flip"));
+    TEST_ASSERT_TRUE(radial_visible("left"));
+    TEST_ASSERT_EQUAL_INT(0, actions);
+    /* Click a root sibling while three rings are open. */
+    radial_click_item("layers");
+    TEST_ASSERT_TRUE(radial_visible("copy"));
+    TEST_ASSERT_TRUE(radial_visible("front"));
+    TEST_ASSERT_FALSE(radial_visible("flip"));
+    TEST_ASSERT_FALSE(radial_visible("left"));
+    radial_click_item("front");
+    TEST_ASSERT_EQUAL_INT(1, actions);
+    TEST_ASSERT_EQUAL_STRING("front", last_action);
+    TEST_ASSERT_FALSE(radial_visible("copy"));
+}
+
+static void test_escape_pops_one_ring_and_root_actions_remain_available(void) {
+    radial_fixture(200, 150);
+    radial_click_item("transform");
+    radial_click_item("align");
+    TEST_ASSERT_TRUE(key(SDLK_ESCAPE));
+    frame();
+    TEST_ASSERT_FALSE(radial_visible("left"));
+    TEST_ASSERT_TRUE(radial_visible("flip"));
+    TEST_ASSERT_TRUE(key(SDLK_ESCAPE));
+    frame();
+    TEST_ASSERT_FALSE(radial_visible("flip"));
+    radial_click_item("transform");
+    radial_click_item("copy");
+    TEST_ASSERT_EQUAL_STRING("copy", last_action);
+    TEST_ASSERT_EQUAL_INT(1, actions);
+}
+
+static void test_outer_rings_stay_inside_small_view_and_center_does_not_jump(void) {
+    radial_fixture(399, 299);
+    float before_x, before_y, after_x, after_y;
+    TEST_ASSERT_TRUE(pui_view_radial_item_center(view, "copy", &before_x, &before_y));
+    radial_click_item("transform");
+    radial_click_item("align");
+    TEST_ASSERT_TRUE(pui_view_radial_item_center(view, "copy", &after_x, &after_y));
+    TEST_ASSERT_EQUAL_FLOAT(before_x, after_x);
+    TEST_ASSERT_EQUAL_FLOAT(before_y, after_y);
+    TEST_ASSERT_TRUE(pui_view_radial_item_center(view, "left", &after_x, &after_y));
+    TEST_ASSERT_TRUE(after_x >= 0 && after_x <= 400 && after_y >= 0 && after_y <= 300);
+    radial_click_item("left");
+    TEST_ASSERT_EQUAL_STRING("left", last_action);
+}
+
+static void test_disabled_inner_action_never_dispatches_and_center_removes_outer_ring(void) {
+    radial_fixture(200, 150);
+    radial_click_item("transform");
+    radial_click_item("align");
+    float x, y, sibling_x, sibling_y;
+    /* Top of the root ring identifies its center without relying on pixel constants. */
+    TEST_ASSERT_TRUE(pui_view_radial_item_center(view, "copy", &x, &y));
+    SDL_Event e = {.type = SDL_EVENT_MOUSE_BUTTON_DOWN};
+    e.button.button = SDL_BUTTON_LEFT;
+    TEST_ASSERT_TRUE(pui_view_radial_item_center(view, "layers", &sibling_x, &sibling_y));
+    e.button.x = x;
+    e.button.y = (y + 2 * sibling_y) / 3;
+    TEST_ASSERT_TRUE(pui_view_event(view, &pui, window, &e));
+    e.type = SDL_EVENT_MOUSE_BUTTON_UP;
+    TEST_ASSERT_TRUE(pui_view_event(view, &pui, window, &e));
+    frame();
+    TEST_ASSERT_FALSE(radial_visible("left"));
+    TEST_ASSERT_TRUE(radial_visible("flip"));
+    TEST_ASSERT_TRUE(pui_view_set_radial_enabled(view, "copy", false));
+    radial_click_item("copy");
+    TEST_ASSERT_EQUAL_INT(0, actions);
+    TEST_ASSERT_FALSE(radial_visible("copy"));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_disabled_inner_action_never_dispatches_and_center_removes_outer_ring);
+    RUN_TEST(test_concentric_rings_keep_ancestors_interactive_and_replace_only_the_branch);
+    RUN_TEST(test_escape_pops_one_ring_and_root_actions_remain_available);
+    RUN_TEST(test_outer_rings_stay_inside_small_view_and_center_does_not_jump);
     RUN_TEST(test_long_dropdown_scrolls_selected_option_into_view);
     RUN_TEST(test_focus_loss_dismisses_popup);
     RUN_TEST(test_dropdown_dispatch_contains_new_value_and_setter_is_silent);

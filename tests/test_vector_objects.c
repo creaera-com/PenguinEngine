@@ -69,9 +69,10 @@ static void key(SDL_Keycode key, SDL_Keymod mod) {
     event(&e);
 }
 
-static void radial_click(float cx, float cy, int index, int count) {
-    float angle = -1.570796327f + index * 6.283185307f / count;
-    click(SDL_BUTTON_LEFT, cx + cosf(angle) * 104, cy + sinf(angle) * 104);
+static void radial_item(const char *id) {
+    float x, y;
+    TEST_ASSERT_TRUE(pui_view_radial_item_center(shell.view, id, &x, &y));
+    click(SDL_BUTTON_LEFT, x, y);
 }
 
 void setUp(void) {
@@ -287,7 +288,7 @@ static void test_radial_disabled_paste_outside_click_and_focus_loss_are_safe(voi
     VectorDocument *d = document();
     int count = d->history.count;
     click(SDL_BUTTON_RIGHT, 630, 400);
-    radial_click(630, 400, 2, 8); // Paste is unavailable in an empty clipboard.
+    radial_item("vector_objects_paste"); // Paste is unavailable in an empty clipboard.
     TEST_ASSERT_EQUAL_INT(count, d->history.count);
     TEST_ASSERT_EQUAL_INT(2, d->rectangle_count);
     click(SDL_BUTTON_RIGHT, 630, 400);
@@ -414,13 +415,13 @@ static void test_layer_submenu_back_navigation_tree_rendering_and_hit_order_agre
                              pui_view_tree_item_at(shell.view, "vector_document_tree", 65, 130));
     int count = d->history.count;
     click(SDL_BUTTON_RIGHT, 630, 400);
-    radial_click(630, 400, 5, 8); // Root submenu: Ebenen.
-    key(SDLK_ESCAPE, 0);          // Back to root, not closed.
-    radial_click(630, 400, 5, 8);
+    radial_item("vector_layers_menu"); // Root submenu: Ebenen.
+    key(SDLK_ESCAPE, 0);               // Back to root, not closed.
+    radial_item("vector_layers_menu");
     click(SDL_BUTTON_LEFT, 630, 400); // Center: back.
-    radial_click(630, 400, 5, 8);
+    radial_item("vector_layers_menu");
     TEST_ASSERT_EQUAL_INT(count, d->history.count); // Navigation is never a model command.
-    click(SDL_BUTTON_LEFT, 630, 296);               // Four-sector submenu: Ganz nach oben.
+    radial_item("vector_order_front");              // Outer ring: Ganz nach oben.
     commit();
     assert_order(d, (unsigned[]){2, 1}, 2);
     TEST_ASSERT_EQUAL_INT(count + 1, d->history.count);
@@ -556,9 +557,9 @@ static void test_alignment_radial_action_and_checkpoint_redo(void) {
     PUIRect original[2] = {d->rectangles[0].rect, d->rectangles[1].rect};
     int count = d->history.count;
     click(SDL_BUTTON_RIGHT, 630, 400);
-    radial_click(630, 400, 6, 8); // Transformieren.
-    radial_click(630, 400, 0, 5); // Ausrichten.
-    radial_click(630, 400, 0, 8); // Links.
+    radial_item("vector_transform_menu"); // Transformieren.
+    radial_item("vector_alignment_menu"); // Ausrichten.
+    radial_item("vector_align_left");     // Links.
     commit();
     PUIRect a = world_bounds(d, 1), b = world_bounds(d, 2);
     TEST_ASSERT_FLOAT_WITHIN(.0001f, a.x, b.x);
