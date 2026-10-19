@@ -268,6 +268,10 @@ static void test_rotation_geometry_bounds_and_exact_intersections(void) {
     TEST_ASSERT_FALSE(vector_rotated_intersects(original, 90, (PUIRect){21, 21, 2, 2}));
     TEST_ASSERT_EQUAL_FLOAT(-180, vector_angle_normalize(180));
     TEST_ASSERT_EQUAL_FLOAT(90, vector_angle_normalize(450));
+    TEST_ASSERT_EQUAL_FLOAT(270, vector_angle_turn(270));
+    TEST_ASSERT_EQUAL_FLOAT(-270, vector_angle_turn(-270));
+    TEST_ASSERT_EQUAL_FLOAT(360, vector_angle_turn(720));
+    TEST_ASSERT_EQUAL_FLOAT(-360, vector_angle_turn(-360));
     VectorGrid grid = {.snap_enabled = true, .snap_tolerance = 5, .width = 16, .height = 16};
     PUIRect moved = vector_grid_snap_rotated_rect(&grid, 1, (PUIRect){30, 30, 40, 20}, 90, 5, 7);
     TEST_ASSERT_FLOAT_WITHIN(.001f, 34, moved.x);

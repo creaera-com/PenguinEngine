@@ -702,7 +702,7 @@ ungueltige Eingaben werden auf den vorherigen Wert zurueckgesetzt.
 `grid/state.h` enthaelt ausschliesslich Werte. Die Einstellungen sind
 Ansichtshilfen und erzeugen keine Schritte in der Artwork-History. Sie gelten
 je Dokument und werden beim Editorwechsel im temporaeren Checkpoint gesichert
-(Schema `PVCKPT12`). Es gibt damit noch keine dauerhafte Dokumentdatei.
+(Schema `PVCKPT13`). Es gibt damit noch keine dauerhafte Dokumentdatei.
 
 `grid/render.c` zeichnet die Linien artboardlokal ueber dem Artwork und erhaelt
 den SDL-Clip- und Blendzustand. Standardzellen sind rechteckig; Hexagonalzellen
@@ -771,7 +771,7 @@ Rechteck einen gemeinsamen Versatz; Abstaende und Groessen bleiben erhalten.
 History-Befehl aus. Er prueft alle IDs, Sperren und Zielkoordinaten vor der
 Mutation. Fehlt ein Teilnehmer oder ist ein Ziel ungueltig, bleibt die ganze
 Gruppe unveraendert. Undo/Redo wendet die gespeicherten Vorher-/Nachher-Rechtecke
-atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT12` speichert
+atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT13` speichert
 zusaetzlich die Auswahl-IDs. Ein Editorwechsel verwirft Gestenvorschauen,
 behaelt aber Auswahl und abgeschlossene Gruppenbewegungen.
 
@@ -806,7 +806,7 @@ und Skalieren denselben atomaren Vorher-/Nachher-Befehl (Checkpoint-Typ 5).
 Damit entstehen fuer eine gemeinsame Skalierung genau ein Undo-Schritt und
 vollstaendig wiederherstellbare Redo-Daten. Esc, Fokusverlust und Editorwechsel
 verwerfen die laufende Groessenvorschau. Abgeschlossene Skalierungen bleiben
-beim Editorwechsel inklusive History erhalten (Schema `PVCKPT12`).
+beim Editorwechsel inklusive History erhalten (Schema `PVCKPT13`).
 
 ### Shift und Alt waehrend Zeichnen und Skalieren
 
@@ -854,9 +854,9 @@ weiterhin nicht gedreht. Shift rastet die Drehung relativ zum Gestenstart in
 Der Mittelpunkt bleibt waehrend der Rotation fest, Alt aendert ihn nicht.
 
 `VectorRectangle.angle` speichert einen im Uhrzeigersinn laufenden Winkel in
-Grad, normalisiert auf [-180,180). `rect` beschreibt weiterhin Groesse und
+Grad, mit vorzeichenbehafteter Darstellung von -360 bis 360. `rect` beschreibt weiterhin Groesse und
 Lage vor der Drehung; gedreht wird um dessen Mittelpunkt. Die Winkel sind
-Teil von History und temporaeren Checkpoints (Schema `PVCKPT12`).
+Teil von History und temporaeren Checkpoints (Schema `PVCKPT13`).
 
 `geometry/rotation.c` berechnet Punkte, Ecken, umschliessende Rahmen und exakte
 Trefferflaechen ohne SDL oder Objektwissen. `workspace/rotation.c` besitzt die
@@ -881,3 +881,28 @@ proportional skaliert: Eine freie nichtproportionale Skalierung wuerde sonst
 Scherungen erzeugen, die das Rechteckmodell mit Winkel und zwei Groessen nicht
 abbilden kann. Individuell gedrehte Rechtecke lassen sich an ihren eigenen
 Achsen weiterhin frei skalieren.
+
+
+### Winkelanzeige in Grad und Inspector
+
+Die Anzeige am Rotationsring verwendet `Grad`. Waehrend einer Geste werden die
+kleinen Winkelaenderungen fortlaufend aufsummiert: Eine Drehung im Uhrzeigersinn
+kann damit 180, 270 und 360 Grad erreichen, ohne bei 180 auf negative Werte
+umzuspringen. Gegen den Uhrzeigersinn werden negative Werte angezeigt.
+Nach weiteren vollen Umdrehungen wird wieder innerhalb einer Umdrehung angezeigt.
+Vollstaendige positive/negative Umdrehungen koennen als 360 beziehungsweise -360
+angezeigt und gespeichert werden. Die geometrische Berechnung behandelt sie wie 0.
+
+Im Rechteck-Inspector beschreibt `rectangle_angle` den Winkel mit dem Zusatz
+`Grad`. Er zeigt waehrend der Rotation den momentanen Objektwinkel, waehrend die
+Anzeige neben dem Greifer die Aenderung seit Gestenbeginn zeigt. Ohne laufende
+Geste kann der Winkel direkt eingegeben werden. Enter, Tab oder Fokuswechsel
+uebernimmt den Wert als einen Undo-Schritt; ungueltige Eingaben werden auf den
+bisherigen Wert zurueckgesetzt. Objekte und gesperrte Eltern behalten ihre Sperre.
+
+`vector_rectangle_set_angle` validiert endliche Werte und erhaelt das Vorzeichen
+beim Begrenzen auf eine Umdrehung, etwa 450 auf 90 oder -450 auf -90.
+`geometry/rotation.c` trennt diese Darstellung (`vector_angle_turn`) von der
+kurzen Winkeldifferenz (`vector_angle_normalize`) fuer die Gestenberechnung.
+Die Checkpoint-Validierung fuer Einzel- und Gruppenbefehle akzeptiert die
+vorzeichenbehafteten Winkel einschliesslich voller Umdrehungen (Schema `PVCKPT13`).

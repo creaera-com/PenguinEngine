@@ -4,6 +4,8 @@
 #include "pengui/pengui.h"
 /** @brief Normalize finite degrees to [-180,180). */
 float vector_angle_normalize(float degrees);
+/** @brief Preserve rotation direction in [-360,360], including signed full turns. */
+float vector_angle_turn(float degrees);
 /** @brief Rotate a point about a pivot in screen/document coordinates. */
 void vector_rotate_point(float *x, float *y, float cx, float cy, float degrees);
 /** @brief Four clockwise corners, starting at the unrotated upper-left corner. */

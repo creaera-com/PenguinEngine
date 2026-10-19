@@ -67,7 +67,7 @@ bool vector_rectangles_set_transforms(VectorDocument *document, const unsigned *
             rectangle &&
             !(vector_rectangle_effective_flags(document, rectangle) & VECTOR_OBJECT_STATE_MASK) &&
             valid_rect(rects[i]) &&
-            (!angles || (isfinite(angles[i]) && angles[i] >= -180 && angles[i] < 180));
+            (!angles || (isfinite(angles[i]) && angles[i] >= -360 && angles[i] <= 360));
         for (int j = 0; j < i; j++) {
             valid = valid && ids[j] != ids[i];
         }
@@ -141,9 +141,9 @@ bool vector_rectangles_transform_read(VectorCommand *command, FILE *file) {
     for (int i = 0; valid && i < owned->count; i++) {
         TransformItem *item = &owned->items[i];
         valid = item->id && valid_rect(item->before) && valid_rect(item->after) &&
-                isfinite(item->before_angle) && item->before_angle >= -180 &&
-                item->before_angle < 180 && isfinite(item->after_angle) &&
-                item->after_angle >= -180 && item->after_angle < 180;
+                isfinite(item->before_angle) && item->before_angle >= -360 &&
+                item->before_angle <= 360 && isfinite(item->after_angle) &&
+                item->after_angle >= -360 && item->after_angle <= 360;
         for (int j = 0; j < i; j++) {
             valid = valid && owned->items[j].id != item->id;
         }

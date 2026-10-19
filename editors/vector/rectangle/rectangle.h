@@ -11,7 +11,8 @@ typedef struct {
     uint32_t fill; ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
     char name[64];
     PUIRect rect;
-    float angle; ///< Clockwise degrees around the rectangle center, normalized to [-180,180).
+    float angle; ///< Clockwise degrees around the rectangle center, signed in [-360,360], including
+                 ///< full turns.
 } VectorRectangle;
 struct VectorDocument;
 /** @brief Find a rectangle by stable model ID. */
@@ -24,6 +25,9 @@ bool vector_rectangle_add(struct VectorDocument *document, unsigned parent_id, P
 /** @brief Update properties atomically; inherited locks block property changes. */
 bool vector_rectangle_update(struct VectorDocument *document, unsigned id, const char *name,
                              PUIRect rect);
+/** @brief Undoable angle input; finite values wrap by signed full turns and honor inherited locks.
+ */
+bool vector_rectangle_set_angle(struct VectorDocument *document, unsigned id, float degrees);
 /** @brief Undoable fill color change; inherited locks prevent editing. */
 bool vector_rectangle_set_fill(struct VectorDocument *document, unsigned id, uint32_t rgba);
 /** @brief Change this child's own visibility/lock flags, independently of inherited state. */

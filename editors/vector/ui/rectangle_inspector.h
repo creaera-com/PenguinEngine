@@ -8,7 +8,8 @@ typedef struct {
     PUILayout *layout;
     unsigned document_id, rectangle_id, dirty;
     VectorRectangle presented;
-    bool mounted;
+    bool mounted, angle_preview;
+    float displayed_angle;
 } VectorRectangleInspector;
 
 /** @brief Cancel an in-progress slider before a tool or history action changes context. */

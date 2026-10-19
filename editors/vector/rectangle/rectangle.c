@@ -1,6 +1,7 @@
 /** @file @brief Rectangle creation and before/after edits, independent of editor UI. */
 #include "rectangle.h"
 #include "editors/vector/document/document.h"
+#include "editors/vector/geometry/rotation.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,7 +33,7 @@ unsigned vector_rectangle_effective_flags(VectorDocument *document,
 
 static bool valid(VectorRectangle rectangle) {
     PUIRect r = rectangle.rect;
-    return isfinite(rectangle.angle) && rectangle.angle >= -180 && rectangle.angle < 180 &&
+    return isfinite(rectangle.angle) && rectangle.angle >= -360 && rectangle.angle <= 360 &&
            rectangle.id && rectangle.parent_id && !(rectangle.flags & ~VECTOR_OBJECT_STATE_MASK) &&
            memchr(rectangle.name, 0, sizeof rectangle.name) && *rectangle.name && isfinite(r.x) &&
            isfinite(r.y) && fabsf(r.x) <= VECTOR_MAX_ARTBOARD_SIZE &&
@@ -143,6 +144,17 @@ bool vector_rectangle_update(VectorDocument *document, unsigned id, const char *
     VectorRectangle after = *rectangle;
     after.rect = rect;
     snprintf(after.name, sizeof after.name, "%s", name);
+    return edit(document, *rectangle, after);
+}
+
+bool vector_rectangle_set_angle(VectorDocument *document, unsigned id, float degrees) {
+    VectorRectangle *rectangle = vector_rectangle_find(document, id);
+    if (!rectangle || !isfinite(degrees) ||
+        (vector_rectangle_effective_flags(document, rectangle) & VECTOR_OBJECT_LOCKED)) {
+        return false;
+    }
+    VectorRectangle after = *rectangle;
+    after.angle = vector_angle_turn(degrees);
     return edit(document, *rectangle, after);
 }
 

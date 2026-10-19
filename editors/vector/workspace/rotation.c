@@ -53,8 +53,9 @@ static bool targets(const VectorDocument *document, PUIRect rects[64], float ang
     for (int i = 0; i < tool->before.count; i++) {
         PUIRect r = tool->group_originals[i], parent = tool->group_parents[i];
         float cx = parent.x + r.x + r.w / 2, cy = parent.y + r.y + r.h / 2;
-        if (tool->rotation_delta != 0) {
-            vector_rotate_point(&cx, &cy, tool->pivot_x, tool->pivot_y, tool->rotation_delta);
+        float geometry_delta = vector_angle_normalize(tool->rotation_delta);
+        if (geometry_delta != 0) {
+            vector_rotate_point(&cx, &cy, tool->pivot_x, tool->pivot_y, geometry_delta);
             r.x = cx - parent.x - r.w / 2;
             r.y = cy - parent.y - r.h / 2;
         }
@@ -63,7 +64,7 @@ static bool targets(const VectorDocument *document, PUIRect rects[64], float ang
             return false;
         }
         rects[i] = r;
-        angles[i] = vector_angle_normalize(tool->group_angles[i] + tool->rotation_delta);
+        angles[i] = vector_angle_turn(tool->group_angles[i] + tool->rotation_delta);
     }
     return true;
 }
@@ -104,8 +105,9 @@ static void update(VectorDocument *document, float x, float y) {
     float cx = v->bounds.x + v->x + tool->pivot_x * v->zoom;
     float cy = v->bounds.y + v->y + tool->pivot_y * v->zoom;
     if (hypotf(x - cx, y - cy) >= 4) {
-        tool->rotation_raw =
-            vector_angle_normalize(atan2f(y - cy, x - cx) * 57.295779513f - tool->rotation_start);
+        float current = atan2f(y - cy, x - cx) * 57.295779513f;
+        tool->rotation_raw += vector_angle_normalize(current - tool->rotation_start);
+        tool->rotation_start = current;
     }
     tool->rotation_delta =
         tool->keep_aspect ? roundf(tool->rotation_raw / 15) * 15 : tool->rotation_raw;
@@ -171,7 +173,11 @@ void vector_rotation_draw(const VectorDocument *document, SDL_Renderer *renderer
     }
     if (tool->rotating) {
         char text[48];
-        snprintf(text, sizeof text, "%.1f deg", tool->rotation_delta);
-        pui_text_scaled(renderer, cx + 14, cy - 18, text, 0xFFFFFFFF, .875f);
+        snprintf(text, sizeof text, "%.1f Grad", vector_angle_turn(tool->rotation_delta));
+        pui_panel(renderer,
+                  (SDL_FRect){cx + 12, cy - 22, pui_text_width(text) * .875f + 8,
+                              PUI_FONT_HEIGHT * .875f + 8},
+                  PUI_PANEL);
+        pui_text_scaled(renderer, cx + 16, cy - 18, text, 0xFFFFFFFF, .875f);
     }
 }

@@ -640,8 +640,63 @@ static void test_fractional_move_snap_for_rotated_rectangles_and_groups(void) {
     TEST_ASSERT_EQUAL_INT(before + 1, doc->history.count);
 }
 
+static void test_signed_turn_display_crosses_180_and_accepts_full_turns(void) {
+    VectorDocument *doc = document();
+    click(40, 35, false);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 48, 35);
+    pointer(SDL_EVENT_MOUSE_MOTION, 40, 65);
+    pointer(SDL_EVENT_MOUSE_MOTION, 10, 35);
+    TEST_ASSERT_EQUAL_STRING("180", pui_view_text(shell.view, "rectangle_angle"));
+    pointer(SDL_EVENT_MOUSE_MOTION, 40, 5);
+    TEST_ASSERT_EQUAL_STRING("270", pui_view_text(shell.view, "rectangle_angle"));
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[0].angle);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 70, 35);
+    TEST_ASSERT_EQUAL_FLOAT(360, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_STRING("360", pui_view_text(shell.view, "rectangle_angle"));
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    commit();
+    TEST_ASSERT_EQUAL_STRING("0", pui_view_text(shell.view, "rectangle_angle"));
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 48, 35);
+    pointer(SDL_EVENT_MOUSE_MOTION, 40, 5);
+    pointer(SDL_EVENT_MOUSE_MOTION, 10, 35);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 40, 65);
+    TEST_ASSERT_EQUAL_FLOAT(-270, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_STRING("-270", pui_view_text(shell.view, "rectangle_angle"));
+    activate("scripts");
+    activate("vector");
+    commit();
+    TEST_ASSERT_EQUAL_FLOAT(-270, document()->rectangles[0].angle);
+}
+
+static void test_group_history_accepts_before_and_after_angles_over_180(void) {
+    VectorDocument *doc = document();
+    TEST_ASSERT_TRUE(vector_rectangle_set_angle(doc, 1, 270));
+    select_pair();
+    PUIRect bounds;
+    TEST_ASSERT_TRUE(vector_selection_bounds(doc, &bounds));
+    float cx =
+        (bounds.x + bounds.w / 2 - doc->viewport.bounds.x - doc->viewport.x) / doc->viewport.zoom;
+    float cy =
+        (bounds.y + bounds.h / 2 - doc->viewport.bounds.y - doc->viewport.y) / doc->viewport.zoom;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, cx + 8 / doc->viewport.zoom, cy);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, cx, cy + 40);
+    TEST_ASSERT_EQUAL_FLOAT(360, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_FLOAT(90, doc->rectangles[1].angle);
+    activate("scripts");
+    activate("vector");
+    commit();
+    doc = document();
+    TEST_ASSERT_EQUAL_FLOAT(360, doc->rectangles[0].angle);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    TEST_ASSERT_EQUAL_FLOAT(270, doc->rectangles[0].angle);
+    TEST_ASSERT_TRUE(vector_history_redo(&doc->history, doc));
+    TEST_ASSERT_EQUAL_FLOAT(360, doc->rectangles[0].angle);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_signed_turn_display_crosses_180_and_accepts_full_turns);
+    RUN_TEST(test_group_history_accepts_before_and_after_angles_over_180);
     RUN_TEST(test_fractional_move_snap_for_rotated_rectangles_and_groups);
     RUN_TEST(test_move_snap_uses_screen_tolerance_without_rounding_away_fractional_positions);
     RUN_TEST(test_rotated_rendering_alpha_clipping_and_marquee);

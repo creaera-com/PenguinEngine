@@ -46,7 +46,7 @@ static PUIRect target_bounds(const VectorDocument *document) {
     bool aspect = tool->keep_aspect;
     float minimum_x = 0, minimum_y = 0, maximum_x = FLT_MAX, maximum_y = FLT_MAX;
     for (int i = 0; i < tool->before.count; i++) {
-        aspect |= tool->group_angles[i] != 0;
+        aspect |= vector_angle_normalize(tool->group_angles[i]) != 0;
         PUIRect r = tool->group_originals[i];
         minimum_x = fmaxf(minimum_x, 1 / r.w);
         minimum_y = fmaxf(minimum_y, 1 / r.h);

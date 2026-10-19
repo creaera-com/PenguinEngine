@@ -19,7 +19,7 @@ static void draw(SDL_Renderer *renderer, SDL_FRect board, float zoom, PUIRect lo
     }
     SDL_SetRenderDrawColor(renderer, fill >> 24, (fill >> 16) & 255, (fill >> 8) & 255,
                            (Uint8)alpha);
-    if (angle == 0) {
+    if (vector_angle_normalize(angle) == 0) {
         SDL_RenderFillRect(renderer, &rect);
     } else {
         PUIRect corners[4];
@@ -37,7 +37,7 @@ static void draw(SDL_Renderer *renderer, SDL_FRect board, float zoom, PUIRect lo
     SDL_SetRenderDrawColor(renderer, selected || preview ? 194 : 66, selected || preview ? 142 : 89,
                            selected || preview ? 92 : 109,
                            selected || preview ? 255 : (Uint8)alpha);
-    if (angle == 0) {
+    if (vector_angle_normalize(angle) == 0) {
         SDL_RenderRect(renderer, &rect);
     } else {
         PUIRect corners[4];

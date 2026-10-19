@@ -26,6 +26,14 @@ root:
       children:
         - {type: label, text: Hoehe, width: 64}
         - {type: input, id: rectangle_height, action: vector.rectangle.height}
+    - type: row
+      padding: 0
+      gap: 8
+      height: 28
+      children:
+        - {type: label, text: Winkel, width: 64}
+        - {type: input, id: rectangle_angle, action: vector.rectangle.angle}
+        - {type: label, text: Grad, width: 40}
     - {type: checkbox, id: rectangle_visible, text: Sichtbar, action: vector.rectangle.visible, height: 28}
     - {type: checkbox, id: rectangle_locked, text: Gesperrt, action: vector.rectangle.locked, height: 28}
     - {type: label, id: rectangle_edit_hint, text: "", height: 24}

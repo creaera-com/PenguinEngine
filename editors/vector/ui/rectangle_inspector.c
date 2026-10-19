@@ -1,6 +1,7 @@
 /** @file @brief Rectangle properties remain separate from artboard inspector bindings. */
 #include "rectangle_inspector.h"
 #include "editors/vector/artboard/tool.h"
+#include "editors/vector/workspace/selection.h"
 #include <errno.h>
 #include <math.h>
 #include <stdlib.h>
@@ -37,9 +38,10 @@ bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
     bool name = !strcmp(action, "vector.rectangle.name"),
          width = !strcmp(action, "vector.rectangle.width"),
          height = !strcmp(action, "vector.rectangle.height");
+    bool angle = !strcmp(action, "vector.rectangle.angle");
     bool visible = !strcmp(action, "vector.rectangle.visible"),
          locked = !strcmp(action, "vector.rectangle.locked");
-    if (!fill && !preview && !name && !width && !height && !visible && !locked) {
+    if (!fill && !preview && !name && !width && !height && !angle && !visible && !locked) {
         return false;
     }
     VectorDocument *document = vector_documents_find(documents, inspector->document_id);
@@ -71,7 +73,16 @@ bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
         return true;
     }
     bool changed = false;
-    if (visible || locked) {
+    if (angle) {
+        const char *text = pui_view_text(view, "rectangle_angle");
+        char *end;
+        errno = 0;
+        float value = text ? strtof(text, &end) : 0;
+        bool valid = text && end != text && !*end && !errno && isfinite(value);
+        vector_selection_cancel(document);
+        changed = valid && vector_rectangle_set_angle(document, rectangle->id, value);
+        inspector->dirty |= 16u;
+    } else if (visible || locked) {
         unsigned bit = visible ? VECTOR_OBJECT_HIDDEN : VECTOR_OBJECT_LOCKED;
         bool enabled = pui_view_checked(view, visible ? "rectangle_visible" : "rectangle_locked");
         if (visible) {
@@ -126,6 +137,17 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
             snprintf(value, sizeof value, "%.7g", (double)rectangle->rect.h);
             pui_view_set_text(view, "rectangle_height", value);
         }
+        bool angle_preview = document->selection_tool.rotating;
+        float displayed_angle = vector_rectangle_display_angle(document, rectangle);
+        if (switched || (inspector->dirty & 16u) ||
+            inspector->presented.angle != rectangle->angle ||
+            inspector->angle_preview != angle_preview ||
+            inspector->displayed_angle != displayed_angle) {
+            snprintf(value, sizeof value, "%.7g", (double)displayed_angle);
+            pui_view_set_text(view, "rectangle_angle", value);
+        }
+        inspector->angle_preview = angle_preview;
+        inspector->displayed_angle = displayed_angle;
         pui_view_set_checked(view, "rectangle_visible", !(rectangle->flags & VECTOR_OBJECT_HIDDEN));
         pui_view_set_checked(view, "rectangle_locked",
                              (rectangle->flags & VECTOR_OBJECT_LOCKED) != 0);

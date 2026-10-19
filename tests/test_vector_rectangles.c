@@ -750,8 +750,59 @@ static void test_artboard_creation_supports_centered_square(void) {
     TEST_ASSERT_EQUAL_INT(2, doc->history.count);
 }
 
+static void focus_angle(void) {
+    for (int y = 0; y < 800; y += 4) {
+        for (int x = 0; x < 1280; x += 4) {
+            if (pui_view_hit(shell.view, "rectangle_angle", x, y)) {
+                color_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+                color_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x, y);
+                return;
+            }
+        }
+    }
+    TEST_FAIL_MESSAGE("Angle field must be visible");
+}
+
+static void test_inspector_angle_tab_commit_negative_input_validation_and_locks(void) {
+    VectorDocument *doc = parent();
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 1, (PUIRect){40, 30, 100, 60}));
+    commit();
+    TEST_ASSERT_EQUAL_STRING("0", pui_view_text(shell.view, "rectangle_angle"));
+    focus_angle();
+    pui_view_set_text(shell.view, "rectangle_angle", "270");
+    SDL_Event tab = {.type = SDL_EVENT_KEY_DOWN};
+    tab.key.key = SDLK_TAB;
+    color_event(&tab);
+    TEST_ASSERT_EQUAL_FLOAT(270, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_STRING("270", pui_view_text(shell.view, "rectangle_angle"));
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    pui_view_set_text(shell.view, "rectangle_angle", "-90");
+    action("vector.rectangle.angle", "");
+    TEST_ASSERT_EQUAL_FLOAT(-90, doc->rectangles[0].angle);
+    pui_view_set_text(shell.view, "rectangle_angle", "nan");
+    action("vector.rectangle.angle", "");
+    TEST_ASSERT_EQUAL_STRING("-90", pui_view_text(shell.view, "rectangle_angle"));
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+    pui_view_set_text(shell.view, "rectangle_angle", "360");
+    action("vector.rectangle.angle", "");
+    TEST_ASSERT_EQUAL_STRING("360", pui_view_text(shell.view, "rectangle_angle"));
+    TEST_ASSERT_EQUAL_FLOAT(360, doc->rectangles[0].angle);
+    TEST_ASSERT_TRUE(vector_artboard_set_state(doc, 1, VECTOR_OBJECT_LOCKED));
+    commit();
+    int count = doc->history.count;
+    pui_view_set_text(shell.view, "rectangle_angle", "45");
+    action("vector.rectangle.angle", "");
+    TEST_ASSERT_EQUAL_STRING("360", pui_view_text(shell.view, "rectangle_angle"));
+    TEST_ASSERT_EQUAL_INT(count, doc->history.count);
+    activate("scripts");
+    activate("vector");
+    commit();
+    TEST_ASSERT_EQUAL_FLOAT(360, document()->rectangles[0].angle);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_inspector_angle_tab_commit_negative_input_validation_and_locks);
     RUN_TEST(test_rectangle_creation_live_modifiers_and_parent_limits);
     RUN_TEST(test_single_resize_live_modifiers_and_shift_held_before_handle);
     RUN_TEST(test_artboard_creation_supports_centered_square);

@@ -10,8 +10,17 @@ float vector_angle_normalize(float degrees) {
     return result - 180;
 }
 
+float vector_angle_turn(float degrees) {
+    float result = fmodf(degrees, 360);
+    if (result == 0) {
+        return degrees == 0 ? 0 : copysignf(360, degrees);
+    }
+    return result;
+}
+
 void vector_rotate_point(float *x, float *y, float cx, float cy, float degrees) {
-    float radians = degrees * .01745329251994329577f, c = cosf(radians), s = sinf(radians);
+    float radians = vector_angle_normalize(degrees) * .01745329251994329577f, c = cosf(radians),
+          s = sinf(radians);
     float dx = *x - cx, dy = *y - cy;
     *x = cx + dx * c - dy * s;
     *y = cy + dx * s + dy * c;
