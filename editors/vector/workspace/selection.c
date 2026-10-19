@@ -6,6 +6,7 @@
 #include "editors/vector/geometry/rotation.h"
 #include "editors/vector/grid/snap.h"
 #include "editors/vector/rectangle/transform.h"
+#include "element_snap.h"
 #include "group_transform.h"
 #include "marquee.h"
 #include "modifiers.h"
@@ -37,11 +38,31 @@ static PUIRect preview(PUIRect original, const VectorSelectionTool *tool) {
     return original;
 }
 
+static PUIRect movement_preview(const VectorDocument *document, const VectorRectangle *r) {
+    const VectorSelectionTool *tool = &document->selection_tool;
+    PUIRect rect = vector_grid_snap_rotated_rect(&document->grid, document->viewport.zoom, r->rect,
+                                                 r->angle, tool->offset_x, tool->offset_y);
+    VectorElementSnap snap = vector_workspace_element_snap(document);
+    /* Object anchors take priority; the grid still controls unmatched axes. */
+    if (snap.snapped_x) {
+        rect.x = r->rect.x + tool->offset_x + snap.dx;
+    }
+    if (snap.snapped_y) {
+        rect.y = r->rect.y + tool->offset_y + snap.dy;
+    }
+    return rect;
+}
+
 PUIRect vector_artboard_display_rect(const VectorDocument *document, const VectorArtboard *board) {
     const VectorSelectionTool *tool = &document->selection_tool;
-    return tool->dragging && !tool->rectangle_id && tool->artboard_id == board->id
-               ? preview(board->rect, tool)
-               : board->rect;
+    if (tool->dragging && !tool->rectangle_id && tool->artboard_id == board->id) {
+        PUIRect rect = preview(board->rect, tool);
+        VectorElementSnap snap = vector_workspace_element_snap(document);
+        rect.x += snap.dx;
+        rect.y += snap.dy;
+        return rect;
+    }
+    return board->rect;
 }
 
 PUIRect vector_rectangle_display_rect(const VectorDocument *document,
@@ -68,9 +89,7 @@ PUIRect vector_rectangle_display_rect(const VectorDocument *document,
         if (!reference) {
             return rectangle->rect;
         }
-        PUIRect snapped =
-            vector_grid_snap_rotated_rect(&document->grid, document->viewport.zoom, reference->rect,
-                                          reference->angle, tool->offset_x, tool->offset_y);
+        PUIRect snapped = movement_preview(document, reference);
         PUIRect rect = rectangle->rect;
         rect.x += snapped.x - reference->rect.x;
         rect.y += snapped.y - reference->rect.y;
@@ -85,14 +104,7 @@ PUIRect vector_rectangle_display_rect(const VectorDocument *document,
             tool->offset_x, tool->offset_y, tool->keep_aspect, tool->from_center, 1, 1,
             VECTOR_MAX_ARTBOARD_SIZE, VECTOR_MAX_ARTBOARD_SIZE);
     }
-    if (!tool->resize_edges && rectangle->angle != 0) {
-        return vector_grid_snap_rotated_rect(&document->grid, document->viewport.zoom,
-                                             rectangle->rect, rectangle->angle, tool->offset_x,
-                                             tool->offset_y);
-    }
-    return vector_grid_snap_rect(&document->grid, document->viewport.zoom, rectangle->rect,
-                                 tool->resize_edges, tool->offset_x, tool->offset_y,
-                                 VECTOR_MAX_ARTBOARD_SIZE);
+    return movement_preview(document, rectangle);
 }
 
 float vector_rectangle_display_angle(const VectorDocument *document,

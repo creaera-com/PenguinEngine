@@ -706,7 +706,7 @@ ungueltige Eingaben werden auf den vorherigen Wert zurueckgesetzt.
 `grid/state.h` enthaelt ausschliesslich Werte. Die Einstellungen sind
 Ansichtshilfen und erzeugen keine Schritte in der Artwork-History. Sie gelten
 je Dokument und werden beim Editorwechsel im temporaeren Checkpoint gesichert
-(Schema `PVCKPT17`). Es gibt damit noch keine dauerhafte Dokumentdatei.
+(Schema `PVCKPT18`). Es gibt damit noch keine dauerhafte Dokumentdatei.
 
 `grid/render.c` zeichnet die Linien artboardlokal ueber dem Artwork und erhaelt
 den SDL-Clip- und Blendzustand. Standardzellen sind rechteckig; Hexagonalzellen
@@ -775,7 +775,7 @@ Rechteck einen gemeinsamen Versatz; Abstaende und Groessen bleiben erhalten.
 History-Befehl aus. Er prueft alle IDs, Sperren und Zielkoordinaten vor der
 Mutation. Fehlt ein Teilnehmer oder ist ein Ziel ungueltig, bleibt die ganze
 Gruppe unveraendert. Undo/Redo wendet die gespeicherten Vorher-/Nachher-Rechtecke
-atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT17` speichert
+atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT18` speichert
 zusaetzlich die Auswahl-IDs. Ein Editorwechsel verwirft Gestenvorschauen,
 behaelt aber Auswahl und abgeschlossene Gruppenbewegungen.
 
@@ -810,7 +810,7 @@ und Skalieren denselben atomaren Vorher-/Nachher-Befehl (Checkpoint-Typ 5).
 Damit entstehen fuer eine gemeinsame Skalierung genau ein Undo-Schritt und
 vollstaendig wiederherstellbare Redo-Daten. Esc, Fokusverlust und Editorwechsel
 verwerfen die laufende Groessenvorschau. Abgeschlossene Skalierungen bleiben
-beim Editorwechsel inklusive History erhalten (Schema `PVCKPT17`).
+beim Editorwechsel inklusive History erhalten (Schema `PVCKPT18`).
 
 ### Shift und Alt waehrend Zeichnen und Skalieren
 
@@ -860,7 +860,7 @@ Der Mittelpunkt bleibt waehrend der Rotation fest, Alt aendert ihn nicht.
 `VectorRectangle.angle` speichert einen im Uhrzeigersinn laufenden Winkel in
 Grad, mit vorzeichenbehafteter Darstellung von -360 bis 360. `rect` beschreibt weiterhin Groesse und
 Lage vor der Drehung; gedreht wird um dessen Mittelpunkt. Die Winkel sind
-Teil von History und temporaeren Checkpoints (Schema `PVCKPT17`).
+Teil von History und temporaeren Checkpoints (Schema `PVCKPT18`).
 
 `geometry/rotation.c` berechnet Punkte, Ecken, umschliessende Rahmen und exakte
 Trefferflaechen ohne SDL oder Objektwissen. `workspace/rotation.c` besitzt die
@@ -909,7 +909,7 @@ beim Begrenzen auf eine Umdrehung, etwa 450 auf 90 oder -450 auf -90.
 `geometry/rotation.c` trennt diese Darstellung (`vector_angle_turn`) von der
 kurzen Winkeldifferenz (`vector_angle_normalize`) fuer die Gestenberechnung.
 Die Checkpoint-Validierung fuer Einzel- und Gruppenbefehle akzeptiert die
-vorzeichenbehafteten Winkel einschliesslich voller Umdrehungen (Schema `PVCKPT17`).
+vorzeichenbehafteten Winkel einschliesslich voller Umdrehungen (Schema `PVCKPT18`).
 
 
 ## Einfarbige Rechteckrahmen
@@ -939,7 +939,7 @@ keine zusaetzliche Kontur; Auswahlmarkierungen bleiben davon unabhaengig sichtba
 
 Rahmenaenderungen verwenden die vorhandenen vollstaendigen Vorher-/Nachher-Snapshots
 von Rechteckbefehlen (Codec 4). Undo/Redo und temporaere Editor-Checkpoints erhalten
-alle Rahmenwerte; die private Checkpoint-Signatur lautet jetzt `PVCKPT17`.
+alle Rahmenwerte; die private Checkpoint-Signatur lautet jetzt `PVCKPT18`.
 
 
 ## Objektbefehle und dokumentuebergreifende Zwischenablage
@@ -994,7 +994,7 @@ Artboard vor dem Loeschen. Fehler durch Kapazitaet, Sperren oder ungueltige Wert
 lassen Dokument und Zwischenablage unveraendert.
 
 `persistence/commands.c` registriert den strukturellen Befehl als Codec 6.
-Checkpoint-Schema `PVCKPT17` speichert ihn und die Objektzwischenablage. Beim Laden
+Checkpoint-Schema `PVCKPT18` speichert ihn und die Objektzwischenablage. Beim Laden
 werden Objektwerte, Eltern, Auswahl und der gesamte History-Verlauf validiert.
 
 
@@ -1029,7 +1029,7 @@ oder UI-Zustand. Beim Anwenden werden Reihenfolge, IDs und Elternzuordnung gepru
 bevor die Objektarrays umgeordnet werden. Auswahl, Namen, Flags und Geometrie bleiben
 erhalten. Die Objektzwischenablage wird nicht veraendert.
 
-Der private Befehl hat Codec 7 und wird im Checkpoint `PVCKPT17` gespeichert.
+Der private Befehl hat Codec 7 und wird im Checkpoint `PVCKPT18` gespeichert.
 Beim Editorwechsel bleiben Reihenfolge und vollstaendige Undo/Redo-History erhalten.
 Das Untermenue selbst wird ueber verschachtelte `radial_menu`-Eintraege in
 `editors/vector/ui/editor.yaml` beschrieben; die UI-Anbindung bleibt in
@@ -1166,7 +1166,7 @@ Eine leere Schnittmenge oder vollstaendige Subtraktion entfernt die Operanden.
 Modellaenderung. Jede Operation ist ein Undo-Schritt; Undo stellt die Originalformen
 samt Eigenschaften und Auswahl wieder her. Pfadwerte werden auch beim Kopieren,
 Ausschneiden, Duplizieren, tabuebergreifenden Einfuegen und Editorwechsel erhalten.
-Die Checkpoint-Signatur lautet wegen des erweiterten Formwerts nun **PVCKPT17**.
+Die Checkpoint-Signatur lautet wegen des erweiterten Formwerts nun **PVCKPT18**.
 
 Die bisherigen 64 Objekte pro Dokument bleiben als Grenze bestehen. Ueberschreitet
 ein Ergebnis das Punkt-, Kontur- oder Objektlimit oder scheitert die Berechnung,
@@ -1215,3 +1215,31 @@ und die unabhaengige Objektzwischenablage funktionieren unveraendert.
 Die YAML-Konfiguration liegt in `ui/editor.yaml`, die Weiterleitung und Menue-
 Verfuegbarkeit in `ui/orientation_actions.c`. Der pengUI-Menue-Stack wird weiter
 verwendet; fuer den neuen Werkzeugsatz ist keine Erweiterung der UI-Bibliothek noetig.
+
+
+## Objektausrichtung und intelligente Hilfslinien
+
+Der Toggle `vector_element_snap` mit Aktion `vector.element.snap` aktiviert pro Dokument
+magnetische Objektausrichtung. Er ist unabhaengig vom Raster-Magneten. Die vorhandene
+Einrasttoleranz gilt in Bildschirm-Pixeln (Standard 5 px) und wird durch den Zoom geteilt.
+
+Beim Verschieben werden die linken/rechten Kanten, Ober-/Unterkanten und Mittelpunkte
+von sichtbaren Objekt-Boundingboxen verglichen. Rotierte Rechtecke und Pfade verwenden
+ihre rotierten achsenparallelen Grenzen. Ausgeblendete Objekte und die bewegte Auswahl
+werden ausgeschlossen; gesperrte sichtbare Objekte koennen als Referenz dienen.
+Eine Mehrfachauswahl rastet als gemeinsame Boundingbox ein. Artboards werden ebenfalls
+unterstuetzt; ihre eigenen Kinder sind beim Verschieben keine Referenz.
+
+Zwischen unmittelbaren Nachbarn werden zusaetzlich gleiche horizontale oder vertikale
+Abstaende erkannt. Die Nachbarn muessen die senkrechte Projektion der Auswahl ueberlappen.
+Gestrichelte Linien markieren Ausrichtungen, zwei gestrichelte Strecken mit Endmarken
+zeigen gleich grosse Luecken an. Bei konkurrierenden Treffern gewinnt pro Achse die
+kleinste Korrektur; bei Gleichstand hat Kantenausrichtung Vorrang. Objekt-Treffer haben
+Vorrang vor dem Raster, waehrend ungetroffene Achsen weiter am Raster einrasten koennen.
+
+`geometry/element_snap.c` berechnet Korrektur und Hilfslinien ohne Editorabhaengigkeiten.
+`workspace/element_snap.c` liefert die Referenzgeometrie und zeichnet die Vorschau.
+Die gemeinsame Bewegungsvorschau nutzt dieselbe Berechnung beim Zeichnen und Loslassen.
+Erst das Loslassen erzeugt einen History-Schritt; Escape verwirft die Vorschau.
+Der Toggle wird im temporaeren Checkpoint `PVCKPT18` gespeichert, Hilfslinien und laufende
+Gesten nicht. Die Funktion wirkt zunaechst beim Verschieben, nicht beim Skalieren/Zeichnen.

@@ -6,6 +6,7 @@
 #include "editors/vector/rectangle/render.h"
 #include "editors/vector/rectangle/tool.h"
 #include "editors/vector/workspace/selection.h"
+#include "element_snap.h"
 #include "marquee.h"
 #include "ruler.h"
 #include <stdio.h>
@@ -76,6 +77,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
             SDL_RenderRect(renderer, &rect);
         }
     }
+    vector_element_guides_draw(document, renderer);
     vector_selection_draw_handles(document, renderer);
     vector_marquee_draw(document, renderer);
     if (document->artboard_tool.dragging) {

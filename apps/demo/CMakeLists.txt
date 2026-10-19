@@ -58,6 +58,8 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/documents.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/geometry/element_snap.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/workspace/element_snap.c
  ${PROJECT_SOURCE_DIR}/editors/vector/grid/snap.c
  ${PROJECT_SOURCE_DIR}/editors/vector/grid/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/grid.c

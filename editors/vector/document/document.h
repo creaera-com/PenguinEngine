@@ -27,6 +27,8 @@ typedef struct VectorDocument {
     VectorHistory history;
     VectorViewport viewport;
     VectorGrid grid;
+    bool element_snap_enabled; ///< Object alignment guides and magnetic movement, independent of
+                               ///< grid.
     VectorArtboardTool artboard_tool;
     VectorSelectionTool selection_tool;
     VectorRectangleSelection selection;
