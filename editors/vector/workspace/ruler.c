@@ -85,3 +85,17 @@ void vector_ruler_draw(SDL_Renderer *renderer, SDL_FRect board, float zoom) {
                     0xCDCDCDFF, text_scale);
     SDL_SetRenderClipRect(renderer, clipped ? &outer : NULL);
 }
+
+void vector_ruler_draw_pointer(SDL_Renderer *renderer, SDL_FRect board, float x, float y) {
+    if (!isfinite(x) || !isfinite(y) || x < board.x || y < board.y || x >= board.x + board.w ||
+        y >= board.y + board.h) {
+        return;
+    }
+    /* Board and pointer already use screen coordinates: pan and zoom need no second conversion. */
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    float column = floorf(x), row = floorf(y);
+    SDL_FRect top = {column, board.y - ruler_thickness, 1, ruler_thickness};
+    SDL_FRect left = {board.x - ruler_thickness, row, ruler_thickness, 1};
+    SDL_RenderFillRect(renderer, &top);
+    SDL_RenderFillRect(renderer, &left);
+}

@@ -44,6 +44,10 @@ void vector_canvas_center(VectorDocument *document) {
 void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRect area) {
     VectorViewport *viewport = &document->viewport;
     viewport->bounds = area;
+    float pointer_x, pointer_y;
+    SDL_GetMouseState(&pointer_x, &pointer_y);
+    bool pointer_on_canvas = SDL_GetMouseFocus() == SDL_GetRenderWindow(renderer) &&
+                             pui_contains(area, pointer_x, pointer_y);
     SDL_SetRenderDrawColor(renderer, 104, 104, 104, 255);
     SDL_FRect background = {area.x, area.y, area.w, area.h};
     SDL_RenderFillRect(renderer, &background);
@@ -60,6 +64,9 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         pui_text_scaled(renderer, label.x, label.y, board->name,
                         board->id == document->active_artboard ? 0xE2AF7EFF : 0xEEEEEEFF, .875f);
         vector_ruler_draw(renderer, rect, viewport->zoom);
+        if (pointer_on_canvas) {
+            vector_ruler_draw_pointer(renderer, rect, pointer_x, pointer_y);
+        }
         SDL_SetRenderDrawColor(renderer, 242, 242, 242, 255);
         SDL_RenderFillRect(renderer, &rect);
         vector_rectangles_draw(document, board, renderer, rect);

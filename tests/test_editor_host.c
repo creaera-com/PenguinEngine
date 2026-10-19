@@ -2,6 +2,7 @@
 #include "editor_host/host.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/internal.h"
+#include "editors/vector/workspace/ruler.h"
 #include "shell/shell.h"
 #include "unity.h"
 #include <math.h>
@@ -551,6 +552,49 @@ static void test_ruler_ticks_follow_document_scale_and_preserve_canvas_clip(void
     }
 }
 
+static void test_ruler_pointer_marks_follow_zoomed_board_and_preserve_clip(void) {
+    SDL_Rect clip = {20, 20, 700, 500};
+    SDL_SetRenderClipRect(renderer, &clip);
+    for (int zoom = 1; zoom <= 2; zoom++) {
+        SDL_SetRenderDrawColor(renderer, 104, 104, 104, 255);
+        SDL_RenderClear(renderer);
+        SDL_FRect board = {150, 120, 100 * zoom, 80 * zoom};
+        float x = board.x + 23 * zoom, y = board.y + 31 * zoom;
+        vector_ruler_draw(renderer, board, (float)zoom);
+        vector_ruler_draw_pointer(renderer, board, x, y);
+        SDL_Rect actual;
+        TEST_ASSERT_TRUE(SDL_RenderClipEnabled(renderer));
+        SDL_GetRenderClipRect(renderer, &actual);
+        TEST_ASSERT_EQUAL_MEMORY(&clip, &actual, sizeof clip);
+        SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
+        TEST_ASSERT_NOT_NULL(surface);
+        Uint8 r, g, b, a;
+        TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, (int)x, 112, &r, &g, &b, &a));
+        TEST_ASSERT_EQUAL_UINT8(0, r);
+        TEST_ASSERT_EQUAL_UINT8(0, g);
+        TEST_ASSERT_EQUAL_UINT8(0, b);
+        TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 142, (int)y, &r, &g, &b, &a));
+        TEST_ASSERT_EQUAL_UINT8(0, r);
+        /* Neighbouring pixels stay gray, so the indicator remains one screen pixel wide. */
+        TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, (int)x + 1, 112, &r, &g, &b, &a));
+        TEST_ASSERT_NOT_EQUAL(0, r);
+        SDL_DestroySurface(surface);
+        SDL_SetRenderDrawColor(renderer, 104, 104, 104, 255);
+        SDL_RenderClear(renderer);
+        vector_ruler_draw(renderer, board, (float)zoom);
+        vector_ruler_draw_pointer(renderer, board, board.x - 1, y);
+        vector_ruler_draw_pointer(renderer, board, x, board.y + board.h);
+        surface = SDL_RenderReadPixels(renderer, NULL);
+        TEST_ASSERT_NOT_NULL(surface);
+        TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, (int)x, 112, &r, &g, &b, &a));
+        TEST_ASSERT_NOT_EQUAL(0, r);
+        TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 142, (int)y, &r, &g, &b, &a));
+        TEST_ASSERT_NOT_EQUAL(0, r);
+        SDL_DestroySurface(surface);
+    }
+    SDL_SetRenderClipRect(renderer, NULL);
+}
+
 static void artboard_action(void *context, const char *name, const char *widget) {
     TEST_ASSERT_EQUAL_STRING("vector.add_artboard", name);
     TEST_ASSERT_TRUE(editor_host_action(context, shell.view, name, widget));
@@ -593,6 +637,7 @@ static void test_artboard_tool_button_stays_active_until_cancel_or_creation(void
 
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_ruler_pointer_marks_follow_zoomed_board_and_preserve_clip);
     RUN_TEST(test_artboard_tool_button_stays_active_until_cancel_or_creation);
     RUN_TEST(test_ruler_ticks_follow_document_scale_and_preserve_canvas_clip);
     RUN_TEST(test_drag_normalizes_zoomed_coordinates_and_commits_once);
