@@ -164,7 +164,7 @@ Mit aktivem Dokument ruft `vector_editor_action()`
 `vector_artboard_tool_arm(document)` auf. Dabei wird das Werkzeug aktiviert und
 eine eventuell vorherige Vorschau verworfen. Es entsteht noch kein Artboard und
 noch kein History-Eintrag. `vector_toolbar_sync()` aus
-[ui/toolbar.c](../editors/vector/ui/toolbar.c) hält die Aktiv-Markierung des
+[ui/toolbar/toolbar.c](../editors/vector/ui/toolbar/toolbar.c) hält die Aktiv-Markierung des
 `vector_add_artboard`-Toggles synchron zum Werkzeugzustand. Beim Erstellen oder
 Abbrechen wird der Toggle wieder inaktiv.
 
@@ -526,7 +526,7 @@ beendet das Werkzeug ebenfalls. Artboards lassen sich anschließend auf der Zeic
 oder im Dokument-Tree auswählen.
 
 Der Inspector enthält den Slot `selection_properties`. Die UI-Anbindung
-`editors/vector/ui/inspector.c` setzt dort bei vorhandener Auswahl die Beschreibung
+`editors/vector/ui/inspector/inspector.c` setzt dort bei vorhandener Auswahl die Beschreibung
 `artboard_inspector.yaml` ein und entfernt sie wieder ohne Auswahl. Die Felder werden
 bei Enter oder beim Feldwechsel mit Tab beziehungsweise Shift+Tab übernommen. Name, Breite und Höhe werden über
 `vector_artboard_update()` als ein Vorher-/Nachher-Befehl in die dokumenteigene History
@@ -625,7 +625,7 @@ Ein ausgewähltes Rechteck öffnet die zugehörigen Tree-Vorfahren. Auswahl ist 
 Auswahlwerkzeug per Zeichenfläche oder Tree möglich. Der Inspector lädt dann
 `rectangle_inspector.yaml` in den gemeinsamen Slot `selection_properties`.
 Name, Breite, Höhe, Sichtbarkeit und Sperre sind über eigene bindings in
-`ui/rectangle_inspector.c` bearbeitbar. Im Tree beziehen sich Auge und Schloss auf
+`ui/inspector/shape.c` bearbeitbar. Im Tree beziehen sich Auge und Schloss auf
 die eigenen Flags; effektive Sichtbarkeit und Sperre berücksichtigen zusätzlich
 die Flags des Eltern-Artboards. Eine eigene Sperre oder Elternsperre verhindert
 Geometrie- und Namensänderungen; eigene Zustandsflags bleiben bearbeitbar.
@@ -673,7 +673,7 @@ wieder zurückgezogen werden. Die Eltern-ID ändert sich durch Verschieben nicht
 `VectorRectangle.fill` speichert `0xRRGGBBAA`; der Standard ist `0x7393AFFF`.
 `rectangle_inspector.yaml` enthält das allgemeine pengUI-Widget `rectangle_fill`.
 Die Aktionen `vector.rectangle.fill_preview` und `vector.rectangle.fill` werden
-in `ui/rectangle_inspector.c` in Vorschau bzw. Modelländerung übersetzt.
+in `ui/inspector/shape.c` in Vorschau bzw. Modelländerung übersetzt.
 
 Während eines Reglerzugs hält `VectorDocument.fill_preview` nur Rechteck-ID, vorläufige
 Farbe und ein Aktiv-Flag. Der Renderer liest diese Farbe anstelle der gespeicherten
@@ -698,7 +698,7 @@ wie die Rechteck-Fuellfarbe einen Popup-Farbwaehler, damit beide Panels auch
 bei kleiner Hoehe bedienbar bleiben.
 
 `vector.grid.toggle` schaltet die Darstellung ueber den Toolbar-Button um.
-`ui/grid.c` bindet Rastertyp, Breite, Hoehe und Farbe aus den YAML-Widgets an
+`ui/tools/grid.c` bindet Rastertyp, Breite, Hoehe und Farbe aus den YAML-Widgets an
 `VectorDocument.grid`. Das Raster startet ausgeblendet mit 16 x 16 px und
 halbtransparentem Grau. Breite und Hoehe akzeptieren 1 bis 10000 Dokumentpixel;
 ungueltige Eingaben werden auf den vorherigen Wert zurueckgesetzt.
@@ -779,7 +779,7 @@ atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT20` speichert
 zusaetzlich die Auswahl-IDs. Ein Editorwechsel verwirft Gestenvorschauen,
 behaelt aber Auswahl und abgeschlossene Gruppenbewegungen.
 
-Der Inspector laedt bei mehreren Rechtecken `ui/multi_selection.yaml` mit
+Der Inspector laedt bei mehreren Rechtecken `ui/inspector/selection.yaml` mit
 Auswahlanzahl und Bedienhinweisen. Gemeinsame Eigenschaftseingaben sind noch
 nicht enthalten; Formulare bearbeiten weiterhin einzeln ausgewaehlte Rechtecke. Markierungen
 erscheinen sowohl auf der Zeichenflaeche als auch im Dokument-Tree.
@@ -971,7 +971,7 @@ werden alle Kinder eingeschlossen. Farbe, Rahmen, Drehung, Name und Objektflags
 werden mitkopiert. Es handelt sich um eine interne Objektzwischenablage;
 Textfelder verwenden davon unabhaengig die Betriebssystem-Zwischenablage.
 
-`ui/object_actions.c` uebersetzt Menueaktionen und native Tastaturereignisse in
+`ui/context_menu/object_actions.c` uebersetzt Menueaktionen und native Tastaturereignisse in
 `vector_objects_*()`-Operationen. `editor.c` leitet nur weiter. Die Zwischenablage
 gehoert zur Editorinstanz, nicht zu einem Dokument-Tab. Sie bleibt beim Wechsel
 zwischen Dokumenten erhalten und wird auch im temporaeren Editor-Checkpoint
@@ -1008,7 +1008,7 @@ Im radialen Kontextmenue fuehrt **Ebenen** zu vier Aktionen:
 - **Eins runter:** Auswahl um ein nicht ausgewaehltes Geschwister nach hinten bewegen.
 
 Oben im Dokument-Tree entspricht vorne in der Zeichenflaeche. Das Modell behaelt
-seine bisherige Zeichenreihenfolge von hinten nach vorne; `ui/document_tree.c`
+seine bisherige Zeichenreihenfolge von hinten nach vorne; `ui/document_tree/document_tree.c`
 zeigt Artboards und Kinder deshalb jeweils in umgekehrter Reihenfolge an.
 Die Hit-Tests waehlen weiterhin das vorderste sichtbare Objekt.
 
@@ -1033,7 +1033,7 @@ Der private Befehl hat Codec 7 und wird im Checkpoint `PVCKPT20` gespeichert.
 Beim Editorwechsel bleiben Reihenfolge und vollstaendige Undo/Redo-History erhalten.
 Das Untermenue selbst wird ueber verschachtelte `radial_menu`-Eintraege in
 `editors/vector/ui/editor.yaml` beschrieben; die UI-Anbindung bleibt in
-`ui/object_actions.c`.
+`ui/context_menu/object_actions.c`.
 
 
 ## Ausrichten und gleichmaessig verteilen
@@ -1071,7 +1071,7 @@ Die vorhandene Schnittstelle `vector_rectangles_set_rects()` uebernimmt den fert
 Plan atomar als einen Transform-Befehl (Codec 5). Schlaegt eine Validierung oder eine
 Sperrpruefung fehl, wird kein Objekt bewegt. Undo/Redo und Editor-Checkpoints brauchen
 keinen neuen Befehlstyp oder ein neues Schema. Die acht Menueeintraege stehen in
-`ui/editor.yaml`; `ui/object_actions.c` ordnet deren Aktionen und Verfuegbarkeit
+`ui/editor.yaml`; `ui/context_menu/object_actions.c` ordnet deren Aktionen und Verfuegbarkeit
 ueber eine Tabelle den fachlichen Ausrichtungsoperationen zu.
 
 
@@ -1096,7 +1096,7 @@ Pfadalgorithmen sind deshalb keine Erweiterungen des Rechteck-Zeichenwerkzeugs:
 - `object/shape.c`: normierte Pfadpunkte in Elternkoordinaten abbilden und drehen.
 - `path/operations.c`: Konvertierung, boolesche Plaene und atomare Ersetzung der Auswahl.
 - `path/render.c`: SDL-Darstellung der gefuellten Flaechen, Loecher und Rahmen.
-- `ui/path_actions.c`: YAML-Aktionen und Verfuegbarkeit an die Fachfunktionen binden.
+- `ui/context_menu/path_actions.c`: YAML-Aktionen und Verfuegbarkeit an die Fachfunktionen binden.
 
 libtess2 ist als C-Quellcode mit fester Revision und SGI Free Software License B unter
 `third_party/libtess2` enthalten. Der Build benoetigt dafuer keinen Download und keinen
@@ -1213,7 +1213,7 @@ die originale Pfadpunktreihenfolge wieder her; die temporaeren Editor-Checkpoint
 und die unabhaengige Objektzwischenablage funktionieren unveraendert.
 
 Die YAML-Konfiguration liegt in `ui/editor.yaml`, die Weiterleitung und Menue-
-Verfuegbarkeit in `ui/orientation_actions.c`. Der pengUI-Menue-Stack wird weiter
+Verfuegbarkeit in `ui/context_menu/orientation_actions.c`. Der pengUI-Menue-Stack wird weiter
 verwendet; fuer den neuen Werkzeugsatz ist keine Erweiterung der UI-Bibliothek noetig.
 
 

@@ -1,11 +1,11 @@
 /** @file @brief Native interaction stays outside clipboard, hierarchy and history logic. */
 #include "object_actions.h"
-#include "document_tree.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/geometry/rotation.h"
 #include "editors/vector/object/alignment.h"
 #include "editors/vector/object/group.h"
 #include "editors/vector/object/order.h"
+#include "editors/vector/ui/document_tree/document_tree.h"
 #include "orientation_actions.h"
 #include "path_actions.h"
 #include <string.h>

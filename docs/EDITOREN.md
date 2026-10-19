@@ -81,11 +81,12 @@ editors/
     persistence/
       checkpoint.c/.h   Temporäres Sichern und Wiederherstellen
     ui/
-      inspector.c/.h    Laden der Inspector-Oberfläche
-      document_tree.c/.h Abgeleitete Tree-Ansicht des aktiven Dokuments
-      toolbar.c/.h      Werkzeugstatus der Toolbar
-      editor.yaml       Dreispaltiger Arbeitsbereich
-      inspector.yaml    Inhalt des Inspector-Slots
+      editor.yaml       Einstieg und dreispaltiger Arbeitsbereich
+      inspector/        Inspector-Anbindung und YAML für Artboard, Formen und Auswahl
+      document_tree/    Tree-Anbindung und Gruppenzeilen
+      toolbar/          Aktiv-Markierung der Werkzeuge
+      tools/            Anbindung der Raster-Einstellungen
+      context_menu/     Radiales Menü, Objektaktionen, Flächen und Spiegeln
   scripts/              Bisheriges kleines Editorgerüst
   game/                 Bisheriges kleines Editorgerüst
 ```
@@ -198,7 +199,8 @@ Der Vektoreditor besitzt innerhalb seines rechten Panels einen weiteren Slot:
 - {type: slot, id: inspector_content}
 ```
 
-`vector/editor.c` lädt `ui/editor.yaml`, lässt `inspector.c` die `ui/inspector.yaml` laden
+`vector/editor.c` lädt `ui/editor.yaml`, lässt `ui/inspector/inspector.c` die
+`ui/inspector/inspector.yaml` laden
 und setzt beide mit `pui_layout_compose()` zusammen. Der Host setzt dieses Ergebnis in
 den Shell-Slot ein. Diese Zusammensetzung ist expliziter C-Code; sie führt kein YAML-
 `include` ein.
@@ -302,7 +304,7 @@ zurückgesetzt. Nach erfolgreichem Anlegen endet das Werkzeug; für ein weiteres
 klickst du erneut auf den Toolbar-Button. Der Button bleibt während des eingeschalteten
 Werkzeugs hervorgehoben, auch während des Aufziehens oder nach einem Klick ohne Größe.
 Nach erfolgreichem Anlegen, Escape, Fokusverlust oder Dokumentwechsel endet die
-Hervorhebung. `ui/toolbar.c` leitet sie aus dem Zustand des aktiven Dokuments ab.
+Hervorhebung. `ui/toolbar/toolbar.c` leitet sie aus dem Zustand des aktiven Dokuments ab.
 
 Jedes Artboard erhält oben und links ein dezentes Pixel-Lineal mit lokalem Nullpunkt.
 [ruler.c](../editors/vector/workspace/ruler.c) passt die Unterteilung dem Zoom an, während die
@@ -334,7 +336,7 @@ wird ebenfalls genau ein Anfangsdokument ergänzt. Bestehende Dokumente werden n
 ## Dokument-Tree im linken Panel
 
 Der Tab `vector_document_tree_tab` enthält einen gepaddeten `tree` mit der stabilen
-ID `vector_document_tree`. [ui/document_tree.c](../editors/vector/ui/document_tree.c)
+ID `vector_document_tree`. [ui/document_tree/document_tree.c](../editors/vector/ui/document_tree/document_tree.c)
 bindet das aktive Dokument an diesen Tree. Jedes Artboard erscheint als Wurzeleintrag
 `Artboard <ID>`. Ohne aktives Dokument bzw. ohne Artboards bleibt der Tree leer.
 
@@ -419,3 +421,17 @@ der App werden diese Dateien geschlossen und gelöscht; beim Neustart beginnt ei
 
 Die neue Struktur bereitet die UI-Zusammensetzung und den Lebenszyklus vor. Die nächsten
 Funktionen können dadurch im jeweiligen Editor und seinen einzelnen Bereichen entstehen.
+
+
+## Orientierung innerhalb der Vector-UI
+
+`editors/vector/ui/` ist nach Bereichen gegliedert: `inspector/`, `document_tree/`,
+`toolbar/`, `tools/` und `context_menu/`. Die zentrale `editor.yaml` beschreibt die
+äußere Anordnung; optionale Inspector-Inhalte liegen daneben im Ordner `inspector/`.
+
+Der äußere Innenabstand steht in `inspector/inspector.yaml`. Formeigenschaften von
+Rechtecken, Polygonen und Bézierkurven stehen in `inspector/shape.yaml`, Artboards
+in `inspector/artboard.yaml` und die Mehrfachauswahl in `inspector/selection.yaml`.
+Die jeweilige C-Anbindung liegt im selben Bereich. Fachliche Änderungen werden weiter
+an `object/`, `artboard/`, `curve/` usw. delegiert. Neue UI-Dateien gehören in ihren
+zuständigen Bereich; die Modell-/UI-Grenze bleibt unverändert.

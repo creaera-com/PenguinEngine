@@ -1,5 +1,5 @@
 /** @file @brief Rectangle properties remain separate from artboard inspector bindings. */
-#include "rectangle_inspector.h"
+#include "shape.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/workspace/selection.h"
 #include <errno.h>

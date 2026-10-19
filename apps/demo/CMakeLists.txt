@@ -31,16 +31,16 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/object/shape.c
  ${PROJECT_SOURCE_DIR}/editors/vector/path/operations.c
  ${PROJECT_SOURCE_DIR}/editors/vector/path/render.c
- ${PROJECT_SOURCE_DIR}/editors/vector/ui/path_actions.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/context_menu/path_actions.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/orientation.c
- ${PROJECT_SOURCE_DIR}/editors/vector/ui/orientation_actions.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/context_menu/orientation_actions.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/alignment.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/order.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/group.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/clipboard.c
- ${PROJECT_SOURCE_DIR}/editors/vector/ui/object_actions.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/context_menu/object_actions.c
  ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/render.c
- ${PROJECT_SOURCE_DIR}/editors/vector/ui/rectangle_inspector.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/shape.c
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard/artboard.c
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard/tool.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/marquee.c
@@ -57,9 +57,9 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/history/history.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/canvas.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/documents.c
- ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector.c
- ${PROJECT_SOURCE_DIR}/editors/vector/ui/group_tree.c
- ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/inspector.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree/groups.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree/document_tree.c
  ${PROJECT_SOURCE_DIR}/editors/vector/geometry/bezier.c
  ${PROJECT_SOURCE_DIR}/editors/vector/curve/curve.c
  ${PROJECT_SOURCE_DIR}/editors/vector/curve/tool.c
@@ -68,8 +68,8 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/element_snap.c
  ${PROJECT_SOURCE_DIR}/editors/vector/grid/snap.c
  ${PROJECT_SOURCE_DIR}/editors/vector/grid/render.c
- ${PROJECT_SOURCE_DIR}/editors/vector/ui/grid.c
- ${PROJECT_SOURCE_DIR}/editors/vector/ui/toolbar.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/tools/grid.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/toolbar/toolbar.c
  ${PROJECT_SOURCE_DIR}/editors/scripts/adapter.c
  ${PROJECT_SOURCE_DIR}/editors/scripts/editor.c
  ${PROJECT_SOURCE_DIR}/editors/scripts/inspector.c

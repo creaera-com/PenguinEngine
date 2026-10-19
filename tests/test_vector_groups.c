@@ -3,7 +3,7 @@
 #include "editors/vector/internal.h"
 #include "editors/vector/object/group.h"
 #include "editors/vector/rectangle/transform.h"
-#include "editors/vector/ui/group_tree.h"
+#include "editors/vector/ui/document_tree/groups.h"
 #include "editors/vector/workspace/selection.h"
 #include "shell/shell.h"
 #include "unity.h"

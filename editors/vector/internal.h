@@ -3,9 +3,9 @@
 #define PE_VECTOR_INTERNAL_H
 #include "editor_host/editor.h"
 #include "editors/vector/document/document.h"
-#include "ui/document_tree.h"
-#include "ui/inspector.h"
-#include "ui/object_actions.h"
+#include "editors/vector/ui/context_menu/object_actions.h"
+#include "editors/vector/ui/document_tree/document_tree.h"
+#include "editors/vector/ui/inspector/inspector.h"
 #include "workspace/documents.h"
 
 typedef struct {

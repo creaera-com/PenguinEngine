@@ -35,7 +35,9 @@ Refactorings und Fehlerkorrekturen:
 - `workspace/`: Zeichenfläche, Lineale und Anbindung der Dokument-Tabs.
 - `history/`: Ausführung von Befehlen sowie Undo/Redo.
 - `persistence/`: Temporäres Sichern und Wiederherstellen.
-- `ui/`: YAML-Beschreibungen und Aufbau von UI-Bereichen.
+- `ui/`: YAML-Beschreibungen und UI-Anbindungen nach Bereichen:
+  `inspector/`, `document_tree/`, `toolbar/`, `tools/`, `context_menu/`.
+  C-Dateien nicht flach in `ui/` ablegen. `ui/editor.yaml` bleibt der Layout-Einstieg.
 
 Andere Editoren nach ihren tatsächlichen Aufgaben gliedern. Leere Verzeichnisse und
 Dateien nicht vorsorglich anlegen und diese Struktur nicht mechanisch kopieren.

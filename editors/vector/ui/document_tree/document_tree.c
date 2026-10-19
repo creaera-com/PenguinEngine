@@ -2,8 +2,8 @@
 #include "document_tree.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/document/selection.h"
-#include "group_tree.h"
-#include "toolbar.h"
+#include "editors/vector/ui/toolbar/toolbar.h"
+#include "groups.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

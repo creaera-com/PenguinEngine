@@ -9,7 +9,7 @@
 #include <string.h>
 
 PUILayout *vector_inspector_load(const EditorServices *services, char *error, size_t capacity) {
-    return editor_load_ui(services, "editors/vector/ui/inspector.yaml", error, capacity);
+    return editor_load_ui(services, "editors/vector/ui/inspector/inspector.yaml", error, capacity);
 }
 
 static VectorArtboard *selected(VectorDocument *document, unsigned id) {

@@ -2,11 +2,11 @@
 #include "artboard/tool.h"
 #include "curve/tool.h"
 #include "document/selection.h"
+#include "editors/vector/ui/inspector/inspector.h"
+#include "editors/vector/ui/toolbar/toolbar.h"
+#include "editors/vector/ui/tools/grid.h"
 #include "internal.h"
 #include "rectangle/tool.h"
-#include "ui/grid.h"
-#include "ui/inspector.h"
-#include "ui/toolbar.h"
 #include "workspace/canvas.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,11 +39,11 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         return NULL;
     }
     editor->inspector.artboard_layout =
-        editor_load_ui(services, "editors/vector/ui/artboard_inspector.yaml", error, capacity);
+        editor_load_ui(services, "editors/vector/ui/inspector/artboard.yaml", error, capacity);
     editor->inspector.rectangle.layout =
-        editor_load_ui(services, "editors/vector/ui/rectangle_inspector.yaml", error, capacity);
+        editor_load_ui(services, "editors/vector/ui/inspector/shape.yaml", error, capacity);
     editor->inspector.multi_layout =
-        editor_load_ui(services, "editors/vector/ui/multi_selection.yaml", error, capacity);
+        editor_load_ui(services, "editors/vector/ui/inspector/selection.yaml", error, capacity);
     if (!editor->inspector.artboard_layout || !editor->inspector.rectangle.layout ||
         !editor->inspector.multi_layout) {
         vector_editor_destroy(editor);

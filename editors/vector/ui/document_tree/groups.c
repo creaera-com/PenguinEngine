@@ -1,5 +1,5 @@
 /** @file @brief Group row identity is UI data; group membership remains in the object model. */
-#include "group_tree.h"
+#include "groups.h"
 #include "editors/vector/document/selection.h"
 #include <stdio.h>
 #include <string.h>

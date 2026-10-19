@@ -69,6 +69,10 @@ for path in (root / 'apps').rglob('*.c'):
             errors.append(f'{path.relative_to(root)}: concrete editor includes belong in the registry')
 # Vector model/history may use plain state and geometry headers, but not UI/event wiring.
 vector = root / 'editors/vector'
+# UI bindings are organized by panel; the root contains only the layout entry and guidance.
+for path in (vector / 'ui').iterdir():
+    if path.is_file() and path.suffix in ('.c', '.h'):
+        errors.append(f'{path.relative_to(root)}: place UI bindings in their panel directory')
 for area in ('document', 'history', 'object', 'path'):
     pending = [p for p in (vector / area).rglob('*') if p.suffix in ('.c', '.h')
                and not (area == 'path' and p.name in ('render.c', 'render.h'))]
