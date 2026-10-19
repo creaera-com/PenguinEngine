@@ -5,7 +5,7 @@
 #include "editors/vector/document/document.h"
 #include "editors/vector/grid/render.h"
 #include "editors/vector/rectangle/render.h"
-#include "editors/vector/rectangle/tool.h"
+#include "editors/vector/workspace/box_tool.h"
 #include "editors/vector/workspace/selection.h"
 #include "element_snap.h"
 #include "marquee.h"

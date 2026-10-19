@@ -24,7 +24,7 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/persistence/checkpoint.c
  ${PROJECT_SOURCE_DIR}/editors/vector/persistence/commands.c
  ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/rectangle.c
- ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/tool.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/workspace/box_tool.c
  ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/stroke_render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/geometry/path.c
  ${PROJECT_SOURCE_DIR}/editors/vector/geometry/path_tess.c
@@ -61,6 +61,8 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree/groups.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree/document_tree.c
  ${PROJECT_SOURCE_DIR}/editors/vector/geometry/bezier.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ellipse/ellipse.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ellipse/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/curve/curve.c
  ${PROJECT_SOURCE_DIR}/editors/vector/curve/tool.c
  ${PROJECT_SOURCE_DIR}/editors/vector/curve/render.c

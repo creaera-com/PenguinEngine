@@ -1,4 +1,4 @@
-/** @file @brief Transient drag-to-create rectangle state in parent-local pixels. */
+/** @file @brief Transient rectangle/ellipse box-creation state in parent-local pixels. */
 #ifndef PE_VECTOR_RECTANGLE_TOOL_STATE_H
 #define PE_VECTOR_RECTANGLE_TOOL_STATE_H
 #include <stdbool.h>
@@ -6,6 +6,7 @@
 
 typedef struct {
     bool enabled, dragging;
+    bool ellipse; ///< Choose the ellipse factory; otherwise the rectangle factory.
     bool keep_aspect, from_center;
     unsigned parent_id;
     float parent_width, parent_height;

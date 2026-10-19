@@ -3,7 +3,7 @@
 #include "editors/vector/geometry/resize.h"
 #include "editors/vector/internal.h"
 #include "editors/vector/rectangle/stroke_render.h"
-#include "editors/vector/rectangle/tool.h"
+#include "editors/vector/workspace/box_tool.h"
 #include "editors/vector/workspace/selection.h"
 #include "shell/shell.h"
 #include "unity.h"

@@ -3,11 +3,13 @@
 #include "editors/vector/curve/render.h"
 #include "editors/vector/curve/tool.h"
 #include "editors/vector/document/selection.h"
+#include "editors/vector/ellipse/ellipse.h"
+#include "editors/vector/ellipse/render.h"
 #include "editors/vector/geometry/rotation.h"
 #include "editors/vector/path/render.h"
+#include "editors/vector/workspace/box_tool.h"
 #include "editors/vector/workspace/selection.h"
 #include "stroke_render.h"
-#include "tool.h"
 #include <math.h>
 
 static void draw(SDL_Renderer *renderer, SDL_FRect board, float zoom, PUIRect local, bool selected,
@@ -93,6 +95,13 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
                 ? document->fill_preview.color
                 : rectangle->fill;
         const VectorShape *shown = vector_curve_display_shape(document, rectangle);
+        if (shown->curve_kind == VECTOR_CURVE_ELLIPSE) {
+            vector_ellipse_draw(renderer, shown, vector_rectangle_display_rect(document, shown),
+                                vector_rectangle_display_angle(document, shown), board,
+                                document->viewport.zoom, fill,
+                                vector_document_is_selected(document, rectangle->id));
+            continue;
+        }
         if (shown->curve.count) {
             vector_curve_draw(renderer, shown, vector_rectangle_display_rect(document, shown),
                               vector_rectangle_display_angle(document, shown), board,
@@ -113,9 +122,19 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
              vector_rectangle_display_angle(document, rectangle), rectangle->stroke);
     }
     if (document->rectangle_tool.dragging && document->rectangle_tool.parent_id == parent->id) {
-        draw(renderer, board, document->viewport.zoom,
-             vector_rectangle_tool_rect(&document->rectangle_tool), true, true,
-             VECTOR_RECTANGLE_DEFAULT_FILL, 0, (VectorStroke){0});
+        if (document->rectangle_tool.ellipse) {
+            VectorShape ellipse;
+            if (vector_ellipse_shape(vector_rectangle_tool_rect(&document->rectangle_tool),
+                                     &ellipse)) {
+                vector_ellipse_draw(renderer, &ellipse, ellipse.rect, 0, board,
+                                    document->viewport.zoom,
+                                    (VECTOR_RECTANGLE_DEFAULT_FILL & 0xffffff00u) | 150u, true);
+            }
+        } else {
+            draw(renderer, board, document->viewport.zoom,
+                 vector_rectangle_tool_rect(&document->rectangle_tool), true, true,
+                 VECTOR_RECTANGLE_DEFAULT_FILL, 0, (VectorStroke){0});
+        }
     }
     SDL_SetRenderClipRect(renderer, clipped ? &outer : NULL);
 }

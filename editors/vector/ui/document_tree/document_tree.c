@@ -125,7 +125,9 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
                     items[row].selected = vector_document_is_selected(document, child->id);
                     fill(&items[row++], document->id, child->id, child->name, "rectangle",
                          child->flags, group ? 2 : 1);
-                    if (child->path.count || child->curve.count) {
+                    if (child->curve_kind == VECTOR_CURVE_ELLIPSE) {
+                        snprintf(items[row - 1].icon, sizeof items[row - 1].icon, "tabler:oval");
+                    } else if (child->path.count || child->curve.count) {
                         snprintf(items[row - 1].icon, sizeof items[row - 1].icon,
                                  "tabler:vector-bezier-2");
                     }

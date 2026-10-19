@@ -50,6 +50,7 @@ static bool store(VectorShape *shape, const VectorPath *path) {
     bounds.h = fmaxf(1, bounds.h);
     shape->rect = bounds;
     shape->angle = 0;
+    shape->curve_kind = VECTOR_CURVE_FREE;
     shape->curve = (VectorBezier){0};
     shape->path = *path;
     for (unsigned i = 0; i < path->count; i++) {
@@ -127,6 +128,7 @@ bool vector_paths_operate(VectorDocument *d, VectorPathOperation op) {
         for (int i = 0; i < count; i++) {
             if (shapes[i].curve.count) {
                 VectorBezier curve = shapes[i].curve;
+                shapes[i].curve_kind = VECTOR_CURVE_FREE;
                 shapes[i].curve = (VectorBezier){0};
                 bool converted = false;
                 float tolerance = .001f;

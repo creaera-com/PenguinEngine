@@ -51,6 +51,7 @@ root:
             - {type: toggle, id: vector_add_artboard, icon: tabler:artboard, action: vector.add_artboard, width: 30}
             - {type: separator}
             - {type: toggle, id: vector_add_rect, icon: tabler:rectangle, action: vector.add_rect, width: 30}
+            - {type: toggle, id: vector_add_ellipse, icon: tabler:oval, action: vector.add_ellipse, width: 30}
             - {type: toggle, id: vector_pen, icon: tabler:ballpen, action: vector.tool_pen, width: 30}
             - {type: toggle, id: vector_nodes, icon: tabler:vector-bezier, action: vector.tool_nodes, width: 30}
             - {type: toggle, id: vector_selection, icon: tabler:pointer-2, action: vector.tool_selection, width: 30}

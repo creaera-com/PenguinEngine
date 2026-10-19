@@ -3,7 +3,7 @@
 #include "editors/vector/curve/tool.h"
 #include "editors/vector/document/document.h"
 #include "editors/vector/geometry/constraints.h"
-#include "editors/vector/rectangle/tool.h"
+#include "editors/vector/workspace/box_tool.h"
 #include "editors/vector/workspace/modifiers.h"
 #include "editors/vector/workspace/selection.h"
 #include <math.h>

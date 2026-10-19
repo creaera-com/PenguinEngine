@@ -1,6 +1,7 @@
-/** @file @brief Artboard-local rectangle creation with clipped drag preview. */
-#include "tool.h"
+/** @file @brief Shared artboard-local box gesture for rectangle and ellipse factories. */
+#include "box_tool.h"
 #include "editors/vector/artboard/tool.h"
+#include "editors/vector/ellipse/ellipse.h"
 #include "editors/vector/geometry/constraints.h"
 #include "editors/vector/grid/snap.h"
 #include "editors/vector/workspace/modifiers.h"
@@ -18,20 +19,24 @@ void vector_rectangle_tool_cancel(VectorDocument *document) {
 }
 
 bool vector_rectangle_tool_action(VectorDocument *document, PUIView *view, const char *action) {
-    if (strcmp(action, "vector.add_rect")) {
+    bool ellipse = !strcmp(action, "vector.add_ellipse");
+    if (!ellipse && strcmp(action, "vector.add_rect")) {
         return false;
     }
     if (!document) {
         pui_view_set_text(view, "status", "Zuerst ein Dokument und Artboard anlegen");
         return true;
     }
-    bool enabled = document->rectangle_tool.enabled;
+    bool enabled = document->rectangle_tool.enabled && document->rectangle_tool.ellipse == ellipse;
     vector_artboard_tool_cancel(document);
     document->rectangle_tool.enabled = !enabled;
+    document->rectangle_tool.ellipse = ellipse;
     document->viewport.panning = false;
     pui_view_set_text(view, "status",
                       enabled ? "Auswahlwerkzeug aktiv"
-                              : "Rechteck in einem entsperrten Artboard aufziehen; Esc: abbrechen");
+                      : ellipse
+                          ? "Ellipse aufziehen; Shift: Kreis; Alt: Mittelpunkt; Esc: abbrechen"
+                          : "Rechteck in einem entsperrten Artboard aufziehen; Esc: abbrechen");
     return true;
 }
 
@@ -60,7 +65,7 @@ bool vector_rectangle_tool_event(VectorDocument *document, PUIView *view, const 
     if (event->type == SDL_EVENT_WINDOW_FOCUS_LOST ||
         (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_ESCAPE)) {
         vector_rectangle_tool_cancel(document);
-        pui_view_set_text(view, "status", "Rechteck-Werkzeug abgebrochen");
+        pui_view_set_text(view, "status", "Zeichenwerkzeug abgebrochen");
         return true;
     }
     VectorArtboard *parent = vector_artboard_find(document, tool->parent_id);
@@ -117,10 +122,12 @@ bool vector_rectangle_tool_event(VectorDocument *document, PUIView *view, const 
         PUIRect rect = vector_rectangle_tool_rect(tool);
         tool->dragging = false;
         SDL_CaptureMouse(false);
-        bool added = vector_rectangle_add(document, parent->id, rect);
+        bool added = tool->ellipse ? vector_ellipse_add(document, parent->id, rect)
+                                   : vector_rectangle_add(document, parent->id, rect);
         pui_view_set_text(view, "status",
-                          added ? "Rechteck angelegt; weiteres aufziehen oder Esc"
-                                : "Rechteck konnte nicht angelegt werden (mindestens 1 x 1 px)");
+                          added ? (tool->ellipse ? "Ellipse angelegt; weitere aufziehen oder Esc"
+                                                 : "Rechteck angelegt; weiteres aufziehen oder Esc")
+                                : "Form konnte nicht angelegt werden (mindestens 1 x 1 px)");
         return true;
     }
     if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN && event->button.button == SDL_BUTTON_LEFT) {

@@ -6,7 +6,7 @@
 #include "editors/vector/ui/toolbar/toolbar.h"
 #include "editors/vector/ui/tools/grid.h"
 #include "internal.h"
-#include "rectangle/tool.h"
+#include "workspace/box_tool.h"
 #include "workspace/canvas.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,9 +73,10 @@ void vector_editor_destroy(void *instance) {
 bool vector_editor_action(void *instance, PUIView *view, const char *name, const char *widget) {
     VectorEditor *editor = instance;
     if (!strncmp(name, "vector.objects.", 15) || !strcmp(name, "vector.tool_selection") ||
-        !strcmp(name, "vector.add_rect") || !strcmp(name, "vector.add_artboard") ||
-        !strcmp(name, "vector.tool_pen") || !strcmp(name, "vector.tool_nodes") ||
-        !strcmp(name, "editor.undo") || !strcmp(name, "editor.redo")) {
+        !strcmp(name, "vector.add_rect") || !strcmp(name, "vector.add_ellipse") ||
+        !strcmp(name, "vector.add_artboard") || !strcmp(name, "vector.tool_pen") ||
+        !strcmp(name, "vector.tool_nodes") || !strcmp(name, "editor.undo") ||
+        !strcmp(name, "editor.redo")) {
         vector_inspector_cancel_color(&editor->inspector, &editor->documents, view);
     }
     if (vector_inspector_action(&editor->inspector, &editor->documents, view, name)) {

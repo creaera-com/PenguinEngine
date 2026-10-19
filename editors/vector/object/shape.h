@@ -19,6 +19,9 @@ typedef struct {
     VectorStrokeAlignment alignment;
 } VectorStroke;
 
+/** @brief Curve identity; editing ellipse nodes converts it to a free Bezier curve. */
+typedef enum { VECTOR_CURVE_FREE, VECTOR_CURVE_ELLIPSE } VectorCurveKind;
+
 /** @brief Shape geometry is relative to parent_id; rect maps normalized path points and defines the
  * pivot. */
 typedef struct {
@@ -26,6 +29,7 @@ typedef struct {
     unsigned group_id; ///< Zero for independent objects; group members share an artboard and ID.
     uint32_t fill;     ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
     VectorStroke stroke;
+    unsigned curve_kind; ///< Validated VectorCurveKind; zero for non-curve shapes.
     VectorBezier curve; ///< Editable cubic controls; count zero selects rectangle/polygon geometry.
     VectorPath path;    ///< Empty for parametric rectangles; otherwise normalized closed contours.
     char name[64];

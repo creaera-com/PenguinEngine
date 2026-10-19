@@ -32,6 +32,7 @@ bool vector_curve_shape(VectorShape *s, const VectorBezier *curve) {
     result.rect = bounds;
     result.angle = 0;
     result.curve = *curve;
+    result.curve_kind = VECTOR_CURVE_FREE;
     result.path = (VectorPath){0};
     for (unsigned i = 0; i < curve->count; i++) {
         VectorBezierNode *n = &result.curve.nodes[i];
@@ -123,8 +124,11 @@ static bool execute(VectorDocument *d, CurveEdit *edit) {
     return true;
 }
 
-bool vector_curve_add(VectorDocument *d, unsigned parent, const VectorBezier *curve) {
-    VectorArtboard *board = vector_artboard_find(d, parent);
+bool vector_curve_add_shape(VectorDocument *d, const VectorShape *shape) {
+    if (!shape || shape->id || shape->curve.count < 2) {
+        return false;
+    }
+    VectorArtboard *board = vector_artboard_find(d, shape->parent_id);
     if (!board || board->flags & VECTOR_OBJECT_STATE_MASK || !d->next_rectangle_id ||
         d->next_rectangle_id == UINT_MAX || d->rectangle_count == VECTOR_MAX_RECTANGLES) {
         return false;
@@ -133,18 +137,21 @@ bool vector_curve_add(VectorDocument *d, unsigned parent, const VectorBezier *cu
                       .index = d->rectangle_count,
                       .selection = d->selection,
                       .board = d->active_artboard,
-                      .rectangle = d->active_rectangle};
-    edit.after = (VectorShape){.id = d->next_rectangle_id,
-                               .parent_id = parent,
-                               .fill = 0,
-                               .stroke = {0x394956ff, 2, VECTOR_STROKE_CENTER}};
-    snprintf(edit.after.name, sizeof edit.after.name, "Kurve %u", edit.after.id);
-    if (!vector_curve_shape(&edit.after, curve) || !vector_rectangle_valid(edit.after) ||
-        !execute(d, &edit)) {
+                      .rectangle = d->active_rectangle,
+                      .after = *shape};
+    edit.after.id = d->next_rectangle_id;
+    if (!vector_rectangle_valid(edit.after) || !execute(d, &edit)) {
         return false;
     }
     d->next_rectangle_id++;
     return true;
+}
+
+bool vector_curve_add(VectorDocument *d, unsigned parent, const VectorBezier *curve) {
+    VectorShape shape = {
+        .parent_id = parent, .fill = 0, .stroke = {0x394956ff, 2, VECTOR_STROKE_CENTER}};
+    snprintf(shape.name, sizeof shape.name, "Kurve %u", d->next_rectangle_id);
+    return vector_curve_shape(&shape, curve) && vector_curve_add_shape(d, &shape);
 }
 
 bool vector_curve_update(VectorDocument *d, unsigned id, const VectorBezier *curve) {

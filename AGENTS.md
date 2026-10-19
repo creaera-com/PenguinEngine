@@ -32,7 +32,9 @@ Refactorings und Fehlerkorrekturen:
 
 - `document/`: Dokumentdaten, IDs und Speicherbesitz.
 - `artboard/`: Artboards, Änderungsbefehle und zugehöriges Mauswerkzeug.
-- `workspace/`: Zeichenfläche, Lineale und Anbindung der Dokument-Tabs.
+- `workspace/`: Zeichenfläche, Lineale, Anbindung der Dokument-Tabs und gemeinsame
+  Aufzieh-Geste für Rechtecke/Ellipsen (`box_tool.c`, reine Werte in `box_tool_state.h`).
+- `ellipse/`: Ellipsen-Geometrie und Erzeugung; keine eigene Kopie der Mausverarbeitung.
 - `history/`: Ausführung von Befehlen sowie Undo/Redo.
 - `persistence/`: Temporäres Sichern und Wiederherstellen.
 - `ui/`: YAML-Beschreibungen und UI-Anbindungen nach Bereichen:

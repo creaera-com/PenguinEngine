@@ -162,9 +162,10 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
     }
     if (rectangle) {
         pui_view_set_text(view, "rectangle_kind",
-                          rectangle->curve.count  ? "Bezierkurve"
-                          : rectangle->path.count ? "Pfad"
-                                                  : "Rechteck");
+                          rectangle->curve_kind == VECTOR_CURVE_ELLIPSE ? "Ellipse"
+                          : rectangle->curve.count                      ? "Bezierkurve"
+                          : rectangle->path.count                       ? "Pfad"
+                                                                        : "Rechteck");
         char value[64];
         if (switched || (inspector->dirty & 1u) ||
             strcmp(inspector->presented.name, rectangle->name)) {
