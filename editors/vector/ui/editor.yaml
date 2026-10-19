@@ -56,6 +56,15 @@ root:
             - {type: toggle, id: vector_grid_toggle, icon: tabler:grid-4x4, action: vector.grid.toggle, width: 30}
             - {type: toggle, id: vector_grid_snap, icon: tabler:magnet, action: vector.grid.snap, width: 30}
             - {type: spacer}
+            - type: radial_menu
+              id: vector_object_menu
+              popup_width: 320
+              children:
+                - {type: button, id: vector_objects_copy, text: Kopieren, icon: tabler:copy, action: vector.objects.copy}
+                - {type: button, id: vector_objects_cut, text: Ausschneiden, icon: tabler:cut, action: vector.objects.cut}
+                - {type: button, id: vector_objects_paste, text: Einfuegen, icon: tabler:clipboard, action: vector.objects.paste}
+                - {type: button, id: vector_objects_duplicate, text: Duplizieren, icon: tabler:layers-subtract, action: vector.objects.duplicate}
+                - {type: button, id: vector_objects_delete, text: Loeschen, icon: tabler:trash, action: vector.objects.delete}
 
         - type: tabs
           id: vector_document_tabs

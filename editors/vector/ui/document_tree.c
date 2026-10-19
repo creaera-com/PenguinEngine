@@ -118,6 +118,33 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
     return true;
 }
 
+void vector_document_tree_context(VectorDocument *document, PUIView *view, float x, float y) {
+    const char *row = pui_view_tree_item_at(view, "vector_document_tree", x, y);
+    if (!row) {
+        return;
+    }
+    char id[64];
+    for (int i = 0; i < document->rectangle_count; i++) {
+        unsigned object = document->rectangles[i].id;
+        snprintf(id, sizeof id, "vector_document_%u.rectangle_%u", document->id, object);
+        if (!strcmp(row, id)) {
+            if (!vector_document_is_selected(document, object)) {
+                vector_document_select(document, object);
+            }
+            return;
+        }
+    }
+    for (int i = 0; i < document->artboard_count; i++) {
+        unsigned object = document->artboards[i].id;
+        snprintf(id, sizeof id, "vector_document_%u.artboard_%u", document->id, object);
+        if (!strcmp(row, id)) {
+            vector_document_select(document, 0);
+            document->active_artboard = object;
+            return;
+        }
+    }
+}
+
 bool vector_document_tree_action(VectorDocument *document, PUIView *view, const char *action,
                                  const char *widget) {
     bool rectangle = !strncmp(action, "vector.rectangle.", 17);

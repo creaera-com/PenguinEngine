@@ -702,7 +702,7 @@ ungueltige Eingaben werden auf den vorherigen Wert zurueckgesetzt.
 `grid/state.h` enthaelt ausschliesslich Werte. Die Einstellungen sind
 Ansichtshilfen und erzeugen keine Schritte in der Artwork-History. Sie gelten
 je Dokument und werden beim Editorwechsel im temporaeren Checkpoint gesichert
-(Schema `PVCKPT14`). Es gibt damit noch keine dauerhafte Dokumentdatei.
+(Schema `PVCKPT15`). Es gibt damit noch keine dauerhafte Dokumentdatei.
 
 `grid/render.c` zeichnet die Linien artboardlokal ueber dem Artwork und erhaelt
 den SDL-Clip- und Blendzustand. Standardzellen sind rechteckig; Hexagonalzellen
@@ -771,7 +771,7 @@ Rechteck einen gemeinsamen Versatz; Abstaende und Groessen bleiben erhalten.
 History-Befehl aus. Er prueft alle IDs, Sperren und Zielkoordinaten vor der
 Mutation. Fehlt ein Teilnehmer oder ist ein Ziel ungueltig, bleibt die ganze
 Gruppe unveraendert. Undo/Redo wendet die gespeicherten Vorher-/Nachher-Rechtecke
-atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT14` speichert
+atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT15` speichert
 zusaetzlich die Auswahl-IDs. Ein Editorwechsel verwirft Gestenvorschauen,
 behaelt aber Auswahl und abgeschlossene Gruppenbewegungen.
 
@@ -806,7 +806,7 @@ und Skalieren denselben atomaren Vorher-/Nachher-Befehl (Checkpoint-Typ 5).
 Damit entstehen fuer eine gemeinsame Skalierung genau ein Undo-Schritt und
 vollstaendig wiederherstellbare Redo-Daten. Esc, Fokusverlust und Editorwechsel
 verwerfen die laufende Groessenvorschau. Abgeschlossene Skalierungen bleiben
-beim Editorwechsel inklusive History erhalten (Schema `PVCKPT14`).
+beim Editorwechsel inklusive History erhalten (Schema `PVCKPT15`).
 
 ### Shift und Alt waehrend Zeichnen und Skalieren
 
@@ -856,7 +856,7 @@ Der Mittelpunkt bleibt waehrend der Rotation fest, Alt aendert ihn nicht.
 `VectorRectangle.angle` speichert einen im Uhrzeigersinn laufenden Winkel in
 Grad, mit vorzeichenbehafteter Darstellung von -360 bis 360. `rect` beschreibt weiterhin Groesse und
 Lage vor der Drehung; gedreht wird um dessen Mittelpunkt. Die Winkel sind
-Teil von History und temporaeren Checkpoints (Schema `PVCKPT14`).
+Teil von History und temporaeren Checkpoints (Schema `PVCKPT15`).
 
 `geometry/rotation.c` berechnet Punkte, Ecken, umschliessende Rahmen und exakte
 Trefferflaechen ohne SDL oder Objektwissen. `workspace/rotation.c` besitzt die
@@ -905,7 +905,7 @@ beim Begrenzen auf eine Umdrehung, etwa 450 auf 90 oder -450 auf -90.
 `geometry/rotation.c` trennt diese Darstellung (`vector_angle_turn`) von der
 kurzen Winkeldifferenz (`vector_angle_normalize`) fuer die Gestenberechnung.
 Die Checkpoint-Validierung fuer Einzel- und Gruppenbefehle akzeptiert die
-vorzeichenbehafteten Winkel einschliesslich voller Umdrehungen (Schema `PVCKPT14`).
+vorzeichenbehafteten Winkel einschliesslich voller Umdrehungen (Schema `PVCKPT15`).
 
 
 ## Einfarbige Rechteckrahmen
@@ -935,4 +935,59 @@ keine zusaetzliche Kontur; Auswahlmarkierungen bleiben davon unabhaengig sichtba
 
 Rahmenaenderungen verwenden die vorhandenen vollstaendigen Vorher-/Nachher-Snapshots
 von Rechteckbefehlen (Codec 4). Undo/Redo und temporaere Editor-Checkpoints erhalten
-alle Rahmenwerte; die private Checkpoint-Signatur lautet jetzt `PVCKPT14`.
+alle Rahmenwerte; die private Checkpoint-Signatur lautet jetzt `PVCKPT15`.
+
+
+## Objektbefehle und dokumentuebergreifende Zwischenablage
+
+Ein Rechtsklick auf der Zeichenflaeche oder im Dokument-Tree oeffnet das radiale
+Kontextmenue. Ein Linksklick auf einen Sektor fuehrt dessen Aktion aus; `Esc`,
+ein Klick ausserhalb oder der Verlust des Fensterfokus schliessen es.
+Nicht verfuegbare Aktionen sind deaktiviert. Ein Rechtsklick auf ein bereits
+markiertes Rechteck behaelt eine Mehrfachauswahl bei. Im Tree wird die Zeile
+unter dem Zeiger ausgewaehlt, ohne das Artboard einzuklappen.
+
+| Aktion | Tastatur | Verhalten |
+| --- | --- | --- |
+| Kopieren | Strg+C | Auswahl als unabhaengige Werte kopieren; kein History-Eintrag. |
+| Ausschneiden | Strg+X | Erst erfolgreich loeschen, dann die Zwischenablage ersetzen. |
+| Einfuegen | Strg+V | Neue Objekt-IDs vergeben und die neuen Objekte auswaehlen. |
+| Duplizieren | Strg+D | Kopien in den bisherigen Eltern anlegen; Zwischenablage behalten. |
+| Loeschen | Entf oder Ruecktaste | Auswahl samt eventuellen Nachkommen entfernen. |
+
+Auf macOS kann statt Strg die Command-Taste verwendet werden. pengUI verarbeitet
+Textfeld-Eingaben vor den Objektkuerzeln: Kopieren, Ausschneiden, Einfuegen und
+Loeschen in einem fokussierten Textfeld betreffen weiterhin dessen Text.
+
+`object/clipboard.h` beschreibt `VectorClipboard`: eigene Arrays von Artboard-
+und Rechteckwerten, ohne Zeiger in das Quelldokument. Bei einer Rechteckauswahl
+sind die Eltern als Koordinatenreferenz enthalten; beim Kopieren eines Artboards
+werden alle Kinder eingeschlossen. Farbe, Rahmen, Drehung, Name und Objektflags
+werden mitkopiert. Es handelt sich um eine interne Objektzwischenablage;
+Textfelder verwenden davon unabhaengig die Betriebssystem-Zwischenablage.
+
+`ui/object_actions.c` uebersetzt Menueaktionen und native Tastaturereignisse in
+`vector_objects_*()`-Operationen. `editor.c` leitet nur weiter. Die Zwischenablage
+gehoert zur Editorinstanz, nicht zu einem Dokument-Tab. Sie bleibt beim Wechsel
+zwischen Dokumenten erhalten und wird auch im temporaeren Editor-Checkpoint
+mitgesichert. Das Menue selbst ist fluechtiger UI-Zustand und wird nicht gespeichert.
+
+Beim Einfuegen von Rechtecken wird das aktive sichtbare, entsperrte Artboard als
+Ziel genutzt. Ohne Zielartboard werden die kopierten Quell-Artboards als Eltern
+angelegt. Ein kopiertes komplettes Artboard erzeugt immer ein neues Artboard.
+Relative Abstaende einer Auswahl bleiben erhalten. Kopien bekommen einen Versatz
+von 16 Dokument-Pixeln. Beim Duplizieren bleiben Rechtecke in ihren jeweiligen
+Eltern; beim Kopieren zwischen unterschiedlichen Eltern wird deren raeumlicher
+Versatz beim Einfuegen in ein gemeinsames Ziel beruecksichtigt.
+
+Loeschen, Ausschneiden, Duplizieren und Einfuegen sind jeweils **ein** atomarer
+History-Befehl fuer die gesamte Auswahl. `ObjectEdit` besitzt Vorher-/Nachher-Werte
+von Objekten, Reihenfolge, Eltern-IDs und Auswahl. Er speichert keine History,
+Viewport- oder Editorzeiger. Undo stellt auch die Auswahl wieder her. Neue IDs
+werden nach Undo nicht wiederverwendet. Gesperrte Kinder schuetzen auch ihr
+Artboard vor dem Loeschen. Fehler durch Kapazitaet, Sperren oder ungueltige Werte
+lassen Dokument und Zwischenablage unveraendert.
+
+`persistence/commands.c` registriert den strukturellen Befehl als Codec 6.
+Checkpoint-Schema `PVCKPT15` speichert ihn und die Objektzwischenablage. Beim Laden
+werden Objektwerte, Eltern, Auswahl und der gesamte History-Verlauf validiert.

@@ -14,7 +14,7 @@ typedef struct {
 typedef struct {
     PUIColorPickerState color;
     TreeData *tree;
-    bool open;
+    bool open, radial_disabled;
     bool checked;
     bool commit, keyboard_navigation, reveal;
     int highlighted;
@@ -44,6 +44,10 @@ struct PUIView {
     bool selecting; ///< Mouse selection belongs to the focused text field until release.
     int popups[PUI_LAYOUT_DEPTH], popup_count;
     PUIRect popup_rects[PUI_LAYOUT_DEPTH], bounds;
+    bool radial_open;
+    int radial_index, radial_pressed, radial_pending;
+    PUIRect radial_bounds;
+    float radial_x, radial_y;
     SDL_SystemCursor cursor;
     int cursor_priority;
     bool pointer_inside;
@@ -51,6 +55,8 @@ struct PUIView {
     bool cursor_attempted[SDL_SYSTEM_CURSOR_COUNT];
 };
 
+bool pui_widget_radial_event(PUIView *view, PUIContext *input, const SDL_Event *event);
+void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, void *context);
 void pui_widget_color_picker_finish_frame(PUIView *view, PUIContext *input, PUIAction action,
                                           void *context);
 void pui_widget_color_picker_init(PUIView *view, int index);

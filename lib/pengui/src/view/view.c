@@ -16,6 +16,7 @@ PUIView *pui_view_new(const PUILayout *layout, SDL_Renderer *renderer) {
     view->layout = layout;
     view->renderer = renderer;
     view->window = SDL_GetRenderWindow(renderer);
+    view->radial_pending = -1;
     view->focused = view->submit = -1;
     view->pointer_inside = true;
     for (int i = 0; i < layout->count; i++) {

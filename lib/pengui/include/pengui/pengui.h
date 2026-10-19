@@ -483,8 +483,12 @@ typedef enum {
     PUI_NODE_POPUP_BUTTON,
     PUI_NODE_SLOT,
     PUI_NODE_CANVAS,
-    PUI_NODE_COLOR_PICKER
+    PUI_NODE_COLOR_PICKER,
+    PUI_NODE_RADIAL_MENU
 } PUINodeType;
+
+/** @brief Hit-test 2..8 radial sectors, clockwise from top; -1 for center, gaps or outside. */
+int pui_radial_item(PUIRect bounds, int count, float x, float y);
 
 /** @brief Geometry of a two/three-pane splitter; unused entries are zero. */
 typedef struct {
@@ -887,6 +891,9 @@ typedef struct {
                    ///< primary row.
 } PUITreeItem;
 
+/** @brief Visible tree row under the pointer, or NULL; borrowed ID until the next layout/row edit.
+ */
+const char *pui_view_tree_item_at(PUIView *view, const char *tree, float x, float y);
 /** @brief Replace runtime rows of a tree, retaining open state/selection by stable ID.
  * Call between frames. count=0 clears the tree; invalid input leaves the old data intact.
  */
@@ -927,6 +934,13 @@ const char *pui_view_tab_at(const PUIView *view, const char *tabs, int index);
 SDL_SystemCursor pui_view_cursor(const PUIView *view);
 /** @brief Apply the seven theme colors from YAML to the existing renderer theme. */
 void pui_view_apply_theme(const PUILayout *layout);
+/** @brief Open a YAML radial_menu at the pointer, clamped to the view; children are buttons. */
+bool pui_view_open_radial(PUIView *view, const char *id, float x, float y);
+/** @brief Enable/disable a radial menu button at runtime; YAML enabled=false remains binding. */
+bool pui_view_set_radial_enabled(PUIView *view, const char *item, bool enabled);
+/** @brief Dismiss a radial menu without dispatching any action. */
+void pui_view_close_radial(PUIView *view);
+
 /** @brief Feed SDL input on the main thread; true when text editing or a popup consumed the event.
  */
 bool pui_view_event(PUIView *view, PUIContext *pui, SDL_Window *window, const SDL_Event *event);

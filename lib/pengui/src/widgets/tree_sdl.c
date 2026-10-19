@@ -325,6 +325,28 @@ bool pui_view_set_tree_items(PUIView *view, const char *tree, const PUITreeItem 
     return true;
 }
 
+const char *pui_view_tree_item_at(PUIView *view, const char *tree, float x, float y) {
+    int index = find_tree(view, tree);
+    if (index < 0 || !view->visible[index] || !view->enabled[index] || !isfinite(x) ||
+        !isfinite(y) || !pui_contains(view->hit[index], x, y)) {
+        return NULL;
+    }
+    PUIRect area = view->rect[index];
+    if (x >= area.x + area.w - 12) {
+        return NULL;
+    }
+    int rows[PUI_LAYOUT_NODES], depths[PUI_LAYOUT_NODES];
+    bool enabled[PUI_LAYOUT_NODES];
+    TreeData *data = view->state[index].tree;
+    int count = data ? runtime_rows(data, rows, depths, enabled, true)
+                     : tree_rows(view, index, 0, rows, depths, 0, true);
+    int row = (int)floorf((y - area.y + view->state[index].scroll.offset) / 28.f);
+    if (row < 0 || row >= count || !(data ? enabled[row] : view->enabled[rows[row]])) {
+        return NULL;
+    }
+    return data ? data->items[rows[row]].id : view->layout->nodes[rows[row]].name;
+}
+
 int pui_view_tree_item_count(const PUIView *view, const char *tree) {
     int index = find_tree(view, tree);
     return index >= 0 && view->state[index].tree ? view->state[index].tree->count : -1;

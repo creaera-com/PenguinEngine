@@ -30,6 +30,8 @@ typedef struct {
                  ///< full turns.
 } VectorRectangle;
 struct VectorDocument;
+/** @brief Validate a value before accepting clipboard or checkpoint data. */
+bool vector_rectangle_valid(VectorRectangle rectangle);
 /** @brief Find a rectangle by stable model ID. */
 VectorRectangle *vector_rectangle_find(struct VectorDocument *document, unsigned id);
 /** @brief Effective flags combine child and parent visibility/lock state. */

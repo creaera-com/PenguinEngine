@@ -112,10 +112,10 @@ static bool boolean(Reader *r, yaml_node_t *n, const char *key, bool fallback) {
 
 static int node(Reader *r, yaml_node_t *yaml, int depth) {
     static const char *types[] = {
-        "column",    "row",    "panel",        "toolbar", "button",   "label",
-        "separator", "tabs",   "tab",          "section", "input",    "tree",
-        "item",      "split",  "spacer",       "toggle",  "checkbox", "button_group",
-        "dropdown",  "option", "popup_button", "slot",    "canvas",   "color_picker"};
+        "column", "row",    "panel",        "toolbar",      "button",   "label",  "separator",
+        "tabs",   "tab",    "section",      "input",        "tree",     "item",   "split",
+        "spacer", "toggle", "checkbox",     "button_group", "dropdown", "option", "popup_button",
+        "slot",   "canvas", "color_picker", "radial_menu"};
     if (depth >= PUI_LAYOUT_DEPTH || r->layout->count >= PUI_LAYOUT_NODES) {
         fail(r, yaml, "layout depth/node limit exceeded");
         return -1;
@@ -224,7 +224,8 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
                 (child_type == PUI_NODE_OPTION && out->type != PUI_NODE_DROPDOWN) ||
                 (out->type == PUI_NODE_POPUP_BUTTON && child_type != PUI_NODE_PANEL) ||
                 (out->type == PUI_NODE_TABS && child_type != PUI_NODE_TAB) ||
-                (out->type == PUI_NODE_BUTTON_GROUP && child_type != PUI_NODE_BUTTON) ||
+                ((out->type == PUI_NODE_BUTTON_GROUP || out->type == PUI_NODE_RADIAL_MENU) &&
+                 child_type != PUI_NODE_BUTTON) ||
                 ((out->type == PUI_NODE_TREE || out->type == PUI_NODE_ITEM) &&
                  child_type != PUI_NODE_ITEM) ||
                 (child_type == PUI_NODE_TAB && out->type != PUI_NODE_TABS) ||
@@ -236,7 +237,8 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
             count++;
         }
     }
-    if ((out->type == PUI_NODE_POPUP_BUTTON && count != 1) ||
+    if ((out->type == PUI_NODE_RADIAL_MENU && (count < 2 || count > 8)) ||
+        (out->type == PUI_NODE_POPUP_BUTTON && count != 1) ||
         (out->type == PUI_NODE_SPLIT && (count < 2 || count > 3)) ||
         (out->type == PUI_NODE_TABS && count > PUI_MAX_TABS) ||
         ((out->type == PUI_NODE_BUTTON || out->type == PUI_NODE_LABEL ||

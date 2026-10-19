@@ -31,7 +31,7 @@ unsigned vector_rectangle_effective_flags(VectorDocument *document,
     return rectangle->flags | (parent ? parent->flags : VECTOR_OBJECT_STATE_MASK);
 }
 
-static bool valid(VectorRectangle rectangle) {
+bool vector_rectangle_valid(VectorRectangle rectangle) {
     PUIRect r = rectangle.rect;
     return isfinite(rectangle.stroke.width) && rectangle.stroke.width >= 0 &&
            rectangle.stroke.width <= VECTOR_MAX_ARTBOARD_SIZE &&
@@ -99,9 +99,9 @@ bool vector_rectangle_add(VectorDocument *document, unsigned parent_id, PUIRect 
                              .stroke = {.color = 0x303030ffu},
                              .rect = rect};
     snprintf(value.name, sizeof value.name, "Rechteck %u", value.id);
-    if (!parent || parent->flags & VECTOR_OBJECT_STATE_MASK || !valid(value) || rect.x < 0 ||
-        rect.y < 0 || rect.x + rect.w > parent->rect.w || rect.y + rect.h > parent->rect.h ||
-        document->rectangle_count >= VECTOR_MAX_RECTANGLES) {
+    if (!parent || parent->flags & VECTOR_OBJECT_STATE_MASK || !vector_rectangle_valid(value) ||
+        rect.x < 0 || rect.y < 0 || rect.x + rect.w > parent->rect.w ||
+        rect.y + rect.h > parent->rect.h || document->rectangle_count >= VECTOR_MAX_RECTANGLES) {
         return false;
     }
     AddRectangle *command = calloc(1, sizeof *command);
@@ -120,7 +120,7 @@ bool vector_rectangle_add(VectorDocument *document, unsigned parent_id, PUIRect 
 }
 
 static bool edit(VectorDocument *document, VectorRectangle before, VectorRectangle after) {
-    if (!valid(after)) {
+    if (!vector_rectangle_valid(after)) {
         return false;
     }
     if (!memcmp(&before, &after, sizeof before)) {
@@ -213,7 +213,7 @@ bool vector_rectangle_command_write(const VectorCommand *command, FILE *file) {
 bool vector_rectangle_command_read(VectorCommand *command, FILE *file, unsigned kind) {
     if (kind == 3) {
         AddRectangle value;
-        if (fread(&value, sizeof value, 1, file) != 1 || !valid(value.rectangle) ||
+        if (fread(&value, sizeof value, 1, file) != 1 || !vector_rectangle_valid(value.rectangle) ||
             value.index < 0 || value.index >= VECTOR_MAX_RECTANGLES) {
             return false;
         }
@@ -227,8 +227,8 @@ bool vector_rectangle_command_read(VectorCommand *command, FILE *file, unsigned 
     }
     if (kind == 4) {
         EditRectangle value;
-        if (fread(&value, sizeof value, 1, file) != 1 || !valid(value.before) ||
-            !valid(value.after) || value.before.id != value.after.id ||
+        if (fread(&value, sizeof value, 1, file) != 1 || !vector_rectangle_valid(value.before) ||
+            !vector_rectangle_valid(value.after) || value.before.id != value.after.id ||
             value.before.parent_id != value.after.parent_id) {
             return false;
         }

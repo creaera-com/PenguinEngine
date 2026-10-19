@@ -18,6 +18,8 @@ void pui_view_draw_node(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAct
     v->visible[i] = v->hit[i].w > 0 && v->hit[i].h > 0;
     v->enabled[i] = !pui->blocked;
     switch (n->type) {
+    case PUI_NODE_RADIAL_MENU:
+        break;
     case PUI_NODE_COLOR_PICKER:
         pui_widget_color_picker_draw(v, pui, i, area, action, context);
         break;
@@ -86,7 +88,8 @@ void pui_view_draw(PUIView *view, PUIContext *pui, PUIRect area, PUIAction actio
     view->cursor_priority = 0;
     memset(view->visible, 0, sizeof view->visible);
     view->bounds = area;
-    bool modal = pui_view_popup_prepare(view, pui);
+    bool modal =
+        pui_view_popup_prepare(view, pui) || view->radial_open || view->radial_pending >= 0;
     PUIContext inert = pui_view_inert_context(pui);
     pui_view_draw_node(view, modal ? &inert : pui, view->layout->root, area, action, context);
     pui_view_popup_draw(view, pui, action, context);
@@ -94,6 +97,7 @@ void pui_view_draw(PUIView *view, PUIContext *pui, PUIRect area, PUIAction actio
         pui_view_blur(view, pui);
     }
     pui_widget_color_picker_finish_frame(view, pui, action, context);
+    pui_widget_radial_draw(view, pui, action, context);
     pui_end_frame(pui);
     pui_view_apply_cursor(view, pui);
 }

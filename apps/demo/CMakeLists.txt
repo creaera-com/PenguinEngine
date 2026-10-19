@@ -26,6 +26,8 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/rectangle.c
  ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/tool.c
  ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/stroke_render.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/object/clipboard.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/object_actions.c
  ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/rectangle_inspector.c
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard/artboard.c

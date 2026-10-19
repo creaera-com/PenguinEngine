@@ -740,3 +740,43 @@ ein. `pui_view_select_tree_item` bleibt fuer primaere Auswahl und Aufklappen der
 Vorfahren zustaendig. Die Markierung aendert keine Klickaktionen und setzt keine
 Mehrfachauswahl-Strategie voraus; Shift, Rahmen und fachliche Sperrregeln bleiben
 Aufgabe der jeweiligen Anwendung. Statische YAML-Zeilen haben dieses Feld nicht.
+
+
+## Radiales Kontextmenue
+
+`radial_menu` ist ein Overlay und belegt in einer Row, Column oder Toolbar keinen
+Layoutplatz. Seine zwei bis acht `button`-Kinder beschreiben die Aktionen, im
+Uhrzeigersinn ab der oberen Position. Der Durchmesser wird mit `popup_width`
+angegeben. Das Menue wird an den View-Grenzen gehalten.
+
+```yaml
+- type: radial_menu
+  id: object_menu
+  popup_width: 320
+  children:
+    - {type: button, id: copy, text: Kopieren, icon: tabler:copy, action: objects.copy}
+    - {type: button, id: paste, text: Einfuegen, icon: tabler:clipboard, action: objects.paste}
+    - {type: button, id: remove, text: Loeschen, icon: tabler:trash, action: objects.delete}
+```
+
+Die Anwendung ruft nach einem Rechtsklick
+`pui_view_open_radial(view, "object_menu", x, y)` auf. Falls sich dabei die Auswahl
+und dadurch ein Inspector-Slot aendern, erst nach dessen Komposition oeffnen.
+`pui_view_set_radial_enabled()` aktiviert oder deaktiviert einen Eintrag zur Laufzeit;
+ein in YAML deaktivierter Eintrag bleibt deaktiviert. `pui_view_close_radial()`
+schliesst das Menue ohne Aktion.
+
+`widgets/radial_menu.c` enthaelt die SDL-freie Sektor-Geometrie. Die SDL-Datei
+zeichnet das Menue und verarbeitet Eingaben. Die Mitte, schmale Sektorluecken und
+der Bereich ausserhalb loesen keine Aktion aus. Ein Eintrag wird nur aktiviert,
+wenn Press und Release auf demselben aktiven Sektor liegen. Aktionen werden erst
+beim Zeichnen ueber den normalen `PUIAction`-Callback weitergegeben. Waehrend das
+Menue offen ist, erhalten darunterliegende Widgets keine Mausklicks oder Tasten.
+`Esc` und Fokusverlust brechen ab; der schliessende Klick wird verbraucht.
+Layoutaustausch setzt das Menue zurueck.
+
+Fuer Tree-Kontextmenues liefert `pui_view_tree_item_at()` die sichtbare Zeilen-ID
+unter dem Zeiger. Die Methode beruecksichtigt Scrolloffset, eingeklappte Knoten,
+Clipping und deaktivierte Zeilen und aendert weder Auswahl noch Offen-Zustand.
+Die gelieferte Zeichenkette gehoert weiterhin der View und gilt bis zum naechsten
+Austausch der Zeilen oder des Layouts.

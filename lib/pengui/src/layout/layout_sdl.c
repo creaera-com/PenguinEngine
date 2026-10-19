@@ -52,6 +52,9 @@ void pui_view_draw_children(PUIView *v, PUIContext *pui, int i, PUIRect area, bo
     int count = 0, flexible = 0;
     for (int k = n->child; k >= 0; k = v->layout->nodes[k].next) {
         const PUINode *child = &v->layout->nodes[k];
+        if (child->type == PUI_NODE_RADIAL_MENU) {
+            continue;
+        }
         float size = row ? child->width : pui_view_node_height(v, k);
         if (row && !size && child->type == PUI_NODE_BUTTON) {
             size = pui_tab_content_width(pui_icon_from_name(child->icon), child->text);
@@ -70,6 +73,9 @@ void pui_view_draw_children(PUIView *v, PUIContext *pui, int i, PUIRect area, bo
     float offset = 0;
     for (int k = n->child; k >= 0; k = v->layout->nodes[k].next) {
         const PUINode *child = &v->layout->nodes[k];
+        if (child->type == PUI_NODE_RADIAL_MENU) {
+            continue;
+        }
         float size = row ? child->width : pui_view_node_height(v, k);
         if (row && !size && child->type == PUI_NODE_BUTTON) {
             size = pui_tab_content_width(pui_icon_from_name(child->icon), child->text);

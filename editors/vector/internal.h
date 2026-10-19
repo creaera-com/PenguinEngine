@@ -5,6 +5,7 @@
 #include "editors/vector/document/document.h"
 #include "ui/document_tree.h"
 #include "ui/inspector.h"
+#include "ui/object_actions.h"
 #include "workspace/documents.h"
 
 typedef struct {
@@ -14,6 +15,7 @@ typedef struct {
     VectorDocumentTree document_tree;
     VectorInspector inspector;
     unsigned grid_document_id;
+    VectorObjectActions object_actions;
 } VectorEditor;
 
 void *vector_editor_create(const EditorServices *services, char *error, size_t capacity);

@@ -573,8 +573,30 @@ static void test_hsl_rgba_roundtrip_primaries_transparency_and_hex(void) {
     }
 }
 
+static void test_radial_sector_geometry_and_dead_zones(void) {
+    PUIRect bounds = {10, 20, 300, 300};
+    for (int count = 2; count <= 8; count++) {
+        for (int i = 0; i < count; i++) {
+            float angle = -1.570796327f + i * 6.283185307f / count;
+            TEST_ASSERT_EQUAL_INT(i, pui_radial_item(bounds, count, 160 + cosf(angle) * 100,
+                                                     170 + sinf(angle) * 100));
+        }
+        TEST_ASSERT_EQUAL_INT(-1, pui_radial_item(bounds, count, 160, 170));
+        TEST_ASSERT_EQUAL_INT(-1, pui_radial_item(bounds, count, 160, 5));
+        float gap = -1.570796327f + 3.141592654f / count;
+        TEST_ASSERT_EQUAL_INT(
+            -1, pui_radial_item(bounds, count, 160 + cosf(gap) * 100, 170 + sinf(gap) * 100));
+    }
+    TEST_ASSERT_EQUAL_INT(-1, pui_radial_item(bounds, 0, 160, 70));
+    TEST_ASSERT_EQUAL_INT(-1, pui_radial_item(bounds, 9, 160, 70));
+    TEST_ASSERT_EQUAL_INT(-1, pui_radial_item(bounds, 5, NAN, 70));
+    bounds.w = NAN;
+    TEST_ASSERT_EQUAL_INT(-1, pui_radial_item(bounds, 5, 160, 70));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_radial_sector_geometry_and_dead_zones);
     RUN_TEST(test_hsl_rgba_roundtrip_primaries_transparency_and_hex);
     RUN_TEST(test_word_selection_respects_utf8_spaces_punctuation_and_end);
     RUN_TEST(test_popup_placement_flips_and_clamps_to_bounds);

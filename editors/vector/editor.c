@@ -71,9 +71,9 @@ void vector_editor_destroy(void *instance) {
 
 bool vector_editor_action(void *instance, PUIView *view, const char *name, const char *widget) {
     VectorEditor *editor = instance;
-    if (!strcmp(name, "vector.tool_selection") || !strcmp(name, "vector.add_rect") ||
-        !strcmp(name, "vector.add_artboard") || !strcmp(name, "editor.undo") ||
-        !strcmp(name, "editor.redo")) {
+    if (!strncmp(name, "vector.objects.", 15) || !strcmp(name, "vector.tool_selection") ||
+        !strcmp(name, "vector.add_rect") || !strcmp(name, "vector.add_artboard") ||
+        !strcmp(name, "editor.undo") || !strcmp(name, "editor.redo")) {
         vector_inspector_cancel_color(&editor->inspector, &editor->documents, view);
     }
     if (vector_inspector_action(&editor->inspector, &editor->documents, view, name)) {
@@ -84,6 +84,9 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
         return true;
     }
     VectorDocument *document = vector_document_tabs_active(&editor->documents, view);
+    if (vector_object_actions_action(&editor->object_actions, document, view, name)) {
+        return true;
+    }
     if (vector_grid_action(document, view, name)) {
         return true;
     }
@@ -155,7 +158,8 @@ bool vector_editor_event(void *instance, PUIView *view, const SDL_Event *event) 
     VectorEditor *editor = instance;
     VectorDocument *document = vector_document_tabs_active(&editor->documents, view);
     vector_workspace_cancel_inactive(&editor->documents, document);
-    bool consumed = document && vector_canvas_event(document, view, event);
+    bool consumed = vector_object_actions_event(&editor->object_actions, document, view, event) ||
+                    (document && vector_canvas_event(document, view, event));
     vector_toolbar_sync(view, document);
     return consumed;
 }
@@ -176,7 +180,9 @@ bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, c
     }
     vector_toolbar_sync(view, active);
     vector_grid_sync(view, active, &editor->grid_document_id);
-    return vector_document_tree_sync(&editor->document_tree,
-                                     vector_document_tabs_active(&editor->documents, view), view,
-                                     error, capacity);
+    if (!vector_document_tree_sync(&editor->document_tree, active, view, error, capacity)) {
+        return false;
+    }
+    vector_object_actions_commit(&editor->object_actions, active, view);
+    return true;
 }

@@ -164,8 +164,30 @@ static void test_dropdown_and_popup_structure_are_validated(void) {
     }
 }
 
+static void test_radial_menu_validates_sector_count_and_button_children(void) {
+    char error[256];
+    PUILayout *layout = parse(
+        "schema: pengui/v1\nroot: {type: radial_menu, children: ["
+        "{type: button, text: Copy, action: copy}, {type: button, text: Paste, enabled: false}]}",
+        error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+    TEST_ASSERT_EQUAL_INT(PUI_NODE_RADIAL_MENU, layout->nodes[layout->root].type);
+    pui_layout_free(layout);
+    const char *invalid[] = {
+        "[]", "[{type: button}]", "[{type: button}, {type: panel}]",
+        "[{type: button}, {type: button}, {type: button}, {type: button}, {type: button},"
+        "{type: button}, {type: button}, {type: button}, {type: button}]"};
+    for (int i = 0; i < 4; i++) {
+        char yaml[1024];
+        snprintf(yaml, sizeof yaml, "schema: pengui/v1\nroot: {type: radial_menu, children: %s}",
+                 invalid[i]);
+        TEST_ASSERT_NULL_MESSAGE(parse(yaml, error), invalid[i]);
+    }
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_radial_menu_validates_sector_count_and_button_children);
     RUN_TEST(test_dropdown_and_popup_structure_are_validated);
     RUN_TEST(test_checked_controls_and_group_validation);
     RUN_TEST(test_split_child_count_and_flexible_pane_are_validated);

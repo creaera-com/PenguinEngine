@@ -69,7 +69,7 @@ for path in (root / 'apps').rglob('*.c'):
             errors.append(f'{path.relative_to(root)}: concrete editor includes belong in the registry')
 # Vector model/history may use plain state and geometry headers, but not UI/event wiring.
 vector = root / 'editors/vector'
-for area in ('document', 'history'):
+for area in ('document', 'history', 'object'):
     pending = [p for p in (vector / area).rglob('*') if p.suffix in ('.c', '.h')]
     visited = set()
     while pending:
