@@ -33,7 +33,8 @@ unsigned vector_rectangle_effective_flags(VectorDocument *document,
 
 bool vector_rectangle_valid(VectorRectangle rectangle) {
     PUIRect r = rectangle.rect;
-    if (!vector_path_valid(&rectangle.path)) {
+    if (!vector_path_valid(&rectangle.path) || !vector_bezier_valid(&rectangle.curve) ||
+        rectangle.curve.count == 1) {
         return false;
     }
     for (unsigned i = 0; i < rectangle.path.count; i++) {
@@ -53,7 +54,7 @@ bool vector_rectangle_valid(VectorRectangle rectangle) {
                  fabsf(r.y) <= VECTOR_MAX_ARTBOARD_SIZE && isfinite(r.w) && isfinite(r.h) &&
                  r.w >= 1 && r.h >= 1 && r.w <= VECTOR_MAX_ARTBOARD_SIZE &&
                  r.h <= VECTOR_MAX_ARTBOARD_SIZE;
-    if (valid && rectangle.path.count && rectangle.stroke.width > 0) {
+    if (valid && !rectangle.curve.count && rectangle.path.count && rectangle.stroke.width > 0) {
         VectorPath path = vector_shape_path(&rectangle, rectangle.rect, rectangle.angle), outline;
         int placement = rectangle.stroke.alignment == VECTOR_STROKE_INSIDE    ? -1
                         : rectangle.stroke.alignment == VECTOR_STROKE_OUTSIDE ? 1

@@ -1,5 +1,6 @@
 /** @file @brief Vector editor lifecycle and routing to document, canvas and history modules. */
 #include "artboard/tool.h"
+#include "curve/tool.h"
 #include "document/selection.h"
 #include "internal.h"
 #include "rectangle/tool.h"
@@ -73,6 +74,7 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
     VectorEditor *editor = instance;
     if (!strncmp(name, "vector.objects.", 15) || !strcmp(name, "vector.tool_selection") ||
         !strcmp(name, "vector.add_rect") || !strcmp(name, "vector.add_artboard") ||
+        !strcmp(name, "vector.tool_pen") || !strcmp(name, "vector.tool_nodes") ||
         !strcmp(name, "editor.undo") || !strcmp(name, "editor.redo")) {
         vector_inspector_cancel_color(&editor->inspector, &editor->documents, view);
     }
@@ -95,6 +97,10 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
         return true;
     }
     if (vector_grid_action(document, view, name)) {
+        return true;
+    }
+    if (vector_curve_tool_action(document, view, name)) {
+        vector_toolbar_sync(view, document);
         return true;
     }
     if (vector_rectangle_tool_action(document, view, name)) {
@@ -165,7 +171,8 @@ bool vector_editor_event(void *instance, PUIView *view, const SDL_Event *event) 
     VectorEditor *editor = instance;
     VectorDocument *document = vector_document_tabs_active(&editor->documents, view);
     vector_workspace_cancel_inactive(&editor->documents, document);
-    bool consumed = vector_object_actions_event(&editor->object_actions, document, view, event) ||
+    bool consumed = vector_curve_tool_event(document, view, event) ||
+                    vector_object_actions_event(&editor->object_actions, document, view, event) ||
                     (document && vector_canvas_event(document, view, event));
     vector_toolbar_sync(view, document);
     return consumed;

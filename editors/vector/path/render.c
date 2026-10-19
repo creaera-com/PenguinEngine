@@ -38,7 +38,7 @@ void vector_path_draw(SDL_Renderer *renderer, const VectorShape *shape, PUIRect 
         int placement = shape->stroke.alignment == VECTOR_STROKE_INSIDE    ? -1
                         : shape->stroke.alignment == VECTOR_STROKE_OUTSIDE ? 1
                                                                            : 0;
-        if (vector_path_outline(&path, shape->stroke.width, placement, &outline)) {
+        if (vector_shape_outline(shape, rect, angle, shape->stroke.width, placement, &outline)) {
             draw.color = color(shape->stroke.color);
             vector_path_triangles(&outline, triangle, &draw);
         }

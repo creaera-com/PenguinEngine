@@ -1,5 +1,6 @@
 /** @file @brief Drag-to-create tool; intermediate previews never enter history. */
 #include "tool.h"
+#include "editors/vector/curve/tool.h"
 #include "editors/vector/document/document.h"
 #include "editors/vector/geometry/constraints.h"
 #include "editors/vector/rectangle/tool.h"
@@ -9,6 +10,7 @@
 #include <stdio.h>
 
 void vector_artboard_tool_cancel(VectorDocument *document) {
+    vector_curve_tool_cancel(document);
     vector_selection_cancel(document);
     vector_rectangle_tool_cancel(document);
     if (document->artboard_tool.dragging) {

@@ -1,5 +1,7 @@
 /** @file @brief Render rectangle children and creation previews inside their artboard. */
 #include "render.h"
+#include "editors/vector/curve/render.h"
+#include "editors/vector/curve/tool.h"
 #include "editors/vector/document/selection.h"
 #include "editors/vector/geometry/rotation.h"
 #include "editors/vector/path/render.h"
@@ -90,6 +92,14 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
             document->fill_preview.active && document->fill_preview.rectangle_id == rectangle->id
                 ? document->fill_preview.color
                 : rectangle->fill;
+        const VectorShape *shown = vector_curve_display_shape(document, rectangle);
+        if (shown->curve.count) {
+            vector_curve_draw(renderer, shown, vector_rectangle_display_rect(document, shown),
+                              vector_rectangle_display_angle(document, shown), board,
+                              document->viewport.zoom, fill,
+                              vector_document_is_selected(document, rectangle->id));
+            continue;
+        }
         if (rectangle->path.count) {
             vector_path_draw(
                 renderer, rectangle, vector_rectangle_display_rect(document, rectangle),

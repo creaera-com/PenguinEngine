@@ -2,6 +2,7 @@
 #ifndef PE_VECTOR_OBJECT_SHAPE_H
 #define PE_VECTOR_OBJECT_SHAPE_H
 #include "editors/vector/artboard/artboard.h"
+#include "editors/vector/geometry/bezier.h"
 #include "editors/vector/geometry/path.h"
 
 /** @brief Placement relative to the geometric shape contour. */
@@ -25,7 +26,8 @@ typedef struct {
     unsigned group_id; ///< Zero for independent objects; group members share an artboard and ID.
     uint32_t fill;     ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
     VectorStroke stroke;
-    VectorPath path; ///< Empty for parametric rectangles; otherwise normalized closed contours.
+    VectorBezier curve; ///< Editable cubic controls; count zero selects rectangle/polygon geometry.
+    VectorPath path;    ///< Empty for parametric rectangles; otherwise normalized closed contours.
     char name[64];
     PUIRect rect;
     float angle; ///< Clockwise degrees around the rectangle center, signed in [-360,360], including
@@ -34,6 +36,11 @@ typedef struct {
 
 /** @brief Map normalized geometry to parent-local space, including object rotation. */
 VectorPath vector_shape_path(const VectorShape *shape, PUIRect rect, float angle);
+/** @brief Build a closed contour's stroke, coarsening derived Bezier geometry to fit the path
+ * budget. Editable control points remain unchanged. Returns false on geometry/complexity failure.
+ */
+bool vector_shape_outline(const VectorShape *shape, PUIRect rect, float angle, float width,
+                          int placement, VectorPath *out);
 /** @brief Filled-area hit test; holes allow selecting objects behind this shape. */
 bool vector_shape_contains(const VectorShape *shape, float x, float y);
 /** @brief Filled-area intersection with a parent-local box. */

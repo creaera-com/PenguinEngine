@@ -706,7 +706,7 @@ ungueltige Eingaben werden auf den vorherigen Wert zurueckgesetzt.
 `grid/state.h` enthaelt ausschliesslich Werte. Die Einstellungen sind
 Ansichtshilfen und erzeugen keine Schritte in der Artwork-History. Sie gelten
 je Dokument und werden beim Editorwechsel im temporaeren Checkpoint gesichert
-(Schema `PVCKPT19`). Es gibt damit noch keine dauerhafte Dokumentdatei.
+(Schema `PVCKPT20`). Es gibt damit noch keine dauerhafte Dokumentdatei.
 
 `grid/render.c` zeichnet die Linien artboardlokal ueber dem Artwork und erhaelt
 den SDL-Clip- und Blendzustand. Standardzellen sind rechteckig; Hexagonalzellen
@@ -775,7 +775,7 @@ Rechteck einen gemeinsamen Versatz; Abstaende und Groessen bleiben erhalten.
 History-Befehl aus. Er prueft alle IDs, Sperren und Zielkoordinaten vor der
 Mutation. Fehlt ein Teilnehmer oder ist ein Ziel ungueltig, bleibt die ganze
 Gruppe unveraendert. Undo/Redo wendet die gespeicherten Vorher-/Nachher-Rechtecke
-atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT19` speichert
+atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT20` speichert
 zusaetzlich die Auswahl-IDs. Ein Editorwechsel verwirft Gestenvorschauen,
 behaelt aber Auswahl und abgeschlossene Gruppenbewegungen.
 
@@ -810,7 +810,7 @@ und Skalieren denselben atomaren Vorher-/Nachher-Befehl (Checkpoint-Typ 5).
 Damit entstehen fuer eine gemeinsame Skalierung genau ein Undo-Schritt und
 vollstaendig wiederherstellbare Redo-Daten. Esc, Fokusverlust und Editorwechsel
 verwerfen die laufende Groessenvorschau. Abgeschlossene Skalierungen bleiben
-beim Editorwechsel inklusive History erhalten (Schema `PVCKPT19`).
+beim Editorwechsel inklusive History erhalten (Schema `PVCKPT20`).
 
 ### Shift und Alt waehrend Zeichnen und Skalieren
 
@@ -860,7 +860,7 @@ Der Mittelpunkt bleibt waehrend der Rotation fest, Alt aendert ihn nicht.
 `VectorRectangle.angle` speichert einen im Uhrzeigersinn laufenden Winkel in
 Grad, mit vorzeichenbehafteter Darstellung von -360 bis 360. `rect` beschreibt weiterhin Groesse und
 Lage vor der Drehung; gedreht wird um dessen Mittelpunkt. Die Winkel sind
-Teil von History und temporaeren Checkpoints (Schema `PVCKPT19`).
+Teil von History und temporaeren Checkpoints (Schema `PVCKPT20`).
 
 `geometry/rotation.c` berechnet Punkte, Ecken, umschliessende Rahmen und exakte
 Trefferflaechen ohne SDL oder Objektwissen. `workspace/rotation.c` besitzt die
@@ -909,7 +909,7 @@ beim Begrenzen auf eine Umdrehung, etwa 450 auf 90 oder -450 auf -90.
 `geometry/rotation.c` trennt diese Darstellung (`vector_angle_turn`) von der
 kurzen Winkeldifferenz (`vector_angle_normalize`) fuer die Gestenberechnung.
 Die Checkpoint-Validierung fuer Einzel- und Gruppenbefehle akzeptiert die
-vorzeichenbehafteten Winkel einschliesslich voller Umdrehungen (Schema `PVCKPT19`).
+vorzeichenbehafteten Winkel einschliesslich voller Umdrehungen (Schema `PVCKPT20`).
 
 
 ## Einfarbige Rechteckrahmen
@@ -939,7 +939,7 @@ keine zusaetzliche Kontur; Auswahlmarkierungen bleiben davon unabhaengig sichtba
 
 Rahmenaenderungen verwenden die vorhandenen vollstaendigen Vorher-/Nachher-Snapshots
 von Rechteckbefehlen (Codec 4). Undo/Redo und temporaere Editor-Checkpoints erhalten
-alle Rahmenwerte; die private Checkpoint-Signatur lautet jetzt `PVCKPT19`.
+alle Rahmenwerte; die private Checkpoint-Signatur lautet jetzt `PVCKPT20`.
 
 
 ## Objektbefehle und dokumentuebergreifende Zwischenablage
@@ -994,7 +994,7 @@ Artboard vor dem Loeschen. Fehler durch Kapazitaet, Sperren oder ungueltige Wert
 lassen Dokument und Zwischenablage unveraendert.
 
 `persistence/commands.c` registriert den strukturellen Befehl als Codec 6.
-Checkpoint-Schema `PVCKPT19` speichert ihn und die Objektzwischenablage. Beim Laden
+Checkpoint-Schema `PVCKPT20` speichert ihn und die Objektzwischenablage. Beim Laden
 werden Objektwerte, Eltern, Auswahl und der gesamte History-Verlauf validiert.
 
 
@@ -1029,7 +1029,7 @@ oder UI-Zustand. Beim Anwenden werden Reihenfolge, IDs und Elternzuordnung gepru
 bevor die Objektarrays umgeordnet werden. Auswahl, Namen, Flags und Geometrie bleiben
 erhalten. Die Objektzwischenablage wird nicht veraendert.
 
-Der private Befehl hat Codec 7 und wird im Checkpoint `PVCKPT19` gespeichert.
+Der private Befehl hat Codec 7 und wird im Checkpoint `PVCKPT20` gespeichert.
 Beim Editorwechsel bleiben Reihenfolge und vollstaendige Undo/Redo-History erhalten.
 Das Untermenue selbst wird ueber verschachtelte `radial_menu`-Eintraege in
 `editors/vector/ui/editor.yaml` beschrieben; die UI-Anbindung bleibt in
@@ -1166,7 +1166,7 @@ Eine leere Schnittmenge oder vollstaendige Subtraktion entfernt die Operanden.
 Modellaenderung. Jede Operation ist ein Undo-Schritt; Undo stellt die Originalformen
 samt Eigenschaften und Auswahl wieder her. Pfadwerte werden auch beim Kopieren,
 Ausschneiden, Duplizieren, tabuebergreifenden Einfuegen und Editorwechsel erhalten.
-Die Checkpoint-Signatur lautet wegen des erweiterten Formwerts nun **PVCKPT19**.
+Die Checkpoint-Signatur lautet wegen des erweiterten Formwerts nun **PVCKPT20**.
 
 Die bisherigen 64 Objekte pro Dokument bleiben als Grenze bestehen. Ueberschreitet
 ein Ergebnis das Punkt-, Kontur- oder Objektlimit oder scheitert die Berechnung,
@@ -1241,7 +1241,7 @@ Vorrang vor dem Raster, waehrend ungetroffene Achsen weiter am Raster einrasten 
 `workspace/element_snap.c` liefert die Referenzgeometrie und zeichnet die Vorschau.
 Die gemeinsame Bewegungsvorschau nutzt dieselbe Berechnung beim Zeichnen und Loslassen.
 Erst das Loslassen erzeugt einen History-Schritt; Escape verwirft die Vorschau.
-Der Toggle wird im temporaeren Checkpoint `PVCKPT19` gespeichert, Hilfslinien und laufende
+Der Toggle wird im temporaeren Checkpoint `PVCKPT20` gespeichert, Hilfslinien und laufende
 Gesten nicht. Die Funktion wirkt zunaechst beim Verschieben, nicht beim Skalieren/Zeichnen.
 
 
@@ -1271,4 +1271,50 @@ des vordersten ausgewaehlten Objekts abgelegt. Die relative Reihenfolge bleibt e
 beim Aufloesen bleiben Positionen und Reihenfolge unveraendert. Beide Befehle verwenden
 die atomaren Struktursnapshots aus `object/clipboard.c` (Codec 6). Undo stellt auch die
 vorherige Ebenenreihenfolge und Auswahl wieder her. Die bestehende Bewegungs-History
-bleibt davon unabhaengig. Checkpoint `PVCKPT19` speichert die Gruppenwerte samt History.
+bleibt davon unabhaengig. Checkpoint `PVCKPT20` speichert die Gruppenwerte samt History.
+
+
+## Bezier-Stift und nachtraegliche Knotenbearbeitung
+
+Die Toolbar enthaelt `vector_pen` (`vector.tool_pen`) zum Zeichnen und `vector_nodes`
+(`vector.tool_nodes`) zum Bearbeiten. Beide Werkzeuge sind wie Rechteck und Auswahl
+gegenseitig exklusiv und werden beim Editor-/Dokumentwechsel entladen.
+
+- Im Stiftwerkzeug setzt ein Klick einen Eckpunkt; Ziehen erzeugt zwei symmetrische
+  Kontrollgriffe. Shift begrenzt die Griffrichtung auf 45-Grad-Schritte.
+- Ein Klick auf den Startpunkt schliesst die Kurve. Enter, Rechtsklick oder Doppelklick
+  beendet eine offene Kurve. Der Stift bleibt danach fuer die naechste Kurve aktiv.
+- Escape oder Fokusverlust verwirft den aktuellen Entwurf. Backspace entfernt den letzten
+  noch nicht uebernommenen Punkt. Es wird keine halbfertige Kurve gespeichert.
+- Im Knotenwerkzeug wird eine Kurve angeklickt und dann an ihren Punkten oder Griffen
+  gezogen. Punkte bewegen ihre Griffe mit. Griffe behalten normalerweise die gemeinsame
+  Tangente; Alt erlaubt unabhaengige Griffe. Alt-Ziehen an einem Eckpunkt erzeugt einen Griff.
+- Ein Doppelklick auf eine ausgewaehlte Kurve fuegt einen Knoten durch exakte kubische
+  Teilung ein, ohne ihre Form zu aendern. Entf/Backspace loescht den ausgewaehlten Knoten,
+  solange eine gueltige Kurve mit mindestens zwei Knoten uebrig bleibt.
+
+`geometry/bezier.c` enthaelt reine kubische Geometrie, analytische Extremwert-Bounds und
+adaptive de-Casteljau-Unterteilung. `VectorShape.curve` speichert bis zu 32 echte Anker
+mit eingehenden/ausgehenden Kontrollpunkten. Diese liegen wie Polygonpunkte normalisiert
+im Formrechteck; Griffe duerfen ausserhalb der Box liegen. `VectorShape.path` ist bei
+bestehenden Polygonen die Geometrie, bei geschlossenen Bezierkurven eine abgeleitete
+Fuellkontur. Offene Kurven haben keine Fuellflaeche und werden als zentrierte einfarbige
+Kontur dargestellt. Deren Farbe/Breite nutzt die vorhandenen Rahmenfelder im Inspector.
+Geschlossene Kurven unterstuetzen auch Fuellfarbe und Rahmenplatzierung.
+
+Fuer Darstellung und geometrische Abfragen werden hoechstens 128 Polygonpunkte erzeugt.
+Bei sehr komplexen Kurven wird die Naeherung grober, die gespeicherten Kontrollpunkte
+bleiben unveraendert. Flaechenoperationen sind auf geschlossene Kurven beschraenkt und
+erzeugen Polygonpfade. **In Pfad** backt eine geschlossene Kurve ebenfalls zu Polygonen;
+die normale Auswahl, Skalierung, Drehung und Spiegelung erhalten hingegen ihre Knoten.
+
+`curve/curve.c` verwaltet Erzeugung und Aenderung mit History-Codec 8. `curve/tool.c`
+haelt Mausgesten in parentlokalen Pixeln; `curve/render.c` zeichnet Kontur, Entwurf und
+Knotengriffe. Erst Abschluss bzw. Loslassen erzeugt einen History-Schritt. Ein unveraenderter
+Klick auf einen Knoten erzeugt keinen Schritt. Das Knotenwerkzeug kann auch eine Kurve
+innerhalb einer Gruppe bearbeiten, ohne andere Mitglieder zu ersetzen. Beim Bearbeiten
+einer gedrehten Kurve wird ihre Drehung in die Kontrollpunkte eingerechnet; die sichtbare
+Geometrie bleibt erhalten und der Formwinkel wird auf 0 gesetzt.
+
+Checkpoint `PVCKPT20` sowie Clipboard und strukturelle History-Snapshots enthalten die
+kubischen Werte. Werkzeuge, Entwuerfe und laufende Griffbewegungen werden nicht gespeichert.

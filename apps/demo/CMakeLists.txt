@@ -60,6 +60,10 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/group_tree.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/geometry/bezier.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/curve/curve.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/curve/tool.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/curve/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/geometry/element_snap.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/element_snap.c
  ${PROJECT_SOURCE_DIR}/editors/vector/grid/snap.c

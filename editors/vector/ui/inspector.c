@@ -110,7 +110,7 @@ bool vector_inspector_sync(VectorInspector *inspector, VectorDocument *document,
         char text[64];
         int paths = 0;
         for (int i = 0; i < document->rectangle_count; i++) {
-            paths += document->rectangles[i].path.count &&
+            paths += (document->rectangles[i].path.count || document->rectangles[i].curve.count) &&
                      vector_document_is_selected(document, document->rectangles[i].id);
         }
         const char *kind = paths == document->selection.count ? "Pfade"

@@ -75,6 +75,17 @@ static bool prepare(VectorDocument *d, VectorOrientation op, Orientation *plan) 
                 cy = 2 * py - cy;
             }
             mirror_path(&after->path, horizontal);
+            for (unsigned n = 0; n < after->curve.count; n++) {
+                VectorBezierNode *node = &after->curve.nodes[n];
+                VectorPoint *points[] = {&node->point, &node->incoming, &node->outgoing};
+                for (int j = 0; j < 3; j++) {
+                    if (horizontal) {
+                        points[j]->x = 1 - points[j]->x;
+                    } else {
+                        points[j]->y = 1 - points[j]->y;
+                    }
+                }
+            }
             after->angle = vector_angle_turn(-after->angle);
         } else {
             float dx = cx - px, dy = cy - py;

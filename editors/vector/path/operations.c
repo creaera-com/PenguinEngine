@@ -28,7 +28,10 @@ bool vector_paths_can_operate(VectorDocument *d, VectorPathOperation op) {
         if (op == VECTOR_PATH_STROKE && s->stroke.width <= 0) {
             return false;
         }
-        convertible |= !s->path.count;
+        if (s->curve.count && !s->curve.closed) {
+            return false;
+        }
+        convertible |= !s->path.count || s->curve.count;
     }
     return op >= VECTOR_PATH_UNION ? count >= 2
                                    : count >= 1 && (op != VECTOR_PATH_CONVERT || convertible);
@@ -47,6 +50,7 @@ static bool store(VectorShape *shape, const VectorPath *path) {
     bounds.h = fmaxf(1, bounds.h);
     shape->rect = bounds;
     shape->angle = 0;
+    shape->curve = (VectorBezier){0};
     shape->path = *path;
     for (unsigned i = 0; i < path->count; i++) {
         shape->path.points[i].x = (path->points[i].x - bounds.x) / bounds.w;
@@ -121,6 +125,33 @@ bool vector_paths_operate(VectorDocument *d, VectorPathOperation op) {
     int output = count;
     if (op == VECTOR_PATH_CONVERT) {
         for (int i = 0; i < count; i++) {
+            if (shapes[i].curve.count) {
+                VectorBezier curve = shapes[i].curve;
+                shapes[i].curve = (VectorBezier){0};
+                bool converted = false;
+                float tolerance = .001f;
+                for (int attempt = 0; attempt < 12; attempt++, tolerance *= 2) {
+                    if (!vector_bezier_flatten(&curve, tolerance, &shapes[i].path)) {
+                        continue;
+                    }
+                    if (vector_path_contour_area(&shapes[i].path, 0) < 0) {
+                        for (unsigned n = 0; n < shapes[i].path.count / 2; n++) {
+                            VectorPoint swap = shapes[i].path.points[n];
+                            shapes[i].path.points[n] =
+                                shapes[i].path.points[shapes[i].path.count - 1 - n];
+                            shapes[i].path.points[shapes[i].path.count - 1 - n] = swap;
+                        }
+                    }
+                    if (vector_rectangle_valid(shapes[i])) {
+                        converted = true;
+                        break;
+                    }
+                }
+                if (!converted) {
+                    ok = false;
+                    break;
+                }
+            }
             if (!shapes[i].path.count) {
                 shapes[i].path = (VectorPath){.count = 4,
                                               .contours = 1,
@@ -136,7 +167,8 @@ bool vector_paths_operate(VectorDocument *d, VectorPathOperation op) {
                                                                         : 0;
             shapes[i].fill = stroke.color;
             shapes[i].stroke.width = 0;
-            ok = vector_path_outline(&inputs[i], stroke.width, placement, &results[i]) &&
+            ok = vector_shape_outline(&shapes[i], shapes[i].rect, shapes[i].angle, stroke.width,
+                                      placement, &results[i]) &&
                  store(&shapes[i], &results[i]);
         }
     } else {
