@@ -31,6 +31,8 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard/tool.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/marquee.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/selection.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/geometry/constraints.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/workspace/modifiers.c
  ${PROJECT_SOURCE_DIR}/editors/vector/geometry/scale.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/group_transform.c
  ${PROJECT_SOURCE_DIR}/editors/vector/geometry/resize.c

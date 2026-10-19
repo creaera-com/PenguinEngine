@@ -13,6 +13,7 @@ typedef struct {
 /** @brief Move/resize preview; committed geometry stays unchanged until release. */
 typedef struct {
     bool dragging, marquee, additive, marquee_moved;
+    bool keep_aspect, from_center;
     VectorRectangleSelection before;
     unsigned previous_board, previous_rectangle;
     unsigned artboard_id;

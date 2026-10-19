@@ -54,15 +54,12 @@ static PUIRect target_bounds(const VectorDocument *document) {
     PUIRect local = source;
     local.x -= origin.x;
     local.y -= origin.y;
-    PUIRect target =
-        vector_grid_snap_rect(&document->grid, document->viewport.zoom, local, tool->resize_edges,
-                              tool->offset_x, tool->offset_y, FLT_MAX);
+    PUIRect target = vector_grid_resize_constrained(
+        &document->grid, document->viewport.zoom, local, tool->resize_edges, tool->offset_x,
+        tool->offset_y, tool->keep_aspect, tool->from_center, source.w * minimum_x,
+        source.h * minimum_y, source.w * maximum_x, source.h * maximum_y);
     target.x += origin.x;
     target.y += origin.y;
-    target.w = source.w * fmaxf(minimum_x, fminf(maximum_x, target.w / source.w));
-    target.h = source.h * fmaxf(minimum_y, fminf(maximum_y, target.h / source.h));
-    target.x = tool->resize_edges & VECTOR_RESIZE_LEFT ? source.x + source.w - target.w : source.x;
-    target.y = tool->resize_edges & VECTOR_RESIZE_TOP ? source.y + source.h - target.h : source.y;
     return target;
 }
 

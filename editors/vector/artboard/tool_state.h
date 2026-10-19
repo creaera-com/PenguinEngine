@@ -5,6 +5,7 @@
 
 typedef struct {
     bool enabled, dragging;
+    bool keep_aspect, from_center;
     float start_x, start_y, end_x, end_y; ///< Document pixels, independent of zoom and pan.
 } VectorArtboardTool;
 

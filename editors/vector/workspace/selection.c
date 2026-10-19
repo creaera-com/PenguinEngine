@@ -1,11 +1,13 @@
 /** @file @brief One move/resize interaction for artboards and rectangle children. */
 #include "selection.h"
 #include "editors/vector/document/selection.h"
+#include "editors/vector/geometry/constraints.h"
 #include "editors/vector/geometry/resize.h"
 #include "editors/vector/grid/snap.h"
 #include "editors/vector/rectangle/transform.h"
 #include "group_transform.h"
 #include "marquee.h"
+#include "modifiers.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -23,8 +25,9 @@ void vector_selection_cancel(VectorDocument *document) {
 
 static PUIRect preview(PUIRect original, const VectorSelectionTool *tool) {
     if (tool->resize_edges) {
-        return vector_resize_rect(original, tool->resize_edges, tool->offset_x, tool->offset_y,
-                                  VECTOR_MAX_ARTBOARD_SIZE);
+        return vector_resize_constrained(original, tool->resize_edges, tool->offset_x,
+                                         tool->offset_y, tool->keep_aspect, tool->from_center, 1, 1,
+                                         VECTOR_MAX_ARTBOARD_SIZE, VECTOR_MAX_ARTBOARD_SIZE);
     }
     original.x += tool->offset_x;
     original.y += tool->offset_y;
@@ -66,6 +69,12 @@ PUIRect vector_rectangle_display_rect(const VectorDocument *document,
         rect.x += snapped.x - reference->rect.x;
         rect.y += snapped.y - reference->rect.y;
         return rect;
+    }
+    if (tool->resize_edges) {
+        return vector_grid_resize_constrained(
+            &document->grid, document->viewport.zoom, rectangle->rect, tool->resize_edges,
+            tool->offset_x, tool->offset_y, tool->keep_aspect, tool->from_center, 1, 1,
+            VECTOR_MAX_ARTBOARD_SIZE, VECTOR_MAX_ARTBOARD_SIZE);
     }
     return vector_grid_snap_rect(&document->grid, document->viewport.zoom, rectangle->rect,
                                  tool->resize_edges, tool->offset_x, tool->offset_y,
@@ -176,6 +185,9 @@ static void begin(VectorDocument *document, unsigned board, unsigned rectangle, 
                                                      .start_x = x,
                                                      .start_y = y,
                                                      .before = document->selection};
+    SDL_Keymod mods = SDL_GetModState();
+    document->selection_tool.keep_aspect = (mods & SDL_KMOD_SHIFT) != 0;
+    document->selection_tool.from_center = (mods & SDL_KMOD_ALT) != 0;
     if (edges && document->selection.count > 1 && !vector_group_capture(document)) {
         vector_selection_cancel(document);
         return;
@@ -231,6 +243,10 @@ static bool gesture_event(VectorDocument *document, PUIView *view, const SDL_Eve
         vector_selection_cancel(document);
         return true;
     }
+    bool modifier = vector_transform_modifiers(event, &tool->keep_aspect, &tool->from_center);
+    if (modifier && tool->resize_edges) {
+        return true;
+    }
     if (event->type == SDL_EVENT_MOUSE_MOTION) {
         update(document, event->motion.x, event->motion.y);
         return true;
@@ -274,7 +290,7 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
     float x = event->button.x, y = event->button.y;
     PUIRect screen;
     bool additive = (SDL_GetModState() & SDL_KMOD_SHIFT) != 0;
-    if (!additive && vector_selection_bounds(document, &screen)) {
+    if (vector_selection_bounds(document, &screen)) {
         unsigned edges = vector_resize_hit(screen, x, y, 10);
         if (edges) {
             begin(document, document->active_artboard, document->active_rectangle, edges, x, y);

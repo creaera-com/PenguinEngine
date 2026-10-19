@@ -1,4 +1,5 @@
 #include "editor_host/host.h"
+#include "editors/vector/geometry/constraints.h"
 #include "editors/vector/geometry/resize.h"
 #include "editors/vector/grid/render.h"
 #include "editors/vector/grid/snap.h"
@@ -229,8 +230,33 @@ static void test_snap_move_and_eight_handles_preserve_geometry_constraints(void)
     TEST_ASSERT_EQUAL_FLOAT(original.x + original.w, tiny.x + tiny.w);
 }
 
+static void test_modifier_geometry_all_handles_preserves_ratio_and_center(void) {
+    PUIRect original = {40, 30, 100, 60};
+    for (int i = 0; i < 8; i++) {
+        unsigned edges = vector_resize_handle_edges(i);
+        PUIRect target =
+            vector_resize_constrained(original, edges, 20, 10, true, true, 1, 1, 1000, 1000);
+        TEST_ASSERT_FLOAT_WITHIN(.001f, 100.f / 60, target.w / target.h);
+        TEST_ASSERT_FLOAT_WITHIN(.001f, 90, target.x + target.w / 2);
+        TEST_ASSERT_FLOAT_WITHIN(.001f, 60, target.y + target.h / 2);
+        TEST_ASSERT_TRUE(target.w >= 1 && target.h >= 1);
+    }
+    PUIRect tiny = vector_resize_constrained(original, VECTOR_RESIZE_LEFT | VECTOR_RESIZE_TOP, 1000,
+                                             1000, true, true, 1, 1, 1000, 1000);
+    TEST_ASSERT_TRUE(tiny.w >= 1 && tiny.h >= 1);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 100.f / 60, tiny.w / tiny.h);
+    VectorGrid grid = {.snap_enabled = true, .snap_tolerance = 5, .width = 16, .height = 16};
+    PUIRect snapped = vector_grid_resize_constrained(&grid, 1, original,
+                                                     VECTOR_RESIZE_RIGHT | VECTOR_RESIZE_BOTTOM, 17,
+                                                     11, true, true, 1, 1, 1000, 1000);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 100.f / 60, snapped.w / snapped.h);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 90, snapped.x + snapped.w / 2);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 60, snapped.y + snapped.h / 2);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_modifier_geometry_all_handles_preserves_ratio_and_center);
     RUN_TEST(test_snap_points_use_screen_radius_for_all_lattices);
     RUN_TEST(test_snap_move_and_eight_handles_preserve_geometry_constraints);
     RUN_TEST(test_preferences_validate_isolate_and_survive_editor_unload);

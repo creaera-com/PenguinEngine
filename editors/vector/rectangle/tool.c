@@ -1,7 +1,9 @@
 /** @file @brief Artboard-local rectangle creation with clipped drag preview. */
 #include "tool.h"
 #include "editors/vector/artboard/tool.h"
+#include "editors/vector/geometry/constraints.h"
 #include "editors/vector/grid/snap.h"
+#include "editors/vector/workspace/modifiers.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -34,8 +36,9 @@ bool vector_rectangle_tool_action(VectorDocument *document, PUIView *view, const
 }
 
 PUIRect vector_rectangle_tool_rect(const VectorRectangleTool *tool) {
-    return (PUIRect){fminf(tool->start_x, tool->end_x), fminf(tool->start_y, tool->end_y),
-                     fabsf(tool->end_x - tool->start_x), fabsf(tool->end_y - tool->start_y)};
+    PUIRect bounds = {0, 0, tool->parent_width, tool->parent_height};
+    return vector_draw_constrained(tool->start_x, tool->start_y, tool->end_x, tool->end_y,
+                                   tool->keep_aspect, tool->from_center, &bounds);
 }
 
 static void endpoint(VectorDocument *document, VectorArtboard *parent, float x, float y) {
@@ -43,8 +46,10 @@ static void endpoint(VectorDocument *document, VectorArtboard *parent, float x, 
     float local_x = roundf((x - v->bounds.x - v->x) / v->zoom - parent->rect.x);
     float local_y = roundf((y - v->bounds.y - v->y) / v->zoom - parent->rect.y);
     vector_grid_snap_point(&document->grid, v->zoom, &local_x, &local_y);
-    document->rectangle_tool.end_x = fmaxf(0, fminf(parent->rect.w, local_x));
-    document->rectangle_tool.end_y = fmaxf(0, fminf(parent->rect.h, local_y));
+    document->rectangle_tool.end_x = local_x;
+    document->rectangle_tool.end_y = local_y;
+    document->rectangle_tool.parent_width = parent->rect.w;
+    document->rectangle_tool.parent_height = parent->rect.h;
 }
 
 bool vector_rectangle_tool_event(VectorDocument *document, PUIView *view, const SDL_Event *event) {
@@ -61,6 +66,10 @@ bool vector_rectangle_tool_event(VectorDocument *document, PUIView *view, const 
     VectorArtboard *parent = vector_artboard_find(document, tool->parent_id);
     if (tool->dragging && (!parent || parent->flags & VECTOR_OBJECT_STATE_MASK)) {
         vector_rectangle_tool_cancel(document);
+        return true;
+    }
+    bool modifier = vector_transform_modifiers(event, &tool->keep_aspect, &tool->from_center);
+    if (tool->dragging && modifier) {
         return true;
     }
     if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN && event->button.button == SDL_BUTTON_LEFT &&
@@ -89,8 +98,8 @@ bool vector_rectangle_tool_event(VectorDocument *document, PUIView *view, const 
             }
             tool->parent_id = parent->id;
             endpoint(document, parent, event->button.x, event->button.y);
-            tool->start_x = tool->end_x;
-            tool->start_y = tool->end_y;
+            tool->start_x = tool->end_x = fmaxf(0, fminf(parent->rect.w, tool->end_x));
+            tool->start_y = tool->end_y = fmaxf(0, fminf(parent->rect.h, tool->end_y));
             tool->dragging = true;
             SDL_CaptureMouse(true);
             return true;

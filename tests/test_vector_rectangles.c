@@ -41,6 +41,7 @@ static void action(const char *name, const char *widget) {
 
 void setUp(void) {
     TEST_ASSERT_TRUE(SDL_Init(SDL_INIT_VIDEO));
+    SDL_SetModState(0);
     window = SDL_CreateWindow("rectangles", 1280, 800, SDL_WINDOW_HIDDEN);
     renderer = SDL_CreateRenderer(window, NULL);
     TEST_ASSERT_NOT_NULL(renderer);
@@ -53,6 +54,7 @@ void setUp(void) {
 }
 
 void tearDown(void) {
+    SDL_SetModState(0);
     editor_shell_destroy(&shell);
     editor_host_destroy(&host);
     SDL_DestroyRenderer(renderer);
@@ -663,8 +665,96 @@ static void test_rectangle_tool_creates_multiple_rectangles_until_explicit_exit(
     TEST_ASSERT_EQUAL_INT(4, doc->history.count);
 }
 
+static void modifier_key(SDL_Keycode key, bool down, SDL_Keymod mods) {
+    SDL_SetModState(mods);
+    SDL_Event event = {.type = down ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP};
+    event.key.key = key;
+    event.key.mod = mods;
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &event));
+    frame();
+}
+
+static void test_rectangle_creation_live_modifiers_and_parent_limits(void) {
+    VectorDocument *doc = parent();
+    action("vector.add_rect", "");
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 100, 60);
+    local_pointer(doc, SDL_EVENT_MOUSE_MOTION, 140, 80);
+    assert_rect((PUIRect){100, 60, 40, 20}, vector_rectangle_tool_rect(&doc->rectangle_tool));
+    modifier_key(SDLK_LSHIFT, true, SDL_KMOD_SHIFT);
+    assert_rect((PUIRect){100, 60, 40, 40}, vector_rectangle_tool_rect(&doc->rectangle_tool));
+    modifier_key(SDLK_LALT, true, SDL_KMOD_SHIFT | SDL_KMOD_ALT);
+    assert_rect((PUIRect){60, 20, 80, 80}, vector_rectangle_tool_rect(&doc->rectangle_tool));
+    modifier_key(SDLK_LSHIFT, false, SDL_KMOD_ALT);
+    assert_rect((PUIRect){60, 40, 80, 40}, vector_rectangle_tool_rect(&doc->rectangle_tool));
+    TEST_ASSERT_EQUAL_INT(0, doc->rectangle_count);
+    TEST_ASSERT_EQUAL_INT(1, doc->history.count);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_UP, 140, 80);
+    commit();
+    assert_rect((PUIRect){60, 40, 80, 40}, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_INT(2, doc->history.count);
+    TEST_ASSERT_TRUE(doc->rectangle_tool.enabled);
+    SDL_SetModState(SDL_KMOD_SHIFT | SDL_KMOD_ALT);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 10, 10);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_UP, 190, 110);
+    commit();
+    assert_rect((PUIRect){0, 0, 20, 20}, doc->rectangles[1].rect);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    SDL_SetModState(0);
+    action("editor.undo", "");
+    TEST_ASSERT_EQUAL_INT(1, doc->rectangle_count);
+}
+
+static void test_single_resize_live_modifiers_and_shift_held_before_handle(void) {
+    VectorDocument *doc = parent();
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 1, (PUIRect){40, 30, 100, 60}));
+    commit();
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 140, 90);
+    local_pointer(doc, SDL_EVENT_MOUSE_MOTION, 160, 100);
+    modifier_key(SDLK_LSHIFT, true, SDL_KMOD_SHIFT);
+    assert_rect((PUIRect){40, 30, 120, 72},
+                vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    modifier_key(SDLK_LALT, true, SDL_KMOD_SHIFT | SDL_KMOD_ALT);
+    assert_rect((PUIRect){20, 18, 140, 84},
+                vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    modifier_key(SDLK_LSHIFT, false, SDL_KMOD_ALT);
+    assert_rect((PUIRect){20, 20, 140, 80},
+                vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    modifier_key(SDLK_LALT, false, 0);
+    assert_rect((PUIRect){40, 30, 120, 70},
+                vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    assert_rect((PUIRect){40, 30, 100, 60}, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_INT(2, doc->history.count);
+    SDL_SetModState(SDL_KMOD_SHIFT | SDL_KMOD_ALT);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_UP, 160, 100);
+    commit();
+    assert_rect((PUIRect){20, 18, 140, 84}, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    SDL_SetModState(0);
+    action("editor.undo", "");
+    SDL_SetModState(SDL_KMOD_SHIFT);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 140, 60);
+    TEST_ASSERT_TRUE(doc->selection_tool.dragging);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_UP, 160, 60);
+    assert_rect((PUIRect){40, 24, 120, 72}, doc->rectangles[0].rect);
+}
+
+static void test_artboard_creation_supports_centered_square(void) {
+    VectorDocument *doc = parent();
+    action("vector.add_artboard", "");
+    SDL_SetModState(SDL_KMOD_SHIFT | SDL_KMOD_ALT);
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 100, 60);
+    local_pointer(doc, SDL_EVENT_MOUSE_MOTION, 140, 80);
+    assert_rect((PUIRect){70, 40, 80, 80}, vector_artboard_tool_rect(&doc->artboard_tool));
+    local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_UP, 140, 80);
+    assert_rect((PUIRect){70, 40, 80, 80}, doc->artboards[1].rect);
+    TEST_ASSERT_EQUAL_INT(2, doc->history.count);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_rectangle_creation_live_modifiers_and_parent_limits);
+    RUN_TEST(test_single_resize_live_modifiers_and_shift_held_before_handle);
+    RUN_TEST(test_artboard_creation_supports_centered_square);
     RUN_TEST(test_rectangle_tool_creates_multiple_rectangles_until_explicit_exit);
     RUN_TEST(test_grid_snaps_rectangle_creation_move_resize_and_history);
     RUN_TEST(test_rectangle_hex_field_uses_the_same_fill_history);

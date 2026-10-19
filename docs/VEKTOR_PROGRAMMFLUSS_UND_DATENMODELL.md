@@ -803,3 +803,37 @@ Damit entstehen fuer eine gemeinsame Skalierung genau ein Undo-Schritt und
 vollstaendig wiederherstellbare Redo-Daten. Esc, Fokusverlust und Editorwechsel
 verwerfen die laufende Groessenvorschau. Abgeschlossene Skalierungen bleiben
 beim Editorwechsel inklusive History erhalten (Schema `PVCKPT11`).
+
+### Shift und Alt waehrend Zeichnen und Skalieren
+
+- **Shift** erzeugt beim Aufziehen von Rechtecken oder Artboards ein Quadrat.
+  Beim Skalieren erhaelt es das urspruengliche Seitenverhaeltnis des Objekts
+  beziehungsweise des gemeinsamen Auswahlrahmens.
+- **Alt** verwendet den Startpunkt beim Zeichnen als Mittelpunkt. Beim Skalieren
+  bleibt der bisherige Mittelpunkt fest und die gegenueberliegende Kante bewegt
+  sich entsprechend mit.
+- **Shift + Alt** kombiniert beide Vorgaben. Die Tasten koennen waehrend einer
+  Geste gedrueckt und losgelassen werden; die Vorschau reagiert auch ohne weitere
+  Mausbewegung. Shift am bereits sichtbaren Greifer startet eine Skalierung,
+  waehrend Shift auf der Objektflaeche weiterhin die Auswahl erweitert.
+
+Bei Eckgreifern bestimmt fuer feste Proportionen die Achse mit der groesseren
+relativen Groessenaenderung den Skalierungsfaktor. Bei Kantengreifern bestimmt die
+gezogene Achse die Groesse; die andere Achse waechst symmetrisch um ihre Mitte.
+Eine Geste spiegelt Objekte weiterhin nicht durch Ueberziehen der Gegenseite.
+Rechtecke werden beim Anlegen innerhalb ihres Artboards gehalten, auch bei
+mittigem Zeichnen. Bestehende Objekte duerfen beim Skalieren wie bisher ueber
+den Artboardrand hinausreichen und werden dort nur in der Darstellung beschnitten.
+
+`geometry/constraints.c` berechnet die Form ohne SDL-Eingaben oder Objektwissen.
+`workspace/modifiers.c` uebersetzt native Maus-/Shift-/Alt-Ereignisse in fluechtige
+Flags der Geste. Die Werkzeuge halten rohe Endpunkte beziehungsweise Versatze,
+sodass ein Tastenwechsel immer aus dem urspruenglichen Zustand neu berechnet
+wird. Artboards, einzelne Rechtecke und Gruppen nutzen diese gemeinsame Geometrie.
+`vector_grid_resize_constrained` schlaegt eine Rasterposition vor und wendet dann
+die Form- und Groessenbedingungen an; diese haben Vorrang vor dem Rasterfang.
+
+Die Flags werden weder in die Dokument-History noch in Checkpoints aufgenommen.
+Erst beim Loslassen wird die resultierende Geometrie als ein bestehender
+Einzel- oder Gruppenbefehl gespeichert. Abbrechen und Undo/Redo funktionieren
+unabhaengig davon, welche Tasten beim Zeichnen oder Skalieren gehalten wurden.

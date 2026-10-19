@@ -1,5 +1,6 @@
 /** @file @brief Artboard-local lattice geometry shared by creation and transform tools. */
 #include "snap.h"
+#include "editors/vector/geometry/constraints.h"
 #include "editors/vector/geometry/resize.h"
 #include <float.h>
 #include <math.h>
@@ -116,4 +117,34 @@ PUIRect vector_grid_snap_rect(const VectorGrid *grid, float zoom, PUIRect origin
     rect.x += correction_x;
     rect.y += correction_y;
     return rect;
+}
+
+PUIRect vector_grid_resize_constrained(const VectorGrid *grid, float zoom, PUIRect original,
+                                       unsigned edges, float dx, float dy, bool aspect,
+                                       bool centered, float min_w, float min_h, float max_w,
+                                       float max_h) {
+    PUIRect rect = vector_resize_constrained(original, edges, dx, dy, aspect, centered, min_w,
+                                             min_h, max_w, max_h);
+    if (!enabled(grid, zoom) || (dx == 0 && dy == 0)) {
+        return rect;
+    }
+    bool horizontal = (edges & (VECTOR_RESIZE_LEFT | VECTOR_RESIZE_RIGHT)) != 0;
+    bool vertical = (edges & (VECTOR_RESIZE_TOP | VECTOR_RESIZE_BOTTOM)) != 0;
+    float x = rect.x + (edges & VECTOR_RESIZE_LEFT    ? 0
+                        : edges & VECTOR_RESIZE_RIGHT ? rect.w
+                                                      : rect.w / 2);
+    float y = rect.y + (edges & VECTOR_RESIZE_TOP      ? 0
+                        : edges & VECTOR_RESIZE_BOTTOM ? rect.h
+                                                       : rect.h / 2);
+    float sx = x, sy = y;
+    vector_grid_snap_point(grid, zoom, &sx, &sy);
+    float ox = original.x + (edges & VECTOR_RESIZE_LEFT    ? 0
+                             : edges & VECTOR_RESIZE_RIGHT ? original.w
+                                                           : original.w / 2);
+    float oy = original.y + (edges & VECTOR_RESIZE_TOP      ? 0
+                             : edges & VECTOR_RESIZE_BOTTOM ? original.h
+                                                            : original.h / 2);
+    return vector_resize_constrained(original, edges, horizontal ? sx - ox : 0,
+                                     vertical ? sy - oy : 0, aspect, centered, min_w, min_h, max_w,
+                                     max_h);
 }

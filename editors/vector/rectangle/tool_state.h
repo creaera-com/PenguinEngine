@@ -6,7 +6,9 @@
 
 typedef struct {
     bool enabled, dragging;
+    bool keep_aspect, from_center;
     unsigned parent_id;
+    float parent_width, parent_height;
     float start_x, start_y, end_x, end_y;
 } VectorRectangleTool;
 

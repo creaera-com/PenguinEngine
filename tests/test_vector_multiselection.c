@@ -365,8 +365,52 @@ static void test_group_resize_across_artboards_and_grid_snapping(void) {
     TEST_ASSERT_EQUAL_INT(6, doc->history.count);
 }
 
+static void group_modifier_key(SDL_Keycode key, bool down, SDL_Keymod mods) {
+    SDL_SetModState(mods);
+    SDL_Event event = {.type = down ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP};
+    event.key.key = key;
+    event.key.mod = mods;
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &event));
+    commit();
+}
+
+static void test_group_resize_live_aspect_and_center_modifiers(void) {
+    VectorDocument *doc = document();
+    select_pair();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 140, 100);
+    pointer(SDL_EVENT_MOUSE_MOTION, 164, 108);
+    group_modifier_key(SDLK_LSHIFT, true, SDL_KMOD_SHIFT);
+    assert_geometry((PUIRect){20, 20, 48, 36},
+                    vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    group_modifier_key(SDLK_LALT, true, SDL_KMOD_SHIFT | SDL_KMOD_ALT);
+    assert_geometry((PUIRect){-4, 4, 56, 42},
+                    vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    assert_geometry((PUIRect){108, 74, 56, 42},
+                    vector_rectangle_display_rect(doc, &doc->rectangles[1]));
+    group_modifier_key(SDLK_LSHIFT, false, SDL_KMOD_ALT);
+    assert_geometry((PUIRect){-4, 12, 56, 36},
+                    vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    group_modifier_key(SDLK_LALT, false, 0);
+    assert_geometry((PUIRect){20, 20, 48, 33},
+                    vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    assert_geometry((PUIRect){20, 20, 40, 30}, doc->rectangles[0].rect);
+    SDL_SetModState(SDL_KMOD_SHIFT | SDL_KMOD_ALT);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 164, 108);
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+    assert_geometry((PUIRect){-4, 4, 56, 42}, doc->rectangles[0].rect);
+    SDL_SetModState(0);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    activate("scripts");
+    activate("vector");
+    commit();
+    doc = document();
+    TEST_ASSERT_TRUE(vector_history_redo(&doc->history, doc));
+    assert_geometry((PUIRect){108, 74, 56, 42}, doc->rectangles[1].rect);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_group_resize_live_aspect_and_center_modifiers);
     RUN_TEST(test_all_group_handles_scale_relative_positions_with_single_history_steps);
     RUN_TEST(test_group_resize_minimum_cancel_noop_and_checkpoint_redo);
     RUN_TEST(test_group_resize_across_artboards_and_grid_snapping);

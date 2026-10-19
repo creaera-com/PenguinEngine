@@ -1,7 +1,9 @@
 /** @file @brief Drag-to-create tool; intermediate previews never enter history. */
 #include "tool.h"
 #include "editors/vector/document/document.h"
+#include "editors/vector/geometry/constraints.h"
 #include "editors/vector/rectangle/tool.h"
+#include "editors/vector/workspace/modifiers.h"
 #include "editors/vector/workspace/selection.h"
 #include <math.h>
 #include <stdio.h>
@@ -22,8 +24,8 @@ void vector_artboard_tool_arm(VectorDocument *document) {
 }
 
 PUIRect vector_artboard_tool_rect(const VectorArtboardTool *tool) {
-    return (PUIRect){fminf(tool->start_x, tool->end_x), fminf(tool->start_y, tool->end_y),
-                     fabsf(tool->end_x - tool->start_x), fabsf(tool->end_y - tool->start_y)};
+    return vector_draw_constrained(tool->start_x, tool->start_y, tool->end_x, tool->end_y,
+                                   tool->keep_aspect, tool->from_center, NULL);
 }
 
 static void update_endpoint(VectorDocument *document, float x, float y) {
@@ -41,6 +43,10 @@ bool vector_artboard_tool_event(VectorDocument *document, PUIView *view, const S
         (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_ESCAPE)) {
         vector_artboard_tool_cancel(document);
         pui_view_set_text(view, "status", "Artboard-Werkzeug abgebrochen");
+        return true;
+    }
+    bool modifier = vector_transform_modifiers(event, &tool->keep_aspect, &tool->from_center);
+    if (tool->dragging && modifier) {
         return true;
     }
     if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN && event->button.button == SDL_BUTTON_LEFT) {
