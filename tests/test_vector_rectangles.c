@@ -134,8 +134,9 @@ static void test_draw_rectangle_in_parent_local_coordinates_and_undo(void) {
     TEST_ASSERT_EQUAL_UINT(1, doc->rectangles[0].parent_id);
     assert_rect((PUIRect){20, 30, 100, 70}, doc->rectangles[0].rect);
     TEST_ASSERT_EQUAL_UINT(1, doc->active_rectangle);
-    TEST_ASSERT_FALSE(doc->rectangle_tool.enabled);
-    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "vector_selection"));
+    TEST_ASSERT_TRUE(doc->rectangle_tool.enabled);
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "vector_add_rect"));
+    TEST_ASSERT_FALSE(pui_view_checked(shell.view, "vector_selection"));
     TEST_ASSERT_EQUAL_INT(2, pui_view_tree_item_count(shell.view, "vector_document_tree"));
     TEST_ASSERT_EQUAL_STRING("Rechteck 1", pui_view_text(shell.view, "rectangle_name"));
     assert_local_red(doc, 40, 50, 115);
@@ -610,6 +611,7 @@ static void test_grid_snaps_rectangle_creation_move_resize_and_history(void) {
     commit();
     assert_rect(creation, doc->rectangles[0].rect);
     TEST_ASSERT_EQUAL_INT(2, doc->history.count);
+    action("vector.tool_selection", "");
     local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, 40, 40);
     local_pointer(doc, SDL_EVENT_MOUSE_MOTION, 54, 54);
     assert_rect(creation, doc->rectangles[0].rect);
@@ -631,8 +633,39 @@ static void test_grid_snaps_rectangle_creation_move_resize_and_history(void) {
     assert_rect((PUIRect){32, 32, 64, 64}, doc->rectangles[0].rect);
 }
 
+static void test_rectangle_tool_creates_multiple_rectangles_until_explicit_exit(void) {
+    VectorDocument *doc = parent();
+    action("vector.add_rect", "");
+    for (int i = 0; i < 3; i++) {
+        float x = 10 + i * 50;
+        local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_DOWN, x, 10);
+        local_pointer(doc, SDL_EVENT_MOUSE_BUTTON_UP, x + 30, 40);
+        commit();
+        TEST_ASSERT_EQUAL_INT(i + 1, doc->rectangle_count);
+        TEST_ASSERT_EQUAL_INT(i + 2, doc->history.count);
+        TEST_ASSERT_TRUE(doc->rectangle_tool.enabled);
+        TEST_ASSERT_FALSE(doc->rectangle_tool.dragging);
+        TEST_ASSERT_TRUE(pui_view_checked(shell.view, "vector_add_rect"));
+    }
+    action("vector.add_rect", "");
+    TEST_ASSERT_FALSE(doc->rectangle_tool.enabled);
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "vector_selection"));
+    action("editor.undo", "");
+    TEST_ASSERT_EQUAL_INT(2, doc->rectangle_count);
+    action("editor.redo", "");
+    TEST_ASSERT_EQUAL_INT(3, doc->rectangle_count);
+    action("vector.add_rect", "");
+    SDL_Event escape = {.type = SDL_EVENT_KEY_DOWN};
+    escape.key.key = SDLK_ESCAPE;
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &escape));
+    commit();
+    TEST_ASSERT_FALSE(doc->rectangle_tool.enabled);
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_rectangle_tool_creates_multiple_rectangles_until_explicit_exit);
     RUN_TEST(test_grid_snaps_rectangle_creation_move_resize_and_history);
     RUN_TEST(test_rectangle_hex_field_uses_the_same_fill_history);
     RUN_TEST(test_rectangle_color_slider_preview_single_commit_and_cancel);

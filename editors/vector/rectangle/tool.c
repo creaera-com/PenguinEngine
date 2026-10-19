@@ -109,11 +109,8 @@ bool vector_rectangle_tool_event(VectorDocument *document, PUIView *view, const 
         tool->dragging = false;
         SDL_CaptureMouse(false);
         bool added = vector_rectangle_add(document, parent->id, rect);
-        if (added) {
-            tool->enabled = false;
-        }
         pui_view_set_text(view, "status",
-                          added ? "Rechteck angelegt"
+                          added ? "Rechteck angelegt; weiteres aufziehen oder Esc"
                                 : "Rechteck konnte nicht angelegt werden (mindestens 1 x 1 px)");
         return true;
     }

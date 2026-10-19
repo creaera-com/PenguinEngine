@@ -603,8 +603,10 @@ Rechteck-Werkzeug. Erneuter Klick, Escape, Fokusverlust oder Werkzeugwechsel bre
 es ab. Eine linke Maustaste innerhalb eines sichtbaren, entsperrten Artboards beginnt
 die Vorschau. Der Endpunkt wird auf dessen Fläche begrenzt. Beim Loslassen erzeugt
 `vector_rectangle_add()` einen History-Befehl; vor dem Loslassen werden keine
-Rechteckdaten und keine History-Einträge angelegt. Nach Erfolg ist wieder das
-Auswahlwerkzeug aktiv.
+Rechteckdaten und keine History-Einträge angelegt. Nach Erfolg bleibt das
+Rechteck-Werkzeug aktiv, sodass weitere Rechtecke direkt nacheinander angelegt
+werden koennen. Jedes Rechteck bekommt einen eigenen Undo-Schritt. Erst erneuter
+Button-Klick, Escape, Fokusverlust oder Werkzeugwechsel beendet das Werkzeug.
 
 `rectangle/rectangle.h` beschreibt `VectorRectangle` mit stabiler ID, `parent_id`, Name,
 eigenen Objektflags und einem lokalen Rechteck. Positionen beziehen sich auf die linke
