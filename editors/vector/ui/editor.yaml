@@ -75,6 +75,20 @@ root:
                     - {type: button, id: vector_order_back, text: Ganz nach unten, icon: tabler:arrow-bar-to-down, action: vector.objects.order_back}
                     - {type: button, id: vector_order_backward, text: Eins runter, icon: tabler:arrow-down, action: vector.objects.order_backward}
 
+                - type: radial_menu
+                  id: vector_alignment_menu
+                  text: Ausrichten
+                  icon: tabler:align-left
+                  children:
+                    - {type: button, id: vector_align_left, text: Links, icon: tabler:align-left, action: vector.objects.align_left}
+                    - {type: button, id: vector_align_center_x, text: Zentrieren, icon: tabler:align-center, action: vector.objects.align_center_x}
+                    - {type: button, id: vector_align_right, text: Rechts, icon: tabler:align-right, action: vector.objects.align_right}
+                    - {type: button, id: vector_distribute_x, text: H. Abstand, icon: tabler:spacing-horizontal, action: vector.objects.distribute_x}
+                    - {type: button, id: vector_align_top, text: Oben, icon: tabler:align-box-top-center, action: vector.objects.align_top}
+                    - {type: button, id: vector_align_center_y, text: Mittig, icon: tabler:align-box-center-middle, action: vector.objects.align_center_y}
+                    - {type: button, id: vector_align_bottom, text: Unten, icon: tabler:align-box-bottom-center, action: vector.objects.align_bottom}
+                    - {type: button, id: vector_distribute_y, text: V. Abstand, icon: tabler:spacing-vertical, action: vector.objects.distribute_y}
+
         - type: tabs
           id: vector_document_tabs
           children: []

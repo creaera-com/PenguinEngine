@@ -1,9 +1,12 @@
 #include "editor_host/host.h"
+#include "editors/vector/geometry/rotation.h"
 #include "editors/vector/internal.h"
+#include "editors/vector/object/alignment.h"
 #include "editors/vector/object/clipboard.h"
 #include "editors/vector/object/order.h"
 #include "shell/shell.h"
 #include "unity.h"
+#include <math.h>
 #include <string.h>
 
 static SDL_Window *window;
@@ -64,6 +67,11 @@ static void key(SDL_Keycode key, SDL_Keymod mod) {
     e.key.key = key;
     e.key.mod = mod;
     event(&e);
+}
+
+static void radial_click(float cx, float cy, int index, int count) {
+    float angle = -1.570796327f + index * 6.283185307f / count;
+    click(SDL_BUTTON_LEFT, cx + cosf(angle) * 104, cy + sinf(angle) * 104);
 }
 
 void setUp(void) {
@@ -279,7 +287,7 @@ static void test_radial_disabled_paste_outside_click_and_focus_loss_are_safe(voi
     VectorDocument *d = document();
     int count = d->history.count;
     click(SDL_BUTTON_RIGHT, 630, 400);
-    click(SDL_BUTTON_LEFT, 691, 484); // Paste is unavailable in an empty clipboard.
+    radial_click(630, 400, 2, 7); // Paste is unavailable in an empty clipboard.
     TEST_ASSERT_EQUAL_INT(count, d->history.count);
     TEST_ASSERT_EQUAL_INT(2, d->rectangle_count);
     click(SDL_BUTTON_RIGHT, 630, 400);
@@ -406,11 +414,11 @@ static void test_layer_submenu_back_navigation_tree_rendering_and_hit_order_agre
                              pui_view_tree_item_at(shell.view, "vector_document_tree", 65, 130));
     int count = d->history.count;
     click(SDL_BUTTON_RIGHT, 630, 400);
-    click(SDL_BUTTON_LEFT, 540, 348); // Six-sector root: Ebenen.
-    key(SDLK_ESCAPE, 0);              // Back to root, not closed.
-    click(SDL_BUTTON_LEFT, 540, 348);
+    radial_click(630, 400, 5, 7); // Root submenu: Ebenen.
+    key(SDLK_ESCAPE, 0);          // Back to root, not closed.
+    radial_click(630, 400, 5, 7);
     click(SDL_BUTTON_LEFT, 630, 400); // Center: back.
-    click(SDL_BUTTON_LEFT, 540, 348);
+    radial_click(630, 400, 5, 7);
     TEST_ASSERT_EQUAL_INT(count, d->history.count); // Navigation is never a model command.
     click(SDL_BUTTON_LEFT, 630, 296);               // Four-sector submenu: Ganz nach oben.
     commit();
@@ -433,8 +441,145 @@ static void test_layer_submenu_back_navigation_tree_rendering_and_hit_order_agre
     assert_order(document(), (unsigned[]){2, 1}, 2);
 }
 
+static PUIRect world_bounds(VectorDocument *d, unsigned id) {
+    VectorRectangle *r = vector_rectangle_find(d, id);
+    VectorArtboard *p = vector_artboard_find(d, r->parent_id);
+    PUIRect bounds = vector_rotated_bounds(r->rect, r->angle);
+    bounds.x += p->rect.x;
+    bounds.y += p->rect.y;
+    return bounds;
+}
+
+static void test_six_alignments_preserve_geometry_selection_and_history(void) {
+    VectorDocument *d = document();
+    const VectorAlignment modes[] = {VECTOR_ALIGN_LEFT, VECTOR_ALIGN_CENTER_X, VECTOR_ALIGN_RIGHT,
+                                     VECTOR_ALIGN_TOP,  VECTOR_ALIGN_CENTER_Y, VECTOR_ALIGN_BOTTOM};
+    PUIRect original[2] = {d->rectangles[0].rect, d->rectangles[1].rect};
+    for (int i = 0; i < 6; i++) {
+        int count = d->history.cursor;
+        TEST_ASSERT_TRUE(vector_objects_can_align(d, modes[i]));
+        TEST_ASSERT_TRUE(vector_objects_align(d, modes[i]));
+        PUIRect a = world_bounds(d, 1), b = world_bounds(d, 2);
+        switch (modes[i]) {
+        case VECTOR_ALIGN_LEFT:
+            TEST_ASSERT_FLOAT_WITHIN(.0001f, a.x, b.x);
+            break;
+        case VECTOR_ALIGN_CENTER_X:
+            TEST_ASSERT_FLOAT_WITHIN(.0001f, a.x + a.w / 2, b.x + b.w / 2);
+            break;
+        case VECTOR_ALIGN_RIGHT:
+            TEST_ASSERT_FLOAT_WITHIN(.0001f, a.x + a.w, b.x + b.w);
+            break;
+        case VECTOR_ALIGN_TOP:
+            TEST_ASSERT_FLOAT_WITHIN(.0001f, a.y, b.y);
+            break;
+        case VECTOR_ALIGN_CENTER_Y:
+            TEST_ASSERT_FLOAT_WITHIN(.0001f, a.y + a.h / 2, b.y + b.h / 2);
+            break;
+        case VECTOR_ALIGN_BOTTOM:
+            TEST_ASSERT_FLOAT_WITHIN(.0001f, a.y + a.h, b.y + b.h);
+            break;
+        default:
+            TEST_FAIL_MESSAGE("Unexpected alignment");
+            break;
+        }
+        TEST_ASSERT_EQUAL_FLOAT(30, d->rectangles[0].angle);
+        TEST_ASSERT_EQUAL_FLOAT(original[0].w, d->rectangles[0].rect.w);
+        TEST_ASSERT_EQUAL_FLOAT(original[1].h, d->rectangles[1].rect.h);
+        TEST_ASSERT_EQUAL_FLOAT(8, d->rectangles[0].stroke.width);
+        TEST_ASSERT_EQUAL_INT(2, d->selection.count);
+        TEST_ASSERT_EQUAL_INT(count + 1, d->history.cursor);
+        TEST_ASSERT_FALSE(vector_objects_can_align(d, modes[i]));
+        TEST_ASSERT_FALSE(vector_objects_align(d, modes[i]));
+        TEST_ASSERT_EQUAL_INT(count + 1, d->history.cursor);
+        TEST_ASSERT_TRUE(vector_history_undo(&d->history, d));
+        TEST_ASSERT_EQUAL_MEMORY(&original[0], &d->rectangles[0].rect, sizeof original[0]);
+        TEST_ASSERT_EQUAL_MEMORY(&original[1], &d->rectangles[1].rect, sizeof original[1]);
+    }
+}
+
+static void test_distribution_equal_edge_gaps_handles_varied_sizes_and_spatial_order(void) {
+    VectorDocument *d = document();
+    TEST_ASSERT_TRUE(vector_rectangle_set_angle(d, 1, 0));
+    TEST_ASSERT_TRUE(vector_rectangle_update(d, 1, "First", (PUIRect){20, 20, 20, 20}));
+    TEST_ASSERT_TRUE(vector_rectangle_update(d, 2, "Last", (PUIRect){220, 220, 40, 40}));
+    TEST_ASSERT_TRUE(vector_rectangle_add(d, 1, (PUIRect){70, 70, 60, 60}));
+    vector_document_select(d, 1);
+    vector_document_toggle(d, 2);
+    vector_document_toggle(d, 3);
+    int count = d->history.count;
+    TEST_ASSERT_TRUE(vector_objects_align(d, VECTOR_DISTRIBUTE_X));
+    PUIRect a = world_bounds(d, 1), b = world_bounds(d, 3), c = world_bounds(d, 2);
+    TEST_ASSERT_FLOAT_WITHIN(.0001f, b.x - a.x - a.w, c.x - b.x - b.w);
+    TEST_ASSERT_EQUAL_FLOAT(20, d->rectangles[0].rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(220, d->rectangles[1].rect.x);
+    TEST_ASSERT_EQUAL_INT(count + 1, d->history.count);
+    TEST_ASSERT_FALSE(vector_objects_can_align(d, VECTOR_DISTRIBUTE_X));
+    TEST_ASSERT_TRUE(vector_objects_align(d, VECTOR_DISTRIBUTE_Y));
+    a = world_bounds(d, 1);
+    b = world_bounds(d, 3);
+    c = world_bounds(d, 2);
+    TEST_ASSERT_FLOAT_WITHIN(.0001f, b.y - a.y - a.h, c.y - b.y - b.h);
+    TEST_ASSERT_EQUAL_FLOAT(20, d->rectangles[0].rect.y);
+    TEST_ASSERT_EQUAL_FLOAT(220, d->rectangles[1].rect.y);
+    TEST_ASSERT_EQUAL_INT(count + 2, d->history.count);
+    TEST_ASSERT_TRUE(vector_history_undo(&d->history, d));
+    TEST_ASSERT_EQUAL_FLOAT(70, d->rectangles[2].rect.y);
+    TEST_ASSERT_TRUE(vector_history_undo(&d->history, d));
+    TEST_ASSERT_EQUAL_FLOAT(70, d->rectangles[2].rect.x);
+}
+
+static void test_alignment_world_coordinates_locks_and_minimum_selection(void) {
+    VectorDocument *d = document();
+    TEST_ASSERT_FALSE(vector_objects_can_align(d, VECTOR_DISTRIBUTE_X));
+    vector_document_select(d, 1);
+    TEST_ASSERT_FALSE(vector_objects_can_align(d, VECTOR_ALIGN_LEFT));
+    TEST_ASSERT_TRUE(vector_artboard_add(d, (PUIRect){500, 20, 200, 200}));
+    TEST_ASSERT_TRUE(vector_rectangle_add(d, 2, (PUIRect){10, 10, 20, 20}));
+    vector_document_select(d, 1);
+    vector_document_toggle(d, 3);
+    TEST_ASSERT_TRUE(vector_objects_align(d, VECTOR_ALIGN_RIGHT));
+    PUIRect a = world_bounds(d, 1), b = world_bounds(d, 3);
+    TEST_ASSERT_FLOAT_WITHIN(.0001f, a.x + a.w, b.x + b.w);
+    TEST_ASSERT_EQUAL_INT(1, d->rectangles[0].parent_id);
+    TEST_ASSERT_EQUAL_INT(2, d->rectangles[2].parent_id);
+    TEST_ASSERT_TRUE(vector_artboard_set_state(d, 2, VECTOR_OBJECT_LOCKED));
+    int count = d->history.count;
+    PUIRect original = d->rectangles[0].rect;
+    TEST_ASSERT_FALSE(vector_objects_align(d, VECTOR_ALIGN_LEFT));
+    TEST_ASSERT_EQUAL_INT(count, d->history.count);
+    TEST_ASSERT_EQUAL_MEMORY(&original, &d->rectangles[0].rect, sizeof original);
+}
+
+static void test_alignment_radial_action_and_checkpoint_redo(void) {
+    VectorDocument *d = document();
+    PUIRect original[2] = {d->rectangles[0].rect, d->rectangles[1].rect};
+    int count = d->history.count;
+    click(SDL_BUTTON_RIGHT, 630, 400);
+    radial_click(630, 400, 6, 7); // Ausrichten.
+    radial_click(630, 400, 0, 8); // Links.
+    commit();
+    PUIRect a = world_bounds(d, 1), b = world_bounds(d, 2);
+    TEST_ASSERT_FLOAT_WITHIN(.0001f, a.x, b.x);
+    TEST_ASSERT_EQUAL_INT(count + 1, d->history.count);
+    action("editor.undo");
+    TEST_ASSERT_EQUAL_MEMORY(&original[1], &d->rectangles[1].rect, sizeof original[1]);
+    activate("scripts");
+    activate("vector");
+    d = document();
+    action("editor.redo");
+    a = world_bounds(d, 1);
+    b = world_bounds(d, 2);
+    TEST_ASSERT_FLOAT_WITHIN(.0001f, a.x, b.x);
+    TEST_ASSERT_EQUAL_INT(2, d->selection.count);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_six_alignments_preserve_geometry_selection_and_history);
+    RUN_TEST(test_distribution_equal_edge_gaps_handles_varied_sizes_and_spatial_order);
+    RUN_TEST(test_alignment_world_coordinates_locks_and_minimum_selection);
+    RUN_TEST(test_alignment_radial_action_and_checkpoint_redo);
     RUN_TEST(test_order_stable_groups_stay_in_parent_slots_and_use_one_history_entry);
     RUN_TEST(test_order_boundaries_locks_and_multiple_parents);
     RUN_TEST(test_root_order_and_checkpoint_redo_preserve_children_and_selection);

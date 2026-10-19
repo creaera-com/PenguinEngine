@@ -3,8 +3,22 @@
 #include "document_tree.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/object/alignment.h"
 #include "editors/vector/object/order.h"
 #include <string.h>
+
+/** @brief Bind YAML IDs and semantic actions to the domain without expanding the routing chain. */
+static const struct {
+    const char *action, *widget;
+    VectorAlignment alignment;
+} alignments[] = {{"vector.objects.align_left", "vector_align_left", VECTOR_ALIGN_LEFT},
+                  {"vector.objects.align_center_x", "vector_align_center_x", VECTOR_ALIGN_CENTER_X},
+                  {"vector.objects.align_right", "vector_align_right", VECTOR_ALIGN_RIGHT},
+                  {"vector.objects.distribute_x", "vector_distribute_x", VECTOR_DISTRIBUTE_X},
+                  {"vector.objects.align_top", "vector_align_top", VECTOR_ALIGN_TOP},
+                  {"vector.objects.align_center_y", "vector_align_center_y", VECTOR_ALIGN_CENTER_Y},
+                  {"vector.objects.align_bottom", "vector_align_bottom", VECTOR_ALIGN_BOTTOM},
+                  {"vector.objects.distribute_y", "vector_distribute_y", VECTOR_DISTRIBUTE_Y}};
 
 bool vector_object_actions_action(VectorObjectActions *actions, VectorDocument *document,
                                   PUIView *view, const char *name) {
@@ -15,6 +29,16 @@ bool vector_object_actions_action(VectorObjectActions *actions, VectorDocument *
         return true;
     }
     vector_artboard_tool_cancel(document);
+    for (size_t i = 0; i < sizeof alignments / sizeof *alignments; i++) {
+        if (!strcmp(name, alignments[i].action)) {
+            bool changed = vector_objects_align(document, alignments[i].alignment);
+            pui_view_set_text(view, "status",
+                              changed
+                                  ? "Auswahl ausgerichtet"
+                                  : "Keine Aenderung: Auswahl, Sperren oder Positionen pruefen");
+            return true;
+        }
+    }
     bool changed;
     if (!strcmp(name, "vector.objects.copy")) {
         changed = vector_objects_copy(document, &actions->clipboard);
@@ -156,6 +180,13 @@ void vector_object_actions_commit(VectorObjectActions *actions, VectorDocument *
         pui_view_set_radial_enabled(view, "vector_order_back", back);
         pui_view_set_radial_enabled(view, "vector_order_forward", forward);
         pui_view_set_radial_enabled(view, "vector_order_backward", backward);
+        bool align = false;
+        for (size_t i = 0; i < sizeof alignments / sizeof *alignments; i++) {
+            bool enabled = vector_objects_can_align(document, alignments[i].alignment);
+            pui_view_set_radial_enabled(view, alignments[i].widget, enabled);
+            align |= enabled;
+        }
+        pui_view_set_radial_enabled(view, "vector_alignment_menu", align);
         pui_view_open_radial(view, "vector_object_menu", actions->x, actions->y);
         actions->pending = false;
     }

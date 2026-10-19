@@ -1030,3 +1030,42 @@ Beim Editorwechsel bleiben Reihenfolge und vollstaendige Undo/Redo-History erhal
 Das Untermenue selbst wird ueber verschachtelte `radial_menu`-Eintraege in
 `editors/vector/ui/editor.yaml` beschrieben; die UI-Anbindung bleibt in
 `ui/object_actions.c`.
+
+
+## Ausrichten und gleichmaessig verteilen
+
+Das radiale Untermenue **Ausrichten** enthaelt acht Aktionen fuer Rechteckauswahlen:
+links, horizontal zentriert, rechts, horizontal verteilen (**H. Abstand**), oben,
+vertikal mittig, unten und vertikal verteilen (**V. Abstand**).
+Ausrichten benoetigt mindestens zwei, Verteilen mindestens drei sichtbare,
+entsperrte Rechtecke. Erreichte Zielpositionen sind deaktiviert und erzeugen
+keinen weiteren History-Eintrag. Einzelne Rechtecke werden nicht automatisch am
+Artboard ausgerichtet.
+
+`object/alignment.c` berechnet zuerst einen unveraenderlichen Plan. Fuer jedes
+Rechteck werden seine gedrehten geometrischen Aussenkanten in Dokumentkoordinaten
+bestimmt; die Rahmenstaerke zaehlt nicht zu diesen Grenzen. Links/rechts/oben/unten
+beziehen sich auf die entsprechenden aeussersten Grenzen der gesamten Auswahl.
+Zentrieren und Mittig gleichen die Mittelpunkte auf der jeweiligen Achse an.
+
+Beim Verteilen werden die Objekte raeumlich entlang der Achse sortiert. Gleiche
+Startpositionen behalten ihre bisherige Reihenfolge. Der gemeinsame Abstand ist
+`(Gesamtspanne - Summe der Objektgroessen) / (Anzahl - 1)`: unterschiedliche Breiten
+oder Hoehen werden beruecksichtigt. Die aeusseren Auswahlgrenzen bleiben bestehen.
+Bei zu wenig Platz kann der gemeinsame Abstand negativ sein, was eine gleichmaessige
+Ueberlappung beschreibt. Es wird kein frei waehlbarer Abstandswert vorgegeben.
+
+Alle Operationen verschieben nur die lokale Position der Rechtecke. Breite, Hoehe,
+Drehung, Farben, Rahmen, Ebenenreihenfolge, Eltern und Auswahl bleiben erhalten.
+Auch eine Auswahl aus unterschiedlichen Artboards nutzt gemeinsame Dokumentkoordinaten;
+die Ergebnisse werden wieder als Positionen im jeweiligen Eltern-Artboard gespeichert.
+Dabei duerfen Objekte wie bei bisherigen numerischen Positionsaenderungen ausserhalb
+ihres Artboards liegen; das Artboard-Clipping bleibt bestehen. Rasterfang greift hier
+nicht ein, damit die berechneten Kanten und Abstaende exakt zusammenpassen.
+
+Die vorhandene Schnittstelle `vector_rectangles_set_rects()` uebernimmt den fertigen
+Plan atomar als einen Transform-Befehl (Codec 5). Schlaegt eine Validierung oder eine
+Sperrpruefung fehl, wird kein Objekt bewegt. Undo/Redo und Editor-Checkpoints brauchen
+keinen neuen Befehlstyp oder ein neues Schema. Die acht Menueeintraege stehen in
+`ui/editor.yaml`; `ui/object_actions.c` ordnet deren Aktionen und Verfuegbarkeit
+ueber eine Tabelle den fachlichen Ausrichtungsoperationen zu.
