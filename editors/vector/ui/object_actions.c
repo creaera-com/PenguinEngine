@@ -5,6 +5,7 @@
 #include "editors/vector/geometry/rotation.h"
 #include "editors/vector/object/alignment.h"
 #include "editors/vector/object/order.h"
+#include "orientation_actions.h"
 #include "path_actions.h"
 #include <string.h>
 
@@ -27,6 +28,9 @@ bool vector_object_actions_action(VectorObjectActions *actions, VectorDocument *
         return false;
     }
     if (!document) {
+        return true;
+    }
+    if (vector_orientation_actions_action(document, view, name)) {
         return true;
     }
     if (vector_path_actions_action(document, view, name)) {
@@ -191,6 +195,7 @@ void vector_object_actions_commit(VectorObjectActions *actions, VectorDocument *
             align |= enabled;
         }
         pui_view_set_radial_enabled(view, "vector_alignment_menu", align);
+        vector_orientation_actions_sync(document, view, align);
         vector_path_actions_sync(document, view);
         pui_view_open_radial(view, "vector_object_menu", actions->x, actions->y);
         actions->pending = false;

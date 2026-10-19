@@ -1034,7 +1034,7 @@ Das Untermenue selbst wird ueber verschachtelte `radial_menu`-Eintraege in
 
 ## Ausrichten und gleichmaessig verteilen
 
-Das radiale Untermenue **Ausrichten** enthaelt acht Aktionen fuer Rechteckauswahlen:
+Unter **Transformieren → Ausrichten** stehen acht Aktionen fuer Rechteckauswahlen:
 links, horizontal zentriert, rechts, horizontal verteilen (**H. Abstand**), oben,
 vertikal mittig, unten und vertikal verteilen (**V. Abstand**).
 Ausrichten benoetigt mindestens zwei, Verteilen mindestens drei sichtbare,
@@ -1167,3 +1167,47 @@ Die Checkpoint-Signatur lautet wegen des erweiterten Formwerts nun **PVCKPT17**.
 Die bisherigen 64 Objekte pro Dokument bleiben als Grenze bestehen. Ueberschreitet
 ein Ergebnis das Punkt-, Kontur- oder Objektlimit oder scheitert die Berechnung,
 bleiben Dokument, Zwischenablage und History unveraendert. Das Menue meldet den Fehler.
+
+
+## Spiegeln und Vierteldrehungen
+
+Unter **Rechtsklick → Transformieren** stehen neben dem Ausrichten-Untermenue vier
+weitere Aktionen fuer Rechtecke und Pfade zur Verfuegung:
+
+- **H. spiegeln:** links und rechts an einer vertikalen Achse vertauschen.
+- **V. spiegeln:** oben und unten an einer horizontalen Achse vertauschen.
+- **Links 90 Grad:** gegen den Uhrzeigersinn drehen.
+- **Rechts 90 Grad:** im Uhrzeigersinn drehen.
+
+Als Bezug dient die Mitte des gemeinsamen Auswahlrahmens in Dokumentkoordinaten.
+Bei einem Einzelobjekt ist dies dessen Transformationsmitte. Bei Mehrfachauswahl
+werden auch die Positionen der Objekte um diesen gemeinsamen Bezug gespiegelt bzw.
+gedreht. Ein Objekt behaelt seinen Elternknoten; die Rechnung funktioniert daher
+auch mit Auswahlen aus unterschiedlichen Artboards. Ergebnisse duerfen wie bei
+bisherigen Transformationen ausserhalb ihres Artboards liegen und bleiben geclippt.
+Artboards selbst erhalten mit diesen Aktionen keine Drehung.
+
+`object/orientation.c` erstellt einen vollstaendigen Plan mit bestehenden Objekt-IDs.
+Vierteldrehungen verwenden exakte Achsentausche statt einer trigonometrischen
+Naeherung. Beim Spiegeln wird der gespeicherte Winkel negiert; Pfadpunkte werden
+zusaetzlich auf ihrer normierten lokalen Achse gespiegelt. Jede Kontur wird danach
+in ihrer Reihenfolge umgekehrt: Die aeussere Fuellung bleibt positiv und Loecher
+bleiben negativ orientiert. Rahmen folgen dadurch auch gespiegelten Lochkonturen
+weiterhin innen, mittig oder aussen.
+
+Breite/Hoehe der lokalen Form, Name, Fuellung, Rahmen, ID, Eltern, Ebenenreihenfolge,
+Auswahl und primaeres Objekt bleiben erhalten. Die Winkelangabe im Inspector zeigt
+nach Links/Rechts entsprechend -90 bzw. +90 Grad mehr; volle Umdrehungen werden nach
+der bestehenden vorzeichenbehafteten Winkelkonvention behandelt. Rasterfang greift
+bei diesen exakten Operationen nicht ein.
+
+Sperren, unsichtbare Auswahlobjekte, ungueltige Zielgeometrie und Kapazitaetsgrenzen
+verhindern die gesamte Aenderung. Ein Spiegeln ohne Modellwirkung ist deaktiviert,
+zum Beispiel bei einem einzelnen ungedrehten parametrischen Rechteck. Jede wirksame
+Aktion verwendet einen strukturellen Snapshot-Befehl (Codec 6). Undo/Redo stellt auch
+die originale Pfadpunktreihenfolge wieder her; die temporaeren Editor-Checkpoints
+und die unabhaengige Objektzwischenablage funktionieren unveraendert.
+
+Die YAML-Konfiguration liegt in `ui/editor.yaml`, die Weiterleitung und Menue-
+Verfuegbarkeit in `ui/orientation_actions.c`. Der pengUI-Menue-Stack wird weiter
+verwendet; fuer den neuen Werkzeugsatz ist keine Erweiterung der UI-Bibliothek noetig.

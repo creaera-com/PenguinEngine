@@ -32,6 +32,8 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/path/operations.c
  ${PROJECT_SOURCE_DIR}/editors/vector/path/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/path_actions.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/object/orientation.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/orientation_actions.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/alignment.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/order.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/clipboard.c

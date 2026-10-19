@@ -556,7 +556,8 @@ static void test_alignment_radial_action_and_checkpoint_redo(void) {
     PUIRect original[2] = {d->rectangles[0].rect, d->rectangles[1].rect};
     int count = d->history.count;
     click(SDL_BUTTON_RIGHT, 630, 400);
-    radial_click(630, 400, 6, 8); // Ausrichten.
+    radial_click(630, 400, 6, 8); // Transformieren.
+    radial_click(630, 400, 0, 5); // Ausrichten.
     radial_click(630, 400, 0, 8); // Links.
     commit();
     PUIRect a = world_bounds(d, 1), b = world_bounds(d, 2);
