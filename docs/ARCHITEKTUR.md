@@ -598,7 +598,7 @@ Die Tests dienen ebenfalls als ausführbare Beispiele:
 Die folgenden Punkte beschreiben den jetzigen Ausbauzustand und helfen bei der Planung:
 
 - YAML ist eine statische Beschreibung ohne Datenbindung, Ausdrücke oder Datei-Includes.
-- Höchstens 128 Knoten, 12 Beschreibungsebenen und 256 KiB YAML werden geladen.
+- Höchstens 256 Knoten, 24 Beschreibungsebenen und 256 KiB YAML werden geladen.
 - Die allgemeine Tab-Navigation umfasst Textfelder; ein vollständiges Tastatur- und
   Accessibility-System für alle Widgets ist noch nicht vorhanden.
 - Texteingaben sind einzeilig und haben im View-Zustand 256 Byte einschließlich Abschlussbyte.

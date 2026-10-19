@@ -702,7 +702,7 @@ ungueltige Eingaben werden auf den vorherigen Wert zurueckgesetzt.
 `grid/state.h` enthaelt ausschliesslich Werte. Die Einstellungen sind
 Ansichtshilfen und erzeugen keine Schritte in der Artwork-History. Sie gelten
 je Dokument und werden beim Editorwechsel im temporaeren Checkpoint gesichert
-(Schema `PVCKPT13`). Es gibt damit noch keine dauerhafte Dokumentdatei.
+(Schema `PVCKPT14`). Es gibt damit noch keine dauerhafte Dokumentdatei.
 
 `grid/render.c` zeichnet die Linien artboardlokal ueber dem Artwork und erhaelt
 den SDL-Clip- und Blendzustand. Standardzellen sind rechteckig; Hexagonalzellen
@@ -771,7 +771,7 @@ Rechteck einen gemeinsamen Versatz; Abstaende und Groessen bleiben erhalten.
 History-Befehl aus. Er prueft alle IDs, Sperren und Zielkoordinaten vor der
 Mutation. Fehlt ein Teilnehmer oder ist ein Ziel ungueltig, bleibt die ganze
 Gruppe unveraendert. Undo/Redo wendet die gespeicherten Vorher-/Nachher-Rechtecke
-atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT13` speichert
+atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT14` speichert
 zusaetzlich die Auswahl-IDs. Ein Editorwechsel verwirft Gestenvorschauen,
 behaelt aber Auswahl und abgeschlossene Gruppenbewegungen.
 
@@ -806,7 +806,7 @@ und Skalieren denselben atomaren Vorher-/Nachher-Befehl (Checkpoint-Typ 5).
 Damit entstehen fuer eine gemeinsame Skalierung genau ein Undo-Schritt und
 vollstaendig wiederherstellbare Redo-Daten. Esc, Fokusverlust und Editorwechsel
 verwerfen die laufende Groessenvorschau. Abgeschlossene Skalierungen bleiben
-beim Editorwechsel inklusive History erhalten (Schema `PVCKPT13`).
+beim Editorwechsel inklusive History erhalten (Schema `PVCKPT14`).
 
 ### Shift und Alt waehrend Zeichnen und Skalieren
 
@@ -856,7 +856,7 @@ Der Mittelpunkt bleibt waehrend der Rotation fest, Alt aendert ihn nicht.
 `VectorRectangle.angle` speichert einen im Uhrzeigersinn laufenden Winkel in
 Grad, mit vorzeichenbehafteter Darstellung von -360 bis 360. `rect` beschreibt weiterhin Groesse und
 Lage vor der Drehung; gedreht wird um dessen Mittelpunkt. Die Winkel sind
-Teil von History und temporaeren Checkpoints (Schema `PVCKPT13`).
+Teil von History und temporaeren Checkpoints (Schema `PVCKPT14`).
 
 `geometry/rotation.c` berechnet Punkte, Ecken, umschliessende Rahmen und exakte
 Trefferflaechen ohne SDL oder Objektwissen. `workspace/rotation.c` besitzt die
@@ -905,4 +905,34 @@ beim Begrenzen auf eine Umdrehung, etwa 450 auf 90 oder -450 auf -90.
 `geometry/rotation.c` trennt diese Darstellung (`vector_angle_turn`) von der
 kurzen Winkeldifferenz (`vector_angle_normalize`) fuer die Gestenberechnung.
 Die Checkpoint-Validierung fuer Einzel- und Gruppenbefehle akzeptiert die
-vorzeichenbehafteten Winkel einschliesslich voller Umdrehungen (Schema `PVCKPT13`).
+vorzeichenbehafteten Winkel einschliesslich voller Umdrehungen (Schema `PVCKPT14`).
+
+
+## Einfarbige Rechteckrahmen
+
+`VectorRectangle.stroke` speichert `VectorStroke` mit Farbe (`0xRRGGBBAA`),
+Staerke in Dokument-Pixeln und Ausrichtung. Neue Rechtecke haben einen deaktivierten,
+dunkelgrauen Rahmen mit Staerke `0` und zentrierter Ausrichtung.
+
+Der Inspector beschreibt die Eingabe `rectangle_stroke_width`, die exklusive Button-Gruppe
+mit `rectangle_stroke_inside`, `rectangle_stroke_center`, `rectangle_stroke_outside`
+und den Farbdialog `rectangle_stroke_color` in YAML. Die UI-Anbindung uebersetzt deren
+Aktionen in `vector_rectangle_set_stroke()`. Ungueltige Zahlen, negative Staerken und
+geerbte Sperren verhindern die Aenderung; das Formular zeigt danach den Modellwert.
+Die Farbauswahl wird beim Abschluss der Eingabe uebernommen.
+
+- **Innen:** Der Rahmen liegt vollstaendig innerhalb der geometrischen Kante.
+- **Mittig:** Je eine halbe Rahmenstaerke liegt innen und aussen.
+- **Aussen:** Der Rahmen liegt vollstaendig ausserhalb der geometrischen Kante.
+
+Breite, Hoehe, Auswahlgreifer und die geometrischen Auswahltests bleiben auf das
+urspruengliche Rechteck bezogen. Skalieren aendert die Rahmenstaerke nicht.
+`rectangle/stroke_render.c` zeichnet einen Dreiecksring mit Transparenz, Zoom und
+Drehung. Die Dreiecke ueberlappen sich nicht, damit Alpha nicht mehrfach angewendet
+wird. Dicke Innenrahmen duerfen die gesamte Fuellung bedecken. Das Clipping am
+Artboard gilt auch fuer aussen liegende Rahmen. Ein deaktivierter Rahmen erzeugt
+keine zusaetzliche Kontur; Auswahlmarkierungen bleiben davon unabhaengig sichtbar.
+
+Rahmenaenderungen verwenden die vorhandenen vollstaendigen Vorher-/Nachher-Snapshots
+von Rechteckbefehlen (Codec 4). Undo/Redo und temporaere Editor-Checkpoints erhalten
+alle Rahmenwerte; die private Checkpoint-Signatur lautet jetzt `PVCKPT14`.

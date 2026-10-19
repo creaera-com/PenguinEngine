@@ -5,10 +5,25 @@
 #define VECTOR_MAX_RECTANGLES 64
 #define VECTOR_RECTANGLE_DEFAULT_FILL 0x7393afffu
 
+/** @brief Placement relative to the unmodified rectangle edge. */
+typedef enum {
+    VECTOR_STROKE_CENTER,
+    VECTOR_STROKE_INSIDE,
+    VECTOR_STROKE_OUTSIDE
+} VectorStrokeAlignment;
+
+/** @brief Solid stroke in document pixels; width zero disables it. */
+typedef struct {
+    uint32_t color; ///< Packed 0xRRGGBBAA.
+    float width;
+    VectorStrokeAlignment alignment;
+} VectorStroke;
+
 /** @brief Rectangle geometry is relative to parent_id, never to the viewport. */
 typedef struct {
     unsigned id, parent_id, flags;
     uint32_t fill; ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
+    VectorStroke stroke;
     char name[64];
     PUIRect rect;
     float angle; ///< Clockwise degrees around the rectangle center, signed in [-360,360], including
@@ -30,6 +45,8 @@ bool vector_rectangle_update(struct VectorDocument *document, unsigned id, const
 bool vector_rectangle_set_angle(struct VectorDocument *document, unsigned id, float degrees);
 /** @brief Undoable fill color change; inherited locks prevent editing. */
 bool vector_rectangle_set_fill(struct VectorDocument *document, unsigned id, uint32_t rgba);
+/** @brief Atomically change stroke color, width and placement through history; honors locks. */
+bool vector_rectangle_set_stroke(struct VectorDocument *document, unsigned id, VectorStroke stroke);
 /** @brief Change this child's own visibility/lock flags, independently of inherited state. */
 bool vector_rectangle_set_state(struct VectorDocument *document, unsigned id, unsigned flags);
 /** @brief Native session codecs write values, never pointers. */

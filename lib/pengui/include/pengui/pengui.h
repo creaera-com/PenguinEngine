@@ -440,7 +440,8 @@ PUISplit pui_split_rects(PUIRect area, PUIAxis axis, float second_size, float mi
 PUIRect pui_image_fit(PUIRect bounds, float width, float height, float padding);
 
 /** @file @brief SDL-free, validated YAML widget descriptions. */
-#define PUI_LAYOUT_NODES 128
+// Includes composed editor layouts and generated color-picker input fields.
+#define PUI_LAYOUT_NODES 256
 #define PUI_LAYOUT_DEPTH 24
 
 /** @brief Generic widget kinds; no application or document domains. */

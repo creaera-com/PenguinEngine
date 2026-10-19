@@ -33,8 +33,12 @@ unsigned vector_rectangle_effective_flags(VectorDocument *document,
 
 static bool valid(VectorRectangle rectangle) {
     PUIRect r = rectangle.rect;
-    return isfinite(rectangle.angle) && rectangle.angle >= -360 && rectangle.angle <= 360 &&
-           rectangle.id && rectangle.parent_id && !(rectangle.flags & ~VECTOR_OBJECT_STATE_MASK) &&
+    return isfinite(rectangle.stroke.width) && rectangle.stroke.width >= 0 &&
+           rectangle.stroke.width <= VECTOR_MAX_ARTBOARD_SIZE &&
+           rectangle.stroke.alignment >= VECTOR_STROKE_CENTER &&
+           rectangle.stroke.alignment <= VECTOR_STROKE_OUTSIDE && isfinite(rectangle.angle) &&
+           rectangle.angle >= -360 && rectangle.angle <= 360 && rectangle.id &&
+           rectangle.parent_id && !(rectangle.flags & ~VECTOR_OBJECT_STATE_MASK) &&
            memchr(rectangle.name, 0, sizeof rectangle.name) && *rectangle.name && isfinite(r.x) &&
            isfinite(r.y) && fabsf(r.x) <= VECTOR_MAX_ARTBOARD_SIZE &&
            fabsf(r.y) <= VECTOR_MAX_ARTBOARD_SIZE && isfinite(r.w) && isfinite(r.h) && r.w >= 1 &&
@@ -92,6 +96,7 @@ bool vector_rectangle_add(VectorDocument *document, unsigned parent_id, PUIRect 
     VectorRectangle value = {.id = document->next_rectangle_id,
                              .parent_id = parent_id,
                              .fill = VECTOR_RECTANGLE_DEFAULT_FILL,
+                             .stroke = {.color = 0x303030ffu},
                              .rect = rect};
     snprintf(value.name, sizeof value.name, "Rechteck %u", value.id);
     if (!parent || parent->flags & VECTOR_OBJECT_STATE_MASK || !valid(value) || rect.x < 0 ||
@@ -166,6 +171,17 @@ bool vector_rectangle_set_fill(VectorDocument *document, unsigned id, uint32_t r
     }
     VectorRectangle after = *rectangle;
     after.fill = rgba;
+    return edit(document, *rectangle, after);
+}
+
+bool vector_rectangle_set_stroke(VectorDocument *document, unsigned id, VectorStroke stroke) {
+    VectorRectangle *rectangle = vector_rectangle_find(document, id);
+    if (!rectangle ||
+        (vector_rectangle_effective_flags(document, rectangle) & VECTOR_OBJECT_LOCKED)) {
+        return false;
+    }
+    VectorRectangle after = *rectangle;
+    after.stroke = stroke;
     return edit(document, *rectangle, after);
 }
 

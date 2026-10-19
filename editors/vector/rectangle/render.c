@@ -3,11 +3,12 @@
 #include "editors/vector/document/selection.h"
 #include "editors/vector/geometry/rotation.h"
 #include "editors/vector/workspace/selection.h"
+#include "stroke_render.h"
 #include "tool.h"
 #include <math.h>
 
 static void draw(SDL_Renderer *renderer, SDL_FRect board, float zoom, PUIRect local, bool selected,
-                 bool preview, uint32_t fill, float angle) {
+                 bool preview, uint32_t fill, float angle, VectorStroke stroke) {
     SDL_FRect rect = {board.x + local.x * zoom, board.y + local.y * zoom, local.w * zoom,
                       local.h * zoom};
     SDL_BlendMode blend;
@@ -33,7 +34,12 @@ static void draw(SDL_Renderer *renderer, SDL_FRect board, float zoom, PUIRect lo
         const int indices[6] = {0, 1, 2, 0, 2, 3};
         SDL_RenderGeometry(renderer, NULL, vertices, 4, indices, 6);
     }
+    vector_stroke_draw(renderer, (PUIRect){rect.x, rect.y, rect.w, rect.h}, angle, zoom, stroke);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    if (!selected && !preview) {
+        SDL_SetRenderDrawBlendMode(renderer, blend);
+        return;
+    }
     SDL_SetRenderDrawColor(renderer, selected || preview ? 194 : 66, selected || preview ? 142 : 89,
                            selected || preview ? 92 : 109,
                            selected || preview ? 255 : (Uint8)alpha);
@@ -86,12 +92,12 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
         draw(renderer, board, document->viewport.zoom,
              vector_rectangle_display_rect(document, rectangle),
              vector_document_is_selected(document, rectangle->id), false, fill,
-             vector_rectangle_display_angle(document, rectangle));
+             vector_rectangle_display_angle(document, rectangle), rectangle->stroke);
     }
     if (document->rectangle_tool.dragging && document->rectangle_tool.parent_id == parent->id) {
         draw(renderer, board, document->viewport.zoom,
              vector_rectangle_tool_rect(&document->rectangle_tool), true, true,
-             VECTOR_RECTANGLE_DEFAULT_FILL, 0);
+             VECTOR_RECTANGLE_DEFAULT_FILL, 0, (VectorStroke){0});
     }
     SDL_SetRenderClipRect(renderer, clipped ? &outer : NULL);
 }

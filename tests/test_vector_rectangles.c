@@ -2,10 +2,12 @@
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/geometry/resize.h"
 #include "editors/vector/internal.h"
+#include "editors/vector/rectangle/stroke_render.h"
 #include "editors/vector/rectangle/tool.h"
 #include "editors/vector/workspace/selection.h"
 #include "shell/shell.h"
 #include "unity.h"
+#include <math.h>
 #include <string.h>
 
 static SDL_Window *window;
@@ -800,8 +802,102 @@ static void test_inspector_angle_tab_commit_negative_input_validation_and_locks(
     TEST_ASSERT_EQUAL_FLOAT(360, document()->rectangles[0].angle);
 }
 
+static void test_stroke_inspector_history_validation_and_checkpoint(void) {
+    VectorDocument *doc = parent();
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 1, (PUIRect){40, 30, 100, 60}));
+    commit();
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[0].stroke.width);
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "rectangle_stroke_center"));
+    pui_view_set_text(shell.view, "rectangle_stroke_width", "12");
+    action("vector.rectangle.stroke_width", "");
+    TEST_ASSERT_EQUAL_FLOAT(12, doc->rectangles[0].stroke.width);
+    action("vector.rectangle.stroke_outside", "");
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "rectangle_stroke_outside"));
+    TEST_ASSERT_FALSE(pui_view_checked(shell.view, "rectangle_stroke_center"));
+    pui_view_set_color(shell.view, "rectangle_stroke_color", 0xff800080);
+    action("vector.rectangle.stroke_color", "");
+    TEST_ASSERT_EQUAL_HEX32(0xff800080, doc->rectangles[0].stroke.color);
+    int count = doc->history.count;
+    pui_view_set_text(shell.view, "rectangle_stroke_width", "-1");
+    action("vector.rectangle.stroke_width", "");
+    TEST_ASSERT_EQUAL_STRING("12", pui_view_text(shell.view, "rectangle_stroke_width"));
+    TEST_ASSERT_EQUAL_INT(count, doc->history.count);
+    VectorStroke invalid = doc->rectangles[0].stroke;
+    invalid.width = NAN;
+    TEST_ASSERT_FALSE(vector_rectangle_set_stroke(doc, 1, invalid));
+    invalid.width = 12;
+    invalid.alignment = (VectorStrokeAlignment)99;
+    TEST_ASSERT_FALSE(vector_rectangle_set_stroke(doc, 1, invalid));
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    activate("scripts");
+    activate("vector");
+    doc = document();
+    TEST_ASSERT_EQUAL_FLOAT(12, doc->rectangles[0].stroke.width);
+    TEST_ASSERT_EQUAL_INT(VECTOR_STROKE_OUTSIDE, doc->rectangles[0].stroke.alignment);
+    TEST_ASSERT_TRUE(vector_history_redo(&doc->history, doc));
+    commit();
+    TEST_ASSERT_EQUAL_HEX32(0xff800080, doc->rectangles[0].stroke.color);
+    TEST_ASSERT_TRUE(vector_artboard_set_state(doc, 1, VECTOR_OBJECT_LOCKED));
+    commit();
+    pui_view_set_text(shell.view, "rectangle_stroke_width", "0");
+    action("vector.rectangle.stroke_width", "");
+    TEST_ASSERT_EQUAL_STRING("12", pui_view_text(shell.view, "rectangle_stroke_width"));
+}
+
+static void test_stroke_render_alignment_rotation_alpha_and_clipping(void) {
+    VectorDocument *doc = parent();
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 1, (PUIRect){40, 30, 100, 60}));
+    doc->active_rectangle = 0;
+    VectorStroke stroke = {0xff0000ff, 10, VECTOR_STROKE_INSIDE};
+    TEST_ASSERT_TRUE(vector_rectangle_set_stroke(doc, 1, stroke));
+    commit();
+    assert_local_red(doc, 36, 60, 242); // Inside never extends beyond original bounds.
+    assert_local_red(doc, 44, 60, 255);
+    assert_local_red(doc, 52, 60, 115);
+    stroke.alignment = VECTOR_STROKE_CENTER;
+    TEST_ASSERT_TRUE(vector_rectangle_set_stroke(doc, 1, stroke));
+    commit();
+    assert_local_red(doc, 36, 60, 255);
+    assert_local_red(doc, 44, 60, 255);
+    assert_local_red(doc, 47, 60, 115);
+    stroke.alignment = VECTOR_STROKE_OUTSIDE;
+    TEST_ASSERT_TRUE(vector_rectangle_set_stroke(doc, 1, stroke));
+    commit();
+    assert_local_red(doc, 32, 60, 255);
+    assert_local_red(doc, 44, 60, 115);
+    TEST_ASSERT_TRUE(vector_rectangle_set_angle(doc, 1, 90));
+    commit();
+    assert_local_red(doc, 52, 60, 255); // Rotated outside stroke follows rotated bounds.
+    assert_local_red(doc, 64, 60, 115);
+    stroke.color = 0xff000080;
+    TEST_ASSERT_TRUE(vector_rectangle_set_stroke(doc, 1, stroke));
+    commit();
+    TEST_ASSERT_UINT8_WITHIN(1, 249, local_red(doc, 52, 60));
+    stroke.width = 0;
+    TEST_ASSERT_TRUE(vector_rectangle_set_stroke(doc, 1, stroke));
+    commit();
+    assert_local_red(doc, 52, 60, 242);
+    // A very thick inside border completely consumes the fill without overlapping alpha.
+    stroke = (VectorStroke){0xff000080, 100, VECTOR_STROKE_INSIDE};
+    TEST_ASSERT_TRUE(vector_rectangle_set_stroke(doc, 1, stroke));
+    commit();
+    TEST_ASSERT_UINT8_WITHIN(2, 185, local_red(doc, 80, 55));
+    TEST_ASSERT_TRUE(vector_rectangle_update(doc, 1, "Clipped", (PUIRect){1, 30, 100, 60}));
+    TEST_ASSERT_TRUE(vector_rectangle_set_angle(doc, 1, 0));
+    stroke = (VectorStroke){0xff0000ff, 30, VECTOR_STROKE_OUTSIDE};
+    TEST_ASSERT_TRUE(vector_rectangle_set_stroke(doc, 1, stroke));
+    commit();
+    Uint8 outside = local_red(doc, -5, 60);
+    stroke.width = 0;
+    TEST_ASSERT_TRUE(vector_rectangle_set_stroke(doc, 1, stroke));
+    commit();
+    TEST_ASSERT_EQUAL_UINT8(outside, local_red(doc, -5, 60));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_stroke_inspector_history_validation_and_checkpoint);
+    RUN_TEST(test_stroke_render_alignment_rotation_alpha_and_clipping);
     RUN_TEST(test_inspector_angle_tab_commit_negative_input_validation_and_locks);
     RUN_TEST(test_rectangle_creation_live_modifiers_and_parent_limits);
     RUN_TEST(test_single_resize_live_modifiers_and_shift_held_before_handle);

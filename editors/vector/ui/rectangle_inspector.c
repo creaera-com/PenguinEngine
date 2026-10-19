@@ -25,9 +25,43 @@ void vector_rectangle_inspector_cancel_color(VectorRectangleInspector *inspector
     if (document) {
         document->fill_preview = (VectorFillPreview){0};
     }
+    if (rectangle && pui_view_color_editing(view, "rectangle_stroke_color")) {
+        pui_view_set_color(view, "rectangle_stroke_color", rectangle->stroke.color);
+    }
     if (rectangle && pui_view_color_editing(view, "rectangle_fill")) {
         pui_view_set_color(view, "rectangle_fill", rectangle->fill);
     }
+}
+
+/* Translate inspector controls into one atomic domain edit. Picker changes commit on release. */
+static bool stroke_action(VectorRectangleInspector *inspector, VectorDocument *document,
+                          VectorRectangle *rectangle, PUIView *view, const char *action) {
+    VectorStroke stroke = rectangle->stroke;
+    bool valid = true;
+    if (!strcmp(action, "vector.rectangle.stroke_width")) {
+        const char *text = pui_view_text(view, "rectangle_stroke_width");
+        char *end;
+        errno = 0;
+        stroke.width = text ? strtof(text, &end) : -1;
+        valid = text && *text && end != text && !*end && !errno;
+    } else if (!strcmp(action, "vector.rectangle.stroke_color")) {
+        valid = pui_view_color(view, "rectangle_stroke_color", &stroke.color);
+    } else if (!strcmp(action, "vector.rectangle.stroke_inside")) {
+        stroke.alignment = VECTOR_STROKE_INSIDE;
+    } else if (!strcmp(action, "vector.rectangle.stroke_center")) {
+        stroke.alignment = VECTOR_STROKE_CENTER;
+    } else if (!strcmp(action, "vector.rectangle.stroke_outside")) {
+        stroke.alignment = VECTOR_STROKE_OUTSIDE;
+    } else {
+        return false;
+    }
+    vector_selection_cancel(document);
+    bool changed = valid && vector_rectangle_set_stroke(document, rectangle->id, stroke);
+    inspector->dirty |= 32u;
+    pui_view_set_text(view, "status",
+                      changed ? "Rahmen aktualisiert (0 px: aus)"
+                              : "Rechteck gesperrt oder ungueltiger Rahmen");
+    return true;
 }
 
 bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
@@ -41,7 +75,9 @@ bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
     bool angle = !strcmp(action, "vector.rectangle.angle");
     bool visible = !strcmp(action, "vector.rectangle.visible"),
          locked = !strcmp(action, "vector.rectangle.locked");
-    if (!fill && !preview && !name && !width && !height && !angle && !visible && !locked) {
+    bool stroke = !strncmp(action, "vector.rectangle.stroke_", 24);
+    if (!stroke && !fill && !preview && !name && !width && !height && !angle && !visible &&
+        !locked) {
         return false;
     }
     VectorDocument *document = vector_documents_find(documents, inspector->document_id);
@@ -49,6 +85,9 @@ bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
         document ? vector_rectangle_find(document, inspector->rectangle_id) : NULL;
     if (!rectangle) {
         return true;
+    }
+    if (stroke) {
+        return stroke_action(inspector, document, rectangle, view, action);
     }
     if (fill || preview) {
         uint32_t color;
@@ -163,6 +202,20 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
                 document->fill_preview = (VectorFillPreview){0};
                 pui_view_set_color(view, "rectangle_fill", rectangle->fill);
             }
+        }
+        if (switched || (inspector->dirty & 32u) ||
+            inspector->presented.stroke.width != rectangle->stroke.width) {
+            snprintf(value, sizeof value, "%.7g", (double)rectangle->stroke.width);
+            pui_view_set_text(view, "rectangle_stroke_width", value);
+        }
+        const char *alignment =
+            rectangle->stroke.alignment == VECTOR_STROKE_INSIDE    ? "rectangle_stroke_inside"
+            : rectangle->stroke.alignment == VECTOR_STROKE_OUTSIDE ? "rectangle_stroke_outside"
+                                                                   : "rectangle_stroke_center";
+        pui_view_set_checked(view, alignment, true);
+        if (switched || (inspector->dirty & 32u) ||
+            inspector->presented.stroke.color != rectangle->stroke.color) {
+            pui_view_set_color(view, "rectangle_stroke_color", rectangle->stroke.color);
         }
         inspector->presented = *rectangle;
     }
