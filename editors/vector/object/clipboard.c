@@ -50,7 +50,10 @@ bool vector_clipboard_valid(const VectorClipboard *c) {
             return false;
         }
         for (int j = 0; j < i; j++) {
-            if (c->rectangles[j].id == c->rectangles[i].id) {
+            if ((c->rectangles[i].group_id &&
+                 c->rectangles[j].group_id == c->rectangles[i].group_id &&
+                 c->rectangles[j].parent_id != c->rectangles[i].parent_id) ||
+                c->rectangles[j].id == c->rectangles[i].id) {
                 return false;
             }
         }
@@ -193,7 +196,7 @@ bool vector_objects_delete(VectorDocument *d) {
     return execute(d, edit);
 }
 
-bool vector_objects_replace_selection(VectorDocument *d, const VectorShape *shapes, int count) {
+static bool replace_selection(VectorDocument *d, const VectorShape *shapes, int count, bool block) {
     if (!d->active_rectangle || count < 0 || count > VECTOR_MAX_RECTANGLES || (count && !shapes) ||
         !vector_objects_can_delete(d)) {
         return false;
@@ -232,7 +235,7 @@ bool vector_objects_replace_selection(VectorDocument *d, const VectorShape *shap
         free(edit);
         return false;
     }
-    bool in_place = count == selected;
+    bool in_place = !block && count == selected;
     for (int i = 0; i < count; i++) {
         in_place &= shapes[i].id != 0;
     }
@@ -271,6 +274,15 @@ bool vector_objects_replace_selection(VectorDocument *d, const VectorShape *shap
     }
     d->next_rectangle_id = next;
     return true;
+}
+
+bool vector_objects_replace_selection(VectorDocument *d, const VectorShape *shapes, int count) {
+    return replace_selection(d, shapes, count, false);
+}
+
+bool vector_objects_replace_selection_block(VectorDocument *d, const VectorShape *shapes,
+                                            int count) {
+    return replace_selection(d, shapes, count, true);
 }
 
 bool vector_objects_cut(VectorDocument *d, VectorClipboard *clipboard) {
@@ -324,6 +336,14 @@ static bool paste(VectorDocument *d, const VectorClipboard *c, bool duplicate, b
         int parent = 0;
         while (parent < c->board_count && c->boards[parent].id != r.parent_id) {
             parent++;
+        }
+        if (r.group_id) {
+            for (int j = 0; j <= i; j++) {
+                if (c->rectangles[j].group_id == r.group_id) {
+                    r.group_id = d->next_rectangle_id + (unsigned)j;
+                    break;
+                }
+            }
         }
         r.id = next_rectangle++;
         r.parent_id = parent_ids[parent];

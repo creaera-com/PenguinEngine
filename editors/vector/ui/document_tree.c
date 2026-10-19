@@ -2,11 +2,12 @@
 #include "document_tree.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/document/selection.h"
+#include "group_tree.h"
 #include "toolbar.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-_Static_assert(VECTOR_MAX_ARTBOARDS + VECTOR_MAX_RECTANGLES <= PUI_LAYOUT_NODES,
+_Static_assert(VECTOR_MAX_ARTBOARDS + 2 * VECTOR_MAX_RECTANGLES <= PUI_LAYOUT_NODES,
                "document rows must fit the runtime tree");
 
 static bool unchanged(const VectorDocumentTree *tree, const VectorDocument *document) {
@@ -33,8 +34,15 @@ static bool unchanged(const VectorDocumentTree *tree, const VectorDocument *docu
 static void sync_selection(const VectorDocument *document, PUIView *view) {
     char id[64];
     if (document && document->active_rectangle) {
-        snprintf(id, sizeof id, "vector_document_%u.rectangle_%u", document->id,
-                 document->active_rectangle);
+        const VectorRectangle *primary = NULL;
+        for (int i = 0; i < document->rectangle_count; i++) {
+            if (document->rectangles[i].id == document->active_rectangle) {
+                primary = &document->rectangles[i];
+            }
+        }
+        snprintf(id, sizeof id, "vector_document_%u.%s_%u", document->id,
+                 primary && primary->group_id ? "group" : "rectangle",
+                 primary && primary->group_id ? primary->group_id : document->active_rectangle);
     } else if (document && document->active_artboard) {
         snprintf(id, sizeof id, "vector_document_%u.artboard_%u", document->id,
                  document->active_artboard);
@@ -72,7 +80,9 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
         sync_selection(document, view);
         return true;
     }
-    int count = document ? document->artboard_count + document->rectangle_count : 0;
+    int count = document ? document->artboard_count + document->rectangle_count +
+                               vector_group_tree_count(document)
+                         : 0;
     PUITreeItem *items = count ? calloc(count, sizeof *items) : NULL;
     if (count && !items) {
         snprintf(error, capacity, "could not allocate document tree rows");
@@ -83,15 +93,44 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
         for (int i = document->artboard_count - 1; i >= 0; i--) {
             const VectorArtboard *board = &document->artboards[i];
             fill(&items[row++], document->id, board->id, board->name, "artboard", board->flags, 0);
+            unsigned emitted[VECTOR_MAX_RECTANGLES] = {0};
+            int group_count = 0;
             for (int j = document->rectangle_count - 1; j >= 0; j--) {
                 const VectorRectangle *rectangle = &document->rectangles[j];
-                if (rectangle->parent_id == board->id) {
-                    items[row].selected = vector_document_is_selected(document, rectangle->id);
-                    fill(&items[row++], document->id, rectangle->id, rectangle->name, "rectangle",
-                         rectangle->flags, 1);
-                    if (rectangle->path.count) {
+                if (rectangle->parent_id != board->id) {
+                    continue;
+                }
+                unsigned group = rectangle->group_id;
+                bool seen = false;
+                for (int g = 0; g < group_count; g++) {
+                    seen |= emitted[g] == group;
+                }
+                if (group && seen) {
+                    continue;
+                }
+                if (group) {
+                    emitted[group_count++] = group;
+                    char name[64];
+                    snprintf(name, sizeof name, "Gruppe %u", group);
+                    fill(&items[row], document->id, group, name, "group", 0, 1);
+                    snprintf(items[row].icon, sizeof items[row].icon, "tabler:folder");
+                    items[row].cell_count = 0;
+                    items[row++].selected = vector_document_is_selected(document, rectangle->id);
+                }
+                for (int k = group ? document->rectangle_count - 1 : j; k >= 0; k--) {
+                    const VectorRectangle *child = &document->rectangles[k];
+                    if (group ? child->group_id != group : k != j) {
+                        continue;
+                    }
+                    items[row].selected = vector_document_is_selected(document, child->id);
+                    fill(&items[row++], document->id, child->id, child->name, "rectangle",
+                         child->flags, group ? 2 : 1);
+                    if (child->path.count) {
                         snprintf(items[row - 1].icon, sizeof items[row - 1].icon,
                                  "tabler:vector-bezier-2");
+                    }
+                    if (!group) {
+                        break;
                     }
                 }
             }
@@ -129,6 +168,16 @@ void vector_document_tree_context(VectorDocument *document, PUIView *view, float
     }
     char id[64];
     for (int i = 0; i < document->rectangle_count; i++) {
+        unsigned group = document->rectangles[i].group_id;
+        snprintf(id, sizeof id, "vector_document_%u.group_%u", document->id, group);
+        if (group && !strcmp(row, id)) {
+            if (!vector_document_is_selected(document, document->rectangles[i].id)) {
+                vector_document_select(document, document->rectangles[i].id);
+            }
+            return;
+        }
+    }
+    for (int i = 0; i < document->rectangle_count; i++) {
         unsigned object = document->rectangles[i].id;
         snprintf(id, sizeof id, "vector_document_%u.rectangle_%u", document->id, object);
         if (!strcmp(row, id)) {
@@ -151,6 +200,9 @@ void vector_document_tree_context(VectorDocument *document, PUIView *view, float
 
 bool vector_document_tree_action(VectorDocument *document, PUIView *view, const char *action,
                                  const char *widget) {
+    if (vector_group_tree_action(document, action, widget)) {
+        return true;
+    }
     bool rectangle = !strncmp(action, "vector.rectangle.", 17);
     const char *kind = rectangle ? "rectangle" : "artboard";
     char expected[64];

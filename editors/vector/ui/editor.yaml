@@ -75,6 +75,8 @@ root:
                     - {type: button, id: vector_order_forward, text: Eins hoch, icon: tabler:arrow-up, action: vector.objects.order_forward}
                     - {type: button, id: vector_order_back, text: Ganz nach unten, icon: tabler:arrow-bar-to-down, action: vector.objects.order_back}
                     - {type: button, id: vector_order_backward, text: Eins runter, icon: tabler:arrow-down, action: vector.objects.order_backward}
+                    - {type: button, id: vector_objects_group, text: Gruppieren, icon: tabler:box-multiple, action: vector.objects.group}
+                    - {type: button, id: vector_objects_ungroup, text: Gruppe aufloesen, icon: tabler:box-multiple-0, action: vector.objects.ungroup}
 
                 - type: radial_menu
                   id: vector_transform_menu

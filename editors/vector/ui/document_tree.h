@@ -19,7 +19,7 @@ typedef struct {
 
 /** @brief Select a right-clicked row without toggling disclosure or an existing multi-selection. */
 void vector_document_tree_context(VectorDocument *document, PUIView *view, float x, float y);
-/** @brief Select an artboard from its stable tree row ID. */
+/** @brief Route artboard, shape and group rows by their stable tree IDs. */
 bool vector_document_tree_action(VectorDocument *document, PUIView *view, const char *action,
                                  const char *widget);
 

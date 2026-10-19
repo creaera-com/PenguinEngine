@@ -34,6 +34,11 @@ bool vector_objects_duplicate(VectorDocument *document);
  * must belong to the selection. Input is borrowed. Zero results removes an empty boolean result. */
 bool vector_objects_replace_selection(VectorDocument *document, const VectorShape *shapes,
                                       int count);
+/** @brief Structural replacement as one contiguous layer block at the last selected slot.
+ * Uses the same atomic snapshot/validation as replace_selection; order outside selection is stable.
+ */
+bool vector_objects_replace_selection_block(VectorDocument *document, const VectorShape *shapes,
+                                            int count);
 /** @brief Private native codecs for structural command type 6. */
 bool vector_objects_command_write(const VectorCommand *command, FILE *file);
 bool vector_objects_command_read(VectorCommand *command, FILE *file);
