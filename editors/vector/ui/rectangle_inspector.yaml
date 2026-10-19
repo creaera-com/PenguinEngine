@@ -5,35 +5,56 @@ root:
   gap: 8
   children:
     - {type: label, id: rectangle_kind, text: Rechteck, height: 24}
-    - type: row
-      padding: 0
-      gap: 8
-      height: 28
+    - type: section
+      id: section_rectangle_settings
+      text: Einstellungen
       children:
-        - {type: label, text: Name, width: 64}
-        - {type: input, id: rectangle_name, action: vector.rectangle.name}
-    - type: row
-      padding: 0
-      gap: 8
-      height: 28
-      children:
-        - {type: label, text: Breite, width: 64}
-        - {type: input, id: rectangle_width, action: vector.rectangle.width}
-    - type: row
-      padding: 0
-      gap: 8
-      height: 28
-      children:
-        - {type: label, text: Hoehe, width: 64}
-        - {type: input, id: rectangle_height, action: vector.rectangle.height}
-    - type: row
-      padding: 0
-      gap: 8
-      height: 28
-      children:
-        - {type: label, text: Winkel, width: 64}
-        - {type: input, id: rectangle_angle, action: vector.rectangle.angle}
-        - {type: label, text: Grad, width: 40}
+      - type: row
+        padding: 0
+        gap: 8
+        height: 28
+        children:
+          - {type: label, text: Name, width: 64}
+          - {type: input, id: rectangle_name, action: vector.rectangle.name}
+      - type: row
+        padding: 0
+        gap: 8
+        height: 28
+        children:
+          - {type: label, text: Breite, width: 64}
+          - {type: input, id: rectangle_width, action: vector.rectangle.width}
+      - type: row
+        padding: 0
+        gap: 8
+        height: 28
+        children:
+          - {type: label, text: Hoehe, width: 64}
+          - {type: input, id: rectangle_height, action: vector.rectangle.height}
+      - type: row
+        padding: 0
+        gap: 8
+        height: 28
+        children:
+          - {type: label, text: Winkel, width: 64}
+          - {type: input, id: rectangle_angle, action: vector.rectangle.angle}
+          - {type: label, text: Grad, width: 40}
+      - type: popup_button
+        id: rectangle_fill_button
+        text: Fuellung
+        placement: below
+        height: 28
+        popup_width: 260
+        popup_height: 304
+        children:
+          - type: panel
+            padding: 12
+            children:
+              - type: color_picker
+                id: rectangle_fill
+                mode: hsl
+                value: "#7393AFFF"
+                action: vector.rectangle.fill
+                preview_action: vector.rectangle.fill_preview
     - type: row
       padding: 0
       gap: 8
@@ -58,23 +79,6 @@ root:
         - {type: button, id: rectangle_stroke_inside, text: Innen, action: vector.rectangle.stroke_inside}
         - {type: button, id: rectangle_stroke_center, text: Mittig, action: vector.rectangle.stroke_center}
         - {type: button, id: rectangle_stroke_outside, text: Aussen, action: vector.rectangle.stroke_outside}
-    - type: popup_button
-      id: rectangle_fill_button
-      text: Fuellung
-      placement: below
-      height: 28
-      popup_width: 260
-      popup_height: 304
-      children:
-        - type: panel
-          padding: 12
-          children:
-            - type: color_picker
-              id: rectangle_fill
-              mode: hsl
-              value: "#7393AFFF"
-              action: vector.rectangle.fill
-              preview_action: vector.rectangle.fill_preview
     - type: popup_button
       id: rectangle_stroke_button
       text: Rahmenfarbe

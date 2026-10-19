@@ -118,7 +118,7 @@ root:
       id: vector_right_split
       axis: vertical
       flex: first
-      initial_last: 246
+      initial_last: 400
       minimum_first: 200
       minimum_second: 224
       gap: 9
@@ -142,45 +142,49 @@ root:
                   padding: 12
                   gap: 8
                   children:
-                    - type: dropdown
-                      id: vector_grid_type
-                      action: vector.grid.type
-                      value: standard
-                      height: 28
+                    - type: section
+                      id: section_tools_grid_settings
+                      text: Raster
                       children:
-                        - {type: option, text: Orthogonal, value: standard}
-                        - {type: option, text: Isometrisch, value: isometric}
-                        - {type: option, text: Hexagonal, value: hexagonal}
-                    - type: row
-                      padding: 0
-                      height: 28
-                      gap: 8
-                      children:
-                        - {type: label, text: Breite, width: 80}
-                        - {type: input, id: vector_grid_width, text: "16", action: vector.grid.width}
-                    - type: row
-                      padding: 0
-                      height: 28
-                      gap: 8
-                      children:
-                        - {type: label, text: Hoehe, width: 80}
-                        - {type: input, id: vector_grid_height, text: "16", action: vector.grid.height}
-                    - type: popup_button
-                      text: Rasterfarbe
-                      icon: tabler:palette
-                      placement: below
-                      height: 28
-                      popup_width: 260
-                      popup_height: 304
-                      children:
-                        - type: panel
-                          padding: 12
+                        - type: dropdown
+                          id: vector_grid_type
+                          action: vector.grid.type
+                          value: standard
+                          height: 28
                           children:
-                            - {type: color_picker, id: vector_grid_color, value: "#80808080", action: vector.grid.color}
-                    - type: row
-                      padding: 0
-                      height: 28
-                      gap: 8
-                      children:
-                        - {type: label, text: Toleranz, width: 80}
-                        - {type: input, id: vector_grid_tolerance, text: "5", action: vector.grid.tolerance}
+                            - {type: option, text: Orthogonal, value: standard}
+                            - {type: option, text: Isometrisch, value: isometric}
+                            - {type: option, text: Hexagonal, value: hexagonal}
+                        - type: row
+                          padding: 0
+                          height: 28
+                          gap: 8
+                          children:
+                            - {type: label, text: Breite, width: 80}
+                            - {type: input, id: vector_grid_width, text: "16", action: vector.grid.width}
+                        - type: row
+                          padding: 0
+                          height: 28
+                          gap: 8
+                          children:
+                            - {type: label, text: Hoehe, width: 80}
+                            - {type: input, id: vector_grid_height, text: "16", action: vector.grid.height}
+                        - type: popup_button
+                          text: Rasterfarbe
+                          icon: tabler:palette
+                          placement: below
+                          height: 28
+                          popup_width: 260
+                          popup_height: 304
+                          children:
+                            - type: panel
+                              padding: 12
+                              children:
+                                - {type: color_picker, id: vector_grid_color, value: "#80808080", action: vector.grid.color}
+                        - type: row
+                          padding: 0
+                          height: 28
+                          gap: 8
+                          children:
+                            - {type: label, text: Toleranz, width: 80}
+                            - {type: input, id: vector_grid_tolerance, text: "5", action: vector.grid.tolerance}
