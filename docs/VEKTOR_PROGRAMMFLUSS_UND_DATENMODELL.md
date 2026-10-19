@@ -1347,3 +1347,21 @@ Knotenwerkzeug frei veraendert, wird sie zu einer normalen Bezierkurve. **In Pfa
 Flaechenoperationen erzeugen wie bisher Polygonpfade. Undo stellt die Ellipsenkennung
 wieder her. Der gemeinsame Kurven-Erzeugungsbefehl (Codec 8) speichert Geometrie und Stil;
 das temporaere Checkpoint-Schema lautet wegen der zusaetzlichen Formkennung `PVCKPT21`.
+
+
+### Parametrische Polygone
+
+`vector.add_polygon` aktiviert die gemeinsame Aufzieh-Geste aus `workspace/box_tool.c`.
+Vorschau und Dokumenterzeugung nutzen `polygon/polygon.c`. Neue Polygone haben sechs
+Ecken; `VECTOR_POLYGON_MAX_SIDES` begrenzt die Eckenzahl derzeit auf 32, entsprechend
+der Kapazitaet von `VectorBezier`. Die Form speichert gerade Segmente als kubische
+Kurve mit identischen Anker- und Kontrollpunkten sowie `VECTOR_CURVE_POLYGON` als
+Identitaet. Es ist keine weitere Heap-Ressource oder separate Datei noetig.
+
+Der Inspector laedt `ui/inspector/polygon.yaml` nur bei einem parametrischen Polygon
+in den Slot `polygon_properties`. `vector.polygon.sides` validiert die ganzzahlige
+Eingabe (3 bis 32) und ruft `vector_polygon_set_sides` auf. Die Operation ersetzt nur
+die Geometrie, behaelt ID, Namen, Transformation, Fuellung und Rahmen bei und erzeugt
+einen History-Schritt. Undo/Redo und temporaere Editor-Checkpoints enthalten auch
+die Eckenzahl. Nach „In Pfad umwandeln“ oder freier Knotenbearbeitung entfaellt die
+parametrische Identitaet und damit das Eckenzahl-Feld. Undo stellt beides wieder her.

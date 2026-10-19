@@ -5,6 +5,7 @@ root:
   gap: 8
   children:
     - {type: label, id: rectangle_kind, text: Rechteck, height: 24}
+    - {type: slot, id: polygon_properties}
     - type: section
       id: section_rectangle_settings
       text: Einstellungen

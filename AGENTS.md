@@ -33,7 +33,8 @@ Refactorings und Fehlerkorrekturen:
 - `document/`: Dokumentdaten, IDs und Speicherbesitz.
 - `artboard/`: Artboards, Änderungsbefehle und zugehöriges Mauswerkzeug.
 - `workspace/`: Zeichenfläche, Lineale, Anbindung der Dokument-Tabs und gemeinsame
-  Aufzieh-Geste für Rechtecke/Ellipsen (`box_tool.c`, reine Werte in `box_tool_state.h`).
+  Aufzieh-Geste für Rechtecke/Ellipsen/Polygone (`box_tool.c`, reine Werte in `box_tool_state.h`).
+- `polygon/`: Parametrische Polygone und Eckenzahl-Aenderungen ueber History.
 - `ellipse/`: Ellipsen-Geometrie und Erzeugung; keine eigene Kopie der Mausverarbeitung.
 - `history/`: Ausführung von Befehlen sowie Undo/Redo.
 - `persistence/`: Temporäres Sichern und Wiederherstellen.

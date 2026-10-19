@@ -168,6 +168,20 @@ bool vector_curve_update(VectorDocument *d, unsigned id, const VectorBezier *cur
     return execute(d, &edit);
 }
 
+bool vector_curve_update_shape(VectorDocument *d, const VectorShape *after) {
+    VectorShape *before = after ? vector_rectangle_find(d, after->id) : NULL;
+    if (!before || !before->curve.count || after->parent_id != before->parent_id ||
+        !vector_rectangle_valid(*after) ||
+        vector_rectangle_effective_flags(d, before) & VECTOR_OBJECT_STATE_MASK) {
+        return false;
+    }
+    if (!memcmp(before, after, sizeof *after)) {
+        return true;
+    }
+    CurveEdit edit = {.before = *before, .after = *after};
+    return execute(d, &edit);
+}
+
 bool vector_curve_command_write(const VectorCommand *command, FILE *file) {
     if (command->apply != apply || command->revert != revert) {
         return false;

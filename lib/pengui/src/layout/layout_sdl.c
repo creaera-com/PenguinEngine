@@ -8,6 +8,11 @@ float pui_view_node_height(const PUIView *v, int i) {
     if (n->height > 0) {
         return n->height;
     }
+    // A mounted slot inherits its root size, so fixed-height content remains visible
+    // alongside sections whose natural height fills the parent.
+    if (n->type == PUI_NODE_SLOT && n->child >= 0) {
+        return pui_view_node_height(v, n->child);
+    }
     if (n->type == PUI_NODE_COLOR_PICKER) {
         return 280;
     }

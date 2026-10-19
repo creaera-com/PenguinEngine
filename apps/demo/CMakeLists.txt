@@ -61,6 +61,7 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree/groups.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree/document_tree.c
  ${PROJECT_SOURCE_DIR}/editors/vector/geometry/bezier.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/polygon/polygon.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ellipse/ellipse.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ellipse/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/curve/curve.c

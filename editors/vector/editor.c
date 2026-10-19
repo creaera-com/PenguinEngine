@@ -33,6 +33,7 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
     if (!editor->layout) {
         pui_layout_free(editor->inspector.multi_layout);
         pui_layout_free(editor->inspector.rectangle.layout);
+        pui_layout_free(editor->inspector.rectangle.polygon_layout);
         pui_layout_free(editor->inspector.artboard_layout);
         pui_layout_free(editor->layout);
         free(editor);
@@ -42,10 +43,12 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         editor_load_ui(services, "editors/vector/ui/inspector/artboard.yaml", error, capacity);
     editor->inspector.rectangle.layout =
         editor_load_ui(services, "editors/vector/ui/inspector/shape.yaml", error, capacity);
+    editor->inspector.rectangle.polygon_layout =
+        editor_load_ui(services, "editors/vector/ui/inspector/polygon.yaml", error, capacity);
     editor->inspector.multi_layout =
         editor_load_ui(services, "editors/vector/ui/inspector/selection.yaml", error, capacity);
     if (!editor->inspector.artboard_layout || !editor->inspector.rectangle.layout ||
-        !editor->inspector.multi_layout) {
+        !editor->inspector.multi_layout || !editor->inspector.rectangle.polygon_layout) {
         vector_editor_destroy(editor);
         return NULL;
     }
@@ -64,6 +67,7 @@ void vector_editor_destroy(void *instance) {
         vector_documents_destroy(&editor->documents);
         pui_layout_free(editor->inspector.multi_layout);
         pui_layout_free(editor->inspector.rectangle.layout);
+        pui_layout_free(editor->inspector.rectangle.polygon_layout);
         pui_layout_free(editor->inspector.artboard_layout);
         pui_layout_free(editor->layout);
         free(editor);
@@ -74,9 +78,9 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
     VectorEditor *editor = instance;
     if (!strncmp(name, "vector.objects.", 15) || !strcmp(name, "vector.tool_selection") ||
         !strcmp(name, "vector.add_rect") || !strcmp(name, "vector.add_ellipse") ||
-        !strcmp(name, "vector.add_artboard") || !strcmp(name, "vector.tool_pen") ||
-        !strcmp(name, "vector.tool_nodes") || !strcmp(name, "editor.undo") ||
-        !strcmp(name, "editor.redo")) {
+        !strcmp(name, "vector.add_polygon") || !strcmp(name, "vector.add_artboard") ||
+        !strcmp(name, "vector.tool_pen") || !strcmp(name, "vector.tool_nodes") ||
+        !strcmp(name, "editor.undo") || !strcmp(name, "editor.redo")) {
         vector_inspector_cancel_color(&editor->inspector, &editor->documents, view);
     }
     if (vector_inspector_action(&editor->inspector, &editor->documents, view, name)) {

@@ -1,9 +1,10 @@
-/** @file @brief Shared artboard-local box gesture for rectangle and ellipse factories. */
+/** @file @brief Shared artboard-local box gesture for rectangle, ellipse and polygon factories. */
 #include "box_tool.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/ellipse/ellipse.h"
 #include "editors/vector/geometry/constraints.h"
 #include "editors/vector/grid/snap.h"
+#include "editors/vector/polygon/polygon.h"
 #include "editors/vector/workspace/modifiers.h"
 #include <math.h>
 #include <stdio.h>
@@ -19,24 +20,29 @@ void vector_rectangle_tool_cancel(VectorDocument *document) {
 }
 
 bool vector_rectangle_tool_action(VectorDocument *document, PUIView *view, const char *action) {
+    bool polygon = !strcmp(action, "vector.add_polygon");
     bool ellipse = !strcmp(action, "vector.add_ellipse");
-    if (!ellipse && strcmp(action, "vector.add_rect")) {
+    if (!polygon && !ellipse && strcmp(action, "vector.add_rect")) {
         return false;
     }
     if (!document) {
         pui_view_set_text(view, "status", "Zuerst ein Dokument und Artboard anlegen");
         return true;
     }
-    bool enabled = document->rectangle_tool.enabled && document->rectangle_tool.ellipse == ellipse;
+    bool enabled = document->rectangle_tool.enabled &&
+                   document->rectangle_tool.ellipse == ellipse &&
+                   document->rectangle_tool.polygon == polygon;
     vector_artboard_tool_cancel(document);
     document->rectangle_tool.enabled = !enabled;
     document->rectangle_tool.ellipse = ellipse;
+    document->rectangle_tool.polygon = polygon;
     document->viewport.panning = false;
-    pui_view_set_text(view, "status",
-                      enabled ? "Auswahlwerkzeug aktiv"
-                      : ellipse
-                          ? "Ellipse aufziehen; Shift: Kreis; Alt: Mittelpunkt; Esc: abbrechen"
-                          : "Rechteck in einem entsperrten Artboard aufziehen; Esc: abbrechen");
+    pui_view_set_text(
+        view, "status",
+        enabled   ? "Auswahlwerkzeug aktiv"
+        : polygon ? "Polygon aufziehen; Shift: gleiche Achsen; Alt: Mittelpunkt; Esc: abbrechen"
+        : ellipse ? "Ellipse aufziehen; Shift: Kreis; Alt: Mittelpunkt; Esc: abbrechen"
+                  : "Rechteck in einem entsperrten Artboard aufziehen; Esc: abbrechen");
     return true;
 }
 
@@ -122,12 +128,15 @@ bool vector_rectangle_tool_event(VectorDocument *document, PUIView *view, const 
         PUIRect rect = vector_rectangle_tool_rect(tool);
         tool->dragging = false;
         SDL_CaptureMouse(false);
-        bool added = tool->ellipse ? vector_ellipse_add(document, parent->id, rect)
-                                   : vector_rectangle_add(document, parent->id, rect);
+        bool added = tool->polygon   ? vector_polygon_add(document, parent->id, rect, 6)
+                     : tool->ellipse ? vector_ellipse_add(document, parent->id, rect)
+                                     : vector_rectangle_add(document, parent->id, rect);
         pui_view_set_text(view, "status",
-                          added ? (tool->ellipse ? "Ellipse angelegt; weitere aufziehen oder Esc"
+                          added
+                              ? (tool->polygon   ? "Polygon angelegt; weitere aufziehen oder Esc"
+                                 : tool->ellipse ? "Ellipse angelegt; weitere aufziehen oder Esc"
                                                  : "Rechteck angelegt; weiteres aufziehen oder Esc")
-                                : "Form konnte nicht angelegt werden (mindestens 1 x 1 px)");
+                              : "Form konnte nicht angelegt werden (mindestens 1 x 1 px)");
         return true;
     }
     if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN && event->button.button == SDL_BUTTON_LEFT) {

@@ -1,6 +1,7 @@
 /** @file @brief Rectangle properties remain separate from artboard inspector bindings. */
 #include "shape.h"
 #include "editors/vector/artboard/tool.h"
+#include "editors/vector/polygon/polygon.h"
 #include "editors/vector/workspace/selection.h"
 #include <errno.h>
 #include <math.h>
@@ -67,6 +68,25 @@ static bool stroke_action(VectorRectangleInspector *inspector, VectorDocument *d
 bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
                                        VectorDocuments *documents, PUIView *view,
                                        const char *action) {
+    if (!strcmp(action, "vector.polygon.sides")) {
+        VectorDocument *d = vector_documents_find(documents, inspector->document_id);
+        const char *text = pui_view_text(view, "polygon_sides");
+        char *end = NULL;
+        errno = 0;
+        long sides = text ? strtol(text, &end, 10) : 0;
+        bool valid = text && end != text && !*end && !errno && sides >= 3 &&
+                     sides <= VECTOR_POLYGON_MAX_SIDES;
+        if (d) {
+            vector_selection_cancel(d);
+        }
+        bool changed =
+            d && valid && vector_polygon_set_sides(d, inspector->rectangle_id, (unsigned)sides);
+        inspector->dirty |= 64u;
+        pui_view_set_text(view, "status",
+                          changed ? "Eckenzahl aktualisiert"
+                                  : "Polygon gesperrt oder Eckenzahl ungueltig (3 bis 32)");
+        return true;
+    }
     bool fill = !strcmp(action, "vector.rectangle.fill"),
          preview = !strcmp(action, "vector.rectangle.fill_preview");
     bool name = !strcmp(action, "vector.rectangle.name"),
@@ -158,14 +178,32 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
             return false;
         }
         inspector->mounted = mount;
+        inspector->polygon_mounted = false;
         switched = true;
     }
     if (rectangle) {
+        bool polygon = rectangle->curve_kind == VECTOR_CURVE_POLYGON;
+        if (polygon != inspector->polygon_mounted) {
+            if (!pui_view_replace_slot(view, input, "polygon_properties",
+                                       polygon ? inspector->polygon_layout : NULL, error,
+                                       capacity)) {
+                return false;
+            }
+            inspector->polygon_mounted = polygon;
+            switched = true;
+        }
+        if (polygon && (switched || (inspector->dirty & 64u) ||
+                        inspector->presented.curve.count != rectangle->curve.count)) {
+            char corners[16];
+            snprintf(corners, sizeof corners, "%u", rectangle->curve.count);
+            pui_view_set_text(view, "polygon_sides", corners);
+        }
         pui_view_set_text(view, "rectangle_kind",
-                          rectangle->curve_kind == VECTOR_CURVE_ELLIPSE ? "Ellipse"
-                          : rectangle->curve.count                      ? "Bezierkurve"
-                          : rectangle->path.count                       ? "Pfad"
-                                                                        : "Rechteck");
+                          rectangle->curve_kind == VECTOR_CURVE_POLYGON   ? "Polygon"
+                          : rectangle->curve_kind == VECTOR_CURVE_ELLIPSE ? "Ellipse"
+                          : rectangle->curve.count                        ? "Bezierkurve"
+                          : rectangle->path.count                         ? "Pfad"
+                                                                          : "Rechteck");
         char value[64];
         if (switched || (inspector->dirty & 1u) ||
             strcmp(inspector->presented.name, rectangle->name)) {

@@ -7,6 +7,7 @@
 #include "editors/vector/ellipse/render.h"
 #include "editors/vector/geometry/rotation.h"
 #include "editors/vector/path/render.h"
+#include "editors/vector/polygon/polygon.h"
 #include "editors/vector/workspace/box_tool.h"
 #include "editors/vector/workspace/selection.h"
 #include "stroke_render.h"
@@ -122,7 +123,15 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
              vector_rectangle_display_angle(document, rectangle), rectangle->stroke);
     }
     if (document->rectangle_tool.dragging && document->rectangle_tool.parent_id == parent->id) {
-        if (document->rectangle_tool.ellipse) {
+        if (document->rectangle_tool.polygon) {
+            VectorShape polygon;
+            if (vector_polygon_shape(vector_rectangle_tool_rect(&document->rectangle_tool), 6,
+                                     &polygon)) {
+                vector_path_draw(renderer, &polygon, polygon.rect, 0, board,
+                                 document->viewport.zoom,
+                                 (VECTOR_RECTANGLE_DEFAULT_FILL & 0xffffff00u) | 150u, true);
+            }
+        } else if (document->rectangle_tool.ellipse) {
             VectorShape ellipse;
             if (vector_ellipse_shape(vector_rectangle_tool_rect(&document->rectangle_tool),
                                      &ellipse)) {

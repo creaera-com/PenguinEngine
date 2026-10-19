@@ -34,7 +34,9 @@ unsigned vector_rectangle_effective_flags(VectorDocument *document,
 bool vector_rectangle_valid(VectorRectangle rectangle) {
     PUIRect r = rectangle.rect;
     if (!vector_path_valid(&rectangle.path) || !vector_bezier_valid(&rectangle.curve) ||
-        rectangle.curve.count == 1 || rectangle.curve_kind > VECTOR_CURVE_ELLIPSE ||
+        rectangle.curve.count == 1 || rectangle.curve_kind > VECTOR_CURVE_POLYGON ||
+        (rectangle.curve_kind == VECTOR_CURVE_POLYGON &&
+         (rectangle.curve.count < 3 || !rectangle.curve.closed)) ||
         (rectangle.curve_kind == VECTOR_CURVE_ELLIPSE &&
          (rectangle.curve.count != 4 || !rectangle.curve.closed))) {
         return false;

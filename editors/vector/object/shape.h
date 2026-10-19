@@ -19,8 +19,8 @@ typedef struct {
     VectorStrokeAlignment alignment;
 } VectorStroke;
 
-/** @brief Curve identity; editing ellipse nodes converts it to a free Bezier curve. */
-typedef enum { VECTOR_CURVE_FREE, VECTOR_CURVE_ELLIPSE } VectorCurveKind;
+/** @brief Curve identity; editing parametric shape nodes converts it to a free Bezier curve. */
+typedef enum { VECTOR_CURVE_FREE, VECTOR_CURVE_ELLIPSE, VECTOR_CURVE_POLYGON } VectorCurveKind;
 
 /** @brief Shape geometry is relative to parent_id; rect maps normalized path points and defines the
  * pivot. */

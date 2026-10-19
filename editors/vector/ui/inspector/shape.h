@@ -5,10 +5,10 @@
 #include "editors/vector/document/document.h"
 
 typedef struct {
-    PUILayout *layout;
+    PUILayout *layout, *polygon_layout;
     unsigned document_id, rectangle_id, dirty;
     VectorRectangle presented;
-    bool mounted, angle_preview;
+    bool mounted, angle_preview, polygon_mounted;
     float displayed_angle;
 } VectorRectangleInspector;
 

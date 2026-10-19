@@ -13,6 +13,8 @@ bool vector_curve_add_shape(VectorDocument *document, const VectorShape *shape);
 bool vector_curve_add(VectorDocument *document, unsigned parent, const VectorBezier *curve);
 /** @brief Commit node changes to one existing curve; preserves other selected/grouped shapes. */
 bool vector_curve_update(VectorDocument *document, unsigned id, const VectorBezier *curve);
+/** @brief Commit a normalized curve shape preserving its parametric identity; honors locks. */
+bool vector_curve_update_shape(VectorDocument *document, const VectorShape *shape);
 /** @brief Native value codec for curve command kind 8. */
 bool vector_curve_command_write(const VectorCommand *command, FILE *file);
 bool vector_curve_command_read(VectorCommand *command, FILE *file);
