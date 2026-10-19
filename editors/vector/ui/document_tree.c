@@ -80,10 +80,10 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
     }
     int row = 0;
     if (document) {
-        for (int i = 0; i < document->artboard_count; i++) {
+        for (int i = document->artboard_count - 1; i >= 0; i--) {
             const VectorArtboard *board = &document->artboards[i];
             fill(&items[row++], document->id, board->id, board->name, "artboard", board->flags, 0);
-            for (int j = 0; j < document->rectangle_count; j++) {
+            for (int j = document->rectangle_count - 1; j >= 0; j--) {
                 const VectorRectangle *rectangle = &document->rectangles[j];
                 if (rectangle->parent_id == board->id) {
                     items[row].selected = vector_document_is_selected(document, rectangle->id);

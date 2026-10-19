@@ -224,8 +224,9 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
                 (child_type == PUI_NODE_OPTION && out->type != PUI_NODE_DROPDOWN) ||
                 (out->type == PUI_NODE_POPUP_BUTTON && child_type != PUI_NODE_PANEL) ||
                 (out->type == PUI_NODE_TABS && child_type != PUI_NODE_TAB) ||
-                ((out->type == PUI_NODE_BUTTON_GROUP || out->type == PUI_NODE_RADIAL_MENU) &&
-                 child_type != PUI_NODE_BUTTON) ||
+                (out->type == PUI_NODE_BUTTON_GROUP && child_type != PUI_NODE_BUTTON) ||
+                (out->type == PUI_NODE_RADIAL_MENU && child_type != PUI_NODE_BUTTON &&
+                 child_type != PUI_NODE_RADIAL_MENU) ||
                 ((out->type == PUI_NODE_TREE || out->type == PUI_NODE_ITEM) &&
                  child_type != PUI_NODE_ITEM) ||
                 (child_type == PUI_NODE_TAB && out->type != PUI_NODE_TABS) ||

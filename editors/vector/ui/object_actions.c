@@ -3,6 +3,7 @@
 #include "document_tree.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/object/order.h"
 #include <string.h>
 
 bool vector_object_actions_action(VectorObjectActions *actions, VectorDocument *document,
@@ -25,6 +26,14 @@ bool vector_object_actions_action(VectorObjectActions *actions, VectorDocument *
         changed = vector_objects_duplicate(document);
     } else if (!strcmp(name, "vector.objects.delete")) {
         changed = vector_objects_delete(document);
+    } else if (!strcmp(name, "vector.objects.order_front")) {
+        changed = vector_objects_order(document, VECTOR_ORDER_FRONT);
+    } else if (!strcmp(name, "vector.objects.order_back")) {
+        changed = vector_objects_order(document, VECTOR_ORDER_BACK);
+    } else if (!strcmp(name, "vector.objects.order_forward")) {
+        changed = vector_objects_order(document, VECTOR_ORDER_FORWARD);
+    } else if (!strcmp(name, "vector.objects.order_backward")) {
+        changed = vector_objects_order(document, VECTOR_ORDER_BACKWARD);
     } else {
         return false;
     }
@@ -137,6 +146,16 @@ void vector_object_actions_commit(VectorObjectActions *actions, VectorDocument *
                                     vector_objects_can_duplicate(document));
         pui_view_set_radial_enabled(view, "vector_objects_paste",
                                     vector_objects_can_paste(document, &actions->clipboard));
+        bool front = vector_objects_can_order(document, VECTOR_ORDER_FRONT);
+        bool back = vector_objects_can_order(document, VECTOR_ORDER_BACK);
+        bool forward = vector_objects_can_order(document, VECTOR_ORDER_FORWARD);
+        bool backward = vector_objects_can_order(document, VECTOR_ORDER_BACKWARD);
+        pui_view_set_radial_enabled(view, "vector_layers_menu",
+                                    front || back || forward || backward);
+        pui_view_set_radial_enabled(view, "vector_order_front", front);
+        pui_view_set_radial_enabled(view, "vector_order_back", back);
+        pui_view_set_radial_enabled(view, "vector_order_forward", forward);
+        pui_view_set_radial_enabled(view, "vector_order_backward", backward);
         pui_view_open_radial(view, "vector_object_menu", actions->x, actions->y);
         actions->pending = false;
     }

@@ -745,7 +745,7 @@ Aufgabe der jeweiligen Anwendung. Statische YAML-Zeilen haben dieses Feld nicht.
 ## Radiales Kontextmenue
 
 `radial_menu` ist ein Overlay und belegt in einer Row, Column oder Toolbar keinen
-Layoutplatz. Seine zwei bis acht `button`-Kinder beschreiben die Aktionen, im
+Layoutplatz. Seine zwei bis acht Kinder (`button` oder weitere `radial_menu`) stehen im
 Uhrzeigersinn ab der oberen Position. Der Durchmesser wird mit `popup_width`
 angegeben. Das Menue wird an den View-Grenzen gehalten.
 
@@ -772,7 +772,8 @@ der Bereich ausserhalb loesen keine Aktion aus. Ein Eintrag wird nur aktiviert,
 wenn Press und Release auf demselben aktiven Sektor liegen. Aktionen werden erst
 beim Zeichnen ueber den normalen `PUIAction`-Callback weitergegeben. Waehrend das
 Menue offen ist, erhalten darunterliegende Widgets keine Mausklicks oder Tasten.
-`Esc` und Fokusverlust brechen ab; der schliessende Klick wird verbraucht.
+`Esc` schliesst die erste Ebene; Fokusverlust bricht das gesamte Menue ab.
+Der schliessende Klick wird verbraucht.
 Layoutaustausch setzt das Menue zurueck.
 
 Fuer Tree-Kontextmenues liefert `pui_view_tree_item_at()` die sichtbare Zeilen-ID
@@ -780,3 +781,31 @@ unter dem Zeiger. Die Methode beruecksichtigt Scrolloffset, eingeklappte Knoten,
 Clipping und deaktivierte Zeilen und aendert weder Auswahl noch Offen-Zustand.
 Die gelieferte Zeichenkette gehoert weiterhin der View und gilt bis zum naechsten
 Austausch der Zeilen oder des Layouts.
+
+
+### Untermenues im radialen Menue
+
+Ein verschachteltes `radial_menu` ist ein eigener Sektor, der per Klick eine neue
+Menueebene oeffnet. Es braucht keine Anwendungsaktion zum Navigieren:
+
+```yaml
+- type: radial_menu
+  id: layers
+  text: Ebenen
+  icon: tabler:stack-2
+  children:
+    - {type: button, text: Ganz nach oben, action: objects.front}
+    - {type: button, text: Eins hoch, action: objects.forward}
+    - {type: button, text: Ganz nach unten, action: objects.back}
+    - {type: button, text: Eins runter, action: objects.backward}
+```
+
+Diesen Block als Kind des aeusseren Menues einsetzen. Jede Ebene hat weiterhin
+zwei bis acht Sektoren. Untermenues behalten Mittelpunkt und Durchmesser bei.
+Der Menue-Stack liegt ausschliesslich in der View und ist durch die Layouttiefe
+begrenzt. Ein Klick auf die Mitte **Zurueck** oder `Esc` kehrt zur Eltern-Ebene
+zurueck. Ausserhalb klicken, Fokusverlust und `pui_view_close_radial()` schliessen
+den gesamten Stack. Das Austauschen des Layouts setzt ihn ebenfalls zurueck.
+Nur Blattaktionen gelangen zum `PUIAction`-Callback; reine Navigation aendert
+keine Anwendungsdaten. `pui_view_set_radial_enabled()` funktioniert auch fuer
+ganze Untermenues und deren einzelne Eintraege.

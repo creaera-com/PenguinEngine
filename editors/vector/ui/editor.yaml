@@ -65,6 +65,15 @@ root:
                 - {type: button, id: vector_objects_paste, text: Einfuegen, icon: tabler:clipboard, action: vector.objects.paste}
                 - {type: button, id: vector_objects_duplicate, text: Duplizieren, icon: tabler:layers-subtract, action: vector.objects.duplicate}
                 - {type: button, id: vector_objects_delete, text: Loeschen, icon: tabler:trash, action: vector.objects.delete}
+                - type: radial_menu
+                  id: vector_layers_menu
+                  text: Ebenen
+                  icon: tabler:stack-2
+                  children:
+                    - {type: button, id: vector_order_front, text: Ganz nach oben, icon: tabler:arrow-bar-to-up, action: vector.objects.order_front}
+                    - {type: button, id: vector_order_forward, text: Eins hoch, icon: tabler:arrow-up, action: vector.objects.order_forward}
+                    - {type: button, id: vector_order_back, text: Ganz nach unten, icon: tabler:arrow-bar-to-down, action: vector.objects.order_back}
+                    - {type: button, id: vector_order_backward, text: Eins runter, icon: tabler:arrow-down, action: vector.objects.order_backward}
 
         - type: tabs
           id: vector_document_tabs

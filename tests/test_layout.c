@@ -185,8 +185,23 @@ static void test_radial_menu_validates_sector_count_and_button_children(void) {
     }
 }
 
+static void test_radial_submenus_are_recursive_and_still_validate_their_children(void) {
+    char error[256];
+    PUILayout *layout =
+        parse("schema: pengui/v1\nroot: {type: radial_menu, children: ["
+              "{type: button, text: Copy}, {type: radial_menu, text: Layers, children: ["
+              "{type: button, text: Up}, {type: button, text: Down}]}]}",
+              error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+    pui_layout_free(layout);
+    TEST_ASSERT_NULL(parse("schema: pengui/v1\nroot: {type: radial_menu, children: ["
+                           "{type: button}, {type: radial_menu, children: [{type: button}]}]}",
+                           error));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_radial_submenus_are_recursive_and_still_validate_their_children);
     RUN_TEST(test_radial_menu_validates_sector_count_and_button_children);
     RUN_TEST(test_dropdown_and_popup_structure_are_validated);
     RUN_TEST(test_checked_controls_and_group_validation);

@@ -1,6 +1,7 @@
 #include "editor_host/host.h"
 #include "editors/vector/internal.h"
 #include "editors/vector/object/clipboard.h"
+#include "editors/vector/object/order.h"
 #include "shell/shell.h"
 #include "unity.h"
 #include <string.h>
@@ -258,7 +259,7 @@ test_tree_context_selects_row_without_collapsing_and_text_shortcuts_stay_in_inpu
     TEST_ASSERT_EQUAL_INT(0, d->selection.count);
     TEST_ASSERT_EQUAL_INT(1, d->active_artboard);
     key(SDLK_ESCAPE, 0);
-    click(SDL_BUTTON_RIGHT, 65, 130);
+    click(SDL_BUTTON_RIGHT, 65, 158);
     TEST_ASSERT_EQUAL_INT(1, d->selection.count);
     TEST_ASSERT_EQUAL_INT(1, d->active_rectangle);
     key(SDLK_ESCAPE, 0);
@@ -292,8 +293,152 @@ static void test_radial_disabled_paste_outside_click_and_focus_loss_are_safe(voi
     TEST_ASSERT_EQUAL_INT(count, d->history.count);
 }
 
+static void assert_order(VectorDocument *d, const unsigned *ids, int count) {
+    TEST_ASSERT_EQUAL_INT(count, d->rectangle_count);
+    for (int i = 0; i < count; i++) {
+        TEST_ASSERT_EQUAL_UINT(ids[i], d->rectangles[i].id);
+    }
+}
+
+static void test_order_stable_groups_stay_in_parent_slots_and_use_one_history_entry(void) {
+    VectorDocument *d = document();
+    TEST_ASSERT_TRUE(vector_artboard_add(d, (PUIRect){500, 20, 200, 200}));
+    TEST_ASSERT_TRUE(vector_rectangle_add(d, 2, (PUIRect){10, 10, 20, 20}));
+    TEST_ASSERT_TRUE(vector_rectangle_add(d, 1, (PUIRect){10, 10, 20, 20}));
+    TEST_ASSERT_TRUE(vector_rectangle_add(d, 1, (PUIRect){10, 10, 20, 20}));
+    vector_document_select(d, 1);
+    vector_document_toggle(d, 4);
+    int count = d->history.count;
+    TEST_ASSERT_TRUE(vector_objects_order(d, VECTOR_ORDER_FORWARD));
+    assert_order(d, (unsigned[]){2, 1, 3, 5, 4}, 5);
+    TEST_ASSERT_EQUAL_INT(count + 1, d->history.count);
+    TEST_ASSERT_EQUAL_INT(2, d->selection.count);
+    TEST_ASSERT_EQUAL_INT(2, d->rectangles[2].parent_id);
+    TEST_ASSERT_TRUE(vector_objects_order(d, VECTOR_ORDER_BACKWARD));
+    assert_order(d, (unsigned[]){1, 2, 3, 4, 5}, 5);
+    TEST_ASSERT_TRUE(vector_objects_order(d, VECTOR_ORDER_FRONT));
+    assert_order(d, (unsigned[]){2, 5, 3, 1, 4}, 5);
+    TEST_ASSERT_FALSE(vector_objects_can_order(d, VECTOR_ORDER_FORWARD));
+    TEST_ASSERT_FALSE(vector_objects_order(d, VECTOR_ORDER_FRONT));
+    TEST_ASSERT_EQUAL_INT(count + 3, d->history.count);
+    TEST_ASSERT_TRUE(vector_objects_order(d, VECTOR_ORDER_BACK));
+    assert_order(d, (unsigned[]){1, 4, 3, 2, 5}, 5);
+    TEST_ASSERT_TRUE(vector_history_undo(&d->history, d));
+    assert_order(d, (unsigned[]){2, 5, 3, 1, 4}, 5);
+    TEST_ASSERT_TRUE(vector_history_redo(&d->history, d));
+    assert_order(d, (unsigned[]){1, 4, 3, 2, 5}, 5);
+}
+
+static void test_order_boundaries_locks_and_multiple_parents(void) {
+    VectorDocument *d = document();
+    TEST_ASSERT_FALSE(vector_objects_can_order(d, VECTOR_ORDER_FRONT)); // All siblings selected.
+    vector_document_select(d, 1);
+    TEST_ASSERT_FALSE(vector_objects_can_order(d, VECTOR_ORDER_BACK));
+    TEST_ASSERT_TRUE(vector_objects_can_order(d, VECTOR_ORDER_FRONT));
+    TEST_ASSERT_TRUE(vector_rectangle_set_state(d, 1, VECTOR_OBJECT_LOCKED));
+    int count = d->history.count;
+    TEST_ASSERT_FALSE(vector_objects_order(d, VECTOR_ORDER_FRONT));
+    TEST_ASSERT_EQUAL_INT(count, d->history.count);
+    TEST_ASSERT_TRUE(vector_rectangle_set_state(d, 1, 0));
+    TEST_ASSERT_TRUE(vector_artboard_add(d, (PUIRect){500, 20, 200, 200}));
+    TEST_ASSERT_TRUE(vector_rectangle_add(d, 2, (PUIRect){10, 10, 20, 20}));
+    TEST_ASSERT_TRUE(vector_rectangle_add(d, 2, (PUIRect){50, 10, 20, 20}));
+    vector_document_select(d, 1);
+    vector_document_toggle(d, 3);
+    TEST_ASSERT_TRUE(vector_objects_order(d, VECTOR_ORDER_FRONT));
+    assert_order(d, (unsigned[]){2, 1, 4, 3}, 4);
+    TEST_ASSERT_EQUAL_INT(1, d->rectangles[1].parent_id);
+    TEST_ASSERT_EQUAL_INT(2, d->rectangles[3].parent_id);
+    TEST_ASSERT_TRUE(vector_artboard_set_state(d, 2, VECTOR_OBJECT_LOCKED));
+    count = d->history.count;
+    TEST_ASSERT_FALSE(vector_objects_order(d, VECTOR_ORDER_BACK)); // Atomic failure across parents.
+    TEST_ASSERT_EQUAL_INT(count, d->history.count);
+}
+
+static void test_root_order_and_checkpoint_redo_preserve_children_and_selection(void) {
+    VectorDocument *d = document();
+    TEST_ASSERT_TRUE(vector_artboard_add(d, (PUIRect){500, 20, 200, 200}));
+    TEST_ASSERT_TRUE(vector_artboard_add(d, (PUIRect){800, 20, 200, 200}));
+    VectorRectangle children[2];
+    memcpy(children, d->rectangles, sizeof children);
+    vector_document_select(d, 0);
+    d->active_artboard = 1;
+    commit();
+    action("vector.objects.order_front");
+    TEST_ASSERT_EQUAL_UINT(1, d->artboards[2].id);
+    TEST_ASSERT_EQUAL_MEMORY(children, d->rectangles, sizeof children);
+    TEST_ASSERT_EQUAL_UINT(1, d->active_artboard);
+    action("editor.undo");
+    TEST_ASSERT_EQUAL_UINT(1, d->artboards[0].id);
+    activate("scripts");
+    activate("vector");
+    d = document();
+    action("editor.redo");
+    TEST_ASSERT_EQUAL_UINT(1, d->artboards[2].id);
+    TEST_ASSERT_EQUAL_MEMORY(children, d->rectangles, sizeof children);
+    action("editor.undo");
+    TEST_ASSERT_EQUAL_UINT(1, d->artboards[0].id);
+}
+
+static Uint8 scene_red(VectorDocument *d, float x, float y) {
+    VectorViewport *v = &d->viewport;
+    SDL_Rect pixel = {(int)(v->bounds.x + v->x + x * v->zoom),
+                      (int)(v->bounds.y + v->y + y * v->zoom), 1, 1};
+    SDL_Surface *surface = SDL_RenderReadPixels(renderer, &pixel);
+    Uint8 r, g, b, a;
+    TEST_ASSERT_NOT_NULL(surface);
+    TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 0, 0, &r, &g, &b, &a));
+    SDL_DestroySurface(surface);
+    return r;
+}
+
+static void test_layer_submenu_back_navigation_tree_rendering_and_hit_order_agree(void) {
+    VectorDocument *d = document();
+    TEST_ASSERT_TRUE(vector_rectangle_set_angle(d, 1, 0));
+    TEST_ASSERT_TRUE(vector_rectangle_update(d, 1, "Red", (PUIRect){20, 20, 140, 120}));
+    TEST_ASSERT_TRUE(vector_rectangle_update(d, 2, "Blue", (PUIRect){20, 20, 140, 120}));
+    TEST_ASSERT_TRUE(vector_rectangle_set_fill(d, 1, 0xff0000ff));
+    TEST_ASSERT_TRUE(vector_rectangle_set_fill(d, 2, 0x0000ffff));
+    vector_document_select(d, 1);
+    commit();
+    TEST_ASSERT_EQUAL_UINT8(0, scene_red(d, 65, 75));
+    TEST_ASSERT_EQUAL_STRING("vector_document_1.rectangle_2",
+                             pui_view_tree_item_at(shell.view, "vector_document_tree", 65, 130));
+    int count = d->history.count;
+    click(SDL_BUTTON_RIGHT, 630, 400);
+    click(SDL_BUTTON_LEFT, 540, 348); // Six-sector root: Ebenen.
+    key(SDLK_ESCAPE, 0);              // Back to root, not closed.
+    click(SDL_BUTTON_LEFT, 540, 348);
+    click(SDL_BUTTON_LEFT, 630, 400); // Center: back.
+    click(SDL_BUTTON_LEFT, 540, 348);
+    TEST_ASSERT_EQUAL_INT(count, d->history.count); // Navigation is never a model command.
+    click(SDL_BUTTON_LEFT, 630, 296);               // Four-sector submenu: Ganz nach oben.
+    commit();
+    assert_order(d, (unsigned[]){2, 1}, 2);
+    TEST_ASSERT_EQUAL_INT(count + 1, d->history.count);
+    TEST_ASSERT_EQUAL_UINT8(255, scene_red(d, 65, 75));
+    TEST_ASSERT_EQUAL_STRING("vector_document_1.rectangle_1",
+                             pui_view_tree_item_at(shell.view, "vector_document_tree", 65, 130));
+    vector_document_select(d, 0);
+    d->active_artboard = 0;
+    commit();
+    VectorViewport *v = &d->viewport;
+    click(SDL_BUTTON_LEFT, v->bounds.x + v->x + 65 * v->zoom, v->bounds.y + v->y + 75 * v->zoom);
+    TEST_ASSERT_EQUAL_UINT(1, d->active_rectangle);
+    action("editor.undo");
+    TEST_ASSERT_EQUAL_UINT8(0, scene_red(d, 65, 75));
+    activate("scripts");
+    activate("vector");
+    action("editor.redo");
+    assert_order(document(), (unsigned[]){2, 1}, 2);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_order_stable_groups_stay_in_parent_slots_and_use_one_history_entry);
+    RUN_TEST(test_order_boundaries_locks_and_multiple_parents);
+    RUN_TEST(test_root_order_and_checkpoint_redo_preserve_children_and_selection);
+    RUN_TEST(test_layer_submenu_back_navigation_tree_rendering_and_hit_order_agree);
     RUN_TEST(test_tree_context_selects_row_without_collapsing_and_text_shortcuts_stay_in_input);
     RUN_TEST(test_radial_disabled_paste_outside_click_and_focus_loss_are_safe);
     RUN_TEST(test_group_delete_undo_restores_order_ids_properties_and_selection);

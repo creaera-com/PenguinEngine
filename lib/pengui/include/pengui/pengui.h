@@ -934,7 +934,8 @@ const char *pui_view_tab_at(const PUIView *view, const char *tabs, int index);
 SDL_SystemCursor pui_view_cursor(const PUIView *view);
 /** @brief Apply the seven theme colors from YAML to the existing renderer theme. */
 void pui_view_apply_theme(const PUILayout *layout);
-/** @brief Open a YAML radial_menu at the pointer, clamped to the view; children are buttons. */
+/** @brief Open a YAML radial_menu at the pointer; children are buttons or nested radial menus.
+ * Submenus reuse the center and diameter. Escape/center returns one level; outside closes all. */
 bool pui_view_open_radial(PUIView *view, const char *id, float x, float y);
 /** @brief Enable/disable a radial menu button at runtime; YAML enabled=false remains binding. */
 bool pui_view_set_radial_enabled(PUIView *view, const char *item, bool enabled);

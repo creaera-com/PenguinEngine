@@ -46,6 +46,7 @@ struct PUIView {
     PUIRect popup_rects[PUI_LAYOUT_DEPTH], bounds;
     bool radial_open;
     int radial_index, radial_pressed, radial_pending;
+    int radial_parents[PUI_LAYOUT_DEPTH], radial_depth;
     PUIRect radial_bounds;
     float radial_x, radial_y;
     SDL_SystemCursor cursor;
