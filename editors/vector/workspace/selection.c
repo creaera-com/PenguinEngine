@@ -277,8 +277,13 @@ static void begin(VectorDocument *document, unsigned board, unsigned rectangle, 
 
 static void update(VectorDocument *document, float x, float y) {
     VectorSelectionTool *tool = &document->selection_tool;
-    tool->offset_x = roundf((x - tool->start_x) / document->viewport.zoom);
-    tool->offset_y = roundf((y - tool->start_y) / document->viewport.zoom);
+    float dx = (x - tool->start_x) / document->viewport.zoom;
+    float dy = (y - tool->start_y) / document->viewport.zoom;
+    /* Keep subpixel movement until grid testing: rounding here changes the
+     * screen-space capture distance for fractional object coordinates. */
+    bool rectangle_move = tool->rectangle_id && !tool->resize_edges;
+    tool->offset_x = rectangle_move ? dx : roundf(dx);
+    tool->offset_y = rectangle_move ? dy : roundf(dy);
 }
 
 static bool finish(VectorDocument *document) {

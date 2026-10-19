@@ -582,8 +582,68 @@ static void test_editor_switch_discards_rotation_preview(void) {
     TEST_ASSERT_EQUAL_INT(3, doc->history.count);
 }
 
+static void test_move_snap_uses_screen_tolerance_without_rounding_away_fractional_positions(void) {
+    VectorDocument *doc = document();
+    TEST_ASSERT_TRUE(
+        vector_rectangle_update(doc, 1, "Fractional", (PUIRect){20.5f, 20.5f, 32, 32}));
+    vector_document_select(doc, 1);
+    doc->viewport.zoom = 4;
+    doc->grid.snap_enabled = true;
+    doc->grid.snap_tolerance = 5;
+    commit();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 36.5f, 36.5f);
+    TEST_ASSERT_EQUAL_UINT(0, doc->selection_tool.resize_edges);
+    // Desired edge 30.8 is 4.8 screen pixels from line 32, within the 5 px tolerance.
+    pointer(SDL_EVENT_MOUSE_MOTION, 46.8f, 36.5f);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 32, vector_rectangle_display_rect(doc, &doc->rectangles[0]).x);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 20.5f, doc->rectangles[0].rect.x);
+    int before = doc->history.count;
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 46.8f, 36.5f);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 32, doc->rectangles[0].rect.x);
+    TEST_ASSERT_EQUAL_INT(before + 1, doc->history.count);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    commit();
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 20.5f, doc->rectangles[0].rect.x);
+    // Just outside the tolerance: edge 30.7 is 5.2 screen pixels away and must remain free.
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 36.5f, 36.5f);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 46.7f, 36.5f);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 30.7f, doc->rectangles[0].rect.x);
+}
+
+static void test_fractional_move_snap_for_rotated_rectangles_and_groups(void) {
+    VectorDocument *doc = document();
+    unsigned id = 1;
+    PUIRect r = {20.5f, 20.5f, 32, 32};
+    float angle = 90;
+    TEST_ASSERT_TRUE(vector_rectangles_set_transforms(doc, &id, &r, &angle, 1));
+    vector_document_select(doc, 1);
+    doc->viewport.zoom = 4;
+    doc->grid.snap_enabled = true;
+    commit();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 36.5f, 36.5f);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 46.8f, 36.5f);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 32, doc->rectangles[0].rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(90, doc->rectangles[0].angle);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    commit();
+    TEST_ASSERT_TRUE(vector_rectangle_update(doc, 2, "Second", (PUIRect){100.5f, 70.5f, 32, 32}));
+    select_pair();
+    int before = doc->history.count;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 116.5f, 86.5f);
+    pointer(SDL_EVENT_MOUSE_MOTION, 126.8f, 86.5f);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 32, vector_rectangle_display_rect(doc, &doc->rectangles[0]).x);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 112, vector_rectangle_display_rect(doc, &doc->rectangles[1]).x);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 20.5f, doc->rectangles[0].rect.x);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 126.8f, 86.5f);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 32, doc->rectangles[0].rect.x);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 112, doc->rectangles[1].rect.x);
+    TEST_ASSERT_EQUAL_INT(before + 1, doc->history.count);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_fractional_move_snap_for_rotated_rectangles_and_groups);
+    RUN_TEST(test_move_snap_uses_screen_tolerance_without_rounding_away_fractional_positions);
     RUN_TEST(test_rotated_rendering_alpha_clipping_and_marquee);
     RUN_TEST(test_editor_switch_discards_rotation_preview);
     RUN_TEST(test_single_rotation_live_hit_testing_and_oriented_resize);

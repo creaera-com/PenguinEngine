@@ -716,6 +716,10 @@ und unnoetige Zeichenarbeit. Der Magnet-Button (`vector.grid.snap`) aktiviert da
 unabhaengig von der Rasteranzeige. Die Toleranz im Tools-Tab ist ein Fangabstand
 in **Bildschirm-Pixeln** (Standard 5, gueltig 0 bis 100). Dadurch bleibt das
 Mausgefuehl beim Zoomen gleich. 0 erlaubt nur exakt getroffene Rasterpunkte.
+Beim Verschieben von Rechtecken bleiben die Mausversaetze bis zur Rasterpruefung
+ungerundet. Andernfalls koennen gebrochene Objektpositionen bei hohem Zoom einen
+Fangpunkt innerhalb der Bildschirm-Toleranz verfehlen. Das gilt auch fuer gedrehte
+Rechtecke und den gemeinsamen Versatz einer Mehrfachauswahl.
 
 `grid/snap.c` enthaelt wiederverwendbare Geometrie ohne Dokument-, SDL-Eingabe-
 oder UI-Abhaengigkeiten. `vector_grid_snap_point` dient dem Setzen neuer Punkte;
