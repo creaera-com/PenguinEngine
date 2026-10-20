@@ -8,6 +8,7 @@
 #include "editors/vector/ui/context_menu/object_actions.h"
 #include "editors/vector/ui/document_tree/document_tree.h"
 #include "editors/vector/ui/inspector/inspector.h"
+#include "editors/vector/ui/tools/repeat.h"
 #include "workspace/documents.h"
 
 typedef struct {
@@ -19,6 +20,7 @@ typedef struct {
     VectorDocumentTabs document_tabs;
     VectorDocumentTree document_tree;
     VectorInspector inspector;
+    VectorRepeatUI repeat_ui;
     unsigned grid_document_id;
     unsigned active_document_id; ///< Resolved during UI commit for shared preview canvas routing.
     VectorObjectActions object_actions;

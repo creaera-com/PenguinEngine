@@ -790,8 +790,45 @@ static void test_tree_table_cells_do_not_select_or_expand_rows(void) {
     TEST_ASSERT_FALSE(pui_view_set_tree_items(view, "objects", items, 3));
 }
 
+static void test_scroll_panel_reveals_clipped_actions_and_respects_wheel_bounds(void) {
+    const char *yaml =
+        "schema: pengui/v1\nroot:\n  type: panel\n  id: scroller\n"
+        "  scroll: true\n  padding: 0\n  gap: 0\n  children:\n"
+        "    - {type: label, text: First, height: 200}\n"
+        "    - {type: button, id: button, text: Last, height: 40, action: test.click}\n";
+    pui_view_free(view);
+    pui_layout_free(layout);
+    char error[256];
+    layout = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+    view = pui_view_new(layout, renderer);
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 100, 100}, action, &actions);
+    TEST_ASSERT_FALSE(pui_view_hit(view, "button", 50, 80));
+    SDL_Event wheel = {.type = SDL_EVENT_MOUSE_WHEEL};
+    wheel.wheel.mouse_x = 50;
+    wheel.wheel.mouse_y = 50;
+    wheel.wheel.y = -100;
+    TEST_ASSERT_TRUE(pui_view_event(view, &pui, window, &wheel));
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 100, 100}, action, &actions);
+    TEST_ASSERT_TRUE(pui_view_hit(view, "button", 50, 80));
+    TEST_ASSERT_FALSE(pui_view_hit(view, "button", 50, 120));
+    pui_pointer(&pui, 50, 80, true);
+    pui_pointer(&pui, 50, 80, false);
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 100, 100}, action, &actions);
+    TEST_ASSERT_EQUAL_INT(1, actions);
+    wheel.wheel.mouse_y = 120;
+    TEST_ASSERT_FALSE(pui_view_event(view, &pui, window, &wheel));
+    wheel.wheel.mouse_y = 50;
+    wheel.wheel.y = -1;
+    wheel.wheel.direction = SDL_MOUSEWHEEL_FLIPPED;
+    TEST_ASSERT_TRUE(pui_view_event(view, &pui, window, &wheel));
+    pui_view_draw(view, &pui, (PUIRect){0, 0, 100, 100}, action, &actions);
+    TEST_ASSERT_FALSE(pui_view_hit(view, "button", 50, 80));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_scroll_panel_reveals_clipped_actions_and_respects_wheel_bounds);
     RUN_TEST(test_tree_table_cells_do_not_select_or_expand_rows);
     RUN_TEST(test_empty_tabs_can_draw_receive_first_document_and_use_checked_default);
     RUN_TEST(test_complete_tabler_catalog_and_filled_variants_are_available_offline);

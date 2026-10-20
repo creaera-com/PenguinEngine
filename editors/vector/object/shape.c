@@ -1,6 +1,7 @@
 /** @file @brief Generic path mapping and filled-area picking for vector shapes. */
 #include "shape.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/repeat/repeat.h"
 #include <math.h>
 
 VectorPath vector_shape_path(const VectorShape *shape, PUIRect rect, float angle) {
@@ -68,6 +69,18 @@ static float segment_distance(VectorPoint a, VectorPoint b, float x, float y) {
 }
 
 bool vector_shape_contains(const VectorShape *shape, float x, float y) {
+    if (shape->repeat.enabled) {
+        for (unsigned row = 0; row < shape->repeat.rows; row++) {
+            for (unsigned col = 0; col < shape->repeat.columns; col++) {
+                VectorShape instance;
+                if (vector_repeat_instance(shape, &shape->repeat, col, row, &instance) &&
+                    vector_shape_contains(&instance, x, y)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
     if (shape->curve.count && !shape->curve.closed) {
         VectorPath path = vector_shape_path(shape, shape->rect, shape->angle);
         for (unsigned i = 1; i < path.count; i++) {
@@ -92,6 +105,18 @@ bool vector_shape_contains(const VectorShape *shape, float x, float y) {
 }
 
 bool vector_shape_intersects(const VectorShape *shape, PUIRect box) {
+    if (shape->repeat.enabled) {
+        for (unsigned row = 0; row < shape->repeat.rows; row++) {
+            for (unsigned col = 0; col < shape->repeat.columns; col++) {
+                VectorShape instance;
+                if (vector_repeat_instance(shape, &shape->repeat, col, row, &instance) &&
+                    vector_shape_intersects(&instance, box)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
     if (box.w <= 0 || box.h <= 0) {
         return false;
     }

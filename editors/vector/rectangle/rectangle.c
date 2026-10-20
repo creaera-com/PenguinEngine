@@ -33,7 +33,9 @@ unsigned vector_rectangle_effective_flags(VectorDocument *document,
 
 bool vector_rectangle_valid(VectorRectangle rectangle) {
     PUIRect r = rectangle.rect;
-    if (!vector_image_valid(&rectangle.image) ||
+    if (!vector_repeat_valid(&rectangle.repeat) ||
+        (rectangle.repeat.enabled && rectangle.clip_mask) ||
+        !vector_image_valid(&rectangle.image) ||
         (*rectangle.image.source &&
          (rectangle.text.enabled || rectangle.clip_mask || rectangle.curve.count ||
           rectangle.path.count || rectangle.curve_kind)) ||

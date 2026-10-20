@@ -43,10 +43,18 @@ bool pui_view_event(PUIView *view, PUIContext *pui, SDL_Window *window, const SD
     } else if (event->type == SDL_EVENT_MOUSE_WHEEL) {
         for (int i = view->layout->count - 1; i >= 0; i--) {
             if (!view->visible[i] || !view->enabled[i] ||
-                !pui_contains(view->rect[i], event->wheel.mouse_x, event->wheel.mouse_y)) {
+                !pui_contains(view->hit[i], event->wheel.mouse_x, event->wheel.mouse_y)) {
                 continue;
             }
             if (pui_widget_tree_scroll(view, i, event) || pui_widget_tabs_scroll(view, i, event)) {
+                return true;
+            }
+            if (view->layout->nodes[i].scrollable && pui_scroll_max(&view->state[i].scroll) > 0) {
+                float delta = -event->wheel.y * 48;
+                if (event->wheel.direction == SDL_MOUSEWHEEL_FLIPPED) {
+                    delta = -delta;
+                }
+                pui_scroll_by(&view->state[i].scroll, delta);
                 return true;
             }
         }

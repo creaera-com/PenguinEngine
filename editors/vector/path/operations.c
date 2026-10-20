@@ -18,8 +18,9 @@ bool vector_paths_can_operate(VectorDocument *d, VectorPathOperation op) {
         if (!vector_document_is_selected(d, s->id)) {
             continue;
         }
-        if ((op >= VECTOR_PATH_UNION && vector_mask_find(d, s->group_id)) || *s->image.source ||
-            s->text.enabled || vector_rectangle_effective_flags(d, s) & VECTOR_OBJECT_STATE_MASK) {
+        if ((op >= VECTOR_PATH_UNION && (s->repeat.enabled || vector_mask_find(d, s->group_id))) ||
+            *s->image.source || s->text.enabled ||
+            vector_rectangle_effective_flags(d, s) & VECTOR_OBJECT_STATE_MASK) {
             return false;
         }
         if (op >= VECTOR_PATH_UNION && parent && parent != s->parent_id) {

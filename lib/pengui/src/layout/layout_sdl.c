@@ -113,6 +113,38 @@ void pui_view_draw_container(PUIView *v, PUIContext *pui, int i, PUIRect area, P
     area.y += n->padding;
     area.w = fmaxf(0, area.w - 2 * n->padding);
     area.h = fmaxf(0, area.h - 2 * n->padding);
+    if (n->scrollable) {
+        PUIScroll *scroll = &v->state[i].scroll;
+        scroll->content = 0;
+        int count = 0;
+        for (int k = n->child; k >= 0; k = v->layout->nodes[k].next) {
+            scroll->content += pui_view_node_height(v, k);
+            count++;
+        }
+        scroll->content += n->gap * fmaxf(0, count - 1);
+        scroll->viewport = area.h;
+        pui_scroll_clamp(scroll);
+        PUIRect track = {area.x + area.w - 8, area.y, 8, area.h};
+        bool overflow = pui_scroll_max(scroll) > 0;
+        if (overflow) {
+            pui_scrollbar(pui, n->id ^ 0x65000000u, track, scroll, PUI_AXIS_Y);
+        }
+        PUIRect content = area;
+        if (overflow) {
+            content.w = fmaxf(0, content.w - 12);
+        }
+        pui_clip_push(pui, content);
+        pui_apply_clip(v->renderer, pui);
+        content.y -= scroll->offset;
+        content.h = fmaxf(content.h, scroll->content);
+        pui_view_draw_children(v, pui, i, content, false, action, context);
+        pui_clip_pop(pui);
+        pui_apply_clip(v->renderer, pui);
+        if (overflow) {
+            pui_draw_scrollbar(v->renderer, pui, n->id ^ 0x65000000u, track, scroll, PUI_AXIS_Y);
+        }
+        return;
+    }
     pui_view_draw_children(v, pui, i, area, n->type == PUI_NODE_ROW || n->type == PUI_NODE_TOOLBAR,
                            action, context);
 }

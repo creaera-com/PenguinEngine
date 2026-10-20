@@ -9,6 +9,7 @@
 #include "editors/vector/mask/render.h"
 #include "editors/vector/path/render.h"
 #include "editors/vector/polygon/polygon.h"
+#include "editors/vector/repeat/render.h"
 #include "editors/vector/workspace/box_tool.h"
 #include "editors/vector/workspace/selection.h"
 #include "stroke_render.h"
@@ -71,6 +72,7 @@ typedef struct {
     SDL_FRect board;
     VectorTextRenderer *text;
     VectorImageRenderer *images;
+    bool instance;
 } DrawShape;
 
 static void draw_shape(void *data) {
@@ -84,50 +86,57 @@ static void draw_shape(void *data) {
         document->fill_preview.active && document->fill_preview.rectangle_id == rectangle->id
             ? document->fill_preview.color
             : rectangle->fill;
-    const VectorShape *shown = vector_curve_display_shape(document, rectangle);
+    const VectorShape *shown =
+        context->instance ? rectangle : vector_curve_display_shape(document, rectangle);
+    PUIRect rect = context->instance ? shown->rect : vector_rectangle_display_rect(document, shown);
+    float angle =
+        context->instance ? shown->angle : vector_rectangle_display_angle(document, shown);
     if (*shown->image.source) {
-        vector_image_draw(
-            context->images, renderer, shown, vector_rectangle_display_rect(document, shown),
-            vector_rectangle_display_angle(document, shown), board, document->viewport.zoom);
+        vector_image_draw(context->images, renderer, shown, rect, angle, board,
+                          document->viewport.zoom);
         return;
     }
     if (shown->text.enabled) {
         if (shown->stroke.width > 0) {
-            draw(renderer, board, document->viewport.zoom,
-                 vector_rectangle_display_rect(document, shown), false, false, 0,
-                 vector_rectangle_display_angle(document, shown), shown->stroke);
+            draw(renderer, board, document->viewport.zoom, rect, false, false, 0, angle,
+                 shown->stroke);
         }
-        vector_text_draw(
-            text, renderer, document, shown, vector_rectangle_display_rect(document, shown),
-            vector_rectangle_display_angle(document, shown), board, document->viewport.zoom, fill,
-            vector_document_is_selected(document, shown->id));
+        vector_text_draw(text, renderer, document, shown, rect, angle, board,
+                         document->viewport.zoom, fill,
+                         vector_document_is_selected(document, shown->id));
         return;
     }
     if (shown->curve_kind == VECTOR_CURVE_ELLIPSE) {
-        vector_ellipse_draw(renderer, shown, vector_rectangle_display_rect(document, shown),
-                            vector_rectangle_display_angle(document, shown), board,
-                            document->viewport.zoom, fill,
+        vector_ellipse_draw(renderer, shown, rect, angle, board, document->viewport.zoom, fill,
                             vector_document_is_selected(document, rectangle->id));
         return;
     }
     if (shown->curve.count) {
-        vector_curve_draw(renderer, shown, vector_rectangle_display_rect(document, shown),
-                          vector_rectangle_display_angle(document, shown), board,
-                          document->viewport.zoom, fill,
+        vector_curve_draw(renderer, shown, rect, angle, board, document->viewport.zoom, fill,
                           vector_document_is_selected(document, rectangle->id));
         return;
     }
     if (rectangle->path.count) {
-        vector_path_draw(renderer, rectangle, vector_rectangle_display_rect(document, rectangle),
-                         vector_rectangle_display_angle(document, rectangle), board,
-                         document->viewport.zoom, fill,
+        vector_path_draw(renderer, rectangle, rect, angle, board, document->viewport.zoom, fill,
                          vector_document_is_selected(document, rectangle->id));
         return;
     }
-    draw(renderer, board, document->viewport.zoom,
-         vector_rectangle_display_rect(document, rectangle),
-         vector_document_is_selected(document, rectangle->id), false, fill,
-         vector_rectangle_display_angle(document, rectangle), rectangle->stroke);
+    draw(renderer, board, document->viewport.zoom, rect,
+         vector_document_is_selected(document, rectangle->id), false, fill, angle,
+         rectangle->stroke);
+}
+
+static void draw_instance(void *data, VectorShape *shape) {
+    DrawShape instance = *(DrawShape *)data;
+    instance.rectangle = shape;
+    instance.instance = true;
+    draw_shape(&instance);
+}
+
+static void draw_repeated(void *data) {
+    DrawShape *content = data;
+    draw_shape(content);
+    vector_repeat_render(content->document, content->rectangle, draw_instance, content);
 }
 
 void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *parent,
@@ -172,15 +181,15 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
             }
             continue;
         }
-        DrawShape content = {document, rectangle, renderer, board, text, images};
+        DrawShape content = {document, rectangle, renderer, board, text, images, false};
         const VectorShape *mask = vector_mask_find(document, rectangle->group_id);
         if (mask) {
             const VectorShape *shown = vector_curve_display_shape(document, mask);
             vector_mask_render(&masks, shown, vector_rectangle_display_rect(document, shown),
                                vector_rectangle_display_angle(document, shown), board,
-                               document->viewport.zoom, draw_shape, &content);
+                               document->viewport.zoom, draw_repeated, &content);
         } else {
-            draw_shape(&content);
+            draw_repeated(&content);
         }
     }
     vector_mask_renderer_destroy(&masks);

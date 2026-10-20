@@ -21,6 +21,7 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         snprintf(error, capacity, "could not allocate Vector editor");
         return NULL;
     }
+    editor->repeat_ui.property = VECTOR_REPEAT_ANGLE;
     PUILayout *root = editor_load_ui(services, "editors/vector/ui/editor.yaml", error, capacity);
     if (!root) {
         free(editor);
@@ -29,6 +30,16 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
     PUILayout *inspector = vector_inspector_load(services, error, capacity);
     if (inspector) {
         editor->layout = pui_layout_compose(root, "inspector_content", inspector, error, capacity);
+    }
+    if (editor->layout) {
+        PUILayout *repeat =
+            editor_load_ui(services, "editors/vector/ui/tools/repeat.yaml", error, capacity);
+        PUILayout *combined =
+            repeat ? pui_layout_compose(editor->layout, "repeat_content", repeat, error, capacity)
+                   : NULL;
+        pui_layout_free(editor->layout);
+        pui_layout_free(repeat);
+        editor->layout = combined;
     }
     pui_layout_free(inspector);
     pui_layout_free(root);
@@ -125,6 +136,9 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
         if (document) {
             vector_canvas_center(document);
         }
+        return true;
+    }
+    if (vector_repeat_ui_action(&editor->repeat_ui, document, view, name)) {
         return true;
     }
     if (vector_preview_action(document, view, name)) {
@@ -256,6 +270,7 @@ bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, c
     }
     vector_toolbar_sync(view, active);
     vector_grid_sync(view, active, &editor->grid_document_id);
+    vector_repeat_ui_sync(&editor->repeat_ui, active, view);
     if (!vector_document_tree_sync(&editor->document_tree, active, view, error, capacity)) {
         return false;
     }

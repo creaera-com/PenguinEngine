@@ -820,3 +820,13 @@ den gesamten Stack. Das Austauschen des Layouts setzt ihn ebenfalls zurueck.
 Nur Blattaktionen gelangen zum `PUIAction`-Callback; reine Navigation aendert
 keine Anwendungsdaten. `pui_view_set_radial_enabled()` funktioniert auch fuer
 ganze Untermenues und deren einzelne Eintraege.
+
+## Scrollbare Panels
+
+Ein YAML-Panel mit `scroll: true` begrenzt seine Kinder auf den sichtbaren Bereich
+und ergänzt bei Überlauf eine vertikale Scrollbar. Das Mausrad wirkt nur innerhalb
+des sichtbaren Panels; native invertierte Scrollrichtung wird berücksichtigt.
+Die Inhaltshöhe ergibt sich aus den natürlichen/festgelegten Höhen der Kinder,
+einschließlich offener Abschnitte. Der Scrollzustand bleibt bei Slot-Ersetzungen
+für Panels mit expliziter ID erhalten. Flexible Kinder allein erzeugen keinen Überlauf.
+Die Scrollfunktion ist Teil von pengUI und unabhängig von den Editoren.

@@ -170,7 +170,7 @@ void vector_text_draw(VectorTextRenderer *cache, SDL_Renderer *r, const VectorDo
                                255);
         SDL_RenderLines(r, corners, 5);
     }
-    if (d->text_tool.editing_id != s->id) {
+    if (!s->id || d->text_tool.editing_id != s->id) {
         return;
     }
     size_t cursor = d->text_tool.edit.cursor, anchor = d->text_tool.edit.anchor;

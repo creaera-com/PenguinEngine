@@ -148,6 +148,8 @@ root:
               padding: 0
               children:
                 - type: panel
+                  id: vector_tools_panel
+                  scroll: true
                   padding: 4
                   gap: 8
                   children:
@@ -164,6 +166,7 @@ root:
                             - {type: toggle, id: vector_preview_select, text: Bereich waehlen, icon: tabler:scan, action: vector.preview.select}
                             - {type: button, icon: tabler:x, action: vector.preview.clear, width: 28}
                         - {type: canvas, id: vector_preview_canvas, height: 128}
+                    - {type: slot, id: repeat_content}
                     - type: section
                       id: section_tools_grid_settings
                       text: Raster

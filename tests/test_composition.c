@@ -49,7 +49,8 @@ static void test_duplicate_ids_missing_slot_and_capacity_fail_atomically(void) {
     TEST_ASSERT_NULL(pui_layout_compose(base, "body", child, error, sizeof error));
     TEST_ASSERT_EQUAL_INT(3, base->count);
     pui_layout_free(child);
-    char yaml[7000] = "schema: pengui/v1\nroot: {type: column, children: [";
+    char yaml[128 + PUI_LAYOUT_NODES * sizeof(",{type: label}")] =
+        "schema: pengui/v1\nroot: {type: column, children: [";
     for (int i = 0; i < PUI_LAYOUT_NODES - 2; i++) {
         strcat(yaml, i ? ",{type: label}" : "{type: label}");
     }

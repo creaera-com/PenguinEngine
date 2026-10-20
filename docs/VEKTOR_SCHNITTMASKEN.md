@@ -63,5 +63,5 @@ Die vorhandenen Kapazitätsgrenzen für Formen und abgeleitete Pfadgeometrie gel
 
 Erzeugen und Lösen sind jeweils ein Undo-Schritt. Kopieren zwischen Dokument-Tabs,
 Dateispeicherung und temporäres Entladen beim Editorwechsel erhalten die Maskenrolle.
-Das dauerhafte Format ist jetzt **PENGVEC Version 2** mit Reader für Version 1;
-der private Sitzungs-Checkpoint heißt **PVCKPT26**.
+Das dauerhafte Format ist jetzt **PENGVEC Version 4** mit Reader für Version 1;
+der private Sitzungs-Checkpoint heißt **PVCKPT27**.

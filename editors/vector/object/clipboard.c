@@ -38,7 +38,13 @@ bool vector_clipboard_valid(const VectorClipboard *c) {
             }
         }
     }
+    unsigned instances = 0;
     for (int i = 0; i < c->rectangle_count; i++) {
+        const VectorRepeat *repeat = &c->rectangles[i].repeat;
+        instances += repeat->enabled ? repeat->columns * repeat->rows : 1;
+        if (instances > VECTOR_REPEAT_DOCUMENT_LIMIT) {
+            return false;
+        }
         if (!vector_rectangle_valid(c->rectangles[i])) {
             return false;
         }

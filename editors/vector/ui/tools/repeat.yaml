@@ -1,0 +1,73 @@
+schema: pengui/v1
+root:
+  type: section
+  id: section_tools_repeat
+  text: Klonen / Wiederholen
+  open: false
+  padding: 4
+  gap: 4
+  children:
+    - {type: label, id: repeat_source, text: Ein Objekt auswaehlen, height: 24}
+    - type: dropdown
+      id: repeat_mode
+      action: vector.repeat.mode
+      value: linked
+      height: 28
+      children:
+        - {type: option, text: Verknuepft, value: linked}
+        - {type: option, text: Unabhaengige Kopien, value: detached}
+    - type: row
+      height: 28
+      padding: 0
+      gap: 3
+      children:
+        - {type: label, text: Spalten, width: 60}
+        - {type: input, id: repeat_columns, text: "5", action: vector.repeat.columns}
+        - {type: label, text: Zeilen, width: 52}
+        - {type: input, id: repeat_rows, text: "4", action: vector.repeat.rows}
+    - {type: label, text: "Abstand X / Y (px)", height: 24}
+    - type: row
+      height: 28
+      padding: 0
+      gap: 3
+      children:
+        - {type: label, text: X, width: 16}
+        - {type: input, id: repeat_gap_x, text: "8", action: vector.repeat.gap_x}
+        - {type: label, text: Y, width: 16}
+        - {type: input, id: repeat_gap_y, text: "8", action: vector.repeat.gap_y}
+    - {type: label, id: repeat_count, height: 24}
+    - type: dropdown
+      id: repeat_property
+      action: vector.repeat.property
+      value: angle
+      height: 28
+      children:
+        - {type: option, text: "Breite (px)", value: width}
+        - {type: option, text: "Hoehe (px)", value: height}
+        - {type: option, text: "Winkel (Grad)", value: angle}
+        - {type: option, text: "Rahmenbreite (px)", value: stroke}
+        - {type: option, text: "Fuellung: Farbton (Grad)", value: fill_h}
+        - {type: option, text: "Fuellung: Saettigung (%)", value: fill_s}
+        - {type: option, text: "Fuellung: Helligkeit (%)", value: fill_l}
+        - {type: option, text: "Fuellung: Deckkraft (%)", value: fill_a}
+        - {type: option, text: "Rahmen: Farbton (Grad)", value: stroke_h}
+        - {type: option, text: "Rahmen: Saettigung (%)", value: stroke_s}
+        - {type: option, text: "Rahmen: Helligkeit (%)", value: stroke_l}
+        - {type: option, text: "Rahmen: Deckkraft (%)", value: stroke_a}
+    - type: row
+      height: 28
+      padding: 0
+      gap: 3
+      children:
+        - {type: label, text: Spalte, width: 56}
+        - {type: input, id: repeat_column_step, text: "0", action: vector.repeat.column_step}
+        - {type: label, text: Zeile, width: 48}
+        - {type: input, id: repeat_row_step, text: "0", action: vector.repeat.row_step}
+    - type: row
+      height: 28
+      padding: 0
+      gap: 4
+      children:
+        - {type: button, text: Anwenden, icon: tabler:copy, action: vector.repeat.apply}
+        - {type: button, text: Loesen, action: vector.repeat.detach}
+    - {type: button, text: Wiederholung entfernen, action: vector.repeat.remove, height: 28}

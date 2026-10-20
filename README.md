@@ -418,3 +418,9 @@ im Artboard wählen; große Bereiche folgen der Zeichenansicht.
 
 Der Bildimport-Button kopiert PNG/JPEG ins Projekt und fügt ein bearbeitbares Bildobjekt
 im aktiven Artboard ein. [Bedienung und Asset-Pfade](docs/VEKTOR_BILDER.md).
+
+
+## Klonen und Wiederholen
+
+Der Tools-Tab erstellt verknüpfte Raster oder unabhängige Kopien mit schrittweisen
+Eigenschaftsänderungen. [Bedienung, Grenzen und Architektur](docs/VEKTOR_WIEDERHOLUNG.md).

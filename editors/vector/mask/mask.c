@@ -45,7 +45,7 @@ bool vector_mask_can_create(VectorDocument *d) {
     for (int i = 0; i < d->rectangle_count; i++) {
         const VectorShape *s = &d->rectangles[i];
         if (vector_document_is_selected(d, s->id)) {
-            if (vector_mask_find(d, s->group_id)) {
+            if (s->repeat.enabled || vector_mask_find(d, s->group_id)) {
                 return false; // Nested clipping groups need a genuine nested hierarchy first.
             }
             top = s;

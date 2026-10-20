@@ -123,7 +123,8 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     if (!keys(r, yaml,
               "|type|id|text|action|icon|image|width|height|gap|padding|initial|"
               "initial_second|initial_last|minimum_first|minimum_second|minimum_last|flex|image_"
-              "padding|enabled|open|checked|draggable|axis|children|value|popup_width|popup_height|"
+              "padding|enabled|open|checked|draggable|scroll|axis|children|value|popup_width|popup_"
+              "height|"
               "placement|preview_action|mode|")) {
         return -1;
     }
@@ -193,6 +194,11 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
         out->padding = 0;
     }
     out->draggable = boolean(r, yaml, "draggable", false);
+    out->scrollable = boolean(r, yaml, "scroll", false);
+    if (out->scrollable && out->type != PUI_NODE_PANEL) {
+        fail(r, yaml, "scroll requires a panel");
+        return -1;
+    }
     yaml_node_t *axis = get(r, yaml, "axis");
     if (axis) {
         const char *value = scalar(r, axis);

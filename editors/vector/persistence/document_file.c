@@ -162,15 +162,32 @@ static void shape(Codec *c, VectorShape *s) {
             integer(c, &s->image.flip_y);
         }
     }
+    if (c->version >= 4) {
+        integer(c, &s->repeat.enabled);
+        if (s->repeat.enabled > 1) {
+            c->ok = false;
+            return;
+        }
+        if (s->repeat.enabled) {
+            integer(c, &s->repeat.columns);
+            integer(c, &s->repeat.rows);
+            real(c, &s->repeat.gap_x);
+            real(c, &s->repeat.gap_y);
+            for (int i = 0; i < VECTOR_REPEAT_PROPERTIES; i++) {
+                real(c, &s->repeat.column.value[i]);
+                real(c, &s->repeat.row.value[i]);
+            }
+        }
+    }
 }
 
 static bool content(Codec *c, VectorClipboard *values) {
     char magic[8] = {'P', 'E', 'N', 'G', 'V', 'E', 'C', 0}, actual[8];
     memcpy(actual, magic, 8);
     bytes(c, actual, 8);
-    unsigned version = 3;
+    unsigned version = 4;
     integer(c, &version);
-    if (memcmp(actual, magic, 8) || (version < 1 || version > 3)) {
+    if (memcmp(actual, magic, 8) || (version < 1 || version > 4)) {
         return false;
     }
     c->version = version;
