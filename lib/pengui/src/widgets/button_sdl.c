@@ -20,27 +20,8 @@ static int rounded_points(SDL_FRect r, float radius, SDL_FPoint points[37]) {
 
 static void background(SDL_Renderer *r, SDL_FRect rect, float radius, uint32_t color,
                        uint32_t focus) {
-    if (radius <= 0) {
-        pui_panel(r, rect, color);
-    } else {
-        SDL_FPoint points[37];
-        int count = rounded_points(rect, radius, points);
-        SDL_Vertex vertices[38];
-        int indices[108];
-        SDL_FColor c = {(color >> 24) / 255.f, ((color >> 16) & 255) / 255.f,
-                        ((color >> 8) & 255) / 255.f, (color & 255) / 255.f};
-        vertices[0] =
-            (SDL_Vertex){.position = {rect.x + rect.w / 2, rect.y + rect.h / 2}, .color = c};
-        for (int i = 0; i <= count; i++) {
-            vertices[i + 1] = (SDL_Vertex){.position = points[i], .color = c};
-        }
-        for (int i = 0; i < count; i++) {
-            indices[3 * i] = 0;
-            indices[3 * i + 1] = i + 1;
-            indices[3 * i + 2] = i + 2;
-        }
-        SDL_RenderGeometry(r, NULL, vertices, count + 2, indices, count * 3);
-    }
+    pui_rounded_panel(r, rect, color, radius, false);
+
     if (focus & 255) {
         pui_render_color(r, focus);
         SDL_FRect outline = {rect.x + .5f, rect.y + .5f, fmaxf(0, rect.w - 1),

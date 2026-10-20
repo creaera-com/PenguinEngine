@@ -893,3 +893,29 @@ Wert direkt am `tab` hat Vorrang. `0` deaktiviert den Übergang.
 Der Übergangszustand gehört zur stabilen Tab-ID und bleibt beim Umsortieren mit
 dem Tab verbunden. Die gemeinsamen zustandslosen `pui_draw_tab`-Aufrufe bleiben
 sofortige Zeichenoperationen; automatische Übergänge werden von der View gehalten.
+
+### Runde Toolbars und obere Tab-Ecken
+
+```yaml
+theme:
+  button_radius: 4
+  toolbar_radius: 4
+  tab_radius: 4
+```
+
+`toolbar_radius` rundet alle vier Toolbar-Ecken. `tab_radius` rundet nur links
+oben und rechts oben; die unteren Ecken schließen bündig an den Panelinhalt an.
+Ohne eigene Theme-Werte übernehmen beide `button_radius`. Ein expliziter Wert
+von `0` bleibt eckig. Alle Radien verwenden Pixel, sind auf 0–1024 begrenzt und
+werden beim Zeichnen auf die halbe kleinere Elementkante geklemmt.
+
+Ein `radius` am `toolbar` überschreibt den Toolbar-Standard. Bei Tabs gilt die
+Reihenfolge: `radius` am einzelnen `tab`, dann am `tabs`-Container, dann Theme.
+Die bestehende Farbtransition bleibt davon unabhängig. Innenabstände und
+rechteckige Klickflächen ändern sich nicht; Toolbar-Inhalte sollten wie bisher
+etwas Padding haben, damit sie die runden Außenkanten nicht überdecken.
+
+Buttons, Toolbars und Tabs verwenden die gemeinsame interne Zeichenprimitive
+`pui_rounded_panel`. Sie unterstützt entweder vier runde Ecken oder ausschließlich
+die beiden oberen Ecken; Rundungen gehören damit weiterhin zur Darstellung und
+ändern weder Layout noch Eingabeverarbeitung.

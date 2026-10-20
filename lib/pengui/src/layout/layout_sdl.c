@@ -102,7 +102,12 @@ void pui_view_draw_container(PUIView *v, PUIContext *pui, int i, PUIRect area, P
                              void *context) {
     const PUINode *n = &v->layout->nodes[i];
     if (n->type == PUI_NODE_PANEL || n->type == PUI_NODE_TOOLBAR) {
-        pui_panel(v->renderer, pui_frect(area), PUI_PANEL);
+        if (n->type == PUI_NODE_TOOLBAR) {
+            pui_rounded_panel(v->renderer, pui_frect(area), PUI_PANEL,
+                              n->radius >= 0 ? n->radius : pui_theme.toolbar_radius, false);
+        } else {
+            pui_panel(v->renderer, pui_frect(area), PUI_PANEL);
+        }
     }
     if (n->type == PUI_NODE_PANEL && *n->text) {
         pui_text(v->renderer, area.x + 12, area.y + 10, n->text, PUI_MUTED);

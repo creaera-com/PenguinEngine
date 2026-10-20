@@ -8,8 +8,8 @@ float pui_tab_content_width(PUIIcon icon, const char *label) {
 }
 
 static void draw_tab_colors(SDL_Renderer *r, SDL_FRect rect, PUIIcon icon, const char *label,
-                            Uint32 background, Uint32 foreground) {
-    pui_panel(r, rect, background);
+                            Uint32 background, Uint32 foreground, float radius) {
+    pui_rounded_panel(r, rect, background, radius, true);
     if (icon != ICON_NONE) {
         pui_icon(r, icon, rect.x + 9, rect.y + (rect.h - 16) * .5f, 16, foreground);
     }
@@ -23,7 +23,7 @@ void pui_draw_tab(SDL_Renderer *r, SDL_FRect rect, PUIIcon icon, const char *lab
                     active  ? PUI_PANEL
                     : hover ? PUI_HOVER
                             : PUI_SURFACE,
-                    enabled ? PUI_TEXT : PUI_DISABLED);
+                    enabled ? PUI_TEXT : PUI_DISABLED, pui_theme.tab_radius);
 }
 
 void pui_widget_tabs_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
@@ -57,7 +57,10 @@ void pui_widget_tabs_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
         foreground =
             pui_color_transition(&state->button_foreground, foreground, v->frame_ms, duration);
         draw_tab_colors(v->renderer, pui_frect(r), pui_icon_from_name(tab->icon), state->text,
-                        background, foreground);
+                        background, foreground,
+                        tab->radius >= 0 ? tab->radius
+                        : n->radius >= 0 ? n->radius
+                                         : pui_theme.tab_radius);
     }
     for (int k = n->child; k >= 0; k = v->layout->nodes[k].next) {
         if (v->layout->nodes[k].id == s->tabs.selected) {

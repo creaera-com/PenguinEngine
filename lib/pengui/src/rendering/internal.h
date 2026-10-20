@@ -14,4 +14,7 @@ static inline void pui_render_color(SDL_Renderer *r, Uint32 c) {
 PUIIcon pui_tabler_from_name(const char *name);
 void pui_tabler_draw(SDL_Renderer *renderer, PUIIcon icon, float x, float y, float size,
                      Uint32 rgba);
+/** @brief Filled rounded surface; upper_only keeps bottom corners square. */
+void pui_rounded_panel(SDL_Renderer *renderer, SDL_FRect rect, Uint32 color, float radius,
+                       bool upper_only);
 #endif

@@ -208,6 +208,8 @@ static void test_button_theme_defaults_overrides_and_validation(void) {
     TEST_ASSERT_NOT_NULL_MESSAGE(l, error);
     TEST_ASSERT_EQUAL_FLOAT(4, l->button_radius);
     TEST_ASSERT_EQUAL_FLOAT(120, l->button_transition_ms);
+    TEST_ASSERT_EQUAL_FLOAT(4, l->toolbar_radius);
+    TEST_ASSERT_EQUAL_FLOAT(4, l->tab_radius);
     int child = l->nodes[l->root].child;
     TEST_ASSERT_EQUAL_FLOAT(-1, l->nodes[child].radius);
     TEST_ASSERT_EQUAL_FLOAT(-1, l->nodes[child].transition_ms);

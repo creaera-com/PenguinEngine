@@ -377,9 +377,12 @@ PUILayout *pui_layout_parse(const char *text, size_t length, char *error, size_t
         yaml_node_t *theme = get(&r, root, "theme");
         if (theme && keys(&r, theme,
                           "|background|panel|surface|hover|accent|text|muted|button_radius|button_"
-                          "transition_ms|")) {
+                          "transition_ms|toolbar_radius|tab_radius|")) {
             layout->button_radius = number(&r, theme, "button_radius", 0, 0, 1024);
             layout->button_transition_ms = number(&r, theme, "button_transition_ms", 0, 0, 10000);
+            layout->toolbar_radius =
+                number(&r, theme, "toolbar_radius", layout->button_radius, 0, 1024);
+            layout->tab_radius = number(&r, theme, "tab_radius", layout->button_radius, 0, 1024);
             const char *names[] = {"background", "panel", "surface", "hover",
                                    "accent",     "text",  "muted"};
             for (int i = 0; i < 7; i++) {

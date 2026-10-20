@@ -13,6 +13,8 @@ PUITheme pui_theme = {0x101010ffu,
                       0x686868ffu,
                       0x303030ffu,
                       0,
+                      0,
+                      0,
                       0};
 
 void pui_set_theme(const PUITheme *theme) {
@@ -30,6 +32,8 @@ PUITheme pui_dark_theme(void) {
                       0x686868ffu,
                       0x303030ffu,
                       0,
+                      0,
+                      0,
                       0};
 }
 
@@ -44,5 +48,7 @@ void pui_view_apply_theme(const PUILayout *layout) {
     theme.muted = layout->colors[6];
     theme.button_radius = layout->button_radius;
     theme.button_transition_ms = layout->button_transition_ms;
+    theme.toolbar_radius = layout->toolbar_radius;
+    theme.tab_radius = layout->tab_radius;
     pui_set_theme(&theme);
 }

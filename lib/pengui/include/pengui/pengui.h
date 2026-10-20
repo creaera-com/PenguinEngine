@@ -557,6 +557,7 @@ typedef struct {
     int width, height, count, root;
     uint32_t colors[7];
     float button_radius, button_transition_ms; ///< Theme defaults, in pixels and milliseconds.
+    float toolbar_radius, tab_radius;          ///< Toolbar corners and upper tab corners.
     PUINode nodes[PUI_LAYOUT_NODES];
 } PUILayout;
 
@@ -698,6 +699,7 @@ typedef struct {
     Uint32 disabled;                           ///< Farbe deaktivierter Elemente als RGBA.
     Uint32 border;                             ///< Rahmenfarbe als RGBA.
     float button_radius, button_transition_ms; ///< Default button shape and color transition.
+    float toolbar_radius, tab_radius;          ///< Toolbar corners and upper tab corners.
 } PUITheme;
 
 /** @brief Gemeinsame UI-Palette; über pui_set_theme aktualisieren. */
