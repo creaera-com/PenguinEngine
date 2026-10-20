@@ -4,6 +4,7 @@
 #include "editors/vector/curve/render.h"
 #include "editors/vector/document/document.h"
 #include "editors/vector/grid/render.h"
+#include "editors/vector/preview/render.h"
 #include "editors/vector/rectangle/render.h"
 #include "editors/vector/workspace/box_tool.h"
 #include "editors/vector/workspace/selection.h"
@@ -79,6 +80,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
             SDL_RenderRect(renderer, &rect);
         }
     }
+    vector_preview_overlay(document, renderer);
     vector_element_guides_draw(document, renderer);
     if (!document->curve_tool.pen && !document->curve_tool.nodes) {
         vector_selection_draw_handles(document, renderer);

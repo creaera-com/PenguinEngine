@@ -7,6 +7,7 @@
 #include "editors/vector/curve/tool_state.h"
 #include "editors/vector/grid/state.h"
 #include "editors/vector/history/history.h"
+#include "editors/vector/preview/state.h"
 #include "editors/vector/rectangle/rectangle.h"
 #include "editors/vector/text/tool_state.h"
 #include "editors/vector/workspace/box_tool_state.h"
@@ -32,6 +33,7 @@ typedef struct VectorDocument {
     VectorHistory history;
     VectorViewport viewport;
     VectorGrid grid;
+    VectorPreview preview;     ///< Per-document viewing region; not a persistent artwork edit.
     bool element_snap_enabled; ///< Object alignment guides and magnetic movement, independent of
                                ///< grid.
     VectorArtboardTool artboard_tool;

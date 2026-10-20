@@ -9,7 +9,7 @@
 
 /* Native integer/float representation is sufficient for a private file in this process.
  * Changing this schema requires a new signature. This is not an SVG or interchange format. */
-static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '2', '4'};
+static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '2', '5'};
 
 #define WRITE(value) (fwrite(&(value), sizeof(value), 1, file) == 1)
 #define READ(value) (fread(&(value), sizeof(value), 1, file) == 1)
@@ -82,7 +82,8 @@ static bool write_document(const VectorDocument *document, FILE *file) {
         !WRITE(document->viewport.zoom) || !WRITE(grid_visible) || !WRITE(grid_snap) ||
         !WRITE(document->grid.snap_tolerance) || !WRITE(document->grid.type) ||
         !WRITE(document->grid.width) || !WRITE(document->grid.height) ||
-        !WRITE(document->grid.color) || !WRITE(element_snap) || !WRITE(document->history.count) ||
+        !WRITE(document->grid.color) || !WRITE(element_snap) || !WRITE(document->preview.board) ||
+        !WRITE(document->preview.region) || !WRITE(document->history.count) ||
         !WRITE(document->history.cursor) || !WRITE(selection.count) ||
         fwrite(selection.ids, sizeof *selection.ids, selection.count, file) !=
             (size_t)selection.count) {
@@ -236,6 +237,9 @@ static bool read_document(VectorDocument *document, unsigned expected_id, FILE *
         document->grid.snap_tolerance < 0 || document->grid.snap_tolerance > 100 ||
         !READ(document->grid.type) || !READ(document->grid.width) || !READ(document->grid.height) ||
         !READ(document->grid.color) || !READ(element_snap) || element_snap > 1 ||
+        !READ(document->preview.board) || !READ(document->preview.region) ||
+        document->preview.board >= document->next_artboard_id ||
+        !vector_preview_valid(document->preview.board, document->preview.region) ||
         (document->grid.type != VECTOR_GRID_STANDARD &&
          document->grid.type != VECTOR_GRID_HEXAGONAL &&
          document->grid.type != VECTOR_GRID_ISOMETRIC) ||

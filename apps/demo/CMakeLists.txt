@@ -86,6 +86,9 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/grid/snap.c
  ${PROJECT_SOURCE_DIR}/editors/vector/grid/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/tools/grid.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/preview/region.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/preview/tool.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/preview/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/toolbar/toolbar.c
  ${PROJECT_SOURCE_DIR}/editors/scripts/adapter.c
  ${PROJECT_SOURCE_DIR}/editors/scripts/editor.c

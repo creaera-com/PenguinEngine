@@ -18,6 +18,7 @@ typedef struct {
     VectorDocumentTree document_tree;
     VectorInspector inspector;
     unsigned grid_document_id;
+    unsigned active_document_id; ///< Resolved during UI commit for shared preview canvas routing.
     VectorObjectActions object_actions;
 } VectorEditor;
 

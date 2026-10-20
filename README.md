@@ -405,3 +405,10 @@ Der aktive Tab lässt sich als `.pengvec` speichern und aus dem Explorer erneut
 
 Ein geschlossener Pfad kann ein Objekt oder eine Gruppe nicht destruktiv beschneiden.
 [Bedienung und Datenmodell](docs/VEKTOR_SCHNITTMASKEN.md).
+
+
+## Pixelvorschau
+
+Im Tools-Tab steht die 1:1-Vorschau wieder oberhalb des Rasters bereit. Einen Bereich
+im Artboard wählen; große Bereiche folgen der Zeichenansicht.
+[Bedienung und Architektur](docs/VEKTOR_VORSCHAU.md).

@@ -109,7 +109,7 @@ Reader für ältere Versionen.
 
 Geladene Dokumente beginnen mit einer geschützten Basis (`history.floor`). Undo
 macht spätere Änderungen rückgängig, aber nicht den Ladevorgang selbst. Der interne
-Sitzungs-Checkpoint ist wegen der zusätzlichen Maskenrolle nun **PVCKPT24**. Er erhält
+Sitzungs-Checkpoint heißt aktuell **PVCKPT25** und enthält auch den Vorschaubereich. Er erhält
 beim Editorwechsel auch den gespeicherten Dateinamen und die späteren Undo-Schritte.
 Die dauerhafte Dokumentdatei und dieser private Checkpoint sind getrennte Formate.
 

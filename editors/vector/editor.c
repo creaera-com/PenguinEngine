@@ -7,6 +7,8 @@
 #include "editors/vector/ui/toolbar/toolbar.h"
 #include "editors/vector/ui/tools/grid.h"
 #include "internal.h"
+#include "preview/render.h"
+#include "preview/tool.h"
 #include "workspace/box_tool.h"
 #include "workspace/canvas.h"
 #include <stdio.h>
@@ -111,6 +113,10 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
         return true;
     }
     VectorDocument *document = vector_document_tabs_active(&editor->documents, view);
+    if (vector_preview_action(document, view, name)) {
+        vector_toolbar_sync(view, document);
+        return true;
+    }
     if (vector_object_actions_action(&editor->object_actions, document, view, name)) {
         return true;
     }
@@ -180,11 +186,17 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
 void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
                           const char *widget) {
     VectorEditor *editor = instance;
+    if (!strcmp(widget, "vector_preview_canvas")) {
+        vector_preview_draw(vector_documents_find(&editor->documents, editor->active_document_id),
+                            renderer, area, editor->text_renderer);
+        return;
+    }
     for (int i = 0; i < editor->documents.count; i++) {
         VectorDocument *document = &editor->documents.items[i];
         char id[96];
         snprintf(id, sizeof id, "vector_document_%u.canvas", document->id);
         if (!strcmp(id, widget)) {
+            editor->active_document_id = document->id;
             vector_workspace_cancel_inactive(&editor->documents, document);
             vector_canvas_draw(document, renderer, area, editor->text_renderer);
             return;
@@ -202,7 +214,8 @@ bool vector_editor_event(void *instance, PUIView *view, const SDL_Event *event) 
         bool redo = event->key.key == SDLK_Y || (event->key.mod & SDL_KMOD_SHIFT);
         return vector_editor_action(instance, view, redo ? "editor.redo" : "editor.undo", "");
     }
-    bool consumed = vector_text_tool_event(document, editor->text_renderer, view, event) ||
+    bool consumed = vector_preview_event(document, view, event) ||
+                    vector_text_tool_event(document, editor->text_renderer, view, event) ||
                     vector_curve_tool_event(document, view, event) ||
                     vector_object_actions_event(&editor->object_actions, document, view, event) ||
                     (document && vector_canvas_event(document, view, event));
@@ -218,6 +231,8 @@ bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, c
         return false;
     }
     VectorDocument *active = vector_document_tabs_active(&editor->documents, view);
+    editor->active_document_id = active ? active->id : 0;
+    vector_workspace_cancel_inactive(&editor->documents, active);
     if (active) {
         vector_document_selection_sync(active);
     }

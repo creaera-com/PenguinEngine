@@ -56,6 +56,7 @@ root:
             - {type: toggle, id: vector_grid_toggle, icon: tabler:grid-4x4, action: vector.grid.toggle, width: 30}
             - {type: toggle, id: vector_grid_snap, icon: tabler:magnet, action: vector.grid.snap, width: 30}
             - {type: toggle, id: vector_element_snap, icon: tabler:magnetic, action: vector.element.snap, width: 30}
+            - {type: toggle, id: vector_preview_toolbar, icon: tabler:scan, action: vector.preview.select, width: 30}
             - {type: spacer}
             - type: radial_menu
               id: vector_object_menu
@@ -123,7 +124,7 @@ root:
       id: vector_right_split
       axis: vertical
       flex: first
-      initial_last: 400
+      initial_last: 460
       minimum_first: 200
       minimum_second: 224
       gap: 9
@@ -147,6 +148,19 @@ root:
                   padding: 4
                   gap: 8
                   children:
+                    - type: section
+                      id: section_tools_preview
+                      text: Vorschau
+                      padding: 4
+                      children:
+                        - type: row
+                          padding: 0
+                          height: 28
+                          gap: 4
+                          children:
+                            - {type: toggle, id: vector_preview_select, text: Bereich waehlen, icon: tabler:scan, action: vector.preview.select}
+                            - {type: button, icon: tabler:x, action: vector.preview.clear, width: 28}
+                        - {type: canvas, id: vector_preview_canvas, height: 128}
                     - type: section
                       id: section_tools_grid_settings
                       text: Raster
