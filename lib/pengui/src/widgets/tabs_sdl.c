@@ -7,15 +7,23 @@ float pui_tab_content_width(PUIIcon icon, const char *label) {
     return pui_text_width(label) + (icon == ICON_NONE ? 18 : 40);
 }
 
-void pui_draw_tab(SDL_Renderer *r, SDL_FRect rect, PUIIcon icon, const char *label, bool active,
-                  bool enabled, bool hover) {
-    pui_panel(r, rect, active ? PUI_PANEL : hover ? PUI_HOVER : PUI_SURFACE);
-    Uint32 foreground = enabled ? PUI_TEXT : PUI_DISABLED;
+static void draw_tab_colors(SDL_Renderer *r, SDL_FRect rect, PUIIcon icon, const char *label,
+                            Uint32 background, Uint32 foreground) {
+    pui_panel(r, rect, background);
     if (icon != ICON_NONE) {
         pui_icon(r, icon, rect.x + 9, rect.y + (rect.h - 16) * .5f, 16, foreground);
     }
     pui_text(r, rect.x + (icon == ICON_NONE ? 9 : 31), rect.y + (rect.h - PUI_FONT_HEIGHT) * .5f,
              label, foreground);
+}
+
+void pui_draw_tab(SDL_Renderer *r, SDL_FRect rect, PUIIcon icon, const char *label, bool active,
+                  bool enabled, bool hover) {
+    draw_tab_colors(r, rect, icon, label,
+                    active  ? PUI_PANEL
+                    : hover ? PUI_HOVER
+                            : PUI_SURFACE,
+                    enabled ? PUI_TEXT : PUI_DISABLED);
 }
 
 void pui_widget_tabs_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
@@ -35,9 +43,21 @@ void pui_widget_tabs_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
             }
         }
         PUIRect r = pui_tab_rect(&s->tabs, bar, 100, k);
-        pui_draw_tab(v->renderer, pui_frect(r), pui_icon_from_name(tab->icon),
-                     v->state[tab_index].text, s->tabs.selected == tab->id,
-                     !pui->blocked && tab->enabled, pui_hovered(pui, r));
+        Widget *state = &v->state[tab_index];
+        bool active = s->tabs.selected == tab->id;
+        bool enabled = !pui->blocked && tab->enabled;
+        bool hover = enabled && pui_hovered(pui, r);
+        float duration = tab->transition_ms >= 0 ? tab->transition_ms
+                         : n->transition_ms >= 0 ? n->transition_ms
+                                                 : pui_theme.button_transition_ms;
+        Uint32 background = active ? PUI_PANEL : hover ? PUI_HOVER : PUI_SURFACE;
+        Uint32 foreground = enabled ? PUI_TEXT : PUI_DISABLED;
+        background =
+            pui_color_transition(&state->button_background, background, v->frame_ms, duration);
+        foreground =
+            pui_color_transition(&state->button_foreground, foreground, v->frame_ms, duration);
+        draw_tab_colors(v->renderer, pui_frect(r), pui_icon_from_name(tab->icon), state->text,
+                        background, foreground);
     }
     for (int k = n->child; k >= 0; k = v->layout->nodes[k].next) {
         if (v->layout->nodes[k].id == s->tabs.selected) {

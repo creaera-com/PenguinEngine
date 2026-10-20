@@ -872,3 +872,24 @@ In reinem C kann `PUITheme.button_radius` bzw. `button_transition_ms` gesetzt we
 Die zustandslosen Zeichenfunktionen wie `pui_draw_button_themed` übernehmen die
 Rundung, halten aber selbst keinen Animationszustand. Die automatische Animation
 gehört zur `PUIView`; eigene Steuerelemente können den expliziten Übergangshelfer nutzen.
+
+
+### Sanfte Tab-Wechsel
+
+Auch Tabs überblenden Hintergrund sowie Text-/Iconfarbe beim Aktivieren,
+Deaktivieren und Hover. Die Auswahl wechselt sofort, nur die Farbe wird animiert.
+Die Tabfarben bleiben neutral grau. Standarddauer ist `theme.button_transition_ms`;
+`transition_ms` am `tabs`-Container überschreibt sie für die Tabgruppe, und ein
+Wert direkt am `tab` hat Vorrang. `0` deaktiviert den Übergang.
+
+```yaml
+- type: tabs
+  transition_ms: 120
+  children:
+    - {type: tab, text: Explorer, children: []}
+    - {type: tab, text: Document, transition_ms: 180, children: []}
+```
+
+Der Übergangszustand gehört zur stabilen Tab-ID und bleibt beim Umsortieren mit
+dem Tab verbunden. Die gemeinsamen zustandslosen `pui_draw_tab`-Aufrufe bleiben
+sofortige Zeichenoperationen; automatische Übergänge werden von der View gehalten.
