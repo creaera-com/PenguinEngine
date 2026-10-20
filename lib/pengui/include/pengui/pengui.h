@@ -900,6 +900,10 @@ const char *pui_view_tree_item_at(PUIView *view, const char *tree, float x, floa
 bool pui_view_set_tree_items(PUIView *view, const char *tree, const PUITreeItem *items, int count);
 /** @brief Select a runtime tree row by ID and open its ancestors; NULL clears without actions. */
 bool pui_view_select_tree_item(PUIView *view, const char *tree, const char *item);
+/** @brief Close all open popups between frames, committing focus through normal widget rules. */
+void pui_view_close_popups(PUIView *view, PUIContext *context);
+/** @brief Borrow the selected runtime row ID; NULL when no row is selected. */
+const char *pui_view_selected_tree_item(const PUIView *view, const char *tree);
 /** @brief Runtime row count; -1 for a missing tree or a tree using YAML children. */
 int pui_view_tree_item_count(const PUIView *view, const char *tree);
 

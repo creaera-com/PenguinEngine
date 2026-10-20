@@ -25,7 +25,7 @@ add_library(pengui_editor_support STATIC
  documents/controller.c
  ${PROJECT_SOURCE_DIR}/editors/vector/persistence/document_file.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/files.c
- project/project.c project/state.c project/explorer.c project/controller.c
+ project/project.c project/state.c project/explorer.c project/controller.c project/directories.c
  editor/config.c shell/shell.c platform/temp_file.c platform/files.c
  editor_host/host.c editor_host/checkpoint.c editor_host/registry.c editor_host/resources.c
  ${PROJECT_SOURCE_DIR}/editors/vector/adapter.c

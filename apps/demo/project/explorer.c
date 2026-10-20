@@ -1,8 +1,32 @@
 /** @file @brief File tree state is app-owned and independent of concrete editor modules. */
 #include "explorer.h"
+#include "directories.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+static char path_character(char c) {
+#ifdef _WIN32
+    if (c == '\\') {
+        return '/';
+    }
+    return (char)SDL_tolower((unsigned char)c);
+#else
+    return c;
+#endif
+}
+
+static bool path_prefix(const char *path, const char *parent) {
+    size_t i = 0;
+    while (parent[i]) {
+        if (!path[i] || path_character(path[i]) != path_character(parent[i])) {
+            return false;
+        }
+        i++;
+    }
+    return !path[i] || path_character(path[i]) == '/' ||
+           (i && path_character(parent[i - 1]) == '/');
+}
 
 struct ProjectEntry {
     char *path, *name;
@@ -65,6 +89,7 @@ static bool add(ProjectExplorer *e, const char *path, const char *name, int pare
 
 void project_explorer_set(ProjectExplorer *e, const AppProject *project) {
     clear(e);
+    e->create_pending = false;
     snprintf(e->root, sizeof e->root, "%s", project->root);
     e->dirty = true;
     e->reset = true;
@@ -137,6 +162,31 @@ const char *project_explorer_file(const ProjectExplorer *e, const char *row) {
 
 bool project_explorer_action(ProjectExplorer *e, PUIView *view, const char *action,
                              const char *widget) {
+    if (!strcmp(action, "project.folder.create")) {
+        if (!*e->root) {
+            pui_view_set_text(view, "status", "Zuerst ein Projekt oeffnen");
+            return true;
+        }
+        const char *name = pui_view_text(view, "project_folder_name");
+        snprintf(e->pending_name, sizeof e->pending_name, "%s", name ? name : "");
+        const char *selected = pui_view_selected_tree_item(view, "project_files");
+        unsigned id = 0;
+        snprintf(e->pending_parent, sizeof e->pending_parent, "%s", e->root);
+        if (selected && sscanf(selected, "project_entry_%u", &id) == 1) {
+            for (int i = 0; i < e->count; i++) {
+                if (e->entries[i].id == id) {
+                    int parent = e->entries[i].directory ? i : e->entries[i].parent;
+                    if (parent >= 0) {
+                        snprintf(e->pending_parent, sizeof e->pending_parent, "%s",
+                                 e->entries[parent].path);
+                    }
+                    break;
+                }
+            }
+        }
+        e->create_pending = true;
+        return true;
+    }
     if (!strcmp(action, "project.refresh")) {
         AppProject p = {0};
         snprintf(p.root, sizeof p.root, "%s", e->root);
@@ -244,6 +294,45 @@ bool project_explorer_commit(ProjectExplorer *e, PUIView *view, PUIContext *inpu
         }
         e->dirty = true;
     }
+    char created[PROJECT_PATH_CAPACITY] = {0};
+    if (e->create_pending) {
+        e->create_pending = false;
+        char message[256];
+        if (project_directory_create(e->pending_parent, e->pending_name, created, sizeof created,
+                                     message, sizeof message)) {
+            AppProject p = {0};
+            snprintf(p.root, sizeof p.root, "%s", e->root);
+            if (e->count) {
+                snprintf(p.name, sizeof p.name, "%s", e->entries[0].name);
+            }
+            project_explorer_set(e, &p);
+            // Expand only ancestors of the newly created folder, selecting the correct sibling
+            // page.
+            for (int i = 0; i < e->count; i++) {
+                if (e->entries[i].directory && path_prefix(created, e->entries[i].path)) {
+                    e->entries[i].open = true;
+                    if (load(e, i)) {
+                        int position = 0;
+                        for (int j = 0; j < e->count; j++) {
+                            if (e->entries[j].parent != i) {
+                                continue;
+                            }
+                            if (path_prefix(created, e->entries[j].path)) {
+                                e->entries[i].page = position / 32;
+                                break;
+                            }
+                            position++;
+                        }
+                    }
+                }
+            }
+            pui_view_close_popups(view, input);
+            pui_view_set_text(view, "project_folder_name", "");
+            pui_view_set_text(view, "status", "Ordner angelegt");
+        } else {
+            pui_view_set_text(view, "status", message);
+        }
+    }
     if (!e->dirty) {
         return true;
     }
@@ -267,6 +356,17 @@ bool project_explorer_commit(ProjectExplorer *e, PUIView *view, PUIContext *inpu
     pui_view_set_text(view, "project_hint", e->count ? "" : "Kein Projekt geoeffnet");
     bool ok = pui_view_set_tree_items(view, "project_files", items, count);
     free(items);
+    if (ok && *created) {
+        for (int i = 0; i < e->count; i++) {
+            if (strlen(e->entries[i].path) == strlen(created) &&
+                path_prefix(created, e->entries[i].path)) {
+                char row[64];
+                snprintf(row, sizeof row, "project_entry_%u", e->entries[i].id);
+                pui_view_select_tree_item(view, "project_files", row);
+                break;
+            }
+        }
+    }
     e->dirty = !ok;
     return ok;
 }

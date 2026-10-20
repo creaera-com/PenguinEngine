@@ -347,6 +347,22 @@ const char *pui_view_tree_item_at(PUIView *view, const char *tree, float x, floa
     return data ? data->items[rows[row]].id : view->layout->nodes[rows[row]].name;
 }
 
+const char *pui_view_selected_tree_item(const PUIView *view, const char *tree) {
+    int index = find_tree(view, tree);
+    if (index < 0) {
+        return NULL;
+    }
+    TreeData *data = view->state[index].tree;
+    if (data) {
+        for (int i = 0; i < data->count; i++) {
+            if (pui_id(data->items[i].id) == view->state[index].selected) {
+                return data->items[i].id;
+            }
+        }
+    }
+    return NULL;
+}
+
 int pui_view_tree_item_count(const PUIView *view, const char *tree) {
     int index = find_tree(view, tree);
     return index >= 0 && view->state[index].tree ? view->state[index].tree->count : -1;

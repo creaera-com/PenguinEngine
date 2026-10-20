@@ -80,3 +80,20 @@ Vektordokumente oder deren Undo-History nach einem App-Neustart wieder her.
 Vektordokumente können jetzt separat als `.pengvec` gespeichert und per Klick im
 Explorer in einen Tab geladen werden. Die Projektdatei bleibt reine Metadatenverwaltung.
 [Dokumentformat und Speichern](VEKTOR_DATEIFORMAT.md).
+
+
+## Ordner im Explorer anlegen
+
+Der Button mit dem Ordner-Plus-Symbol neben Refresh öffnet **Neuer Ordner**.
+Einen Namen eingeben und **Anlegen** wählen. Bei ausgewähltem Ordner wird dort
+angelegt; bei ausgewählter Datei in ihrem Elternordner, ohne Auswahl im Projektordner.
+Ohne geöffnetes Projekt erscheint ein Hinweis.
+
+Nach Erfolg schließt das Eingabepanel. Die Vorfahren werden aufgeklappt, nötigenfalls
+die passende Ordnerseite gewählt und der neue Ordner markiert. Angelegt wird nur eine
+einzelne Verzeichnisebene. Bestehende Dateien/Ordner, Pfadtrenner, `.`/`..`, Steuerzeichen
+und reservierte Windows-Namen werden abgelehnt. Ordnernamen dürfen UTF-8 enthalten.
+Die Dateisystemoperation ist kein Bestandteil der Dokument-Undo-History.
+
+Die Namensprüfung und das Anlegen liegen in `apps/demo/project/directories.c`.
+Der Explorer hält nur die Anfrage fest; die Operation erfolgt zwischen UI-Frames.

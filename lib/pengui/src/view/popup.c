@@ -142,3 +142,12 @@ bool pui_view_popup_event(PUIView *view, PUIContext *pui, const SDL_Event *event
     }
     return false;
 }
+
+void pui_view_close_popups(PUIView *view, PUIContext *context) {
+    if (!view || !context) {
+        return;
+    }
+    while (view->popup_count) {
+        pui_view_popup_close(view, context);
+    }
+}

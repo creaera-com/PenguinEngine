@@ -4,6 +4,7 @@
 #include "editors/vector/internal.h"
 #include "editors/vector/workspace/ruler.h"
 #include "project/controller.h"
+#include "project/directories.h"
 #include "project/state.h"
 #include "shell/shell.h"
 #include "unity.h"
@@ -181,8 +182,47 @@ static void test_linux_uses_penguengine_state_and_restores_project(void) {
 #endif
 }
 
+static void test_create_directories_from_explorer_selection(void) {
+    temp_folder();
+    char error[256], path[4096];
+    ProjectController c;
+    TEST_ASSERT_TRUE(
+        project_controller_init(&c, PENGUI_EDITOR_RESOURCES, false, error, sizeof error));
+    activate("scripts");
+    TEST_ASSERT_TRUE(project_controller_open(&c, folder, true, shell.view));
+    TEST_ASSERT_TRUE(
+        project_explorer_commit(&c.explorer, shell.view, &shell.input, error, sizeof error));
+    pui_view_set_text(shell.view, "project_folder_name", "Assets");
+    TEST_ASSERT_TRUE(project_explorer_action(&c.explorer, shell.view, "project.folder.create", ""));
+    snprintf(path, sizeof path, "%s/Assets", folder);
+    SDL_PathInfo info;
+    TEST_ASSERT_FALSE(SDL_GetPathInfo(path, &info)); // UI action only queues I/O.
+    TEST_ASSERT_TRUE(
+        project_explorer_commit(&c.explorer, shell.view, &shell.input, error, sizeof error));
+    TEST_ASSERT_TRUE(SDL_GetPathInfo(path, &info));
+    TEST_ASSERT_EQUAL_INT(SDL_PATHTYPE_DIRECTORY, info.type);
+    TEST_ASSERT_NOT_NULL(pui_view_selected_tree_item(shell.view, "project_files"));
+    pui_view_set_text(shell.view, "project_folder_name", "Textures");
+    project_explorer_action(&c.explorer, shell.view, "project.folder.create", "");
+    TEST_ASSERT_TRUE(
+        project_explorer_commit(&c.explorer, shell.view, &shell.input, error, sizeof error));
+    snprintf(path, sizeof path, "%s/Assets/Textures", folder);
+    TEST_ASSERT_TRUE(SDL_GetPathInfo(path, &info));
+    const char *bad[] = {"",     ".",   "..",      "../escape", "a/b",
+                         "a\\b", "CON", "NUL.txt", "trailing.", " foo"};
+    for (size_t i = 0; i < sizeof bad / sizeof *bad; i++) {
+        TEST_ASSERT_FALSE(
+            project_directory_create(folder, bad[i], path, sizeof path, error, sizeof error));
+    }
+    TEST_ASSERT_FALSE(
+        project_directory_create(folder, "Assets", path, sizeof path, error, sizeof error));
+    project_controller_destroy(&c);
+    remove_folder();
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_create_directories_from_explorer_selection);
     RUN_TEST(test_create_validate_no_overwrite_and_state_roundtrip);
     RUN_TEST(test_shared_explorer_lazy_folders_paging_and_editor_switch);
     RUN_TEST(test_linux_uses_penguengine_state_and_restores_project);

@@ -11,6 +11,8 @@ typedef struct {
     char root[PROJECT_PATH_CAPACITY];
     bool dirty, reset;
     PUILayout *layout;
+    char pending_parent[PROJECT_PATH_CAPACITY], pending_name[256];
+    bool create_pending;
 } ProjectExplorer;
 
 /** @brief Load the common explorer UI; caller owns the binding until destroy. */
