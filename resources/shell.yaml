@@ -5,8 +5,8 @@ theme:
   toolbar_radius: 4
   tab_radius: 4
   button_transition_ms: 120
-  background: "#101010"
-  panel: "#202020"
+  background: "#151515"
+  panel: "#242424"
   surface: "#292929"
   hover: "#393939"
   accent: "#C28E5C"

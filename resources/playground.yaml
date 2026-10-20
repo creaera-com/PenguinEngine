@@ -1,8 +1,8 @@
 schema: pengui/v1
 window: {title: "pengUI - Widget Playground", width: 1280, height: 800}
 theme:
-  background: "#101010"
-  panel: "#202020"
+  background: "#151515"
+  panel: "#242424"
   surface: "#292929"
   hover: "#393939"
   accent: "#C28E5C"

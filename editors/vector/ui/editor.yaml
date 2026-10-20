@@ -4,11 +4,11 @@ root:
   id: vector_columns
   axis: horizontal
   flex: middle
-  initial: 250
-  initial_last: 250
-  minimum_first: 250
-  minimum_second: 250
-  minimum_last: 250
+  initial: 450
+  initial_last: 350
+  minimum_first: 350
+  minimum_second: 350
+  minimum_last: 450
   gap: 9
   children:
     - type: tabs
