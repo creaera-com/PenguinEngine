@@ -145,6 +145,7 @@ static bool start(EditorApp *app, char *error, size_t capacity) {
     SDL_SetWindowMinimumSize(app->window, 800, 600);
     SDL_SetRenderVSync(app->renderer, 1);
     pui_window_attach(&app->chrome, app->window, app->shell.view, &app->shell.input);
+    SDL_MaximizeWindow(app->window);
     SDL_ShowWindow(app->window);
     return true;
 }
