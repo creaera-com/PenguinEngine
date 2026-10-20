@@ -113,6 +113,12 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
         return true;
     }
     VectorDocument *document = vector_document_tabs_active(&editor->documents, view);
+    if (!strcmp(name, "vector.artboard.center")) {
+        if (document) {
+            vector_canvas_center(document);
+        }
+        return true;
+    }
     if (vector_preview_action(document, view, name)) {
         vector_toolbar_sync(view, document);
         return true;
