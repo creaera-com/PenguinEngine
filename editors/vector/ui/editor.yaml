@@ -61,6 +61,7 @@ root:
             - {type: separator}
             - {type: button, id: vector_center_artboard, icon: tabler:focus-2, action: vector.artboard.center, width: 30}
             - {type: button, id: vector_import_image, icon: tabler:photo-plus, action: editor.import_image, width: 30}
+            - {type: slot, id: vector_export_toolbar, width: 30}
             - {type: spacer}
             - type: radial_menu
               id: vector_object_menu

@@ -1,0 +1,57 @@
+schema: pengui/v1
+root:
+  type: popup_button
+  id: vector_export_dialog
+  icon: tabler:file-export
+  width: 30
+  placement: below
+  popup_width: 400
+  popup_height: 390
+  children:
+    - type: panel
+      padding: 12
+      gap: 5
+      children:
+        - {type: label, text: Bild exportieren, height: 24}
+        - type: dropdown
+          id: vector_export_scope
+          value: artboard
+          height: 28
+          children:
+            - {type: option, text: Aktives Artboard, value: artboard}
+            - {type: option, text: Alle Artboards (einzelne Dateien), value: all}
+            - {type: option, text: Aktuelle Auswahl, value: selection}
+        - type: dropdown
+          id: vector_export_format
+          value: png
+          action: vector.export.format
+          height: 28
+          children:
+            - {type: option, text: PNG, value: png}
+            - {type: option, text: JPEG, value: jpg}
+        - {type: label, text: Zielordner, height: 24}
+        - type: row
+          padding: 0
+          height: 28
+          gap: 5
+          children:
+            - {type: input, id: vector_export_directory}
+            - {type: button, icon: tabler:folder-open, action: vector.export.folder, width: 28}
+        - type: row
+          padding: 0
+          height: 28
+          gap: 5
+          children:
+            - {type: label, text: Dateiname, width: 100}
+            - {type: input, id: vector_export_name, text: Export}
+        - {type: checkbox, id: vector_export_transparent, text: Transparenter Hintergrund (PNG), checked: true, height: 28}
+        - type: row
+          padding: 0
+          height: 28
+          gap: 5
+          children:
+            - {type: label, text: JPEG-Qualitaet, width: 140}
+            - {type: input, id: vector_export_quality, text: "90"}
+        - {type: label, id: vector_export_hint, text: "PNG: Transparenz optional", height: 24}
+        - {type: button, id: vector_export_write, text: Exportieren (1:1), icon: tabler:file-export, action: vector.export.write, height: 30}
+        - {type: label, id: vector_export_status, text: "", height: 24}

@@ -41,6 +41,8 @@ Refactorings und Fehlerkorrekturen:
 - `ellipse/`: Ellipsen-Geometrie und Erzeugung; keine eigene Kopie der Mausverarbeitung.
 - `gradient/`: reine Verlaufswerte und Farbstopps, Rendering und Canvas-Werkzeug getrennt halten;
   Inspector-Bindings und YAML bleiben unter `ui/inspector/`.
+- `export/`: reine Bereichsplanung getrennt von Rasterisierung und Dateiausgabe;
+  Exportformular und native Ordnerauswahl unter `ui/export/`, Bildencoder hinter dem App-Service.
 - `history/`: Ausführung von Befehlen sowie Undo/Redo.
 - `persistence/`: Temporäres Sichern und Wiederherstellen.
 - `ui/`: YAML-Beschreibungen und UI-Anbindungen nach Bereichen:

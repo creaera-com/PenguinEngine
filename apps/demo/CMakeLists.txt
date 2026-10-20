@@ -17,6 +17,10 @@ include(${PROJECT_SOURCE_DIR}/cmake/TextFonts.cmake)
 add_library(pengui_editor_support STATIC
  platform/fonts.c
  platform/image_decode.c
+ platform/image_encode.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/export/plan.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/export/render.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/export/dialog.c
  ${PROJECT_SOURCE_DIR}/editors/vector/repeat/state.c
  ${PROJECT_SOURCE_DIR}/editors/vector/repeat/repeat.c
  ${PROJECT_SOURCE_DIR}/editors/vector/repeat/render.c

@@ -43,6 +43,9 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         pui_layout_free(repeat);
         editor->layout = combined;
     }
+    if (editor->layout) {
+        editor->layout = vector_export_ui_layout(services, editor->layout, error, capacity);
+    }
     pui_layout_free(inspector);
     pui_layout_free(root);
     vector_documents_init(&editor->documents);
@@ -107,6 +110,7 @@ const PUILayout *vector_editor_layout(const void *instance) {
 void vector_editor_destroy(void *instance) {
     VectorEditor *editor = instance;
     if (editor) {
+        vector_export_ui_destroy(&editor->export_ui);
         vector_workspace_cancel_inactive(&editor->documents, NULL);
         vector_documents_destroy(&editor->documents);
         pui_layout_free(editor->inspector.multi_layout);
@@ -147,6 +151,9 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
         if (document) {
             vector_canvas_center(document);
         }
+        return true;
+    }
+    if (vector_export_ui_action(&editor->export_ui, document, view, name)) {
         return true;
     }
     if (vector_repeat_ui_action(&editor->repeat_ui, document, view, name)) {
@@ -229,6 +236,8 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
 void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
                           const char *widget) {
     VectorEditor *editor = instance;
+    vector_export_ui_render(&editor->export_ui, renderer, editor->text_renderer,
+                            editor->image_renderer);
     if (!strcmp(widget, "vector_preview_canvas")) {
         vector_preview_draw(vector_documents_find(&editor->documents, editor->active_document_id),
                             renderer, area, editor->text_renderer, editor->image_renderer);
@@ -277,6 +286,7 @@ bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, c
     }
     VectorDocument *active = vector_document_tabs_active(&editor->documents, view);
     editor->active_document_id = active ? active->id : 0;
+    vector_export_ui_sync(&editor->export_ui, active, view);
     vector_workspace_cancel_inactive(&editor->documents, active);
     if (active) {
         vector_document_selection_sync(active);
