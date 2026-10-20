@@ -3,6 +3,7 @@
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/curve/render.h"
 #include "editors/vector/document/document.h"
+#include "editors/vector/gradient/tool.h"
 #include "editors/vector/grid/render.h"
 #include "editors/vector/preview/render.h"
 #include "editors/vector/rectangle/render.h"
@@ -82,10 +83,12 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
     }
     vector_preview_overlay(document, renderer);
     vector_element_guides_draw(document, renderer);
-    if (!document->curve_tool.pen && !document->curve_tool.nodes) {
+    if (!document->gradient_tool.enabled && !document->curve_tool.pen &&
+        !document->curve_tool.nodes) {
         vector_selection_draw_handles(document, renderer);
     }
     vector_curve_tool_draw(document, renderer);
+    vector_gradient_tool_draw(document, renderer);
     vector_marquee_draw(document, renderer);
     if (document->artboard_tool.dragging) {
         PUIRect preview = vector_artboard_tool_rect(&document->artboard_tool);

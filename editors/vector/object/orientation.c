@@ -81,6 +81,23 @@ static bool prepare(VectorDocument *d, VectorOrientation op, Orientation *plan) 
                     after->image.flip_y ^= 1u;
                 }
             }
+            if (horizontal) {
+                after->gradient.x1 = 1 - after->gradient.x1;
+                after->gradient.x2 = 1 - after->gradient.x2;
+            } else {
+                after->gradient.y1 = 1 - after->gradient.y1;
+                after->gradient.y2 = 1 - after->gradient.y2;
+            }
+            if (!after->gradient.count) {
+                after->gradient = (VectorGradient){0};
+            }
+            if (after->gradient.kind == VECTOR_GRADIENT_CONICAL) {
+                VectorGradient original = after->gradient;
+                for (unsigned i = 0; i < original.count; i++) {
+                    after->gradient.stops[i] = original.stops[original.count - 1 - i];
+                    after->gradient.stops[i].position = 1 - after->gradient.stops[i].position;
+                }
+            }
             mirror_path(&after->path, horizontal);
             for (unsigned n = 0; n < after->curve.count; n++) {
                 VectorBezierNode *node = &after->curve.nodes[n];

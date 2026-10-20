@@ -55,5 +55,5 @@ bricht den Import ab. Ohne geöffnetes Projekt ist kein Import möglich.
   den optionalen Adapter-Vertrag `import_image`; konkrete Editor-Header sind dort unnötig.
 - `ui/inspector/image.yaml`: separates, deklaratives Bildformular.
 
-Dauerhafte Dateien verwenden jetzt **PENGVEC Version 5**, weiterhin mit Reader für
-Version 1, 2, 3 und 4. Temporäre Sitzungsdaten inklusive History verwenden **PVCKPT28**.
+Dauerhafte Dateien verwenden jetzt **PENGVEC Version 6**, weiterhin mit Reader für
+Version 1, 2, 3, 4 und 5. Temporäre Sitzungsdaten inklusive History verwenden **PVCKPT29**.

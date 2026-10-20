@@ -426,3 +426,5 @@ Der Tools-Tab erstellt verknüpfte Raster oder unabhängige Kopien mit schrittwe
 Eigenschaftsänderungen. [Bedienung, Grenzen und Architektur](docs/VEKTOR_WIEDERHOLUNG.md).
 
 Schlagschatten pro Objekt: [Bedienung, Architektur und Speicherung](docs/VEKTOR_EFFEKTE.md).
+
+Verlaufsfuellungen: [Werkzeug, Farbstopps, Architektur und Speicherung](docs/VEKTOR_VERLAEUFE.md).

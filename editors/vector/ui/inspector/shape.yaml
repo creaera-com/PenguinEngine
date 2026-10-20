@@ -57,6 +57,7 @@ root:
                 value: "#7393AFFF"
                 action: vector.rectangle.fill
                 preview_action: vector.rectangle.fill_preview
+    - {type: slot, id: object_gradient}
     - type: section
       id: section_boarder_settings
       text: Rahmen

@@ -6,6 +6,7 @@
 #include "editors/vector/ui/inspector/inspector.h"
 #include "editors/vector/ui/toolbar/toolbar.h"
 #include "editors/vector/ui/tools/grid.h"
+#include "gradient/tool.h"
 #include "internal.h"
 #include "preview/render.h"
 #include "preview/tool.h"
@@ -50,6 +51,7 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         pui_layout_free(editor->inspector.rectangle.image_layout);
         pui_layout_free(editor->inspector.rectangle.layout);
         pui_layout_free(editor->inspector.rectangle.polygon_layout);
+        pui_layout_free(editor->inspector.rectangle.gradient_layout);
         pui_layout_free(editor->inspector.rectangle.text.layout);
         vector_image_renderer_destroy(editor->image_renderer);
         vector_text_renderer_destroy(editor->text_renderer);
@@ -70,6 +72,8 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         editor_load_ui(services, "editors/vector/ui/inspector/artboard.yaml", error, capacity);
     editor->inspector.rectangle.layout =
         editor_load_ui(services, "editors/vector/ui/inspector/shape.yaml", error, capacity);
+    editor->inspector.rectangle.gradient_layout =
+        editor_load_ui(services, "editors/vector/ui/inspector/gradient.yaml", error, capacity);
     editor->inspector.rectangle.polygon_layout =
         editor_load_ui(services, "editors/vector/ui/inspector/polygon.yaml", error, capacity);
     editor->inspector.rectangle.image_layout =
@@ -82,6 +86,7 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         editor_load_ui(services, "editors/vector/ui/inspector/selection.yaml", error, capacity);
     if (!editor->inspector.artboard_layout || !editor->inspector.rectangle.layout ||
         !editor->inspector.rectangle.image_layout || !editor->inspector.multi_layout ||
+        !editor->inspector.rectangle.gradient_layout ||
         !editor->inspector.rectangle.polygon_layout || !editor->image_renderer ||
         !editor->text_renderer || !editor->inspector.rectangle.text.layout) {
         if (!editor->text_renderer) {
@@ -108,6 +113,7 @@ void vector_editor_destroy(void *instance) {
         pui_layout_free(editor->inspector.rectangle.image_layout);
         pui_layout_free(editor->inspector.rectangle.layout);
         pui_layout_free(editor->inspector.rectangle.polygon_layout);
+        pui_layout_free(editor->inspector.rectangle.gradient_layout);
         pui_layout_free(editor->inspector.rectangle.text.layout);
         vector_image_renderer_destroy(editor->image_renderer);
         vector_text_renderer_destroy(editor->text_renderer);
@@ -161,6 +167,10 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
         return true;
     }
     if (vector_grid_action(document, view, name)) {
+        return true;
+    }
+    if (vector_gradient_tool_action(document, view, name)) {
+        vector_toolbar_sync(view, document);
         return true;
     }
     if (vector_curve_tool_action(document, view, name)) {
@@ -251,6 +261,7 @@ bool vector_editor_event(void *instance, PUIView *view, const SDL_Event *event) 
     bool consumed = vector_preview_event(document, view, event) ||
                     vector_text_tool_event(document, editor->text_renderer, view, event) ||
                     vector_curve_tool_event(document, view, event) ||
+                    vector_gradient_tool_event(document, view, event) ||
                     vector_object_actions_event(&editor->object_actions, document, view, event) ||
                     (document && vector_canvas_event(document, view, event));
     vector_toolbar_sync(view, document);

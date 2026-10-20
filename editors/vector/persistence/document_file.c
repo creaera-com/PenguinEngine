@@ -187,15 +187,31 @@ static void shape(Codec *c, VectorShape *s) {
         real(c, &s->shadow.blur);
         real(c, &s->shadow.spread);
     }
+    if (c->version >= 6) {
+        integer(c, &s->gradient.kind);
+        integer(c, &s->gradient.count);
+        real(c, &s->gradient.x1);
+        real(c, &s->gradient.y1);
+        real(c, &s->gradient.x2);
+        real(c, &s->gradient.y2);
+        if (s->gradient.count > VECTOR_GRADIENT_STOPS) {
+            c->ok = false;
+            return;
+        }
+        for (unsigned i = 0; i < s->gradient.count; i++) {
+            real(c, &s->gradient.stops[i].position);
+            integer(c, &s->gradient.stops[i].color);
+        }
+    }
 }
 
 static bool content(Codec *c, VectorClipboard *values) {
     char magic[8] = {'P', 'E', 'N', 'G', 'V', 'E', 'C', 0}, actual[8];
     memcpy(actual, magic, 8);
     bytes(c, actual, 8);
-    unsigned version = 5;
+    unsigned version = 6;
     integer(c, &version);
-    if (memcmp(actual, magic, 8) || (version < 1 || version > 5)) {
+    if (memcmp(actual, magic, 8) || (version < 1 || version > 6)) {
         return false;
     }
     c->version = version;

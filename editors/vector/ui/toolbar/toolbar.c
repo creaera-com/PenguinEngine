@@ -4,6 +4,7 @@
 
 void vector_toolbar_sync(PUIView *view, const VectorDocument *document) {
     vector_preview_sync(view, document);
+    pui_view_set_checked(view, "vector_gradient", document && document->gradient_tool.enabled);
     pui_view_set_checked(view, "vector_pen", document && document->curve_tool.pen);
     pui_view_set_checked(view, "vector_nodes", document && document->curve_tool.nodes);
     pui_view_set_checked(view, "vector_element_snap", document && document->element_snap_enabled);
@@ -22,7 +23,7 @@ void vector_toolbar_sync(PUIView *view, const VectorDocument *document) {
                          document && document->rectangle_tool.enabled &&
                              document->rectangle_tool.text);
     pui_view_set_checked(view, "vector_selection",
-                         document && !document->preview.armed && !document->curve_tool.pen &&
-                             !document->curve_tool.nodes && !document->artboard_tool.enabled &&
-                             !document->rectangle_tool.enabled);
+                         document && !document->gradient_tool.enabled && !document->preview.armed &&
+                             !document->curve_tool.pen && !document->curve_tool.nodes &&
+                             !document->artboard_tool.enabled && !document->rectangle_tool.enabled);
 }

@@ -3,6 +3,7 @@
 #include "editors/vector/curve/tool.h"
 #include "editors/vector/document/document.h"
 #include "editors/vector/geometry/constraints.h"
+#include "editors/vector/gradient/tool.h"
 #include "editors/vector/preview/tool.h"
 #include "editors/vector/text/tool.h"
 #include "editors/vector/workspace/box_tool.h"
@@ -12,6 +13,7 @@
 #include <stdio.h>
 
 void vector_artboard_tool_cancel(VectorDocument *document) {
+    vector_gradient_tool_cancel(document);
     vector_preview_cancel(document);
     vector_text_tool_end(document);
     vector_curve_tool_cancel(document);

@@ -57,5 +57,8 @@ Kopieren, Duplizieren, History und verknüpfte Instanzen den Effekt mit.
 aktiviert, Farbe, Versatz X/Y, Weichzeichnung, Ausbreitung. Auch bei ausgeschaltetem
 Effekt werden alle Werte gespeichert. Versionen 1–4 bleiben lesbar und erhalten
 einen ausgeschalteten Schatten mit Nullwerten. Ältere Programmversionen können
-Version 5 nicht öffnen. Temporäre Sitzungsdaten nutzen **PVCKPT28** und behalten
+Version 5 nicht öffnen. Temporäre Sitzungsdaten nutzen **PVCKPT29** und behalten
 Effekte samt Undo/Redo beim Editorwechsel.
+
+Das aktuelle Dokumentformat ist Version 6; es ergänzt die
+[Verlaufsfüllung](VEKTOR_VERLAEUFE.md) nach den Schattenwerten.

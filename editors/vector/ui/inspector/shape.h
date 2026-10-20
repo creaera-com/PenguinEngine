@@ -3,11 +3,13 @@
 #define PE_VECTOR_RECTANGLE_INSPECTOR_H
 #include "editor_host/editor.h"
 #include "editors/vector/document/document.h"
+#include "gradient.h"
 #include "text.h"
 
 typedef struct {
-    PUILayout *layout, *polygon_layout, *image_layout;
+    PUILayout *layout, *polygon_layout, *image_layout, *gradient_layout;
     VectorTextInspector text;
+    VectorGradientInspector gradient;
     unsigned document_id, rectangle_id, dirty;
     VectorRectangle presented;
     bool mounted, image_mounted, angle_preview, polygon_mounted;

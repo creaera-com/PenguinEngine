@@ -1,6 +1,7 @@
 /** @file @brief Reuse shape rendering at zoom one; only the small visible crop is drawn. */
 #include "render.h"
 #include "editors/vector/curve/tool.h"
+#include "editors/vector/gradient/tool.h"
 #include "editors/vector/rectangle/render.h"
 #include "editors/vector/workspace/selection.h"
 #include "tool.h"
@@ -37,11 +38,13 @@ void vector_preview_draw(const VectorDocument *d, SDL_Renderer *r, PUIRect area,
     for (int i = 0; i < d->rectangle_count; i++) {
         const VectorShape *shown = vector_curve_display_shape(d, &d->rectangles[i]);
         copy->rectangles[i] = *shown;
+        copy->rectangles[i].gradient = *vector_gradient_display(d, shown);
         copy->rectangles[i].rect = vector_rectangle_display_rect(d, shown);
         copy->rectangles[i].angle = vector_rectangle_display_angle(d, shown);
     }
     copy->selection = (VectorRectangleSelection){0};
     copy->active_rectangle = 0;
+    copy->gradient_tool = (VectorGradientTool){0};
     copy->selection_tool = (VectorSelectionTool){0};
     copy->rectangle_tool = (VectorRectangleTool){0};
     copy->curve_tool = (VectorCurveTool){0};

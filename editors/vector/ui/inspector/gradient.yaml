@@ -1,0 +1,56 @@
+schema: pengui/v1
+root:
+  type: section
+  id: section_gradient
+  text: Fuellung / Verlauf
+  padding: 4
+  gap: 4
+  children:
+    - type: dropdown
+      id: gradient_type
+      action: vector.gradient.kind
+      value: solid
+      height: 28
+      children:
+        - {type: option, text: Einfarbig, value: solid}
+        - {type: option, text: Linear, value: linear}
+        - {type: option, text: Radial, value: radial}
+        - {type: option, text: Konisch, value: conical}
+        - {type: option, text: Reflektiert, value: reflected}
+    - {type: button, text: Auf Leinwand bearbeiten, action: vector.tool_gradient, height: 28}
+    - type: row
+      padding: 0
+      gap: 4
+      height: 28
+      children:
+        - {type: button, icon: tabler:chevron-left, action: vector.gradient.previous, width: 26}
+        - {type: label, id: gradient_stop_label, text: Farbstopp 1 / 2}
+        - {type: button, icon: tabler:chevron-right, action: vector.gradient.next, width: 26}
+    - type: row
+      padding: 0
+      gap: 4
+      height: 28
+      children:
+        - {type: label, text: Position, width: 76}
+        - {type: input, id: gradient_stop_position, action: vector.gradient.position}
+        - {type: label, text: "%", width: 20}
+    - type: popup_button
+      id: gradient_color_button
+      text: Stoppfarbe / Deckkraft
+      height: 28
+      placement: below
+      popup_width: 260
+      popup_height: 304
+      children:
+        - type: panel
+          padding: 12
+          children:
+            - {type: color_picker, id: gradient_stop_color, mode: hsl, value: "#C58B5BFF", action: vector.gradient.color}
+    - type: row
+      padding: 0
+      height: 28
+      gap: 4
+      children:
+        - {type: button, text: Stopp +, action: vector.gradient.add}
+        - {type: button, text: Stopp -, action: vector.gradient.remove}
+    - {type: button, text: Farben umkehren, action: vector.gradient.reverse, height: 28}

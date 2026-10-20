@@ -1,6 +1,8 @@
 /** @file @brief Rectangle properties remain separate from artboard inspector bindings. */
 #include "shape.h"
 #include "editors/vector/artboard/tool.h"
+#include "editors/vector/gradient/tool.h"
+#include "editors/vector/object/commands.h"
 #include "editors/vector/polygon/polygon.h"
 #include "editors/vector/workspace/selection.h"
 #include "effects.h"
@@ -69,6 +71,11 @@ static bool stroke_action(VectorRectangleInspector *inspector, VectorDocument *d
 bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
                                        VectorDocuments *documents, PUIView *view,
                                        const char *action) {
+    if (vector_gradient_inspector_action(&inspector->gradient,
+                                         vector_documents_find(documents, inspector->document_id),
+                                         inspector->rectangle_id, view, action)) {
+        return true;
+    }
     if (vector_effects_action(vector_documents_find(documents, inspector->document_id),
                               inspector->rectangle_id, view, action)) {
         inspector->dirty |= 128u;
@@ -135,7 +142,15 @@ bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
             return true;
         }
         document->fill_preview = (VectorFillPreview){0};
-        bool changed = vector_rectangle_set_fill(document, rectangle->id, color);
+        bool changed;
+        if (rectangle->gradient.kind) {
+            VectorShape value = *rectangle;
+            value.fill = color;
+            value.gradient.kind = VECTOR_GRADIENT_SOLID;
+            changed = vector_shape_update(document, &value);
+        } else {
+            changed = vector_rectangle_set_fill(document, rectangle->id, color);
+        }
         inspector->dirty |= 8u;
         pui_view_set_text(view, "status",
                           changed ? "Fuellfarbe aktualisiert"
@@ -194,6 +209,7 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
         inspector->mounted = mount;
         inspector->image_mounted = image;
         inspector->polygon_mounted = false;
+        inspector->gradient.mounted = false;
         switched = true;
     }
     if (rectangle && !vector_text_inspector_sync(&inspector->text, document, rectangle, view, input,
@@ -201,6 +217,31 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
         return false;
     }
     if (rectangle) {
+        bool gradient = vector_gradient_eligible(rectangle);
+        if (gradient != inspector->gradient.mounted) {
+            if (!pui_view_replace_slot(view, input, "object_gradient",
+                                       gradient ? inspector->gradient_layout : NULL, error,
+                                       capacity)) {
+                return false;
+            }
+            inspector->gradient.mounted = gradient;
+            switched = true;
+        }
+        if (gradient) {
+            if (document->gradient_tool.dragging &&
+                document->gradient_tool.shape_id == rectangle->id) {
+                unsigned handle = document->gradient_tool.handle;
+                unsigned stop = handle > 1 ? handle - 2
+                                : handle   ? rectangle->gradient.count - 1
+                                           : 0;
+                if (stop < rectangle->gradient.count && inspector->gradient.stop != stop) {
+                    inspector->gradient.stop = stop;
+                    inspector->gradient.dirty = true;
+                }
+            }
+            vector_gradient_inspector_sync(&inspector->gradient, view, &rectangle->gradient,
+                                           &inspector->presented.gradient, switched);
+        }
         bool polygon = rectangle->curve_kind == VECTOR_CURVE_POLYGON;
         if (polygon != inspector->polygon_mounted) {
             if (!pui_view_replace_slot(view, input, "polygon_properties",

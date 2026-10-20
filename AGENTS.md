@@ -39,6 +39,8 @@ Refactorings und Fehlerkorrekturen:
   Schriftensuche/Rasterisierung liegt hinter dem App-Service-Vertrag `editor_host/fonts.h`;
   das Textmodell kennt weder Systemschriften noch SDL-Ressourcen.
 - `ellipse/`: Ellipsen-Geometrie und Erzeugung; keine eigene Kopie der Mausverarbeitung.
+- `gradient/`: reine Verlaufswerte und Farbstopps, Rendering und Canvas-Werkzeug getrennt halten;
+  Inspector-Bindings und YAML bleiben unter `ui/inspector/`.
 - `history/`: Ausführung von Befehlen sowie Undo/Redo.
 - `persistence/`: Temporäres Sichern und Wiederherstellen.
 - `ui/`: YAML-Beschreibungen und UI-Anbindungen nach Bereichen:

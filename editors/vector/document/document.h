@@ -5,6 +5,7 @@
 #include "editors/vector/artboard/artboard.h"
 #include "editors/vector/artboard/tool_state.h"
 #include "editors/vector/curve/tool_state.h"
+#include "editors/vector/gradient/tool_state.h"
 #include "editors/vector/grid/state.h"
 #include "editors/vector/history/history.h"
 #include "editors/vector/preview/state.h"
@@ -28,6 +29,7 @@ typedef struct VectorDocument {
     unsigned next_rectangle_id, active_rectangle;
     VectorRectangleTool rectangle_tool;
     VectorCurveTool curve_tool;
+    VectorGradientTool gradient_tool;
     VectorTextTool text_tool;
     VectorFillPreview fill_preview;
     VectorHistory history;

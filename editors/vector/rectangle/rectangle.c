@@ -33,7 +33,8 @@ unsigned vector_rectangle_effective_flags(VectorDocument *document,
 
 bool vector_rectangle_valid(VectorRectangle rectangle) {
     PUIRect r = rectangle.rect;
-    if (!vector_shadow_valid(&rectangle.shadow) || !vector_repeat_valid(&rectangle.repeat) ||
+    if (!vector_gradient_valid(&rectangle.gradient) || !vector_shadow_valid(&rectangle.shadow) ||
+        !vector_repeat_valid(&rectangle.repeat) ||
         (rectangle.repeat.enabled && rectangle.clip_mask) ||
         !vector_image_valid(&rectangle.image) ||
         (*rectangle.image.source &&

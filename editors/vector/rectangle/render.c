@@ -7,6 +7,8 @@
 #include "editors/vector/ellipse/ellipse.h"
 #include "editors/vector/ellipse/render.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/gradient/render.h"
+#include "editors/vector/gradient/tool.h"
 #include "editors/vector/mask/render.h"
 #include "editors/vector/path/render.h"
 #include "editors/vector/polygon/polygon.h"
@@ -93,6 +95,14 @@ static void draw_shape(void *data) {
     PUIRect rect = context->instance ? shown->rect : vector_rectangle_display_rect(document, shown);
     float angle =
         context->instance ? shown->angle : vector_rectangle_display_angle(document, shown);
+    VectorShape fill_shape = *shown;
+    fill_shape.gradient = *vector_gradient_display(document, shown);
+    if (document->fill_preview.active && document->fill_preview.rectangle_id == shown->id) {
+        fill_shape.gradient.kind = VECTOR_GRADIENT_SOLID;
+    }
+    if (vector_gradient_draw(renderer, &fill_shape, rect, angle, board, document->viewport.zoom)) {
+        fill = 0;
+    }
     if (*shown->image.source) {
         vector_image_draw(context->images, renderer, shown, rect, angle, board,
                           document->viewport.zoom);
@@ -141,6 +151,11 @@ static void paint_silhouette(void *data, float dx, float dy) {
     if (content.document->fill_preview.active &&
         content.document->fill_preview.rectangle_id == shape.id) {
         shape.fill = content.document->fill_preview.color;
+    }
+    shape.gradient = *vector_gradient_display(content.document, &shape);
+    if (content.document->fill_preview.active &&
+        content.document->fill_preview.rectangle_id == shape.id) {
+        shape.gradient.kind = VECTOR_GRADIENT_SOLID;
     }
     shape.id = 0; /* Editing handles/carets never contribute to alpha. */
     content.rectangle = &shape;

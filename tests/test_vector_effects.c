@@ -269,7 +269,7 @@ static void test_version_four_files_load_without_effects(void) {
     TEST_ASSERT_NOT_NULL(bytes);
     TEST_ASSERT_TRUE(length > 24);
     bytes[8] = 4;
-    TEST_ASSERT_TRUE(SDL_SaveFile(path, bytes, length - 24));
+    TEST_ASSERT_TRUE(SDL_SaveFile(path, bytes, length - 48));
     SDL_free(bytes);
     VectorDocument *loaded = calloc(1, sizeof *loaded);
     TEST_ASSERT_NOT_NULL(loaded);

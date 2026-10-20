@@ -44,6 +44,10 @@ bool vector_repeat_instance(const VectorShape *source, const VectorRepeat *r, un
     // Preserve exact source colors for the original and for zero color deltas.
     if (d[4] || d[5] || d[6] || d[7]) {
         result.fill = color(source->fill, d + VECTOR_REPEAT_FILL_HUE);
+        for (unsigned i = 0; i < result.gradient.count; i++) {
+            result.gradient.stops[i].color =
+                color(source->gradient.stops[i].color, d + VECTOR_REPEAT_FILL_HUE);
+        }
     }
     if (d[8] || d[9] || d[10] || d[11]) {
         result.stroke.color = color(source->stroke.color, d + VECTOR_REPEAT_STROKE_HUE);
