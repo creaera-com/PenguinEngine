@@ -3,24 +3,80 @@
 #include <math.h>
 #include <string.h>
 
-void pui_draw_button_themed(SDL_Renderer *r, const PUITheme *theme, SDL_FRect rect, PUIIcon icon,
-                            const char *label, bool active, bool enabled, bool hover) {
-    pui_panel(r, rect,
-              !enabled ? theme->panel
-              : active ? theme->accent
-              : hover  ? theme->hover
-                       : theme->surface);
-    Uint32 foreground = !enabled ? theme->disabled : active ? theme->canvas : theme->text;
-    bool label_present = label && *label;
+static int rounded_points(SDL_FRect r, float radius, SDL_FPoint points[37]) {
+    radius = fmaxf(0, fminf(radius, fminf(r.w, r.h) / 2));
+    int count = 0;
+    for (int corner = 0; corner < 4; corner++) {
+        float cx = r.x + (corner == 0 || corner == 3 ? r.w - radius : radius);
+        float cy = r.y + (corner < 2 ? r.h - radius : radius);
+        for (int step = 0; step <= 8; step++) {
+            float angle = (corner * 90 + step * 90.f / 8) * .017453293f;
+            points[count++] = (SDL_FPoint){cx + cosf(angle) * radius, cy + sinf(angle) * radius};
+        }
+    }
+    points[count] = points[0];
+    return count;
+}
+
+static void background(SDL_Renderer *r, SDL_FRect rect, float radius, uint32_t color,
+                       uint32_t focus) {
+    if (radius <= 0) {
+        pui_panel(r, rect, color);
+    } else {
+        SDL_FPoint points[37];
+        int count = rounded_points(rect, radius, points);
+        SDL_Vertex vertices[38];
+        int indices[108];
+        SDL_FColor c = {(color >> 24) / 255.f, ((color >> 16) & 255) / 255.f,
+                        ((color >> 8) & 255) / 255.f, (color & 255) / 255.f};
+        vertices[0] =
+            (SDL_Vertex){.position = {rect.x + rect.w / 2, rect.y + rect.h / 2}, .color = c};
+        for (int i = 0; i <= count; i++) {
+            vertices[i + 1] = (SDL_Vertex){.position = points[i], .color = c};
+        }
+        for (int i = 0; i < count; i++) {
+            indices[3 * i] = 0;
+            indices[3 * i + 1] = i + 1;
+            indices[3 * i + 2] = i + 2;
+        }
+        SDL_RenderGeometry(r, NULL, vertices, count + 2, indices, count * 3);
+    }
+    if (focus & 255) {
+        pui_render_color(r, focus);
+        SDL_FRect outline = {rect.x + .5f, rect.y + .5f, fmaxf(0, rect.w - 1),
+                             fmaxf(0, rect.h - 1)};
+        if (radius <= 0) {
+            SDL_RenderRect(r, &outline);
+        } else {
+            SDL_FPoint points[37];
+            int n = rounded_points(outline, fmaxf(0, radius - .5f), points);
+            SDL_RenderLines(r, points, n + 1);
+        }
+    }
+}
+
+static void content(SDL_Renderer *r, SDL_FRect rect, PUIIcon icon, const char *label,
+                    uint32_t foreground) {
+    bool text = label && *label;
     if (icon != ICON_NONE) {
-        pui_icon(r, icon, label_present ? rect.x + 9 : rect.x + (rect.w - 16) * .5f,
+        pui_icon(r, icon, text ? rect.x + 9 : rect.x + (rect.w - 16) * .5f,
                  rect.y + (rect.h - 16) * .5f, 16, foreground);
     }
-    if (label_present) {
-        pui_render_color(r, foreground);
+    if (text) {
         pui_text(r, rect.x + (icon == ICON_NONE ? 9 : 31),
                  rect.y + (rect.h - PUI_FONT_HEIGHT) * .5f, label, foreground);
     }
+}
+
+void pui_draw_button_themed(SDL_Renderer *r, const PUITheme *theme, SDL_FRect rect, PUIIcon icon,
+                            const char *label, bool active, bool enabled, bool hover) {
+    Uint32 bg = !enabled ? theme->panel
+                : active ? theme->accent
+                : hover  ? theme->hover
+                         : theme->surface;
+    Uint32 fg = !enabled ? theme->disabled : active ? theme->canvas : theme->text;
+    background(r, rect, theme->button_radius, bg, 0);
+    content(r, rect, icon, label, fg);
 }
 
 void pui_draw_button(SDL_Renderer *r, SDL_FRect rect, PUIIcon icon, const char *label, bool active,
@@ -29,11 +85,8 @@ void pui_draw_button(SDL_Renderer *r, SDL_FRect rect, PUIIcon icon, const char *
     pui_draw_button_themed(r, &theme, rect, icon, label, active, enabled, hover);
 }
 
-void pui_draw_image_button(SDL_Renderer *renderer, SDL_FRect rect, SDL_Texture *image,
-                           const char *label, float padding, bool active, bool enabled, bool hover,
-                           bool pressed, bool focused) {
-    bool selected = active || (enabled && pressed);
-    pui_draw_button(renderer, rect, ICON_NONE, NULL, selected, enabled, hover);
+static void image_content(SDL_Renderer *renderer, SDL_FRect rect, SDL_Texture *image,
+                          const char *label, float padding, bool enabled) {
     bool text = label && *label;
     float width, height;
     if (image && SDL_GetTextureSize(image, &width, &height)) {
@@ -50,6 +103,15 @@ void pui_draw_image_button(SDL_Renderer *renderer, SDL_FRect rect, SDL_Texture *
         }
         SDL_SetTextureAlphaMod(image, alpha);
     }
+}
+
+void pui_draw_image_button(SDL_Renderer *renderer, SDL_FRect rect, SDL_Texture *image,
+                           const char *label, float padding, bool active, bool enabled, bool hover,
+                           bool pressed, bool focused) {
+    bool selected = active || (enabled && pressed);
+    pui_draw_button(renderer, rect, ICON_NONE, NULL, selected, enabled, hover);
+    bool text = label && *label;
+    image_content(renderer, rect, image, label, padding, enabled);
     if (text) {
         Uint32 foreground = !enabled   ? pui_theme.disabled
                             : selected ? pui_theme.canvas
@@ -58,16 +120,53 @@ void pui_draw_image_button(SDL_Renderer *renderer, SDL_FRect rect, SDL_Texture *
                  foreground);
     }
     if (enabled && focused) {
+        SDL_FPoint points[37];
+        int count = rounded_points(rect, pui_theme.button_radius, points);
         pui_render_color(renderer, pui_theme.accent);
-        SDL_RenderRect(renderer, &rect);
+        SDL_RenderLines(renderer, points, count + 1);
     }
+}
+
+void pui_widget_button_paint(PUIView *v, PUIContext *pui, int i, PUIRect area, bool active,
+                             PUIIcon icon) {
+    const PUINode *n = &v->layout->nodes[i];
+    Widget *s = &v->state[i];
+    bool enabled = !pui->blocked, focus = enabled && pui->focus == n->id;
+    bool selected = active || (enabled && pui->active == n->id && pui->down);
+    bool hover = enabled && pui_hovered(pui, area);
+    float radius = n->radius >= 0 ? n->radius : pui_theme.button_radius;
+    float duration = n->transition_ms >= 0 ? n->transition_ms : pui_theme.button_transition_ms;
+    uint32_t bg = !enabled           ? pui_theme.panel
+                  : selected         ? pui_theme.accent
+                  : (hover || focus) ? pui_theme.hover
+                                     : pui_theme.surface;
+    uint32_t fg = !enabled ? pui_theme.disabled : selected ? pui_theme.canvas : pui_theme.text;
+    uint32_t border = focus ? pui_theme.accent : pui_theme.accent & 0xffffff00u;
+    bg = pui_color_transition(&s->button_background, bg, v->frame_ms, duration);
+    fg = pui_color_transition(&s->button_foreground, fg, v->frame_ms, duration);
+    border = pui_color_transition(&s->button_focus, border, v->frame_ms, duration);
+    SDL_BlendMode blend;
+    SDL_GetRenderDrawBlendMode(v->renderer, &blend);
+    SDL_SetRenderDrawBlendMode(v->renderer, SDL_BLENDMODE_BLEND);
+    background(v->renderer, pui_frect(area), radius, bg, border);
+    if (s->image) {
+        image_content(v->renderer, pui_frect(area), s->image, n->text,
+                      fmaxf(n->image_padding, fminf(radius, fminf(area.w, area.h) / 2) * .3f),
+                      enabled);
+        if (*n->text) {
+            pui_text(v->renderer, area.x + 31, area.y + (area.h - PUI_FONT_HEIGHT) * .5f, n->text,
+                     fg);
+        }
+    } else {
+        content(v->renderer, pui_frect(area), icon, n->text, fg);
+    }
+    SDL_SetRenderDrawBlendMode(v->renderer, blend);
 }
 
 void pui_widget_button_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
                             void *context) {
     const PUINode *n = &v->layout->nodes[i];
     Widget *s = &v->state[i];
-    bool hover = pui_hovered(pui, area);
     bool activated = !s->group && pui_button(pui, n->id, area, !pui->blocked);
     PUIIcon button_icon = *n->image ? ICON_IMAGE : pui_icon_from_name(n->icon);
     if (v->window && !strcmp(n->action, "window.maximize") &&
@@ -75,14 +174,7 @@ void pui_widget_button_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PU
         button_icon =
             !strncmp(n->icon, "tabler:", 7) ? pui_icon_from_name("tabler:copy") : ICON_RESTORE;
     }
-    if (s->image) {
-        pui_draw_image_button(v->renderer, pui_frect(area), s->image, n->text, n->image_padding,
-                              s->checked, !pui->blocked, hover, pui->active == n->id && pui->down,
-                              pui->focus == n->id);
-    } else {
-        pui_draw_button(v->renderer, pui_frect(area), button_icon, n->text, s->checked,
-                        !pui->blocked, hover);
-    }
+    pui_widget_button_paint(v, pui, i, area, s->checked, button_icon);
     if (activated && action && *n->action) {
         action(context, n->action, n->name);
     }

@@ -199,8 +199,30 @@ static void test_radial_submenus_are_recursive_and_still_validate_their_children
                            error));
 }
 
+static void test_button_theme_defaults_overrides_and_validation(void) {
+    char error[256];
+    PUILayout *l = parse(
+        "schema: pengui/v1\ntheme: {button_radius: 4, button_transition_ms: 120}\nroot: {type: "
+        "row, children: [{type: button}, {type: toggle, radius: 0, transition_ms: 0}]}",
+        error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(l, error);
+    TEST_ASSERT_EQUAL_FLOAT(4, l->button_radius);
+    TEST_ASSERT_EQUAL_FLOAT(120, l->button_transition_ms);
+    int child = l->nodes[l->root].child;
+    TEST_ASSERT_EQUAL_FLOAT(-1, l->nodes[child].radius);
+    TEST_ASSERT_EQUAL_FLOAT(-1, l->nodes[child].transition_ms);
+    child = l->nodes[child].next;
+    TEST_ASSERT_EQUAL_FLOAT(0, l->nodes[child].radius);
+    TEST_ASSERT_EQUAL_FLOAT(0, l->nodes[child].transition_ms);
+    pui_layout_free(l);
+    TEST_ASSERT_NULL(parse("schema: pengui/v1\nroot: {type: button, radius: -1}", error));
+    TEST_ASSERT_NULL(parse(
+        "schema: pengui/v1\ntheme: {button_transition_ms: nan}\nroot: {type: button}", error));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_button_theme_defaults_overrides_and_validation);
     RUN_TEST(test_radial_submenus_are_recursive_and_still_validate_their_children);
     RUN_TEST(test_radial_menu_validates_sector_count_and_button_children);
     RUN_TEST(test_dropdown_and_popup_structure_are_validated);

@@ -594,8 +594,21 @@ static void test_radial_sector_geometry_and_dead_zones(void) {
     TEST_ASSERT_EQUAL_INT(-1, pui_radial_item(bounds, 5, 160, 70));
 }
 
+static void test_color_transition_retargets_without_jumps_and_zero_snaps(void) {
+    PUIColorTransition a = {0}, b = {0};
+    TEST_ASSERT_EQUAL_HEX32(0x000000ff, pui_color_transition(&a, 0x000000ff, 0, 100));
+    TEST_ASSERT_EQUAL_HEX32(0x000000ff, pui_color_transition(&a, 0xffffffff, 0, 100));
+    TEST_ASSERT_EQUAL_HEX32(0x808080ff, pui_color_transition(&a, 0xffffffff, 50, 100));
+    TEST_ASSERT_EQUAL_HEX32(0x808080ff, pui_color_transition(&a, 0x000000ff, 50, 100));
+    TEST_ASSERT_EQUAL_HEX32(0x404040ff, pui_color_transition(&a, 0x000000ff, 100, 100));
+    TEST_ASSERT_EQUAL_HEX32(0x000000ff, pui_color_transition(&a, 0x000000ff, 150, 100));
+    TEST_ASSERT_EQUAL_HEX32(0xffffffff, pui_color_transition(&a, 0xffffffff, 151, 0));
+    TEST_ASSERT_EQUAL_HEX32(0x12345678, pui_color_transition(&b, 0x12345678, 1000, 100));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_color_transition_retargets_without_jumps_and_zero_snaps);
     RUN_TEST(test_radial_sector_geometry_and_dead_zones);
     RUN_TEST(test_hsl_rgba_roundtrip_primaries_transparency_and_hex);
     RUN_TEST(test_word_selection_respects_utf8_spaces_punctuation_and_end);

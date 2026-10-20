@@ -533,15 +533,30 @@ typedef struct {
     int color_mode;          ///< Color picker: 0=HSL, 1=RGBA.
     char value[128]; ///< Stable option value, initial dropdown value, or initial color-picker hex.
     float popup_width, popup_height;
+    float radius, transition_ms; ///< Negative means inherit the theme; zero explicitly disables.
     PUIPopupPlacement placement;
     int child, next;
 } PUINode;
+
+/** @brief Per-widget color animation, with explicit time for deterministic callers/tests. */
+typedef struct {
+    uint32_t from, target, current;
+    double started_ms;
+    bool initialized;
+} PUIColorTransition;
+
+/** @brief Smoothly approach target; interrupted transitions continue from the visible color.
+ * First use initializes immediately. Duration zero disables animation; no delayed input handling.
+ */
+uint32_t pui_color_transition(PUIColorTransition *state, uint32_t target, double now_ms,
+                              float duration_ms);
 
 /** @brief Entire owned layout, allocated by the loader and released with pui_layout_free. */
 typedef struct {
     char title[128], directory[1024];
     int width, height, count, root;
     uint32_t colors[7];
+    float button_radius, button_transition_ms; ///< Theme defaults, in pixels and milliseconds.
     PUINode nodes[PUI_LAYOUT_NODES];
 } PUILayout;
 
@@ -673,15 +688,16 @@ bool pui_text_scaled(SDL_Renderer *renderer, float x, float y, const char *text,
 
 /** @brief UI-Palette als gepackte RGBA-Werte im Format 0xRRGGBBAA. */
 typedef struct {
-    Uint32 canvas;   ///< Hintergrundfarbe der Zeichenfläche als RGBA.
-    Uint32 panel;    ///< Panelfarbe als RGBA.
-    Uint32 surface;  ///< Farbe angehobener Bedienflächen als RGBA.
-    Uint32 hover;    ///< Hoverfarbe als RGBA.
-    Uint32 accent;   ///< Akzentfarbe als RGBA.
-    Uint32 text;     ///< Standardtextfarbe als RGBA.
-    Uint32 muted;    ///< Farbe zurückhaltender Beschriftungen als RGBA.
-    Uint32 disabled; ///< Farbe deaktivierter Elemente als RGBA.
-    Uint32 border;   ///< Rahmenfarbe als RGBA.
+    Uint32 canvas;                             ///< Hintergrundfarbe der Zeichenfläche als RGBA.
+    Uint32 panel;                              ///< Panelfarbe als RGBA.
+    Uint32 surface;                            ///< Farbe angehobener Bedienflächen als RGBA.
+    Uint32 hover;                              ///< Hoverfarbe als RGBA.
+    Uint32 accent;                             ///< Akzentfarbe als RGBA.
+    Uint32 text;                               ///< Standardtextfarbe als RGBA.
+    Uint32 muted;                              ///< Farbe zurückhaltender Beschriftungen als RGBA.
+    Uint32 disabled;                           ///< Farbe deaktivierter Elemente als RGBA.
+    Uint32 border;                             ///< Rahmenfarbe als RGBA.
+    float button_radius, button_transition_ms; ///< Default button shape and color transition.
 } PUITheme;
 
 /** @brief Gemeinsame UI-Palette; über pui_set_theme aktualisieren. */
@@ -938,7 +954,7 @@ const char *pui_view_tab_at(const PUIView *view, const char *tabs, int index);
  * Splitter drags keep their resize cursor until release, including outside the grip.
  */
 SDL_SystemCursor pui_view_cursor(const PUIView *view);
-/** @brief Apply the seven theme colors from YAML to the existing renderer theme. */
+/** @brief Apply YAML palette and button shape/transition defaults to the renderer theme. */
 void pui_view_apply_theme(const PUILayout *layout);
 /** @brief Open a YAML radial menu; nested menus add concentric outer rings.
  * Ancestor rings remain interactive. Escape/center closes the outermost ring first.

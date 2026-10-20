@@ -1,6 +1,8 @@
 schema: pengui/v1
 window: {title: "pengUI - Editor Shell", width: 1280, height: 800}
 theme:
+  button_radius: 4
+  button_transition_ms: 120
   background: "#101010"
   panel: "#202020"
   surface: "#292929"

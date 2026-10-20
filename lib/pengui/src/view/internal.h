@@ -23,6 +23,7 @@ typedef struct {
     float preferred[3];
     char text[256];
     PUITextEdit edit;
+    PUIColorTransition button_background, button_foreground, button_focus;
     PUITabs tabs;
     PUIScroll scroll;
     SDL_Texture *image;
@@ -53,6 +54,7 @@ struct PUIView {
     SDL_SystemCursor cursor;
     int cursor_priority;
     bool pointer_inside;
+    double frame_ms;
     SDL_Cursor *cursors[SDL_SYSTEM_CURSOR_COUNT];
     bool cursor_attempted[SDL_SYSTEM_CURSOR_COUNT];
 };
@@ -121,4 +123,9 @@ bool pui_widget_tabs_scroll(PUIView *view, int index, const SDL_Event *event);
 void pui_widget_tabs_init(PUIView *view, int index);
 void pui_widget_section_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
                              void *context);
+
+/** @brief Shared node styling for ordinary, grouped, image, toggle and popup buttons. */
+void pui_widget_button_paint(PUIView *view, PUIContext *input, int index, PUIRect area, bool active,
+                             PUIIcon icon);
+
 #endif

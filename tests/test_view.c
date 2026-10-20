@@ -826,8 +826,39 @@ static void test_scroll_panel_reveals_clipped_actions_and_respects_wheel_bounds(
     TEST_ASSERT_FALSE(pui_view_hit(view, "button", 50, 80));
 }
 
+static void test_rounded_button_inherits_theme_and_zero_override_is_square(void) {
+    const char *yaml =
+        "schema: pengui/v1\nroot: {type: row, padding: 0, gap: 0, children: [{type: button, id: "
+        "rounded, width: 80}, {type: button, radius: 0, transition_ms: 0, width: 80}]}";
+    char error[256];
+    PUILayout *l = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL(l);
+    PUIView *v = pui_view_new(l, renderer);
+    TEST_ASSERT_NOT_NULL(v);
+    PUITheme saved = pui_theme, theme = pui_dark_theme();
+    theme.button_radius = 12;
+    theme.surface = 0x883322ff;
+    pui_set_theme(&theme);
+    PUIContext input;
+    pui_init(&input);
+    pui_pointer(&input, 350, 250, false);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderClear(renderer);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 160, 40}, NULL, NULL);
+    assert_pixel(0, 0, 0xffffffff);
+    assert_pixel(40, 20, theme.surface);
+    assert_pixel(80, 0, theme.surface);
+    input.focus = pui_id("rounded");
+    pui_view_draw(v, &input, (PUIRect){0, 0, 160, 40}, NULL, NULL);
+    assert_pixel(40, 20, theme.hover);
+    pui_set_theme(&saved);
+    pui_view_free(v);
+    pui_layout_free(l);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_rounded_button_inherits_theme_and_zero_override_is_square);
     RUN_TEST(test_scroll_panel_reveals_clipped_actions_and_respects_wheel_bounds);
     RUN_TEST(test_tree_table_cells_do_not_select_or_expand_rows);
     RUN_TEST(test_empty_tabs_can_draw_receive_first_document_and_use_checked_default);

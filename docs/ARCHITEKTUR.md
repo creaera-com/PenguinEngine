@@ -830,3 +830,45 @@ Die Inhaltshöhe ergibt sich aus den natürlichen/festgelegten Höhen der Kinder
 einschließlich offener Abschnitte. Der Scrollzustand bleibt bei Slot-Ersetzungen
 für Panels mit expliziter ID erhalten. Flexible Kinder allein erzeugen keinen Überlauf.
 Die Scrollfunktion ist Teil von pengUI und unabhängig von den Editoren.
+
+## Button-Rundung und sanfte Zustandswechsel
+
+Das Theme der Shell bestimmt gemeinsame Standardwerte:
+
+```yaml
+theme:
+  button_radius: 4
+  button_transition_ms: 120
+```
+
+Einzelne Buttons können beide Werte überschreiben:
+
+```yaml
+- {type: button, text: Speichern, radius: 8, transition_ms: 180}
+- {type: toggle, text: Eckig, radius: 0, transition_ms: 0}
+```
+
+Ohne Node-Einstellung wird der Theme-Wert verwendet. Explizit `0` bedeutet eckige
+Ecken bzw. sofortiger Farbwechsel. Alte Themes ohne diese Felder behalten ihre
+bisherige Darstellung (0/0). Die Demo-Shell aktiviert 4 px und 120 ms. Radien sind
+auf die halbe kleinere Buttonkante begrenzt. YAML akzeptiert 0–1024 px und
+0–10000 ms; negative, nicht endliche und zu große Eingaben werden abgelehnt.
+
+Die gemeinsame Node-Darstellung gilt für normale Buttons, Icon-/Bildbuttons,
+Toggle-Buttons, Gruppenmitglieder und Popup-Buttons. Hintergrund, Text-/Iconfarbe
+und Fokusrahmen wechseln mit einer weichen Ease-in/out-Kurve. Neue Zustände
+beginnen bei der aktuell sichtbaren Farbe; auch schnelle Hover-/Fokuswechsel
+verursachen deshalb keinen Farbsprung. Bildinhalte werden nicht eingefärbt.
+Die sichtbaren Ecken sind rund; die rechteckige Klickfläche bleibt erhalten.
+
+`PUIColorTransition` und `pui_color_transition` liegen im SDL-freien Button-Code.
+Der Aufrufer übergibt explizite Zeit in Millisekunden; dadurch bleiben Animationen
+unabhängig von der Bildrate und lassen sich ohne Wartezeiten testen. Jede View
+hält drei eigene Übergangszustände pro Widget. Der Renderer verwendet pro Frame
+einen gemeinsamen SDL-Zeitstempel. Es gibt keine Hintergrundthreads, Timer-Callbacks
+oder verzögerten Aktionen. Der erste gezeichnete Zustand erscheint sofort.
+
+In reinem C kann `PUITheme.button_radius` bzw. `button_transition_ms` gesetzt werden.
+Die zustandslosen Zeichenfunktionen wie `pui_draw_button_themed` übernehmen die
+Rundung, halten aber selbst keinen Animationszustand. Die automatische Animation
+gehört zur `PUIView`; eigene Steuerelemente können den expliziten Übergangshelfer nutzen.

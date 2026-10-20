@@ -32,3 +32,33 @@ bool pui_button(PUIContext *c, PUIId id, PUIRect r, bool enabled) {
 
     return false;
 }
+
+static uint32_t interpolate(uint32_t a, uint32_t b, float t) {
+    uint32_t out = 0;
+    for (int shift = 0; shift <= 24; shift += 8) {
+        float x = (a >> shift) & 255, y = (b >> shift) & 255;
+        out |= (uint32_t)(x + (y - x) * t + .5f) << shift;
+    }
+    return out;
+}
+
+uint32_t pui_color_transition(PUIColorTransition *s, uint32_t target, double now, float duration) {
+    if (!s->initialized || duration <= 0) {
+        *s = (PUIColorTransition){.from = target,
+                                  .target = target,
+                                  .current = target,
+                                  .started_ms = now,
+                                  .initialized = true};
+        return target;
+    }
+    float t = (float)((now - s->started_ms) / duration);
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    t = t * t * (3 - 2 * t);
+    s->current = interpolate(s->from, s->target, t);
+    if (s->target != target) {
+        s->from = s->current;
+        s->target = target;
+        s->started_ms = now;
+    }
+    return s->current;
+}

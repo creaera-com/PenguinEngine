@@ -84,6 +84,7 @@ void pui_view_draw_node(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAct
 }
 
 void pui_view_draw(PUIView *view, PUIContext *pui, PUIRect area, PUIAction action, void *context) {
+    view->frame_ms = (double)SDL_GetTicksNS() / 1000000.;
     view->cursor = SDL_SYSTEM_CURSOR_DEFAULT;
     view->cursor_priority = 0;
     memset(view->visible, 0, sizeof view->visible);

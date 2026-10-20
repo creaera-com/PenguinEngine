@@ -125,7 +125,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
               "initial_second|initial_last|minimum_first|minimum_second|minimum_last|flex|image_"
               "padding|enabled|open|checked|draggable|scroll|axis|children|value|popup_width|popup_"
               "height|"
-              "placement|preview_action|mode|")) {
+              "placement|preview_action|mode|radius|transition_ms|")) {
         return -1;
     }
     int index = r->layout->count++;
@@ -186,6 +186,8 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     out->initial_second = number(r, yaml, "initial_second", 240, 0, 10000);
     out->initial_last = number(r, yaml, "initial_last", 280, 0, 10000);
     out->minimum_last = number(r, yaml, "minimum_last", 160, 0, 10000);
+    out->radius = number(r, yaml, "radius", -1, 0, 1024);
+    out->transition_ms = number(r, yaml, "transition_ms", -1, 0, 10000);
     out->image_padding = number(r, yaml, "image_padding", 4, 2, 32);
     out->enabled = boolean(r, yaml, "enabled", true);
     out->open = boolean(r, yaml, "open", true);
@@ -373,7 +375,11 @@ PUILayout *pui_layout_parse(const char *text, size_t length, char *error, size_t
                                0xc28e5cff, 0xe9e9e9ff, 0xa2a2a2ff};
         memcpy(layout->colors, defaults, sizeof defaults);
         yaml_node_t *theme = get(&r, root, "theme");
-        if (theme && keys(&r, theme, "|background|panel|surface|hover|accent|text|muted|")) {
+        if (theme && keys(&r, theme,
+                          "|background|panel|surface|hover|accent|text|muted|button_radius|button_"
+                          "transition_ms|")) {
+            layout->button_radius = number(&r, theme, "button_radius", 0, 0, 1024);
+            layout->button_transition_ms = number(&r, theme, "button_transition_ms", 0, 0, 10000);
             const char *names[] = {"background", "panel", "surface", "hover",
                                    "accent",     "text",  "muted"};
             for (int i = 0; i < 7; i++) {

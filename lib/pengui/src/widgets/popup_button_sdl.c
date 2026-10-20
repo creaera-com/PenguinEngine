@@ -14,13 +14,5 @@ void pui_widget_popup_button_draw(PUIView *v, PUIContext *pui, int i, PUIRect ar
         pui_view_popup_open(v, pui, i);
         open = true;
     }
-    Widget *s = &v->state[i];
-    if (s->image) {
-        pui_draw_image_button(v->renderer, pui_frect(area), s->image, n->text, n->image_padding,
-                              open, !pui->blocked, pui_hovered(pui, area), false,
-                              pui->focus == n->id);
-    } else {
-        pui_draw_button(v->renderer, pui_frect(area), pui_icon_from_name(n->icon), n->text, open,
-                        !pui->blocked, pui_hovered(pui, area));
-    }
+    pui_widget_button_paint(v, pui, i, area, open, pui_icon_from_name(n->icon));
 }
