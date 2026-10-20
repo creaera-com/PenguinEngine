@@ -168,7 +168,7 @@ void vector_rotation_draw(const VectorDocument *document, SDL_Renderer *renderer
             float a = i * .157079632679f;
             points[i] = (SDL_FPoint){cx + cosf(a) * radius, cy + sinf(a) * radius};
         }
-        SDL_SetRenderDrawColor(renderer, ring ? 255 : 194, ring ? 255 : 142, ring ? 255 : 92, 255);
+        pui_render_color(renderer, ring ? 0xffffffff : PUI_HIGHLIGHT);
         SDL_RenderLines(renderer, points, 41);
     }
     if (tool->rotating) {

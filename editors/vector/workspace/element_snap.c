@@ -101,7 +101,7 @@ static void dashed(SDL_Renderer *r, float x1, float y1, float x2, float y2) {
 void vector_element_guides_draw(const VectorDocument *d, SDL_Renderer *renderer) {
     VectorElementSnap snap = vector_workspace_element_snap(d);
     const VectorViewport *v = &d->viewport;
-    SDL_SetRenderDrawColor(renderer, 224, 157, 93, 255);
+    pui_render_color(renderer, PUI_HIGHLIGHT);
     for (int i = 0; i < snap.guide_count; i++) {
         VectorSnapGuide g = snap.guides[i];
         float x1 = v->bounds.x + v->x + g.x1 * v->zoom;

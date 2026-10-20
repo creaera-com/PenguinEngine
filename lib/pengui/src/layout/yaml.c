@@ -376,17 +376,26 @@ PUILayout *pui_layout_parse(const char *text, size_t length, char *error, size_t
         memcpy(layout->colors, defaults, sizeof defaults);
         yaml_node_t *theme = get(&r, root, "theme");
         if (theme && keys(&r, theme,
-                          "|background|panel|surface|hover|accent|text|muted|button_radius|button_"
+                          "|background|panel|surface|hover|accent|highlight_color|Highlight_Color|"
+                          "text|muted|button_radius|button_"
                           "transition_ms|toolbar_radius|tab_radius|")) {
             layout->button_radius = number(&r, theme, "button_radius", 0, 0, 1024);
             layout->button_transition_ms = number(&r, theme, "button_transition_ms", 0, 0, 10000);
             layout->toolbar_radius =
                 number(&r, theme, "toolbar_radius", layout->button_radius, 0, 1024);
             layout->tab_radius = number(&r, theme, "tab_radius", layout->button_radius, 0, 1024);
+            yaml_node_t *highlight = get(&r, theme, "highlight_color");
+            yaml_node_t *highlight_alias = get(&r, theme, "Highlight_Color");
+            if (highlight && highlight_alias) {
+                fail(&r, theme, "use only one highlight_color spelling");
+            }
+            if (!highlight) {
+                highlight = highlight_alias;
+            }
             const char *names[] = {"background", "panel", "surface", "hover",
                                    "accent",     "text",  "muted"};
             for (int i = 0; i < 7; i++) {
-                yaml_node_t *value = get(&r, theme, names[i]);
+                yaml_node_t *value = i == 4 && highlight ? highlight : get(&r, theme, names[i]);
                 if (value) {
                     const char *color = scalar(&r, value);
                     char *end;

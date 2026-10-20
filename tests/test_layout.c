@@ -222,8 +222,32 @@ static void test_button_theme_defaults_overrides_and_validation(void) {
         "schema: pengui/v1\ntheme: {button_transition_ms: nan}\nroot: {type: button}", error));
 }
 
+static void test_highlight_color_is_central_and_legacy_accent_remains_compatible(void) {
+    char error[256];
+    PUILayout *l = parse("schema: pengui/v1\ntheme: {accent: '#C28E5C', highlight_color: "
+                         "'#5B9BD5'}\nroot: {type: label}",
+                         error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(l, error);
+    TEST_ASSERT_EQUAL_HEX32(0x5b9bd5ff, l->colors[4]);
+    pui_layout_free(l);
+    l = parse("schema: pengui/v1\ntheme: {Highlight_Color: '#123456'}\nroot: {type: label}", error);
+    TEST_ASSERT_NOT_NULL(l);
+    TEST_ASSERT_EQUAL_HEX32(0x123456ff, l->colors[4]);
+    pui_layout_free(l);
+    l = parse("schema: pengui/v1\ntheme: {accent: '#112233'}\nroot: {type: label}", error);
+    TEST_ASSERT_NOT_NULL(l);
+    TEST_ASSERT_EQUAL_HEX32(0x112233ff, l->colors[4]);
+    pui_layout_free(l);
+    TEST_ASSERT_NULL(parse(
+        "schema: pengui/v1\ntheme: {highlight_color: '#invalid'}\nroot: {type: label}", error));
+    TEST_ASSERT_NULL(parse("schema: pengui/v1\ntheme: {highlight_color: '#112233', "
+                           "Highlight_Color: '#112233'}\nroot: {type: label}",
+                           error));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_highlight_color_is_central_and_legacy_accent_remains_compatible);
     RUN_TEST(test_button_theme_defaults_overrides_and_validation);
     RUN_TEST(test_radial_submenus_are_recursive_and_still_validate_their_children);
     RUN_TEST(test_radial_menu_validates_sector_count_and_button_children);

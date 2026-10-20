@@ -919,3 +919,38 @@ Buttons, Toolbars und Tabs verwenden die gemeinsame interne Zeichenprimitive
 `pui_rounded_panel`. Sie unterstützt entweder vier runde Ecken oder ausschließlich
 die beiden oberen Ecken; Rundungen gehören damit weiterhin zur Darstellung und
 ändern weder Layout noch Eingabeverarbeitung.
+
+### Zentrale Highlight-Farbe
+
+```yaml
+theme:
+  highlight_color: "#5B9BD5"
+```
+
+`highlight_color` bestimmt die zentrale Akzentfarbe für aktive Buttons, Fokusrahmen,
+Checkboxen, Textmarkierungen, aktive Tree-Zell-Icons, Split-Greifer und radiale Menüs.
+Auch die Auswahlrahmen, Resize-/Rotationsgreifer, Bezier-Knoten, Vorschau-Markierung,
+magnetischen Hilfslinien und aktiven Artboard-Beschriftungen des Vektoreditors lesen
+jetzt diese Farbe. Halbtransparente Auswahlflächen verwenden dieselbe Farbe mit
+reduzierter Deckkraft. Die neue Shell und die Playground-App verwenden Blau.
+
+Die Schreibweise `Highlight_Color` wird ebenfalls akzeptiert; bitte nur eine der
+beiden Schreibweisen verwenden. Das bisherige `accent` bleibt kompatibel. Ist
+zusätzlich `highlight_color` gesetzt, hat dieser Wert Vorrang. Farben werden wie
+bisher als `#RRGGBB` angegeben. Ohne beide Einstellungen gilt die bisherige Palette.
+
+In C liefert `PUI_HIGHLIGHT` denselben zentralen Wert wie `PUI_ACCENT` bzw.
+`pui_theme.accent`. `pui_render_color(renderer, rgba)` setzt eine gepackte RGBA-Farbe
+für eigene Zeichenoperationen, ohne private pengUI-Header einzubinden.
+
+Die zuletzt neutral gestalteten Tree-Auswahlflächen und Tab-Hintergründe bleiben
+grau. Objektfüllungen, Rahmenfarben, Verläufe und frei einstellbare Rasterfarben
+sind Dokument-/Werkzeugeinstellungen und werden durch das Theme nicht verändert.
+Die rote Textüberlauf-Warnung bleibt eine Warnfarbe. Theme-Wechsel verändern weder
+Dokumentdaten, History noch exportierte Kunstwerke.
+
+Die Interaktionsfixtures unter `tests/` verwenden eine eigene Ressourcen-Kopie
+mit festen äußeren Spaltenbreiten von 250 px. Alle aktuellen Widgets und Theme-Werte
+werden übernommen; nur die fünf Größenpräferenzen des äußeren Vektor-Splits sind
+für die 1280×800-Klicktests stabilisiert. `tests/PrepareEditorResources.cmake` erzeugt
+diese Kopie. Die normale App und ihre YAML-Dateien behalten die Benutzerwerte.

@@ -90,9 +90,9 @@ void vector_marquee_draw(const VectorDocument *document, SDL_Renderer *renderer)
     SDL_BlendMode blend;
     SDL_GetRenderDrawBlendMode(renderer, &blend);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(renderer, 194, 142, 92, 35);
+    pui_render_color(renderer, (PUI_HIGHLIGHT & 0xffffff00u) | 35u);
     SDL_RenderFillRect(renderer, &rect);
-    SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
+    pui_render_color(renderer, PUI_HIGHLIGHT);
     SDL_RenderRect(renderer, &rect);
     SDL_SetRenderDrawBlendMode(renderer, blend);
 }

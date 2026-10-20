@@ -67,7 +67,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
                           display.w * viewport->zoom, display.h * viewport->zoom};
         PUIRect label = vector_artboard_label_rect(document, board);
         pui_text_scaled(renderer, label.x, label.y, board->name,
-                        board->id == document->active_artboard ? 0xE2AF7EFF : 0xEEEEEEFF, .875f);
+                        board->id == document->active_artboard ? PUI_HIGHLIGHT : 0xEEEEEEFF, .875f);
         vector_ruler_draw(renderer, rect, viewport->zoom);
         if (pointer_on_canvas) {
             vector_ruler_draw_pointer(renderer, rect, pointer_x, pointer_y);
@@ -77,7 +77,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         vector_rectangles_draw(document, board, renderer, rect, text, images);
         vector_grid_draw(&document->grid, renderer, rect, viewport->zoom);
         if (board->id == document->active_artboard && !document->active_rectangle) {
-            SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
+            pui_render_color(renderer, PUI_HIGHLIGHT);
             SDL_RenderRect(renderer, &rect);
         }
     }
@@ -95,7 +95,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         SDL_FRect rect = {area.x + viewport->x + preview.x * viewport->zoom,
                           area.y + viewport->y + preview.y * viewport->zoom,
                           preview.w * viewport->zoom, preview.h * viewport->zoom};
-        SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
+        pui_render_color(renderer, PUI_HIGHLIGHT);
         SDL_RenderRect(renderer, &rect);
         char size[64];
         snprintf(size, sizeof size, "%.0f x %.0f px", preview.w, preview.h);

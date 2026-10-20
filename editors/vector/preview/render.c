@@ -89,7 +89,7 @@ void vector_preview_overlay(const VectorDocument *d, SDL_Renderer *r) {
     SDL_FRect rect = {v->bounds.x + v->x + (display.x + region.x) * v->zoom,
                       v->bounds.y + v->y + (display.y + region.y) * v->zoom, region.w * v->zoom,
                       region.h * v->zoom};
-    SDL_SetRenderDrawColor(r, 194, 142, 92, 255);
+    pui_render_color(r, PUI_HIGHLIGHT);
     // Corner-independent dashes keep the selection distinct from transform handles.
     for (float x = floorf(fmaxf(0, v->bounds.x - rect.x) / 8) * 8;
          x < fminf(rect.w, v->bounds.x + v->bounds.w - rect.x); x += 8) {

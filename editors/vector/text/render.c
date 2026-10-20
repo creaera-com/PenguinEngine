@@ -166,8 +166,7 @@ void vector_text_draw(VectorTextRenderer *cache, SDL_Renderer *r, const VectorDo
         corners[2] = screen(rect, angle, board, zoom, rect.w, rect.h);
         corners[3] = screen(rect, angle, board, zoom, 0, rect.h);
         corners[4] = corners[0];
-        SDL_SetRenderDrawColor(r, f->layout.overflow ? 230 : 194, f->layout.overflow ? 70 : 142, 92,
-                               255);
+        pui_render_color(r, f->layout.overflow ? 0xe6465cff : PUI_HIGHLIGHT);
         SDL_RenderLines(r, corners, 5);
     }
     if (!s->id || d->text_tool.editing_id != s->id) {
@@ -198,7 +197,11 @@ void vector_text_draw(VectorTextRenderer *cache, SDL_Renderer *r, const VectorDo
                            screen(rect, angle, board, zoom, g->x, g->y + s->text.size)};
         SDL_Vertex v[4];
         for (int j = 0; j < 4; j++) {
-            v[j] = (SDL_Vertex){p[j], {.76f, .55f, .36f, .3f}, {0, 0}};
+            v[j] =
+                (SDL_Vertex){p[j],
+                             {(PUI_HIGHLIGHT >> 24) / 255.f, ((PUI_HIGHLIGHT >> 16) & 255) / 255.f,
+                              ((PUI_HIGHLIGHT >> 8) & 255) / 255.f, .3f},
+                             {0, 0}};
         }
         const int indices[] = {0, 1, 2, 0, 2, 3};
         SDL_RenderGeometry(r, NULL, v, 4, indices, 6);

@@ -3,6 +3,10 @@
 #include <math.h>
 #include <string.h>
 
+void pui_render_color(SDL_Renderer *r, Uint32 c) {
+    SDL_SetRenderDrawColor(r, (Uint8)(c >> 24), (Uint8)(c >> 16), (Uint8)(c >> 8), (Uint8)c);
+}
+
 void pui_panel(SDL_Renderer *r, SDL_FRect rect, Uint32 c) {
     pui_render_color(r, c);
     SDL_RenderFillRect(r, &rect);

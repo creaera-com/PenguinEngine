@@ -39,7 +39,7 @@ void vector_curve_draw(SDL_Renderer *r, const VectorShape *s, PUIRect rect, floa
             line(r, a, b, s->stroke.width * zoom, s->stroke.color);
         }
         if (selected) {
-            line(r, a, b, 1, 0xc28e5cff);
+            line(r, a, b, 1, PUI_HIGHLIGHT);
         }
     }
     SDL_SetRenderDrawBlendMode(r, previous);
@@ -80,7 +80,7 @@ void vector_curve_tool_draw(const VectorDocument *d, SDL_Renderer *r) {
         return;
     }
     if (t->pen && curve.count >= 2) {
-        VectorShape draft = {.stroke = {0xc28e5cff, 1, VECTOR_STROKE_CENTER}};
+        VectorShape draft = {.stroke = {PUI_HIGHLIGHT, 1, VECTOR_STROKE_CENTER}};
         if (vector_curve_shape(&draft, &curve)) {
             SDL_FRect b = {d->viewport.bounds.x + d->viewport.x + board->rect.x * d->viewport.zoom,
                            d->viewport.bounds.y + d->viewport.y + board->rect.y * d->viewport.zoom,
@@ -96,19 +96,18 @@ void vector_curve_tool_draw(const VectorDocument *d, SDL_Renderer *r) {
             if (hypotf(p.x - controls[j].x, p.y - controls[j].y) < 1) {
                 continue;
             }
-            SDL_SetRenderDrawColor(r, 194, 142, 92, 255);
+            pui_render_color(r, PUI_HIGHLIGHT);
             SDL_RenderLine(r, p.x, p.y, controls[j].x, controls[j].y);
             SDL_FRect handle = {controls[j].x - 3, controls[j].y - 3, 6, 6};
             SDL_SetRenderDrawColor(r, 242, 242, 242, 255);
             SDL_RenderFillRect(r, &handle);
-            SDL_SetRenderDrawColor(r, 194, 142, 92, 255);
+            pui_render_color(r, PUI_HIGHLIGHT);
             SDL_RenderRect(r, &handle);
         }
         SDL_FRect anchor = {p.x - 3.5f, p.y - 3.5f, 7, 7};
-        SDL_SetRenderDrawColor(r, (int)i == t->node ? 194 : 242, (int)i == t->node ? 142 : 242,
-                               (int)i == t->node ? 92 : 242, 255);
+        pui_render_color(r, (int)i == t->node ? PUI_HIGHLIGHT : 0xf2f2f2ff);
         SDL_RenderFillRect(r, &anchor);
-        SDL_SetRenderDrawColor(r, 194, 142, 92, 255);
+        pui_render_color(r, PUI_HIGHLIGHT);
         SDL_RenderRect(r, &anchor);
     }
 }

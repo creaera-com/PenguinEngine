@@ -9,7 +9,7 @@ theme:
   panel: "#242424"
   surface: "#292929"
   hover: "#393939"
-  accent: "#C28E5C"
+  highlight_color: "#5B9BD5"
   text: "#E9E9E9"
   muted: "#A2A2A2"
 root:

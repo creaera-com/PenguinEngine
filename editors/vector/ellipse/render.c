@@ -64,7 +64,7 @@ void vector_ellipse_draw(SDL_Renderer *r, const VectorShape *shape, PUIRect rect
     }
     if (selected) {
         outline[segments] = outline[0];
-        SDL_SetRenderDrawColor(r, 194, 142, 92, 255);
+        pui_render_color(r, PUI_HIGHLIGHT);
         SDL_RenderLines(r, outline, segments + 1);
     }
     SDL_SetRenderDrawBlendMode(r, blend);

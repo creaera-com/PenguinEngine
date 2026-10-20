@@ -44,7 +44,7 @@ void vector_path_draw(SDL_Renderer *renderer, const VectorShape *shape, PUIRect 
         }
     }
     if (selected) {
-        SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
+        pui_render_color(renderer, PUI_HIGHLIGHT);
         for (unsigned c = 0, first = 0; c < path.contours; first = path.ends[c++]) {
             SDL_FPoint points[VECTOR_PATH_POINTS + 1];
             unsigned count = path.ends[c] - first;

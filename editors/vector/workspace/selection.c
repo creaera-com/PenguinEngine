@@ -225,7 +225,7 @@ void vector_selection_draw_handles(VectorDocument *document, SDL_Renderer *rende
     if (document->active_rectangle) {
         // A selected child's bounds remain visible when it extends beyond artboard clipping.
         SDL_FRect outline = {screen.x, screen.y, screen.w, screen.h};
-        SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
+        pui_render_color(renderer, PUI_HIGHLIGHT);
         if (document->selection.count <= 1) {
             VectorRectangle *rectangle =
                 vector_rectangle_find(document, document->active_rectangle);
@@ -255,7 +255,7 @@ void vector_selection_draw_handles(VectorDocument *document, SDL_Renderer *rende
         SDL_FRect rect = {handle.x, handle.y, handle.w, handle.h};
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderFillRect(renderer, &rect);
-        SDL_SetRenderDrawColor(renderer, 194, 142, 92, 255);
+        pui_render_color(renderer, PUI_HIGHLIGHT);
         SDL_RenderRect(renderer, &rect);
     }
     if (document->active_rectangle) {

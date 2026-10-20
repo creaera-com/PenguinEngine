@@ -51,9 +51,7 @@ static void draw(SDL_Renderer *renderer, SDL_FRect board, float zoom, PUIRect lo
         SDL_SetRenderDrawBlendMode(renderer, blend);
         return;
     }
-    SDL_SetRenderDrawColor(renderer, selected || preview ? 194 : 66, selected || preview ? 142 : 89,
-                           selected || preview ? 92 : 109,
-                           selected || preview ? 255 : (Uint8)alpha);
+    pui_render_color(renderer, selected || preview ? PUI_HIGHLIGHT : (0x42596d00u | (Uint8)alpha));
     if (vector_angle_normalize(angle) == 0) {
         SDL_RenderRect(renderer, &rect);
     } else {

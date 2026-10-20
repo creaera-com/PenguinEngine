@@ -608,6 +608,8 @@ PUILayout *pui_layout_add_tab(const PUILayout *base, const char *tabs, const cha
 #define PUI_HOVER (pui_theme.hover)
 /** @brief Aktueller Theme-Farbwert PUI_ACCENT als RGBA. */
 #define PUI_ACCENT (pui_theme.accent)
+/** @brief Central YAML highlight_color; legacy accent accesses the same palette value. */
+#define PUI_HIGHLIGHT (pui_theme.accent)
 /** @brief Aktueller Theme-Farbwert PUI_ACCENT_BG als RGBA. */
 #define PUI_ACCENT_BG (pui_theme.accent)
 /** @brief Aktueller Theme-Farbwert PUI_TEXT als RGBA. */
@@ -785,6 +787,8 @@ void pui_draw_button_themed(SDL_Renderer *renderer, const PUITheme *theme, SDL_F
  * @param color Gepackte Farbe im Format 0xRRGGBBAA.
  */
 void pui_panel(SDL_Renderer *renderer, SDL_FRect rect, Uint32 color);
+/** @brief Set draw color from packed 0xRRGGBBAA, including theme highlight colors. */
+void pui_render_color(SDL_Renderer *renderer, Uint32 color);
 
 /**
  * @brief Zeichnet ein skalierbares Symbol aus SDL-Linien und -Flächen.
