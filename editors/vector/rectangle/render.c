@@ -3,6 +3,7 @@
 #include "editors/vector/curve/render.h"
 #include "editors/vector/curve/tool.h"
 #include "editors/vector/document/selection.h"
+#include "editors/vector/effects/render.h"
 #include "editors/vector/ellipse/ellipse.h"
 #include "editors/vector/ellipse/render.h"
 #include "editors/vector/geometry/rotation.h"
@@ -73,6 +74,7 @@ typedef struct {
     VectorTextRenderer *text;
     VectorImageRenderer *images;
     bool instance;
+    bool silhouette;
 } DrawShape;
 
 static void draw_shape(void *data) {
@@ -103,39 +105,83 @@ static void draw_shape(void *data) {
         }
         vector_text_draw(text, renderer, document, shown, rect, angle, board,
                          document->viewport.zoom, fill,
-                         vector_document_is_selected(document, shown->id));
+                         !context->silhouette && vector_document_is_selected(document, shown->id));
         return;
     }
     if (shown->curve_kind == VECTOR_CURVE_ELLIPSE) {
         vector_ellipse_draw(renderer, shown, rect, angle, board, document->viewport.zoom, fill,
-                            vector_document_is_selected(document, rectangle->id));
+                            !context->silhouette &&
+                                vector_document_is_selected(document, rectangle->id));
         return;
     }
     if (shown->curve.count) {
         vector_curve_draw(renderer, shown, rect, angle, board, document->viewport.zoom, fill,
-                          vector_document_is_selected(document, rectangle->id));
+                          !context->silhouette &&
+                              vector_document_is_selected(document, rectangle->id));
         return;
     }
     if (rectangle->path.count) {
         vector_path_draw(renderer, rectangle, rect, angle, board, document->viewport.zoom, fill,
-                         vector_document_is_selected(document, rectangle->id));
+                         !context->silhouette &&
+                             vector_document_is_selected(document, rectangle->id));
         return;
     }
     draw(renderer, board, document->viewport.zoom, rect,
-         vector_document_is_selected(document, rectangle->id), false, fill, angle,
-         rectangle->stroke);
+         !context->silhouette && vector_document_is_selected(document, rectangle->id), false, fill,
+         angle, rectangle->stroke);
+}
+
+static void paint_silhouette(void *data, float dx, float dy) {
+    DrawShape content = *(DrawShape *)data;
+    VectorShape shape = *vector_curve_display_shape(content.document, content.rectangle);
+    if (!content.instance) {
+        shape.rect = vector_rectangle_display_rect(content.document, &shape);
+        shape.angle = vector_rectangle_display_angle(content.document, &shape);
+    }
+    if (content.document->fill_preview.active &&
+        content.document->fill_preview.rectangle_id == shape.id) {
+        shape.fill = content.document->fill_preview.color;
+    }
+    shape.id = 0; /* Editing handles/carets never contribute to alpha. */
+    content.rectangle = &shape;
+    content.instance = content.silhouette = true;
+    content.board.x += dx;
+    content.board.y += dy;
+    draw_shape(&content);
+}
+
+static void draw_with_shadow(DrawShape *content) {
+    const VectorShape *shown =
+        content->instance ? content->rectangle
+                          : vector_curve_display_shape(content->document, content->rectangle);
+    if (shown->shadow.enabled) {
+        PUIRect rect = content->instance ? shown->rect
+                                         : vector_rectangle_display_rect(content->document, shown);
+        float angle = content->instance ? shown->angle
+                                        : vector_rectangle_display_angle(content->document, shown);
+        float zoom = content->document->viewport.zoom;
+        float stroke = shown->stroke.width;
+        PUIRect bounds = vector_rotated_bounds(
+            (PUIRect){rect.x - stroke, rect.y - stroke, rect.w + 2 * stroke, rect.h + 2 * stroke},
+            angle);
+        bounds = (PUIRect){content->board.x + bounds.x * zoom, content->board.y + bounds.y * zoom,
+                           bounds.w * zoom, bounds.h * zoom};
+        vector_shadow_draw(content->renderer, &shown->shadow, zoom, bounds, paint_silhouette,
+                           content);
+    }
+    draw_shape(content);
 }
 
 static void draw_instance(void *data, VectorShape *shape) {
     DrawShape instance = *(DrawShape *)data;
     instance.rectangle = shape;
     instance.instance = true;
-    draw_shape(&instance);
+    draw_with_shadow(&instance);
 }
 
 static void draw_repeated(void *data) {
     DrawShape *content = data;
-    draw_shape(content);
+    draw_with_shadow(content);
     vector_repeat_render(content->document, content->rectangle, draw_instance, content);
 }
 
@@ -181,7 +227,7 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
             }
             continue;
         }
-        DrawShape content = {document, rectangle, renderer, board, text, images, false};
+        DrawShape content = {document, rectangle, renderer, board, text, images, false, false};
         const VectorShape *mask = vector_mask_find(document, rectangle->group_id);
         if (mask) {
             const VectorShape *shown = vector_curve_display_shape(document, mask);

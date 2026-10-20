@@ -92,6 +92,7 @@ root:
                 mode: hsl
                 value: "#303030FF"
                 action: vector.rectangle.stroke_color
+    - {type: slot, id: object_effects}
     - type: section
       id: section_layer_settings
       text: Ebene

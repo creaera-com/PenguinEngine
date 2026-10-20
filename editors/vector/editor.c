@@ -9,6 +9,7 @@
 #include "internal.h"
 #include "preview/render.h"
 #include "preview/tool.h"
+#include "ui/inspector/effects.h"
 #include "workspace/box_tool.h"
 #include "workspace/canvas.h"
 #include <stdio.h>
@@ -73,6 +74,10 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         editor_load_ui(services, "editors/vector/ui/inspector/polygon.yaml", error, capacity);
     editor->inspector.rectangle.image_layout =
         editor_load_ui(services, "editors/vector/ui/inspector/image.yaml", error, capacity);
+    editor->inspector.rectangle.layout =
+        vector_effects_layout(services, editor->inspector.rectangle.layout, error, capacity);
+    editor->inspector.rectangle.image_layout =
+        vector_effects_layout(services, editor->inspector.rectangle.image_layout, error, capacity);
     editor->inspector.multi_layout =
         editor_load_ui(services, "editors/vector/ui/inspector/selection.yaml", error, capacity);
     if (!editor->inspector.artboard_layout || !editor->inspector.rectangle.layout ||

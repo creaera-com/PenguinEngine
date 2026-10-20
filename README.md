@@ -424,3 +424,5 @@ im aktiven Artboard ein. [Bedienung und Asset-Pfade](docs/VEKTOR_BILDER.md).
 
 Der Tools-Tab erstellt verknüpfte Raster oder unabhängige Kopien mit schrittweisen
 Eigenschaftsänderungen. [Bedienung, Grenzen und Architektur](docs/VEKTOR_WIEDERHOLUNG.md).
+
+Schlagschatten pro Objekt: [Bedienung, Architektur und Speicherung](docs/VEKTOR_EFFEKTE.md).

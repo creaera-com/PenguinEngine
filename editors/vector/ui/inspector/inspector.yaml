@@ -2,5 +2,6 @@ schema: pengui/v1
 root:
   type: panel
   padding: 4
+  scroll: true
   children:
     - {type: slot, id: selection_properties}

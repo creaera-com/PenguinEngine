@@ -282,13 +282,14 @@ static void test_reader_accepts_v1_and_rejects_malformed_mask_relations(void) {
     size_t length;
     unsigned char *bytes = SDL_LoadFile(path, &length);
     TEST_ASSERT_NOT_NULL(bytes);
-    /* One artboard and one shape: remove the mask role and trailing v3 image flag for v1. */
+    /* One artboard and one shape: remove mask role, image/repeat flags and v5 shadow fields for v1.
+     */
     unsigned name_length = bytes[28] | ((unsigned)bytes[29] << 8);
     size_t mask_offset = 64 + name_length;
     TEST_ASSERT_TRUE(mask_offset + 4 < length);
     memmove(bytes + mask_offset, bytes + mask_offset + 4, length - mask_offset - 4);
     bytes[8] = 1;
-    TEST_ASSERT_TRUE(SDL_SaveFile(path, bytes, length - 12));
+    TEST_ASSERT_TRUE(SDL_SaveFile(path, bytes, length - 36));
     SDL_free(bytes);
     VectorDocument *loaded = calloc(1, sizeof *loaded);
     TEST_ASSERT_NOT_NULL(loaded);

@@ -2,6 +2,7 @@
 #ifndef PE_VECTOR_OBJECT_SHAPE_H
 #define PE_VECTOR_OBJECT_SHAPE_H
 #include "editors/vector/artboard/artboard.h"
+#include "editors/vector/effects/shadow.h"
 #include "editors/vector/geometry/bezier.h"
 #include "editors/vector/geometry/path.h"
 #include "editors/vector/image/state.h"
@@ -33,6 +34,7 @@ typedef struct {
     unsigned clip_mask; ///< One means this closed shape clips its group; never painted itself.
     uint32_t fill;      ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
     VectorStroke stroke;
+    VectorShadow shadow; ///< Individual non-destructive drop shadow, below object content.
     VectorRepeat repeat; ///< Procedural grid on this source; other cells are not document objects.
     VectorImage image;   ///< Project-owned PNG/JPEG reference; empty source for vector shapes.
     VectorText text;     ///< Editable text frame; disabled for geometric shapes.

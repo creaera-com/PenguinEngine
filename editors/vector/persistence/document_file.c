@@ -179,15 +179,23 @@ static void shape(Codec *c, VectorShape *s) {
             }
         }
     }
+    if (c->version >= 5) {
+        integer(c, &s->shadow.enabled);
+        integer(c, &s->shadow.color);
+        real(c, &s->shadow.offset_x);
+        real(c, &s->shadow.offset_y);
+        real(c, &s->shadow.blur);
+        real(c, &s->shadow.spread);
+    }
 }
 
 static bool content(Codec *c, VectorClipboard *values) {
     char magic[8] = {'P', 'E', 'N', 'G', 'V', 'E', 'C', 0}, actual[8];
     memcpy(actual, magic, 8);
     bytes(c, actual, 8);
-    unsigned version = 4;
+    unsigned version = 5;
     integer(c, &version);
-    if (memcmp(actual, magic, 8) || (version < 1 || version > 4)) {
+    if (memcmp(actual, magic, 8) || (version < 1 || version > 5)) {
         return false;
     }
     c->version = version;

@@ -1,0 +1,47 @@
+schema: pengui/v1
+root:
+  type: section
+  id: section_object_effects
+  text: Effekte
+  children:
+    - {type: checkbox, id: shadow_enabled, text: Schlagschatten, action: vector.shadow.enabled, height: 28}
+    - type: row
+      padding: 0
+      height: 28
+      gap: 8
+      children:
+        - {type: label, text: Versatz X, width: 112}
+        - {type: input, id: shadow_x, action: vector.shadow.x}
+    - type: row
+      padding: 0
+      height: 28
+      gap: 8
+      children:
+        - {type: label, text: Versatz Y, width: 112}
+        - {type: input, id: shadow_y, action: vector.shadow.y}
+    - type: row
+      padding: 0
+      height: 28
+      gap: 8
+      children:
+        - {type: label, text: Weichheit, width: 112}
+        - {type: input, id: shadow_blur, action: vector.shadow.blur}
+    - type: row
+      padding: 0
+      height: 28
+      gap: 8
+      children:
+        - {type: label, text: Ausbreitung, width: 112}
+        - {type: input, id: shadow_spread, action: vector.shadow.spread}
+    - type: popup_button
+      id: shadow_color_button
+      text: Farbe / Deckkraft
+      placement: below
+      height: 28
+      popup_width: 260
+      popup_height: 304
+      children:
+        - type: panel
+          padding: 12
+          children:
+            - {type: color_picker, id: shadow_color, mode: hsl, value: "#00000059", action: vector.shadow.color}

@@ -83,8 +83,8 @@ Flächenoperationen auf einer Wiederholung benötigen zunächst **Lösen**.
 - Sichtbarkeit und Sperren des Originals gelten für alle virtuellen Zellen.
 - Die Zeichenfläche und 1:1-Vorschau verwenden dieselbe Ableitung, auch bei Live-Transformationen.
 
-Das Dateiformat ist **PENGVEC Version 4** mit Reader für Version 1–3. Der temporäre
-Checkpoint heißt **PVCKPT27**. Bereits gespeicherte ältere Dokumente bleiben lesbar.
+Das Dateiformat ist **PENGVEC Version 5** mit Reader für Version 1–4. Der temporäre
+Checkpoint heißt **PVCKPT28**. Bereits gespeicherte ältere Dokumente bleiben lesbar.
 
 ## Architektur
 

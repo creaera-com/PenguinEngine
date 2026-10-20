@@ -40,6 +40,7 @@ root:
           - {type: label, text: Winkel, width: 64}
           - {type: input, id: rectangle_angle, action: vector.rectangle.angle}
           - {type: label, text: Grad, width: 40}
+    - {type: slot, id: object_effects}
     - type: section
       id: section_layer_settings
       text: Ebene

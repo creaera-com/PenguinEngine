@@ -3,6 +3,7 @@
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/polygon/polygon.h"
 #include "editors/vector/workspace/selection.h"
+#include "effects.h"
 #include <errno.h>
 #include <math.h>
 #include <stdlib.h>
@@ -68,6 +69,11 @@ static bool stroke_action(VectorRectangleInspector *inspector, VectorDocument *d
 bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
                                        VectorDocuments *documents, PUIView *view,
                                        const char *action) {
+    if (vector_effects_action(vector_documents_find(documents, inspector->document_id),
+                              inspector->rectangle_id, view, action)) {
+        inspector->dirty |= 128u;
+        return true;
+    }
     if (vector_text_inspector_action(&inspector->text,
                                      vector_documents_find(documents, inspector->document_id),
                                      inspector->rectangle_id, view, action)) {
@@ -276,6 +282,8 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
             inspector->presented.stroke.color != rectangle->stroke.color) {
             pui_view_set_color(view, "rectangle_stroke_color", rectangle->stroke.color);
         }
+        vector_effects_sync(view, &rectangle->shadow, &inspector->presented.shadow,
+                            switched || (inspector->dirty & 128u));
         inspector->presented = *rectangle;
     }
     inspector->document_id = document ? document->id : 0;

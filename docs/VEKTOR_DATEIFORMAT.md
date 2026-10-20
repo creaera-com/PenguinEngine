@@ -42,7 +42,7 @@ geschlossen und erst bei Erfolg auf den Zielnamen umbenannt. Bei Schreib-/Validi
 fehlern bleiben die bestehende Zieldatei und die bisherige Dokumentidentität erhalten.
 Dies ist kein automatisches Recovery-System und keine Garantie gegen Stromausfall.
 
-## Format `PENGVEC`, Version 4
+## Format `PENGVEC`, Version 5
 
 Das eigene binäre Format ist unabhängig von C-Struct-Padding und nativer Byte-Reihenfolge.
 Es gibt keinen SVG-Mapping-Schritt und keine gespeicherten Zeiger.
@@ -60,7 +60,7 @@ Grundtypen:
 Datei-Reihenfolge:
 
 1. Acht Magic-Bytes `50 45 4E 47 56 45 43 00` (`PENGVEC` plus Nullbyte).
-2. Version `u32` = 4.
+2. Version `u32` = 5.
 3. Artboardanzahl und Formanzahl als u32, jeweils maximal 64.
 4. Pro Artboard: ID, Flags, Name `string(64)`, Rechteck.
 5. Pro Form, in Ebenenreihenfolge:
@@ -80,6 +80,8 @@ Datei-Reihenfolge:
    - Wiederholung aktiviert (u32). Falls aktiviert: Spalten und Zeilen (u32), Abstand
      X/Y (f32), dann zwölf Paare `Spaltenschritt, Zeilenschritt` als f32: Breite,
      Höhe, Winkel, Rahmenbreite, Füllung H/S/L/A, Rahmen H/S/L/A.
+   - Schlagschatten: aktiviert und Farbe (u32), Versatz X/Y, Weichzeichnung und
+     Ausbreitung (f32). Alle sechs Felder werden auch bei deaktiviertem Effekt geschrieben.
 6. Dateiende; zusätzliche Bytes werden abgelehnt.
 
 Flags und Kennungen verwenden die dokumentierten Modell-Enums: Kurvenkennung
@@ -93,9 +95,10 @@ Schnittgruppe. Pro Schnittgruppe sind genau ein Masken-Kind und mindestens ein
 Inhaltsobjekt zulässig. Alle Kinder teilen dasselbe Artboard. Masken müssen geschlossene
 geometrische Formen sein; Textfelder und offene Kurven sind keine Masken.
 
-Der Reader akzeptiert weiterhin Version 1, 2 und 3. Version 1 hat weder Maskenrolle,
-Bildfeld noch Wiederholung; Version 2 ergänzt die Maskenrolle, Version 3 die Bildreferenz.
-Fehlende Werte werden auf 0 gesetzt. Neue Dateien werden als Version 4 geschrieben.
+Der Reader akzeptiert weiterhin Version 1, 2, 3 und 4. Version 1 hat weder Maskenrolle,
+Bildfeld, Wiederholung oder Schatten; Version 2 ergänzt die Maskenrolle, Version 3
+die Bildreferenz, Version 4 die Wiederholung und Version 5 den Schlagschatten.
+Fehlende Werte werden auf 0 gesetzt. Neue Dateien werden als Version 5 geschrieben.
 
 Bilddateien liegen separat im Projekt unter `assets/images`. Der Reader sucht das
 nächste übergeordnete `project.pengui.yaml` als Pfadbasis; außerhalb eines Projekts
@@ -121,7 +124,7 @@ Reader für ältere Versionen.
 
 Geladene Dokumente beginnen mit einer geschützten Basis (`history.floor`). Undo
 macht spätere Änderungen rückgängig, aber nicht den Ladevorgang selbst. Der interne
-Sitzungs-Checkpoint heißt aktuell **PVCKPT27** und enthält auch den Vorschaubereich. Er erhält
+Sitzungs-Checkpoint heißt aktuell **PVCKPT28** und enthält auch den Vorschaubereich. Er erhält
 beim Editorwechsel auch den gespeicherten Dateinamen und die späteren Undo-Schritte.
 Die dauerhafte Dokumentdatei und dieser private Checkpoint sind getrennte Formate.
 
