@@ -4,6 +4,7 @@
 #include "editors/vector/artboard/artboard.h"
 #include "editors/vector/geometry/bezier.h"
 #include "editors/vector/geometry/path.h"
+#include "editors/vector/image/state.h"
 #include "editors/vector/text/state.h"
 
 /** @brief Placement relative to the geometric shape contour. */
@@ -31,6 +32,7 @@ typedef struct {
     unsigned clip_mask; ///< One means this closed shape clips its group; never painted itself.
     uint32_t fill;      ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
     VectorStroke stroke;
+    VectorImage image;   ///< Project-owned PNG/JPEG reference; empty source for vector shapes.
     VectorText text;     ///< Editable text frame; disabled for geometric shapes.
     unsigned curve_kind; ///< Validated VectorCurveKind; zero for non-curve shapes.
     VectorBezier curve; ///< Editable cubic controls; count zero selects rectangle/polygon geometry.

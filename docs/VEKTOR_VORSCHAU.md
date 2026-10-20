@@ -43,7 +43,7 @@ und Farbänderungsvorschauen werden übernommen.
 - `ui/editor.yaml`: beschreibt Werkzeugbutton, Vorschausektion und Canvas
   `vector_preview_canvas`; deren feste Höhe lässt sich hier ändern.
 - `editor.c`: leitet Aktionen, Events und die zusätzliche Canvas-Zeichenanfrage weiter.
-- `persistence/checkpoint.c`: Schema **PVCKPT25** sichert ausschließlich den bestätigten
+- `persistence/checkpoint.c`: Schema **PVCKPT26** sichert ausschließlich den bestätigten
   Bereich samt Artboard-ID; dauerhafte Dokumentdateien bleiben **PENGVEC Version 2**.
 
 Die Aktionen heißen `vector.preview.select` und `vector.preview.clear`. Die Vorschau

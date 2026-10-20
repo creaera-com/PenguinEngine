@@ -134,7 +134,9 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
                     items[row].selected = vector_document_is_selected(document, child->id);
                     fill(&items[row++], document->id, child->id, child->name, "rectangle",
                          child->flags, group ? 2 : 1);
-                    if (child->clip_mask) {
+                    if (*child->image.source) {
+                        snprintf(items[row - 1].icon, sizeof items[row - 1].icon, "tabler:photo");
+                    } else if (child->clip_mask) {
                         snprintf(items[row - 1].text, sizeof items[row - 1].text, "Maske: %s",
                                  child->name);
                         snprintf(items[row - 1].icon, sizeof items[row - 1].icon, "tabler:mask");

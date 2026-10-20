@@ -16,6 +16,11 @@ add_dependencies(pengui_playground pengui_playground_resources)
 include(${PROJECT_SOURCE_DIR}/cmake/TextFonts.cmake)
 add_library(pengui_editor_support STATIC
  platform/fonts.c
+ platform/image_decode.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/image/state.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/image/assets.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/image/import.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/image/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/commands.c
  ${PROJECT_SOURCE_DIR}/editors/vector/text/text.c
  ${PROJECT_SOURCE_DIR}/editors/vector/text/layout.c
@@ -117,3 +122,5 @@ add_custom_target(pengui_editor_resources
  COMMAND ${CMAKE_COMMAND} -E copy_directory "${PROJECT_SOURCE_DIR}/editors/game/ui" "$<TARGET_FILE_DIR:pengui_editor>/editors/game/ui"
  VERBATIM)
 add_dependencies(pengui_editor pengui_editor_resources)
+
+target_include_directories(pengui_editor_support SYSTEM PRIVATE ${PROJECT_SOURCE_DIR}/third_party/stb)

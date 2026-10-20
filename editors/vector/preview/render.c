@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 void vector_preview_draw(const VectorDocument *d, SDL_Renderer *r, PUIRect area,
-                         VectorTextRenderer *text) {
+                         VectorTextRenderer *text, VectorImageRenderer *images) {
     SDL_SetRenderDrawColor(r, 38, 38, 38, 255);
     SDL_RenderFillRect(r, &(SDL_FRect){area.x, area.y, area.w, area.h});
     PUIRect region;
@@ -61,7 +61,7 @@ void vector_preview_draw(const VectorDocument *d, SDL_Renderer *r, PUIRect area,
                                        window.destination.w, window.destination.h});
     SDL_FRect target = {window.destination.x - window.source.x,
                         window.destination.y - window.source.y, display.w, display.h};
-    vector_rectangles_draw(copy, board, r, target, text);
+    vector_rectangles_draw(copy, board, r, target, text, images);
     SDL_SetRenderClipRect(r, clipped ? &previous : NULL);
     free(copy);
 }

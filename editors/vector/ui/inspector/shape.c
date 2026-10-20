@@ -177,12 +177,16 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
     bool mount = rectangle != NULL;
     bool switched = inspector->document_id != (document ? document->id : 0) ||
                     inspector->rectangle_id != (rectangle ? rectangle->id : 0);
-    if (mount != inspector->mounted) {
+    bool image = rectangle && *rectangle->image.source;
+    if (mount != inspector->mounted || image != inspector->image_mounted) {
         if (!pui_view_replace_slot(view, input, "selection_properties",
-                                   mount ? inspector->layout : NULL, error, capacity)) {
+                                   mount ? (image ? inspector->image_layout : inspector->layout)
+                                         : NULL,
+                                   error, capacity)) {
             return false;
         }
         inspector->mounted = mount;
+        inspector->image_mounted = image;
         inspector->polygon_mounted = false;
         switched = true;
     }
@@ -208,7 +212,8 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
             pui_view_set_text(view, "polygon_sides", corners);
         }
         pui_view_set_text(view, "rectangle_kind",
-                          rectangle->clip_mask                            ? "Schnittmaske"
+                          *rectangle->image.source                        ? "Bild"
+                          : rectangle->clip_mask                          ? "Schnittmaske"
                           : rectangle->text.enabled                       ? "Textfeld"
                           : rectangle->curve_kind == VECTOR_CURVE_POLYGON ? "Polygon"
                           : rectangle->curve_kind == VECTOR_CURVE_ELLIPSE ? "Ellipse"

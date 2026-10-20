@@ -70,6 +70,7 @@ typedef struct {
     SDL_Renderer *renderer;
     SDL_FRect board;
     VectorTextRenderer *text;
+    VectorImageRenderer *images;
 } DrawShape;
 
 static void draw_shape(void *data) {
@@ -84,6 +85,12 @@ static void draw_shape(void *data) {
             ? document->fill_preview.color
             : rectangle->fill;
     const VectorShape *shown = vector_curve_display_shape(document, rectangle);
+    if (*shown->image.source) {
+        vector_image_draw(
+            context->images, renderer, shown, vector_rectangle_display_rect(document, shown),
+            vector_rectangle_display_angle(document, shown), board, document->viewport.zoom);
+        return;
+    }
     if (shown->text.enabled) {
         if (shown->stroke.width > 0) {
             draw(renderer, board, document->viewport.zoom,
@@ -124,7 +131,8 @@ static void draw_shape(void *data) {
 }
 
 void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *parent,
-                            SDL_Renderer *renderer, SDL_FRect board, VectorTextRenderer *text) {
+                            SDL_Renderer *renderer, SDL_FRect board, VectorTextRenderer *text,
+                            VectorImageRenderer *images) {
     bool clipped = SDL_RenderClipEnabled(renderer);
     SDL_Rect outer, clip = {0};
     SDL_GetRenderClipRect(renderer, &outer);
@@ -164,7 +172,7 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
             }
             continue;
         }
-        DrawShape content = {document, rectangle, renderer, board, text};
+        DrawShape content = {document, rectangle, renderer, board, text, images};
         const VectorShape *mask = vector_mask_find(document, rectangle->group_id);
         if (mask) {
             const VectorShape *shown = vector_curve_display_shape(document, mask);

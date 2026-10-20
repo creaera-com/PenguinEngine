@@ -6,7 +6,9 @@
 
 typedef struct {
     Uint32 event;
-    bool dialog_pending;
+    bool dialog_pending, importing;
+    unsigned artboard;
+    char import_root[4096], pending_import[4096];
     const EditorDefinition *owner;
     unsigned document;
     char pending_open[4096], pending_save[4096], default_path[4096];

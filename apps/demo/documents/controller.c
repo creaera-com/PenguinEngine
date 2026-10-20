@@ -14,8 +14,7 @@ static void SDLCALL chosen(void *context, const char *const *files, int filter) 
     (void)filter;
     Result *r = context;
     if (!files) {
-        snprintf(r->error, sizeof r->error, "Speicherdialog fehlgeschlagen: %.200s",
-                 SDL_GetError());
+        snprintf(r->error, sizeof r->error, "Dateidialog fehlgeschlagen: %.200s", SDL_GetError());
     } else if (files[0]) {
         if (strlen(files[0]) >= sizeof r->path) {
             snprintf(r->error, sizeof r->error, "Dateipfad ist zu lang");
@@ -63,13 +62,40 @@ void document_controller_destroy(DocumentController *c) {
 bool document_controller_action(DocumentController *c, EditorHost *host,
                                 ProjectController *projects, SDL_Window *window, PUIView *view,
                                 const char *action, const char *widget) {
+    if (!strcmp(action, "editor.import_image")) {
+        if (c->dialog_pending || *c->pending_import || *c->pending_save || *c->pending_open) {
+            return true;
+        }
+        EditorFileInfo info = {0};
+        if (!*projects->project.root || !host->active || !host->active->import_image ||
+            !host->active->file_info || !host->active->file_info(host->instance, view, &info) ||
+            !info.artboard) {
+            pui_view_set_text(view, "status",
+                              "Zuerst ein Projekt oeffnen und ein Artboard auswaehlen");
+            return true;
+        }
+        Result *result = calloc(1, sizeof *result);
+        if (!result || !c->event) {
+            free(result);
+            return true;
+        }
+        c->owner = host->active;
+        c->document = info.document;
+        c->artboard = info.artboard;
+        snprintf(c->import_root, sizeof c->import_root, "%s", projects->project.root);
+        c->importing = c->dialog_pending = true;
+        result->event = c->event;
+        static const SDL_DialogFileFilter filters[] = {{"PNG / JPEG", "png;jpg;jpeg"}};
+        SDL_ShowOpenFileDialog(chosen, result, window, filters, 1, c->import_root, false);
+        return true;
+    }
     if (!strcmp(action, "project.entry")) {
         const char *path = project_explorer_file(&projects->explorer, widget);
         const EditorDefinition *owner = path ? editor_registry_for_file(path) : NULL;
         if (!owner) {
             return false;
         }
-        if (c->dialog_pending) {
+        if (c->dialog_pending || *c->pending_import || *c->pending_save) {
             return true;
         }
         snprintf(c->pending_open, sizeof c->pending_open, "%s", path);
@@ -79,7 +105,7 @@ bool document_controller_action(DocumentController *c, EditorHost *host,
     if (strcmp(action, "editor.save") && strcmp(action, "editor.save_as")) {
         return false;
     }
-    if (c->dialog_pending || *c->pending_save) {
+    if (c->dialog_pending || *c->pending_save || *c->pending_import) {
         return true;
     }
     EditorFileInfo info = {0};
@@ -119,6 +145,8 @@ bool document_controller_event(DocumentController *c, PUIView *view, const SDL_E
     c->dialog_pending = false;
     if (*r->error) {
         pui_view_set_text(view, "status", r->error);
+    } else if (*r->path && c->importing) {
+        snprintf(c->pending_import, sizeof c->pending_import, "%s", r->path);
     } else if (*r->path) {
         const char *name = strrchr(r->path, '/'), *back = strrchr(r->path, '\\');
         if (back && (!name || back > name)) {
@@ -139,6 +167,7 @@ bool document_controller_event(DocumentController *c, PUIView *view, const SDL_E
             pui_view_set_text(view, "status", "Dateipfad ist zu lang");
         }
     }
+    c->importing = false;
     free(r);
     return true;
 }
@@ -146,6 +175,20 @@ bool document_controller_event(DocumentController *c, PUIView *view, const SDL_E
 void document_controller_commit(DocumentController *c, EditorHost *host,
                                 ProjectController *projects, PUIView *view, PUIContext *input) {
     char error[256] = {0};
+    if (*c->pending_import) {
+        bool ok = host->active == c->owner && c->owner && c->owner->import_image &&
+                  !strcmp(c->import_root, projects->project.root) &&
+                  c->owner->import_image(host->instance, view, c->document, c->artboard,
+                                         c->pending_import, c->import_root, error, sizeof error);
+        pui_view_set_text(
+            view, "status",
+            ok ? "Bild ins Projekt importiert"
+               : (*error ? error : "Editor oder Projekt gewechselt: bitte erneut importieren"));
+        if (ok) {
+            project_explorer_action(&projects->explorer, view, "project.refresh", "");
+        }
+        c->pending_import[0] = 0;
+    }
     if (*c->pending_open) {
         const EditorDefinition *owner = editor_registry_for_file(c->pending_open);
         bool ok =

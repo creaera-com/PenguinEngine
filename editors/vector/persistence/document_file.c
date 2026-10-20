@@ -1,5 +1,6 @@
 /** @file @brief Explicit little-endian fields preserve editable geometry, style and text values. */
 #include "document_file.h"
+#include "editors/vector/image/assets.h"
 #include "editors/vector/object/clipboard.h"
 #include <float.h>
 #include <limits.h>
@@ -13,6 +14,7 @@ typedef struct {
     SDL_IOStream *io;
     bool read, ok;
     unsigned version;
+    char image_root[4096];
 } Codec;
 
 static void bytes(Codec *c, void *data, size_t length) {
@@ -130,15 +132,45 @@ static void shape(Codec *c, VectorShape *s) {
         real(c, &s->text.letter_spacing);
         real(c, &s->text.column_gap);
     }
+    if (c->version >= 3) {
+        unsigned enabled = *s->image.source != 0;
+        integer(c, &enabled);
+        if (enabled > 1) {
+            c->ok = false;
+            return;
+        }
+        if (enabled) {
+            char relative[4096] = {0};
+            if (!c->read &&
+                !vector_image_export(&s->image, c->image_root, relative, sizeof relative)) {
+                c->ok = false;
+                return;
+            }
+            string(c, relative, sizeof relative);
+            if (!vector_image_relative_valid(relative)) {
+                c->ok = false;
+                return;
+            }
+            if (c->read && snprintf(s->image.source, sizeof s->image.source, "%s/%s", c->image_root,
+                                    relative) >= (int)sizeof s->image.source) {
+                c->ok = false;
+                return;
+            }
+            integer(c, &s->image.width);
+            integer(c, &s->image.height);
+            integer(c, &s->image.flip_x);
+            integer(c, &s->image.flip_y);
+        }
+    }
 }
 
 static bool content(Codec *c, VectorClipboard *values) {
     char magic[8] = {'P', 'E', 'N', 'G', 'V', 'E', 'C', 0}, actual[8];
     memcpy(actual, magic, 8);
     bytes(c, actual, 8);
-    unsigned version = 2;
+    unsigned version = 3;
     integer(c, &version);
-    if (memcmp(actual, magic, 8) || (version != 1 && version != 2)) {
+    if (memcmp(actual, magic, 8) || (version < 1 || version > 3)) {
         return false;
     }
     c->version = version;
@@ -198,7 +230,8 @@ bool vector_document_file_load(VectorDocument *d, const char *path, char *error,
     SDL_IOStream *io = SDL_IOFromFile(full, "rb");
     VectorClipboard *values = calloc(1, sizeof *values);
     Codec c = {.io = io, .read = true, .ok = io && values};
-    bool ok = c.ok && content(&c, values);
+    bool ok = c.ok && vector_image_project_root(full, c.image_root, sizeof c.image_root) &&
+              content(&c, values);
     unsigned char extra;
     if (ok) {
         ok = SDL_ReadIO(io, &extra, 1) == 0 && SDL_GetIOStatus(io) == SDL_IO_STATUS_EOF;
@@ -236,7 +269,8 @@ bool vector_document_file_save(VectorDocument *d, const char *path, char *error,
     memcpy(values->rectangles, d->rectangles, d->rectangle_count * sizeof *d->rectangles);
     SDL_IOStream *io = SDL_IOFromFile(staged, "wb");
     Codec c = {.io = io, .ok = io != NULL};
-    bool ok = io && content(&c, values);
+    bool ok = io && vector_image_project_root(full, c.image_root, sizeof c.image_root) &&
+              content(&c, values);
     if (io) {
         ok = SDL_CloseIO(io) && ok;
     }

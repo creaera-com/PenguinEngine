@@ -52,7 +52,7 @@ bool vector_mask_can_create(VectorDocument *d) {
             count++;
         }
     }
-    if (count < 2 || !top || top->group_id || top->text.enabled ||
+    if (count < 2 || !top || top->group_id || *top->image.source || top->text.enabled ||
         (top->curve.count && !top->curve.closed)) {
         return false;
     }

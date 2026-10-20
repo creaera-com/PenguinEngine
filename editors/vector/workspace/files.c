@@ -19,7 +19,8 @@ bool vector_workspace_file_info(void *instance, const PUIView *view, EditorFileI
     if (!d) {
         return false;
     }
-    *info = (EditorFileInfo){.document = d->id, .extension = "pengvec"};
+    *info =
+        (EditorFileInfo){.artboard = d->active_artboard, .document = d->id, .extension = "pengvec"};
     snprintf(info->filename, sizeof info->filename, "%s", d->filename);
     snprintf(info->title, sizeof info->title, "%s", d->title);
     return true;

@@ -2,6 +2,7 @@
 #ifndef PE_EDITOR_H
 #define PE_EDITOR_H
 #include "fonts.h"
+#include "images.h"
 #include "pengui/pengui.h"
 #include <stdio.h>
 
@@ -13,6 +14,7 @@ typedef struct {
 /** @brief Selected document identity for app-level Save/Save As routing. */
 typedef struct {
     unsigned document;
+    unsigned artboard; ///< Optional placement target for imports.
     char filename[4096], title[64];
     const char *extension;
 } EditorFileInfo;
@@ -29,6 +31,9 @@ typedef struct {
                       size_t capacity);
     bool (*save_file)(void *editor, PUIView *view, unsigned document, const char *path, char *error,
                       size_t capacity);
+    /** @brief Optional image placement in a captured document/artboard using a project copy. */
+    bool (*import_image)(void *editor, PUIView *view, unsigned document, unsigned artboard,
+                         const char *source, const char *project, char *error, size_t capacity);
     void *(*create)(const EditorServices *services, char *error, size_t capacity);
     const PUILayout *(*layout)(const void *editor);
     void (*destroy)(void *editor);

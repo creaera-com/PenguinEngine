@@ -59,6 +59,7 @@ root:
             - {type: toggle, id: vector_preview_toolbar, icon: tabler:scan, action: vector.preview.select, width: 30}
             - {type: separator}
             - {type: button, id: vector_center_artboard, icon: tabler:focus-2, action: vector.artboard.center, width: 30}
+            - {type: button, id: vector_import_image, icon: tabler:photo-plus, action: editor.import_image, width: 30}
             - {type: spacer}
             - type: radial_menu
               id: vector_object_menu

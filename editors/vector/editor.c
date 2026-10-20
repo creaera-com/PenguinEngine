@@ -35,9 +35,11 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
     vector_documents_init(&editor->documents);
     if (!editor->layout) {
         pui_layout_free(editor->inspector.multi_layout);
+        pui_layout_free(editor->inspector.rectangle.image_layout);
         pui_layout_free(editor->inspector.rectangle.layout);
         pui_layout_free(editor->inspector.rectangle.polygon_layout);
         pui_layout_free(editor->inspector.rectangle.text.layout);
+        vector_image_renderer_destroy(editor->image_renderer);
         vector_text_renderer_destroy(editor->text_renderer);
         pui_fonts_destroy(editor->fonts);
         pui_layout_free(editor->inspector.artboard_layout);
@@ -45,6 +47,7 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         free(editor);
         return NULL;
     }
+    editor->image_renderer = vector_image_renderer_create();
     editor->fonts = pui_fonts_create(services->resource_root);
     editor->text_renderer = editor->fonts ? vector_text_renderer_create(editor->fonts) : NULL;
     editor->inspector.rectangle.text.fonts = editor->fonts;
@@ -57,10 +60,13 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         editor_load_ui(services, "editors/vector/ui/inspector/shape.yaml", error, capacity);
     editor->inspector.rectangle.polygon_layout =
         editor_load_ui(services, "editors/vector/ui/inspector/polygon.yaml", error, capacity);
+    editor->inspector.rectangle.image_layout =
+        editor_load_ui(services, "editors/vector/ui/inspector/image.yaml", error, capacity);
     editor->inspector.multi_layout =
         editor_load_ui(services, "editors/vector/ui/inspector/selection.yaml", error, capacity);
     if (!editor->inspector.artboard_layout || !editor->inspector.rectangle.layout ||
-        !editor->inspector.multi_layout || !editor->inspector.rectangle.polygon_layout ||
+        !editor->inspector.rectangle.image_layout || !editor->inspector.multi_layout ||
+        !editor->inspector.rectangle.polygon_layout || !editor->image_renderer ||
         !editor->text_renderer || !editor->inspector.rectangle.text.layout) {
         if (!editor->text_renderer) {
             snprintf(error, capacity,
@@ -83,9 +89,11 @@ void vector_editor_destroy(void *instance) {
         vector_workspace_cancel_inactive(&editor->documents, NULL);
         vector_documents_destroy(&editor->documents);
         pui_layout_free(editor->inspector.multi_layout);
+        pui_layout_free(editor->inspector.rectangle.image_layout);
         pui_layout_free(editor->inspector.rectangle.layout);
         pui_layout_free(editor->inspector.rectangle.polygon_layout);
         pui_layout_free(editor->inspector.rectangle.text.layout);
+        vector_image_renderer_destroy(editor->image_renderer);
         vector_text_renderer_destroy(editor->text_renderer);
         pui_fonts_destroy(editor->fonts);
         pui_layout_free(editor->inspector.artboard_layout);
@@ -194,7 +202,7 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
     VectorEditor *editor = instance;
     if (!strcmp(widget, "vector_preview_canvas")) {
         vector_preview_draw(vector_documents_find(&editor->documents, editor->active_document_id),
-                            renderer, area, editor->text_renderer);
+                            renderer, area, editor->text_renderer, editor->image_renderer);
         return;
     }
     for (int i = 0; i < editor->documents.count; i++) {
@@ -204,7 +212,8 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
         if (!strcmp(id, widget)) {
             editor->active_document_id = document->id;
             vector_workspace_cancel_inactive(&editor->documents, document);
-            vector_canvas_draw(document, renderer, area, editor->text_renderer);
+            vector_canvas_draw(document, renderer, area, editor->text_renderer,
+                               editor->image_renderer);
             return;
         }
     }

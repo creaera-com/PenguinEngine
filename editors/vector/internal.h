@@ -3,6 +3,7 @@
 #define PE_VECTOR_INTERNAL_H
 #include "editor_host/editor.h"
 #include "editors/vector/document/document.h"
+#include "editors/vector/image/render.h"
 #include "editors/vector/text/render.h"
 #include "editors/vector/ui/context_menu/object_actions.h"
 #include "editors/vector/ui/document_tree/document_tree.h"
@@ -13,6 +14,7 @@ typedef struct {
     PUILayout *layout;
     PUIFonts *fonts;
     VectorTextRenderer *text_renderer;
+    VectorImageRenderer *image_renderer;
     VectorDocuments documents;
     VectorDocumentTabs document_tabs;
     VectorDocumentTree document_tree;

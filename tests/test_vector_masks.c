@@ -206,7 +206,8 @@ static void paint(void) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
     vector_rectangles_draw(d, &d->artboards[0], renderer, (SDL_FRect){0, 0, 600, 400},
-                           ((VectorEditor *)host.instance)->text_renderer);
+                           ((VectorEditor *)host.instance)->text_renderer,
+                           ((VectorEditor *)host.instance)->image_renderer);
 }
 
 static void test_render_clips_curves_strokes_and_alpha_without_painting_the_mask(void) {
@@ -281,13 +282,13 @@ static void test_reader_accepts_v1_and_rejects_malformed_mask_relations(void) {
     size_t length;
     unsigned char *bytes = SDL_LoadFile(path, &length);
     TEST_ASSERT_NOT_NULL(bytes);
-    /* One artboard and one shape: remove v2's mask role and restore the v1 version. */
+    /* One artboard and one shape: remove the mask role and trailing v3 image flag for v1. */
     unsigned name_length = bytes[28] | ((unsigned)bytes[29] << 8);
     size_t mask_offset = 64 + name_length;
     TEST_ASSERT_TRUE(mask_offset + 4 < length);
     memmove(bytes + mask_offset, bytes + mask_offset + 4, length - mask_offset - 4);
     bytes[8] = 1;
-    TEST_ASSERT_TRUE(SDL_SaveFile(path, bytes, length - 4));
+    TEST_ASSERT_TRUE(SDL_SaveFile(path, bytes, length - 8));
     SDL_free(bytes);
     VectorDocument *loaded = calloc(1, sizeof *loaded);
     TEST_ASSERT_NOT_NULL(loaded);

@@ -74,6 +74,13 @@ static bool prepare(VectorDocument *d, VectorOrientation op, Orientation *plan) 
             } else {
                 cy = 2 * py - cy;
             }
+            if (*after->image.source) {
+                if (horizontal) {
+                    after->image.flip_x ^= 1u;
+                } else {
+                    after->image.flip_y ^= 1u;
+                }
+            }
             mirror_path(&after->path, horizontal);
             for (unsigned n = 0; n < after->curve.count; n++) {
                 VectorBezierNode *node = &after->curve.nodes[n];
