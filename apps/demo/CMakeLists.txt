@@ -22,7 +22,8 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/text/tool.c
  ${PROJECT_SOURCE_DIR}/editors/vector/text/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/text.c
- editor/config.c shell/shell.c platform/temp_file.c
+ project/project.c project/state.c project/explorer.c project/controller.c
+ editor/config.c shell/shell.c platform/temp_file.c platform/files.c
  editor_host/host.c editor_host/checkpoint.c editor_host/registry.c editor_host/resources.c
  ${PROJECT_SOURCE_DIR}/editors/vector/adapter.c
  ${PROJECT_SOURCE_DIR}/editors/vector/editor.c
@@ -97,6 +98,7 @@ if(NOT MSVC)
  target_compile_options(pengui_editor PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 add_custom_target(pengui_editor_resources
+ COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/resources/project-explorer.yaml" "$<TARGET_FILE_DIR:pengui_editor>/project-explorer.yaml"
  COMMAND ${CMAKE_COMMAND} -E copy_directory "${PROJECT_SOURCE_DIR}/resources/ui/fonts" "$<TARGET_FILE_DIR:pengui_editor>/fonts"
  COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:pengui_editor>"
  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/resources/application.yaml" "$<TARGET_FILE_DIR:pengui_editor>/application.yaml"

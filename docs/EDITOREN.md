@@ -440,3 +440,9 @@ zuständigen Bereich; die Modell-/UI-Grenze bleibt unverändert.
 ## Textfelder
 
 Bedienung, Datenmodell, Schriftservice und Grenzen stehen in [Textfelder im Vektoreditor](VEKTOR_TEXT.md).
+
+
+## App-weite Projektverwaltung
+
+Die Editoren bieten den gemeinsamen Slot `project_explorer`. Projektzustand und
+Dateibaum werden von der App betreut. [Projekte und Benutzerzustand](PROJEKTE.md).

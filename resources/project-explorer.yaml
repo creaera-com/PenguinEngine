@@ -1,0 +1,13 @@
+schema: pengui/v1
+root:
+  type: panel
+  padding: 8
+  gap: 8
+  children:
+    - type: row
+      padding: 0
+      height: 30
+      children:
+        - {type: label, id: project_hint, text: "Kein Projekt geoeffnet"}
+        - {type: button, icon: tabler:refresh, action: project.refresh, width: 30}
+    - {type: tree, id: project_files}

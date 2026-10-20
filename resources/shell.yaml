@@ -19,7 +19,20 @@ root:
       padding: 8
       gap: 6
       children:
-        - {type: button, icon: tabler:menu-2, action: shell.menu, width: 32}
+        - type: popup_button
+          id: shell_menu
+          icon: tabler:menu-2
+          width: 32
+          placement: below
+          popup_width: 230
+          popup_height: 92
+          children:
+            - type: panel
+              padding: 8
+              gap: 6
+              children:
+                - {type: button, text: Neues Projekt, icon: tabler:folder-plus, action: project.new, height: 30}
+                - {type: button, text: Projekt oeffnen, icon: tabler:folder-open, action: project.open, height: 30}
         - {type: separator}
         - {type: button, id: save, icon: tabler:device-floppy, action: editor.save}
         - {type: separator}

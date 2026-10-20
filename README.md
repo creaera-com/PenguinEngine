@@ -387,3 +387,9 @@ Popups. Anfangszustände und ausgewählte Werte werden bei YAML-Neuladen zurück
 Mit dem Textwerkzeug lassen sich Textfelder aufziehen und direkt bearbeiten.
 Schriftwahl, Typografie und mehrspaltiger Textfluss stehen im Inspector unter
 **Typografie**. [Bedienung, Architektur und aktueller Umfang](docs/VEKTOR_TEXT.md).
+
+
+## Projektverwaltung
+
+Das Shell-Menü erstellt/öffnet Projekte. Der Explorer zeigt das Projektverzeichnis;
+beim Neustart wird das letzte Projekt wieder geöffnet. [Bedienung und Speicherorte](docs/PROJEKTE.md).

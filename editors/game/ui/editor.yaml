@@ -19,12 +19,7 @@ root:
           icon: folder
           padding: 0
           children:
-            - type: panel
-              padding: 12
-              children:
-                - {type: label, text: "Game workspace"}
-                - {type: label, text: "No document opened."}
-                - {type: spacer}
+            - {type: slot, id: project_explorer}
     - type: tabs
       children:
         - type: tab

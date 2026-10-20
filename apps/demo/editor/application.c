@@ -2,6 +2,7 @@
 #include "application.h"
 #include "config.h"
 #include "editor_host/host.h"
+#include "project/controller.h"
 #include "shell/shell.h"
 #include <stdio.h>
 #include <string.h>
@@ -11,6 +12,7 @@ typedef struct {
     SDL_Renderer *renderer;
     EditorShell shell;
     EditorHost host;
+    ProjectController projects;
     PUIWindow chrome;
     bool running, smoke;
     const char *resources, *config_path, *initial_editor, *screenshot;
@@ -39,6 +41,9 @@ static bool arguments(EditorApp *app, int argc, char **argv) {
 
 static void action(void *context, const char *name, const char *widget) {
     EditorApp *app = context;
+    if (project_controller_action(&app->projects, app->window, app->shell.view, name, widget)) {
+        return;
+    }
     if (pui_window_action(app->window, name)) {
         return;
     }
@@ -56,6 +61,9 @@ static void action(void *context, const char *name, const char *widget) {
 static void events(EditorApp *app) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        if (project_controller_event(&app->projects, app->shell.view, &event)) {
+            continue;
+        }
         bool consumed = pui_view_event(app->shell.view, &app->shell.input, app->window, &event);
         if (!consumed) {
             consumed = editor_host_event(&app->host, app->shell.view, &event);
@@ -103,6 +111,17 @@ static bool start(EditorApp *app, char *error, size_t capacity) {
         return false;
     }
     if (!editor_host_commit(&app->host, app->shell.view, &app->shell.input, error, capacity)) {
+        return false;
+    }
+    if (!project_controller_init(&app->projects, app->resources, !app->smoke, error, capacity)) {
+        return false;
+    }
+    if (*error) {
+        pui_view_set_text(app->shell.view, "status", error);
+        error[0] = 0;
+    }
+    if (!project_explorer_commit(&app->projects.explorer, app->shell.view, &app->shell.input, error,
+                                 capacity)) {
         return false;
     }
     SDL_SetWindowTitle(app->window, app->shell.layout->title);
@@ -160,9 +179,14 @@ int editor_application_run(int argc, char **argv) {
         if (app.smoke && ++frames >= 3) {
             app.running = false;
         }
+        if (!project_explorer_commit(&app.projects.explorer, app.shell.view, &app.shell.input,
+                                     error, sizeof error)) {
+            pui_view_set_text(app.shell.view, "status", error);
+        }
         SDL_Delay(1);
     }
 cleanup:
+    project_controller_destroy(&app.projects);
     pui_window_detach(&app.chrome);
     editor_shell_destroy(&app.shell);
     editor_host_destroy(&app.host);
