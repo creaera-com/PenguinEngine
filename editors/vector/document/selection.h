@@ -5,7 +5,7 @@
 /** @brief Membership also supports the legacy single active rectangle. */
 bool vector_document_is_selected(const VectorDocument *document, unsigned id);
 /** @brief Replace rectangle selection; zero clears it. Artboard selection is kept when clearing. */
-/** @brief Select a shape and all members of its persistent group, or clear with ID zero. */
+/** @brief Select a group unit, a special mask child individually, or clear with ID zero. */
 void vector_document_select(VectorDocument *document, unsigned id);
 /** @brief Add/remove one editable rectangle and choose a primary selection. */
 /** @brief Add/remove the complete group containing the clicked shape. */

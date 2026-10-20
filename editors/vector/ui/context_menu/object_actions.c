@@ -2,6 +2,7 @@
 #include "object_actions.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/mask/mask.h"
 #include "editors/vector/object/alignment.h"
 #include "editors/vector/object/group.h"
 #include "editors/vector/object/order.h"
@@ -49,7 +50,11 @@ bool vector_object_actions_action(VectorObjectActions *actions, VectorDocument *
         }
     }
     bool changed;
-    if (!strcmp(name, "vector.objects.group")) {
+    if (!strcmp(name, "vector.objects.mask_create")) {
+        changed = vector_mask_create(document);
+    } else if (!strcmp(name, "vector.objects.mask_release")) {
+        changed = vector_mask_release(document);
+    } else if (!strcmp(name, "vector.objects.group")) {
         changed = vector_objects_group(document);
     } else if (!strcmp(name, "vector.objects.ungroup")) {
         changed = vector_objects_ungroup(document);
@@ -92,7 +97,7 @@ static void select_at(VectorDocument *d, float x, float y) {
             !pui_contains(b->rect, wx, wy)) {
             continue;
         }
-        if (vector_shape_contains(r, wx - b->rect.x, wy - b->rect.y)) {
+        if (vector_mask_contains(d, r, wx - b->rect.x, wy - b->rect.y)) {
             if (!vector_document_is_selected(d, r->id)) {
                 vector_document_select(d, r->id);
             }
@@ -187,12 +192,17 @@ void vector_object_actions_commit(VectorObjectActions *actions, VectorDocument *
              ungroup = vector_objects_can_ungroup(document);
         pui_view_set_radial_enabled(view, "vector_objects_group", group);
         pui_view_set_radial_enabled(view, "vector_objects_ungroup", ungroup);
+        bool mask_create = vector_mask_can_create(document);
+        bool mask_release = vector_mask_can_release(document);
+        pui_view_set_radial_enabled(view, "vector_mask_create", mask_create);
+        pui_view_set_radial_enabled(view, "vector_mask_release", mask_release);
         bool front = vector_objects_can_order(document, VECTOR_ORDER_FRONT);
         bool back = vector_objects_can_order(document, VECTOR_ORDER_BACK);
         bool forward = vector_objects_can_order(document, VECTOR_ORDER_FORWARD);
         bool backward = vector_objects_can_order(document, VECTOR_ORDER_BACKWARD);
         pui_view_set_radial_enabled(view, "vector_layers_menu",
-                                    front || back || forward || backward || group || ungroup);
+                                    front || back || forward || backward || group || ungroup ||
+                                        mask_create || mask_release);
         pui_view_set_radial_enabled(view, "vector_order_front", front);
         pui_view_set_radial_enabled(view, "vector_order_back", back);
         pui_view_set_radial_enabled(view, "vector_order_forward", forward);

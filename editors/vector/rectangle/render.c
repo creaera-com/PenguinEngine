@@ -6,6 +6,7 @@
 #include "editors/vector/ellipse/ellipse.h"
 #include "editors/vector/ellipse/render.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/mask/render.h"
 #include "editors/vector/path/render.h"
 #include "editors/vector/polygon/polygon.h"
 #include "editors/vector/workspace/box_tool.h"
@@ -63,6 +64,65 @@ static void draw(SDL_Renderer *renderer, SDL_FRect board, float zoom, PUIRect lo
     SDL_SetRenderDrawBlendMode(renderer, blend);
 }
 
+typedef struct {
+    VectorDocument *document;
+    VectorShape *rectangle;
+    SDL_Renderer *renderer;
+    SDL_FRect board;
+    VectorTextRenderer *text;
+} DrawShape;
+
+static void draw_shape(void *data) {
+    DrawShape *context = data;
+    VectorDocument *document = context->document;
+    VectorShape *rectangle = context->rectangle;
+    SDL_Renderer *renderer = context->renderer;
+    SDL_FRect board = context->board;
+    VectorTextRenderer *text = context->text;
+    uint32_t fill =
+        document->fill_preview.active && document->fill_preview.rectangle_id == rectangle->id
+            ? document->fill_preview.color
+            : rectangle->fill;
+    const VectorShape *shown = vector_curve_display_shape(document, rectangle);
+    if (shown->text.enabled) {
+        if (shown->stroke.width > 0) {
+            draw(renderer, board, document->viewport.zoom,
+                 vector_rectangle_display_rect(document, shown), false, false, 0,
+                 vector_rectangle_display_angle(document, shown), shown->stroke);
+        }
+        vector_text_draw(
+            text, renderer, document, shown, vector_rectangle_display_rect(document, shown),
+            vector_rectangle_display_angle(document, shown), board, document->viewport.zoom, fill,
+            vector_document_is_selected(document, shown->id));
+        return;
+    }
+    if (shown->curve_kind == VECTOR_CURVE_ELLIPSE) {
+        vector_ellipse_draw(renderer, shown, vector_rectangle_display_rect(document, shown),
+                            vector_rectangle_display_angle(document, shown), board,
+                            document->viewport.zoom, fill,
+                            vector_document_is_selected(document, rectangle->id));
+        return;
+    }
+    if (shown->curve.count) {
+        vector_curve_draw(renderer, shown, vector_rectangle_display_rect(document, shown),
+                          vector_rectangle_display_angle(document, shown), board,
+                          document->viewport.zoom, fill,
+                          vector_document_is_selected(document, rectangle->id));
+        return;
+    }
+    if (rectangle->path.count) {
+        vector_path_draw(renderer, rectangle, vector_rectangle_display_rect(document, rectangle),
+                         vector_rectangle_display_angle(document, rectangle), board,
+                         document->viewport.zoom, fill,
+                         vector_document_is_selected(document, rectangle->id));
+        return;
+    }
+    draw(renderer, board, document->viewport.zoom,
+         vector_rectangle_display_rect(document, rectangle),
+         vector_document_is_selected(document, rectangle->id), false, fill,
+         vector_rectangle_display_angle(document, rectangle), rectangle->stroke);
+}
+
 void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *parent,
                             SDL_Renderer *renderer, SDL_FRect board, VectorTextRenderer *text) {
     bool clipped = SDL_RenderClipEnabled(renderer);
@@ -86,54 +146,36 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
         clip = requested;
     }
     SDL_SetRenderClipRect(renderer, &clip);
+    VectorMaskRenderer masks = {.renderer = renderer};
     for (int i = 0; i < document->rectangle_count; i++) {
         VectorRectangle *rectangle = &document->rectangles[i];
         if (rectangle->parent_id != parent->id || rectangle->flags & VECTOR_OBJECT_HIDDEN) {
             continue;
         }
-        uint32_t fill =
-            document->fill_preview.active && document->fill_preview.rectangle_id == rectangle->id
-                ? document->fill_preview.color
-                : rectangle->fill;
-        const VectorShape *shown = vector_curve_display_shape(document, rectangle);
-        if (shown->text.enabled) {
-            if (shown->stroke.width > 0) {
-                draw(renderer, board, document->viewport.zoom,
-                     vector_rectangle_display_rect(document, shown), false, false, 0,
-                     vector_rectangle_display_angle(document, shown), shown->stroke);
+        if (rectangle->clip_mask) {
+            if (document->selection.count == 1 &&
+                vector_document_is_selected(document, rectangle->id)) {
+                const VectorShape *shown = vector_curve_display_shape(document, rectangle);
+                VectorShape outline = *shown;
+                outline.stroke.width = 0;
+                vector_path_draw(renderer, &outline, vector_rectangle_display_rect(document, shown),
+                                 vector_rectangle_display_angle(document, shown), board,
+                                 document->viewport.zoom, 0, true);
             }
-            vector_text_draw(
-                text, renderer, document, shown, vector_rectangle_display_rect(document, shown),
-                vector_rectangle_display_angle(document, shown), board, document->viewport.zoom,
-                fill, vector_document_is_selected(document, shown->id));
             continue;
         }
-        if (shown->curve_kind == VECTOR_CURVE_ELLIPSE) {
-            vector_ellipse_draw(renderer, shown, vector_rectangle_display_rect(document, shown),
-                                vector_rectangle_display_angle(document, shown), board,
-                                document->viewport.zoom, fill,
-                                vector_document_is_selected(document, rectangle->id));
-            continue;
+        DrawShape content = {document, rectangle, renderer, board, text};
+        const VectorShape *mask = vector_mask_find(document, rectangle->group_id);
+        if (mask) {
+            const VectorShape *shown = vector_curve_display_shape(document, mask);
+            vector_mask_render(&masks, shown, vector_rectangle_display_rect(document, shown),
+                               vector_rectangle_display_angle(document, shown), board,
+                               document->viewport.zoom, draw_shape, &content);
+        } else {
+            draw_shape(&content);
         }
-        if (shown->curve.count) {
-            vector_curve_draw(renderer, shown, vector_rectangle_display_rect(document, shown),
-                              vector_rectangle_display_angle(document, shown), board,
-                              document->viewport.zoom, fill,
-                              vector_document_is_selected(document, rectangle->id));
-            continue;
-        }
-        if (rectangle->path.count) {
-            vector_path_draw(
-                renderer, rectangle, vector_rectangle_display_rect(document, rectangle),
-                vector_rectangle_display_angle(document, rectangle), board, document->viewport.zoom,
-                fill, vector_document_is_selected(document, rectangle->id));
-            continue;
-        }
-        draw(renderer, board, document->viewport.zoom,
-             vector_rectangle_display_rect(document, rectangle),
-             vector_document_is_selected(document, rectangle->id), false, fill,
-             vector_rectangle_display_angle(document, rectangle), rectangle->stroke);
     }
+    vector_mask_renderer_destroy(&masks);
     if (document->rectangle_tool.dragging && document->rectangle_tool.parent_id == parent->id) {
         if (document->rectangle_tool.text) {
             draw(renderer, board, document->viewport.zoom,

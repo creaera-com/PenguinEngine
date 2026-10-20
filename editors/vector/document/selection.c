@@ -17,7 +17,7 @@ bool vector_document_is_selected(const VectorDocument *document, unsigned id) {
 }
 
 static bool same_unit(const VectorRectangle *a, const VectorRectangle *b) {
-    return a->id == b->id || (a->group_id && a->group_id == b->group_id);
+    return a->id == b->id || (!a->clip_mask && a->group_id && a->group_id == b->group_id);
 }
 
 static void append_unit(VectorDocument *document, const VectorRectangle *member) {
@@ -100,7 +100,7 @@ void vector_document_selection_sync(VectorDocument *document) {
     /* Preserve complete groups, including locked children: gestures then reject the whole unit. */
     for (int i = 0; i < document->selection.count; i++) {
         VectorRectangle *r = vector_rectangle_find(document, document->selection.ids[i]);
-        if (r && r->group_id) {
+        if (r && r->group_id && !r->clip_mask) {
             append_unit(document, r);
         }
     }

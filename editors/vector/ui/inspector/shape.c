@@ -208,7 +208,8 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
             pui_view_set_text(view, "polygon_sides", corners);
         }
         pui_view_set_text(view, "rectangle_kind",
-                          rectangle->text.enabled                         ? "Textfeld"
+                          rectangle->clip_mask                            ? "Schnittmaske"
+                          : rectangle->text.enabled                       ? "Textfeld"
                           : rectangle->curve_kind == VECTOR_CURVE_POLYGON ? "Polygon"
                           : rectangle->curve_kind == VECTOR_CURVE_ELLIPSE ? "Ellipse"
                           : rectangle->curve.count                        ? "Bezierkurve"

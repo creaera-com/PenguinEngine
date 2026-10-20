@@ -78,6 +78,10 @@ bool vector_shape_contains(const VectorShape *shape, float x, float y) {
         }
         return false;
     }
+    if (shape->curve.count) {
+        VectorPath path = vector_shape_path(shape, shape->rect, shape->angle);
+        return vector_path_contains(&path, x, y);
+    }
     if (!shape->path.count) {
         return vector_rotated_contains(shape->rect, shape->angle, x, y);
     }

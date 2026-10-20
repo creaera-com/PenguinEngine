@@ -706,7 +706,7 @@ ungueltige Eingaben werden auf den vorherigen Wert zurueckgesetzt.
 `grid/state.h` enthaelt ausschliesslich Werte. Die Einstellungen sind
 Ansichtshilfen und erzeugen keine Schritte in der Artwork-History. Sie gelten
 je Dokument und werden beim Editorwechsel im temporaeren Checkpoint gesichert
-(Schema `PVCKPT23`). Es gibt damit noch keine dauerhafte Dokumentdatei.
+(Schema `PVCKPT24`). Es gibt damit noch keine dauerhafte Dokumentdatei.
 
 `grid/render.c` zeichnet die Linien artboardlokal ueber dem Artwork und erhaelt
 den SDL-Clip- und Blendzustand. Standardzellen sind rechteckig; Hexagonalzellen
@@ -775,7 +775,7 @@ Rechteck einen gemeinsamen Versatz; Abstaende und Groessen bleiben erhalten.
 History-Befehl aus. Er prueft alle IDs, Sperren und Zielkoordinaten vor der
 Mutation. Fehlt ein Teilnehmer oder ist ein Ziel ungueltig, bleibt die ganze
 Gruppe unveraendert. Undo/Redo wendet die gespeicherten Vorher-/Nachher-Rechtecke
-atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT23` speichert
+atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT24` speichert
 zusaetzlich die Auswahl-IDs. Ein Editorwechsel verwirft Gestenvorschauen,
 behaelt aber Auswahl und abgeschlossene Gruppenbewegungen.
 
@@ -810,7 +810,7 @@ und Skalieren denselben atomaren Vorher-/Nachher-Befehl (Checkpoint-Typ 5).
 Damit entstehen fuer eine gemeinsame Skalierung genau ein Undo-Schritt und
 vollstaendig wiederherstellbare Redo-Daten. Esc, Fokusverlust und Editorwechsel
 verwerfen die laufende Groessenvorschau. Abgeschlossene Skalierungen bleiben
-beim Editorwechsel inklusive History erhalten (Schema `PVCKPT23`).
+beim Editorwechsel inklusive History erhalten (Schema `PVCKPT24`).
 
 ### Shift und Alt waehrend Zeichnen und Skalieren
 
@@ -860,7 +860,7 @@ Der Mittelpunkt bleibt waehrend der Rotation fest, Alt aendert ihn nicht.
 `VectorRectangle.angle` speichert einen im Uhrzeigersinn laufenden Winkel in
 Grad, mit vorzeichenbehafteter Darstellung von -360 bis 360. `rect` beschreibt weiterhin Groesse und
 Lage vor der Drehung; gedreht wird um dessen Mittelpunkt. Die Winkel sind
-Teil von History und temporaeren Checkpoints (Schema `PVCKPT23`).
+Teil von History und temporaeren Checkpoints (Schema `PVCKPT24`).
 
 `geometry/rotation.c` berechnet Punkte, Ecken, umschliessende Rahmen und exakte
 Trefferflaechen ohne SDL oder Objektwissen. `workspace/rotation.c` besitzt die
@@ -909,7 +909,7 @@ beim Begrenzen auf eine Umdrehung, etwa 450 auf 90 oder -450 auf -90.
 `geometry/rotation.c` trennt diese Darstellung (`vector_angle_turn`) von der
 kurzen Winkeldifferenz (`vector_angle_normalize`) fuer die Gestenberechnung.
 Die Checkpoint-Validierung fuer Einzel- und Gruppenbefehle akzeptiert die
-vorzeichenbehafteten Winkel einschliesslich voller Umdrehungen (Schema `PVCKPT23`).
+vorzeichenbehafteten Winkel einschliesslich voller Umdrehungen (Schema `PVCKPT24`).
 
 
 ## Einfarbige Rechteckrahmen
@@ -939,7 +939,7 @@ keine zusaetzliche Kontur; Auswahlmarkierungen bleiben davon unabhaengig sichtba
 
 Rahmenaenderungen verwenden die vorhandenen vollstaendigen Vorher-/Nachher-Snapshots
 von Rechteckbefehlen (Codec 4). Undo/Redo und temporaere Editor-Checkpoints erhalten
-alle Rahmenwerte; die private Checkpoint-Signatur lautet jetzt `PVCKPT23`.
+alle Rahmenwerte; die private Checkpoint-Signatur lautet jetzt `PVCKPT24`.
 
 
 ## Objektbefehle und dokumentuebergreifende Zwischenablage
@@ -994,7 +994,7 @@ Artboard vor dem Loeschen. Fehler durch Kapazitaet, Sperren oder ungueltige Wert
 lassen Dokument und Zwischenablage unveraendert.
 
 `persistence/commands.c` registriert den strukturellen Befehl als Codec 6.
-Checkpoint-Schema `PVCKPT23` speichert ihn und die Objektzwischenablage. Beim Laden
+Checkpoint-Schema `PVCKPT24` speichert ihn und die Objektzwischenablage. Beim Laden
 werden Objektwerte, Eltern, Auswahl und der gesamte History-Verlauf validiert.
 
 
@@ -1029,7 +1029,7 @@ oder UI-Zustand. Beim Anwenden werden Reihenfolge, IDs und Elternzuordnung gepru
 bevor die Objektarrays umgeordnet werden. Auswahl, Namen, Flags und Geometrie bleiben
 erhalten. Die Objektzwischenablage wird nicht veraendert.
 
-Der private Befehl hat Codec 7 und wird im Checkpoint `PVCKPT23` gespeichert.
+Der private Befehl hat Codec 7 und wird im Checkpoint `PVCKPT24` gespeichert.
 Beim Editorwechsel bleiben Reihenfolge und vollstaendige Undo/Redo-History erhalten.
 Das Untermenue selbst wird ueber verschachtelte `radial_menu`-Eintraege in
 `editors/vector/ui/editor.yaml` beschrieben; die UI-Anbindung bleibt in
@@ -1166,7 +1166,7 @@ Eine leere Schnittmenge oder vollstaendige Subtraktion entfernt die Operanden.
 Modellaenderung. Jede Operation ist ein Undo-Schritt; Undo stellt die Originalformen
 samt Eigenschaften und Auswahl wieder her. Pfadwerte werden auch beim Kopieren,
 Ausschneiden, Duplizieren, tabuebergreifenden Einfuegen und Editorwechsel erhalten.
-Die Checkpoint-Signatur lautet wegen des erweiterten Formwerts nun **PVCKPT23**.
+Die Checkpoint-Signatur lautet wegen des erweiterten Formwerts nun **PVCKPT24**.
 
 Die bisherigen 64 Objekte pro Dokument bleiben als Grenze bestehen. Ueberschreitet
 ein Ergebnis das Punkt-, Kontur- oder Objektlimit oder scheitert die Berechnung,
@@ -1241,7 +1241,7 @@ Vorrang vor dem Raster, waehrend ungetroffene Achsen weiter am Raster einrasten 
 `workspace/element_snap.c` liefert die Referenzgeometrie und zeichnet die Vorschau.
 Die gemeinsame Bewegungsvorschau nutzt dieselbe Berechnung beim Zeichnen und Loslassen.
 Erst das Loslassen erzeugt einen History-Schritt; Escape verwirft die Vorschau.
-Der Toggle wird im temporaeren Checkpoint `PVCKPT23` gespeichert, Hilfslinien und laufende
+Der Toggle wird im temporaeren Checkpoint `PVCKPT24` gespeichert, Hilfslinien und laufende
 Gesten nicht. Die Funktion wirkt zunaechst beim Verschieben, nicht beim Skalieren/Zeichnen.
 
 
@@ -1271,7 +1271,7 @@ des vordersten ausgewaehlten Objekts abgelegt. Die relative Reihenfolge bleibt e
 beim Aufloesen bleiben Positionen und Reihenfolge unveraendert. Beide Befehle verwenden
 die atomaren Struktursnapshots aus `object/clipboard.c` (Codec 6). Undo stellt auch die
 vorherige Ebenenreihenfolge und Auswahl wieder her. Die bestehende Bewegungs-History
-bleibt davon unabhaengig. Checkpoint `PVCKPT23` speichert die Gruppenwerte samt History.
+bleibt davon unabhaengig. Checkpoint `PVCKPT24` speichert die Gruppenwerte samt History.
 
 
 ## Bezier-Stift und nachtraegliche Knotenbearbeitung
@@ -1316,7 +1316,7 @@ innerhalb einer Gruppe bearbeiten, ohne andere Mitglieder zu ersetzen. Beim Bear
 einer gedrehten Kurve wird ihre Drehung in die Kontrollpunkte eingerechnet; die sichtbare
 Geometrie bleibt erhalten und der Formwinkel wird auf 0 gesetzt.
 
-Checkpoint `PVCKPT23` sowie Clipboard und strukturelle History-Snapshots enthalten die
+Checkpoint `PVCKPT24` sowie Clipboard und strukturelle History-Snapshots enthalten die
 kubischen Werte. Werkzeuge, Entwuerfe und laufende Griffbewegungen werden nicht gespeichert.
 
 
@@ -1346,7 +1346,7 @@ Drehen, Spiegeln, Kopieren und Editorwechsel erhalten. Wird die Ellipse mit dem
 Knotenwerkzeug frei veraendert, wird sie zu einer normalen Bezierkurve. **In Pfad** und
 Flaechenoperationen erzeugen wie bisher Polygonpfade. Undo stellt die Ellipsenkennung
 wieder her. Der gemeinsame Kurven-Erzeugungsbefehl (Codec 8) speichert Geometrie und Stil;
-das temporaere Checkpoint-Schema lautet wegen der zusaetzlichen Formkennung `PVCKPT23`.
+das temporaere Checkpoint-Schema lautet wegen der zusaetzlichen Formkennung `PVCKPT24`.
 
 
 ### Parametrische Polygone
@@ -1369,7 +1369,7 @@ parametrische Identitaet und damit das Eckenzahl-Feld. Undo stellt beides wieder
 
 ### Textfelder und Typografie
 
-Der aktuelle Checkpoint ist **PVCKPT23**, weil `VectorShape` nun Textwerte enthaelt.
+Der aktuelle Checkpoint ist **PVCKPT24**; `VectorShape` enthält Textwerte und die Maskenrolle.
 Der gemeinsame Wertebefehl liegt in `object/commands.c` statt in der Kurvendomaene.
 [Textfelder im Vektoreditor](VEKTOR_TEXT.md) beschreibt Werkzeug, Schriftservice,
 UTF-8-Eingabe, History-Gruppierung und den Textfluss ueber mehrere Spalten.

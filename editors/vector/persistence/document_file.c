@@ -12,6 +12,7 @@ _Static_assert(sizeof(float) == 4 && FLT_RADIX == 2 && FLT_MANT_DIG == 24,
 typedef struct {
     SDL_IOStream *io;
     bool read, ok;
+    unsigned version;
 } Codec;
 
 static void bytes(Codec *c, void *data, size_t length) {
@@ -77,6 +78,9 @@ static void shape(Codec *c, VectorShape *s) {
     integer(c, &s->parent_id);
     integer(c, &s->flags);
     integer(c, &s->group_id);
+    if (c->version >= 2) {
+        integer(c, &s->clip_mask);
+    }
     integer(c, &s->fill);
     integer(c, &s->stroke.color);
     real(c, &s->stroke.width);
@@ -132,11 +136,12 @@ static bool content(Codec *c, VectorClipboard *values) {
     char magic[8] = {'P', 'E', 'N', 'G', 'V', 'E', 'C', 0}, actual[8];
     memcpy(actual, magic, 8);
     bytes(c, actual, 8);
-    unsigned version = 1;
+    unsigned version = 2;
     integer(c, &version);
-    if (memcmp(actual, magic, 8) || version != 1) {
+    if (memcmp(actual, magic, 8) || (version != 1 && version != 2)) {
         return false;
     }
+    c->version = version;
     unsigned boards = values->board_count, shapes = values->rectangle_count;
     integer(c, &boards);
     integer(c, &shapes);
@@ -192,7 +197,7 @@ bool vector_document_file_load(VectorDocument *d, const char *path, char *error,
     }
     SDL_IOStream *io = SDL_IOFromFile(full, "rb");
     VectorClipboard *values = calloc(1, sizeof *values);
-    Codec c = {io, true, io && values};
+    Codec c = {.io = io, .read = true, .ok = io && values};
     bool ok = c.ok && content(&c, values);
     unsigned char extra;
     if (ok) {
@@ -230,7 +235,7 @@ bool vector_document_file_save(VectorDocument *d, const char *path, char *error,
     memcpy(values->boards, d->artboards, d->artboard_count * sizeof *d->artboards);
     memcpy(values->rectangles, d->rectangles, d->rectangle_count * sizeof *d->rectangles);
     SDL_IOStream *io = SDL_IOFromFile(staged, "wb");
-    Codec c = {io, false, io != NULL};
+    Codec c = {.io = io, .ok = io != NULL};
     bool ok = io && content(&c, values);
     if (io) {
         ok = SDL_CloseIO(io) && ok;

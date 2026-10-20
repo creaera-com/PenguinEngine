@@ -1,8 +1,9 @@
 /** @file @brief Mouse gestures produce temporary parent-local curves; release commits once. */
-#include "tool.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/document/selection.h"
 #include "editors/vector/grid/snap.h"
+#include "editors/vector/mask/mask.h"
+#include "tool.h"
 #include <math.h>
 #include <string.h>
 
@@ -267,7 +268,7 @@ static bool nodes_down(VectorDocument *d, const SDL_Event *event) {
         VectorArtboard *board = vector_artboard_find(d, shape->parent_id);
         VectorPoint p = local(d, board, event->button.x, event->button.y, false);
         if (pui_contains((PUIRect){0, 0, board->rect.w, board->rect.h}, p.x, p.y) &&
-            vector_shape_contains(shape, p.x, p.y)) {
+            vector_mask_contains(d, shape, p.x, p.y)) {
             vector_document_select(d, shape->id);
             t->shape_id = shape->id;
             t->node = -1;

@@ -1,5 +1,6 @@
 /** @file @brief Canonical closed paths feed atomic object replacements, never native UI events. */
 #include "operations.h"
+#include "editors/vector/mask/mask.h"
 #include "editors/vector/object/clipboard.h"
 #include <math.h>
 #include <stdlib.h>
@@ -17,7 +18,8 @@ bool vector_paths_can_operate(VectorDocument *d, VectorPathOperation op) {
         if (!vector_document_is_selected(d, s->id)) {
             continue;
         }
-        if (s->text.enabled || vector_rectangle_effective_flags(d, s) & VECTOR_OBJECT_STATE_MASK) {
+        if ((op >= VECTOR_PATH_UNION && vector_mask_find(d, s->group_id)) || s->text.enabled ||
+            vector_rectangle_effective_flags(d, s) & VECTOR_OBJECT_STATE_MASK) {
             return false;
         }
         if (op >= VECTOR_PATH_UNION && parent && parent != s->parent_id) {

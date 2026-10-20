@@ -27,8 +27,9 @@ typedef enum { VECTOR_CURVE_FREE, VECTOR_CURVE_ELLIPSE, VECTOR_CURVE_POLYGON } V
  * pivot. */
 typedef struct {
     unsigned id, parent_id, flags;
-    unsigned group_id; ///< Zero for independent objects; group members share an artboard and ID.
-    uint32_t fill;     ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
+    unsigned group_id;  ///< Zero for independent objects; group members share an artboard and ID.
+    unsigned clip_mask; ///< One means this closed shape clips its group; never painted itself.
+    uint32_t fill;      ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
     VectorStroke stroke;
     VectorText text;     ///< Editable text frame; disabled for geometric shapes.
     unsigned curve_kind; ///< Validated VectorCurveKind; zero for non-curve shapes.

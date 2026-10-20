@@ -77,6 +77,8 @@ root:
                     - {type: button, id: vector_order_backward, text: Eins runter, icon: tabler:arrow-down, action: vector.objects.order_backward}
                     - {type: button, id: vector_objects_group, text: Gruppieren, icon: tabler:box-multiple, action: vector.objects.group}
                     - {type: button, id: vector_objects_ungroup, text: Gruppe aufloesen, icon: tabler:box-multiple-0, action: vector.objects.ungroup}
+                    - {type: button, id: vector_mask_create, text: Schnittmaske, icon: tabler:mask, action: vector.objects.mask_create}
+                    - {type: button, id: vector_mask_release, text: Maske loesen, icon: tabler:mask-off, action: vector.objects.mask_release}
 
                 - type: radial_menu
                   id: vector_transform_menu

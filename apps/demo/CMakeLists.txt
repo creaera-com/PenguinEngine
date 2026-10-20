@@ -49,6 +49,8 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/object/alignment.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/order.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/group.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/mask/mask.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/mask/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/clipboard.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/context_menu/object_actions.c
  ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/render.c

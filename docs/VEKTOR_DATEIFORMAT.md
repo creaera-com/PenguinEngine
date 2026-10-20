@@ -42,7 +42,7 @@ geschlossen und erst bei Erfolg auf den Zielnamen umbenannt. Bei Schreib-/Validi
 fehlern bleiben die bestehende Zieldatei und die bisherige Dokumentidentität erhalten.
 Dies ist kein automatisches Recovery-System und keine Garantie gegen Stromausfall.
 
-## Format `PENGVEC`, Version 1
+## Format `PENGVEC`, Version 2
 
 Das eigene binäre Format ist unabhängig von C-Struct-Padding und nativer Byte-Reihenfolge.
 Es gibt keinen SVG-Mapping-Schritt und keine gespeicherten Zeiger.
@@ -60,11 +60,11 @@ Grundtypen:
 Datei-Reihenfolge:
 
 1. Acht Magic-Bytes `50 45 4E 47 56 45 43 00` (`PENGVEC` plus Nullbyte).
-2. Version `u32` = 1.
+2. Version `u32` = 2.
 3. Artboardanzahl und Formanzahl als u32, jeweils maximal 64.
 4. Pro Artboard: ID, Flags, Name `string(64)`, Rechteck.
 5. Pro Form, in Ebenenreihenfolge:
-   - ID, Parent-ID, Flags, Gruppen-ID, Füllfarbe (je u32).
+   - ID, Parent-ID, Flags, Gruppen-ID, Maskenrolle, Füllfarbe (je u32).
    - Rahmenfarbe (u32), Rahmenbreite (f32), Rahmenausrichtung (u32).
    - Kurvenkennung (u32), Name `string(64)`, Rechteck, Winkel (f32).
    - Bézier-Knotenanzahl, geschlossen (u32); je Knoten Anker, eingehender und
@@ -81,6 +81,15 @@ Flags und Kennungen verwenden die dokumentierten Modell-Enums: Kurvenkennung
 1=innen, 2=außen; Textausrichtung 0=links, 1=zentriert, 2=rechts, 3=Blocksatz.
 Farben sind gepackte Werte `0xRRGGBBAA`. Aktive Daten sind maßgeblich; ungenutzte
 Array-Puffer werden nicht gespeichert.
+
+Die Maskenrolle ist 0 für normale Inhalte und 1 für das spezielle Masken-Kind einer
+Schnittgruppe. Pro Schnittgruppe sind genau ein Masken-Kind und mindestens ein
+Inhaltsobjekt zulässig. Alle Kinder teilen dasselbe Artboard. Masken müssen geschlossene
+geometrische Formen sein; Textfelder und offene Kurven sind keine Masken.
+
+Der Reader akzeptiert weiterhin Version 1: Dort fehlt ausschließlich das Feld
+Maskenrolle; es wird beim Lesen auf 0 gesetzt. Neue Dateien werden als Version 2
+geschrieben und benötigen deshalb einen aktuellen Editor.
 
 Der Reader begrenzt die Dateigröße auf 4 MiB und prüft Version, Kapazitäten,
 Geometrie, Stilwerte, IDs und Parent-/Gruppenbezüge vor dem Einsetzen ins Dokument.
@@ -100,7 +109,7 @@ Reader für ältere Versionen.
 
 Geladene Dokumente beginnen mit einer geschützten Basis (`history.floor`). Undo
 macht spätere Änderungen rückgängig, aber nicht den Ladevorgang selbst. Der interne
-Sitzungs-Checkpoint ist wegen Dateipfad und History-Grenze nun **PVCKPT23**. Er erhält
+Sitzungs-Checkpoint ist wegen der zusätzlichen Maskenrolle nun **PVCKPT24**. Er erhält
 beim Editorwechsel auch den gespeicherten Dateinamen und die späteren Undo-Schritte.
 Die dauerhafte Dokumentdatei und dieser private Checkpoint sind getrennte Formate.
 

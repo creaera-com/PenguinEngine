@@ -2,6 +2,7 @@
 #include "marquee.h"
 #include "editors/vector/document/selection.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/mask/mask.h"
 #include "selection.h"
 #include <math.h>
 
@@ -54,8 +55,9 @@ static void update(VectorDocument *document, float x, float y) {
         float rx = fmaxf(board->rect.x, left), ry = fmaxf(board->rect.y, top);
         float rr = fminf(board->rect.x + board->rect.w, right),
               rb = fminf(board->rect.y + board->rect.h, bottom);
-        if (vector_shape_intersects(
-                rectangle, (PUIRect){rx - board->rect.x, ry - board->rect.y, rr - rx, rb - ry}) &&
+        if (vector_mask_intersects(
+                document, rectangle,
+                (PUIRect){rx - board->rect.x, ry - board->rect.y, rr - rx, rb - ry}) &&
             !vector_document_is_selected(document, rectangle->id)) {
             vector_document_toggle(document, rectangle->id);
         }

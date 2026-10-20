@@ -399,3 +399,9 @@ beim Neustart wird das letzte Projekt wieder geöffnet. [Bedienung und Speichero
 
 Der aktive Tab lässt sich als `.pengvec` speichern und aus dem Explorer erneut
 öffnen. [Bedienung und eigene Formatspezifikation](docs/VEKTOR_DATEIFORMAT.md).
+
+
+## Schnittmasken
+
+Ein geschlossener Pfad kann ein Objekt oder eine Gruppe nicht destruktiv beschneiden.
+[Bedienung und Datenmodell](docs/VEKTOR_SCHNITTMASKEN.md).

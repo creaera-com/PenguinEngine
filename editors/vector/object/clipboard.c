@@ -58,6 +58,25 @@ bool vector_clipboard_valid(const VectorClipboard *c) {
             }
         }
     }
+    for (int i = 0; i < c->rectangle_count; i++) {
+        const VectorShape *mask = &c->rectangles[i];
+        if (!mask->clip_mask) {
+            continue;
+        }
+        int members = 0;
+        for (int j = 0; j < c->rectangle_count; j++) {
+            const VectorShape *s = &c->rectangles[j];
+            if (s->group_id == mask->group_id) {
+                if (j != i && s->clip_mask) {
+                    return false;
+                }
+                members++;
+            }
+        }
+        if (members < 2) {
+            return false;
+        }
+    }
     return true;
 }
 
@@ -160,6 +179,18 @@ bool vector_objects_copy(VectorDocument *d, VectorClipboard *clipboard) {
         if ((rectangles && vector_document_is_selected(d, r.id)) ||
             (!rectangles && r.parent_id == d->active_artboard)) {
             copy.rectangles[copy.rectangle_count++] = r;
+        }
+    }
+    for (int i = 0; i < copy.rectangle_count; i++) {
+        if (copy.rectangles[i].clip_mask) {
+            bool content = false;
+            for (int j = 0; j < copy.rectangle_count; j++) {
+                content |= j != i && copy.rectangles[j].group_id == copy.rectangles[i].group_id;
+            }
+            if (!content) {
+                copy.rectangles[i].clip_mask = 0;
+                copy.rectangles[i].group_id = 0;
+            }
         }
     }
     if (!vector_clipboard_valid(&copy)) {

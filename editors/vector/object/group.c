@@ -1,6 +1,7 @@
 /** @file @brief Group membership is a structural document edit, independent of UI and input. */
 #include "group.h"
 #include "clipboard.h"
+#include "editors/vector/mask/mask.h"
 #include <limits.h>
 
 static bool selection(VectorDocument *d, unsigned *parent, unsigned *group, int *count) {
@@ -15,6 +16,9 @@ static bool selection(VectorDocument *d, unsigned *parent, unsigned *group, int 
             continue;
         }
         if (*parent && *parent != shape->parent_id) {
+            return false;
+        }
+        if (vector_mask_find(d, shape->group_id)) {
             return false;
         }
         *parent = shape->parent_id;

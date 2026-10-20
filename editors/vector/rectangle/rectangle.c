@@ -33,7 +33,10 @@ unsigned vector_rectangle_effective_flags(VectorDocument *document,
 
 bool vector_rectangle_valid(VectorRectangle rectangle) {
     PUIRect r = rectangle.rect;
-    if (!vector_text_valid(&rectangle.text) ||
+    if (rectangle.clip_mask > 1 ||
+        (rectangle.clip_mask && (!rectangle.group_id || rectangle.text.enabled ||
+                                 (rectangle.curve.count && !rectangle.curve.closed))) ||
+        !vector_text_valid(&rectangle.text) ||
         (rectangle.text.enabled &&
          (rectangle.curve.count || rectangle.path.count || rectangle.curve_kind)) ||
         !vector_path_valid(&rectangle.path) || !vector_bezier_valid(&rectangle.curve) ||

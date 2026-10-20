@@ -1,10 +1,10 @@
 /** @file @brief One move/resize interaction for artboards and rectangle children. */
-#include "selection.h"
 #include "editors/vector/document/selection.h"
 #include "editors/vector/geometry/constraints.h"
 #include "editors/vector/geometry/resize.h"
 #include "editors/vector/geometry/rotation.h"
 #include "editors/vector/grid/snap.h"
+#include "editors/vector/mask/mask.h"
 #include "editors/vector/rectangle/transform.h"
 #include "element_snap.h"
 #include "group_transform.h"
@@ -12,6 +12,7 @@
 #include "modifiers.h"
 #include "oriented_resize.h"
 #include "rotation.h"
+#include "selection.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -430,6 +431,18 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
             return true;
         }
     }
+    /* A mask selected explicitly in the tree remains directly movable on the canvas. */
+    VectorShape *mask = vector_rectangle_find(document, document->active_rectangle);
+    if (mask && mask->clip_mask && document->selection.count == 1 && !additive &&
+        editable(document, mask->parent_id, mask->id)) {
+        VectorArtboard *board = vector_artboard_find(document, mask->parent_id);
+        VectorPath path = vector_shape_path(mask, mask->rect, mask->angle);
+        if (contains(board->rect, world_x, world_y) &&
+            vector_path_contains(&path, world_x - board->rect.x, world_y - board->rect.y)) {
+            begin(document, board->id, mask->id, 0, x, y);
+            return true;
+        }
+    }
     unsigned empty_board = 0;
     for (int i = document->artboard_count - 1; i >= 0; i--) {
         VectorArtboard *board = &document->artboards[i];
@@ -441,8 +454,8 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
             VectorRectangle *rectangle = &document->rectangles[j];
             if (rectangle->parent_id != board->id ||
                 (rectangle->flags & VECTOR_OBJECT_STATE_MASK) ||
-                !vector_shape_contains(rectangle, world_x - board->rect.x,
-                                       world_y - board->rect.y)) {
+                !vector_mask_contains(document, rectangle, world_x - board->rect.x,
+                                      world_y - board->rect.y)) {
                 continue;
             }
             if (additive) {

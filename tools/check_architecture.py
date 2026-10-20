@@ -73,9 +73,9 @@ vector = root / 'editors/vector'
 for path in (vector / 'ui').iterdir():
     if path.is_file() and path.suffix in ('.c', '.h'):
         errors.append(f'{path.relative_to(root)}: place UI bindings in their panel directory')
-for area in ('document', 'history', 'object', 'path'):
+for area in ('document', 'history', 'object', 'path', 'mask'):
     pending = [p for p in (vector / area).rglob('*') if p.suffix in ('.c', '.h')
-               and not (area == 'path' and p.name in ('render.c', 'render.h'))]
+               and not (area in ('path', 'mask') and p.name in ('render.c', 'render.h'))]
     visited = set()
     while pending:
         path = pending.pop()
