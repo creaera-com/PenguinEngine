@@ -11,9 +11,6 @@ void pui_draw_tab(SDL_Renderer *r, SDL_FRect rect, PUIIcon icon, const char *lab
                   bool enabled, bool hover) {
     pui_panel(r, rect, active ? PUI_PANEL : hover ? PUI_HOVER : PUI_SURFACE);
     Uint32 foreground = enabled ? PUI_TEXT : PUI_DISABLED;
-    if (active) {
-        pui_panel(r, (SDL_FRect){rect.x, rect.y, rect.w, 2}, enabled ? PUI_ACCENT : PUI_DISABLED);
-    }
     if (icon != ICON_NONE) {
         pui_icon(r, icon, rect.x + 9, rect.y + (rect.h - 16) * .5f, 16, foreground);
     }
