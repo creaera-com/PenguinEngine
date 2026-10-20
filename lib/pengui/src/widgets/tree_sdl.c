@@ -5,6 +5,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* A neutral selection stays distinct from both alternating rows and hover. */
+static Uint32 selection_color(void) {
+    Uint32 color = 255;
+    for (int shift = 8; shift <= 24; shift += 8) {
+        unsigned value = (3 * ((PUI_HOVER >> shift) & 255) + ((PUI_MUTED >> shift) & 255)) / 4;
+        color |= value << shift;
+    }
+    return color;
+}
+
 static void tree_vertical(SDL_Renderer *r, float x, float y, float from, float to, float phase) {
     for (int p = (int)ceilf(phase + from); p < (int)ceilf(phase + to); p++) {
         if (p % 6 < 3) {
@@ -116,9 +126,8 @@ static void tree_cells(PUIView *view, PUIContext *input, const PUITreeItem *item
         PUIRect rect = cell_rect(row, c, columns);
         if (draw) {
             Uint32 color = !enabled || !cell->enabled ? PUI_DISABLED
-                           : cell->checked
-                               ? (selected && !pui_hovered(input, rect) ? PUI_CANVAS : PUI_ACCENT)
-                               : (selected && !pui_hovered(input, rect) ? PUI_PANEL : PUI_MUTED);
+                           : cell->checked            ? (selected ? PUI_TEXT : PUI_ACCENT)
+                                                      : PUI_MUTED;
             if (enabled && cell->enabled && pui_hovered(input, rect)) {
                 pui_panel(view->renderer, pui_frect(rect), PUI_HOVER);
             }
@@ -197,7 +206,7 @@ void pui_widget_tree_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
         }
         bool enabled = data ? row_enabled[k] : v->enabled[index];
         bool selected = s->selected == item->id || (data && data->items[index].selected);
-        Uint32 background = selected                           ? PUI_ACCENT
+        Uint32 background = selected                           ? selection_color()
                             : (enabled && pui_hovered(pui, r)) ? PUI_HOVER
                             : k % 2                            ? PUI_SURFACE
                                                                : PUI_HOVER;
@@ -214,12 +223,12 @@ void pui_widget_tree_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
         SDL_SetRenderClipRect(v->renderer, &clip);
         float x = r.x + 8 + depths[k] * 18;
         pui_draw_tree_guides(v->renderer, depths, count, k, r, 18, 13, area.w - 24, x + 12,
-                             selected ? PUI_CANVAS : PUI_MUTED);
+                             PUI_MUTED);
         PUIIcon marker =
             item->child >= 0
                 ? ((data ? data->open[index] : v->state[index].open) ? ICON_DOWN : ICON_RIGHT)
                 : pui_icon_from_name(item->icon);
-        Uint32 foreground = !enabled ? PUI_DISABLED : selected ? PUI_CANVAS : PUI_TEXT;
+        Uint32 foreground = !enabled ? PUI_DISABLED : PUI_TEXT;
         pui_icon(v->renderer, marker, x + 4, r.y + 6, 16, foreground);
         pui_text(v->renderer, x + 26, r.y + 6, item->text, foreground);
         SDL_SetRenderClipRect(v->renderer, clipped ? &outer : NULL);

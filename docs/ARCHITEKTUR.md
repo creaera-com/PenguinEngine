@@ -282,7 +282,7 @@ des nativen Fensters zugestellt werden, hängt zusätzlich von SDL und dem Betri
 
 Die Tree-Auswahl steht im Tree-Zustand, der aktive Tab in `PUITabs.selected` und ein
 Checkboxwert in `Widget.checked`. Wenn du danach in ein Textfeld klickst, bleibt die
-Tree-Zeile ausgewählt. Die vollständige orange Zeile zeigt diese Auswahl an.
+Tree-Zeile ausgewählt. Die vollständig grau hervorgehobene Zeile zeigt diese Auswahl an. Der Auswahlton wird aus Hover- und Muted-Farbe des Themes gemischt; Text bleibt hell.
 
 ## 7. Textfelder und Tab-Navigation
 

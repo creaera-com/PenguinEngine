@@ -235,21 +235,21 @@ static void test_tree_selection_persists_and_moves_without_actions(void) {
     pui_pointer(&pui, 2, 14, true);
     pui_pointer(&pui, 2, 14, false);
     pui_view_draw(tree, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
-    assert_pixel(1, 14, PUI_ACCENT);
-    assert_pixel(200, 14, PUI_ACCENT);
+    assert_pixel(1, 14, 0x535353ff);
+    assert_pixel(200, 14, 0x535353ff);
     pui_pointer(&pui, 390, 250, false);
     pui_view_draw(tree, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
-    assert_pixel(1, 14, PUI_ACCENT);
-    assert_pixel(200, 14, PUI_ACCENT);
+    assert_pixel(1, 14, 0x535353ff);
+    assert_pixel(200, 14, 0x535353ff);
     pui_pointer(&pui, 20, 42, true);
     pui_pointer(&pui, 20, 42, false);
     pui_view_draw(tree, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
     assert_pixel(1, 14, PUI_HOVER);
-    assert_pixel(1, 42, PUI_ACCENT);
+    assert_pixel(1, 42, 0x535353ff);
     pui_pointer(&pui, 20, 70, true);
     pui_pointer(&pui, 20, 70, false);
     pui_view_draw(tree, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
-    assert_pixel(1, 42, PUI_ACCENT);
+    assert_pixel(1, 42, 0x535353ff);
     assert_pixel(1, 70, PUI_HOVER);
     pui_view_free(tree);
     pui_layout_free(description);
@@ -603,7 +603,7 @@ static void test_runtime_tree_hierarchy_updates_and_mounts_preserve_state(void) 
     pui_pointer(&pui, 2, 14, false);
     pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, runtime_tree_action, selected);
     TEST_ASSERT_EQUAL_STRING("a", selected);
-    assert_pixel(1, 14, PUI_ACCENT);
+    assert_pixel(1, 14, 0x535353ff);
     /* Updating data must not reopen a root the user just collapsed. */
     TEST_ASSERT_TRUE(pui_view_set_tree_items(view, "objects", items, 3));
     for (int i = 0; i < 3; i++) {
@@ -614,10 +614,10 @@ static void test_runtime_tree_hierarchy_updates_and_mounts_preserve_state(void) 
     pui_pointer(&pui, 2, 42, false);
     pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, runtime_tree_action, selected);
     TEST_ASSERT_EQUAL_STRING("b", selected);
-    assert_pixel(1, 42, PUI_ACCENT);
+    assert_pixel(1, 42, 0x535353ff);
     TEST_ASSERT_TRUE(pui_view_select_tree_item(view, "objects", "child"));
     pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, runtime_tree_action, selected);
-    assert_pixel(1, 42, PUI_ACCENT); // Selecting a child reveals its previously collapsed parent.
+    assert_pixel(1, 42, 0x535353ff); // Selecting a child reveals its previously collapsed parent.
     TEST_ASSERT_EQUAL_STRING("b", selected); // Programmatic selection dispatches no action.
     items[0].depth = 1;
     TEST_ASSERT_FALSE(pui_view_set_tree_items(view, "objects", items, 3));
@@ -776,12 +776,12 @@ static void test_tree_table_cells_do_not_select_or_expand_rows(void) {
     pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, table_action, row);
     TEST_ASSERT_EQUAL_STRING("a", row);
     TEST_ASSERT_EQUAL_STRING("tree.visible", table_action_name);
-    assert_pixel(1, 42, PUI_ACCENT); // Cell action neither changes selection nor opens the root.
+    assert_pixel(1, 42, 0x535353ff); // Cell action neither changes selection nor opens the root.
     pui_pointer(&pui, 374, 14, true);
     pui_pointer(&pui, 374, 14, false);
     pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, table_action, row);
     TEST_ASSERT_EQUAL_STRING("tree.lock", table_action_name);
-    assert_pixel(1, 42, PUI_ACCENT);
+    assert_pixel(1, 42, 0x535353ff);
     items[0].cell_count = PUI_TREE_MAX_CELLS + 1;
     TEST_ASSERT_FALSE(pui_view_set_tree_items(view, "objects", items, 3));
     TEST_ASSERT_EQUAL_INT(3, pui_view_tree_item_count(view, "objects"));
