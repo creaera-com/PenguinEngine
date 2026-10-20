@@ -393,3 +393,9 @@ Schriftwahl, Typografie und mehrspaltiger Textfluss stehen im Inspector unter
 
 Das Shell-Menü erstellt/öffnet Projekte. Der Explorer zeigt das Projektverzeichnis;
 beim Neustart wird das letzte Projekt wieder geöffnet. [Bedienung und Speicherorte](docs/PROJEKTE.md).
+
+
+## Vektordokumente speichern
+
+Der aktive Tab lässt sich als `.pengvec` speichern und aus dem Explorer erneut
+öffnen. [Bedienung und eigene Formatspezifikation](docs/VEKTOR_DATEIFORMAT.md).

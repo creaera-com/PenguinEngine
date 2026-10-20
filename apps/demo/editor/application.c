@@ -1,6 +1,7 @@
 /** @file @brief App bootstrap and loop; depends only on shell and editor-host interfaces. */
 #include "application.h"
 #include "config.h"
+#include "documents/controller.h"
 #include "editor_host/host.h"
 #include "project/controller.h"
 #include "shell/shell.h"
@@ -13,6 +14,7 @@ typedef struct {
     EditorShell shell;
     EditorHost host;
     ProjectController projects;
+    DocumentController documents;
     PUIWindow chrome;
     bool running, smoke;
     const char *resources, *config_path, *initial_editor, *screenshot;
@@ -41,6 +43,10 @@ static bool arguments(EditorApp *app, int argc, char **argv) {
 
 static void action(void *context, const char *name, const char *widget) {
     EditorApp *app = context;
+    if (document_controller_action(&app->documents, &app->host, &app->projects, app->window,
+                                   app->shell.view, name, widget)) {
+        return;
+    }
     if (project_controller_action(&app->projects, app->window, app->shell.view, name, widget)) {
         return;
     }
@@ -61,10 +67,19 @@ static void action(void *context, const char *name, const char *widget) {
 static void events(EditorApp *app) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        if (document_controller_event(&app->documents, app->shell.view, &event)) {
+            continue;
+        }
         if (project_controller_event(&app->projects, app->shell.view, &event)) {
             continue;
         }
         bool consumed = pui_view_event(app->shell.view, &app->shell.input, app->window, &event);
+        if (!consumed && event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat &&
+            event.key.key == SDLK_S && (event.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_GUI))) {
+            consumed = document_controller_action(
+                &app->documents, &app->host, &app->projects, app->window, app->shell.view,
+                (event.key.mod & SDL_KMOD_SHIFT) ? "editor.save_as" : "editor.save", "");
+        }
         if (!consumed) {
             consumed = editor_host_event(&app->host, app->shell.view, &event);
         }
@@ -113,6 +128,7 @@ static bool start(EditorApp *app, char *error, size_t capacity) {
     if (!editor_host_commit(&app->host, app->shell.view, &app->shell.input, error, capacity)) {
         return false;
     }
+    document_controller_init(&app->documents);
     if (!project_controller_init(&app->projects, app->resources, !app->smoke, error, capacity)) {
         return false;
     }
@@ -179,6 +195,8 @@ int editor_application_run(int argc, char **argv) {
         if (app.smoke && ++frames >= 3) {
             app.running = false;
         }
+        document_controller_commit(&app.documents, &app.host, &app.projects, app.shell.view,
+                                   &app.shell.input);
         if (!project_explorer_commit(&app.projects.explorer, app.shell.view, &app.shell.input,
                                      error, sizeof error)) {
             pui_view_set_text(app.shell.view, "status", error);
@@ -186,6 +204,7 @@ int editor_application_run(int argc, char **argv) {
         SDL_Delay(1);
     }
 cleanup:
+    document_controller_destroy(&app.documents);
     project_controller_destroy(&app.projects);
     pui_window_detach(&app.chrome);
     editor_shell_destroy(&app.shell);

@@ -9,7 +9,7 @@
 
 /* Native integer/float representation is sufficient for a private file in this process.
  * Changing this schema requires a new signature. This is not an SVG or interchange format. */
-static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '2', '2'};
+static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '2', '3'};
 
 #define WRITE(value) (fwrite(&(value), sizeof(value), 1, file) == 1)
 #define READ(value) (fread(&(value), sizeof(value), 1, file) == 1)
@@ -69,7 +69,8 @@ static bool write_document(const VectorDocument *document, FILE *file) {
         tool->marquee ? tool->previous_rectangle : document->active_rectangle;
     unsigned grid_visible = document->grid.visible, grid_snap = document->grid.snap_enabled;
     unsigned element_snap = document->element_snap_enabled;
-    if (!WRITE(document->id) || !WRITE(document->title) || !WRITE(document->next_artboard_id) ||
+    if (!WRITE(document->id) || !WRITE(document->title) || !WRITE(document->filename) ||
+        !WRITE(document->history.floor) || !WRITE(document->next_artboard_id) ||
         !WRITE(active_board) || !WRITE(document->artboard_count) ||
         fwrite(document->artboards, sizeof *document->artboards, document->artboard_count, file) !=
             (size_t)document->artboard_count ||
@@ -213,6 +214,8 @@ static bool read_document(VectorDocument *document, unsigned expected_id, FILE *
     int history_count;
     unsigned grid_visible, grid_snap, element_snap;
     if (!READ(document->id) || document->id != expected_id || !READ(document->title) ||
+        !READ(document->filename) || !memchr(document->filename, 0, sizeof document->filename) ||
+        !READ(document->history.floor) || document->history.floor < 0 ||
         !memchr(document->title, 0, sizeof document->title) || !READ(document->next_artboard_id) ||
         !document->next_artboard_id || !READ(document->active_artboard) ||
         !READ(document->artboard_count) || document->artboard_count < 0 ||
@@ -240,7 +243,8 @@ static bool read_document(VectorDocument *document, unsigned expected_id, FILE *
         document->grid.width < 1 || document->grid.width > 10000 || document->grid.height < 1 ||
         document->grid.height > 10000 || !READ(history_count) || history_count < 0 ||
         history_count > VECTOR_HISTORY_CAPACITY || !READ(document->history.cursor) ||
-        document->history.cursor < 0 || document->history.cursor > history_count) {
+        document->history.cursor < document->history.floor ||
+        document->history.floor > history_count || document->history.cursor > history_count) {
         return false;
     }
     if (!READ(document->selection.count) || document->selection.count < 0 ||

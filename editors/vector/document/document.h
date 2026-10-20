@@ -18,6 +18,7 @@
 typedef struct VectorDocument {
     unsigned id;
     char title[64];
+    char filename[4096]; ///< Absolute saved filename, empty until first save.
     VectorArtboard artboards[VECTOR_MAX_ARTBOARDS];
     int artboard_count;
     unsigned next_artboard_id, active_artboard;

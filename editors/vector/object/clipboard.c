@@ -107,6 +107,36 @@ static bool execute(VectorDocument *d, ObjectEdit *edit) {
     return false;
 }
 
+bool vector_objects_initialize(VectorDocument *d, const VectorClipboard *objects) {
+    if (d->artboard_count || d->rectangle_count || d->history.count ||
+        !vector_clipboard_valid(objects)) {
+        return false;
+    }
+    ObjectEdit *edit = calloc(1, sizeof *edit);
+    if (!edit) {
+        return false;
+    }
+    edit->after.objects = *objects;
+    if (objects->board_count) {
+        edit->after.board = objects->boards[0].id;
+    }
+    if (!execute(d, edit)) {
+        return false;
+    }
+    d->history.floor = d->history.cursor;
+    for (int i = 0; i < d->artboard_count; i++) {
+        if (d->artboards[i].id >= d->next_artboard_id) {
+            d->next_artboard_id = d->artboards[i].id + 1;
+        }
+    }
+    for (int i = 0; i < d->rectangle_count; i++) {
+        if (d->rectangles[i].id >= d->next_rectangle_id) {
+            d->next_rectangle_id = d->rectangles[i].id + 1;
+        }
+    }
+    return d->next_artboard_id && d->next_rectangle_id;
+}
+
 bool vector_objects_copy(VectorDocument *d, VectorClipboard *clipboard) {
     VectorClipboard copy = {0};
     bool rectangles = d->active_rectangle != 0;

@@ -10,10 +10,25 @@ typedef struct {
     const char *resource_root;
 } EditorServices;
 
+/** @brief Selected document identity for app-level Save/Save As routing. */
+typedef struct {
+    unsigned document;
+    char filename[4096], title[64];
+    const char *extension;
+} EditorFileInfo;
+
 /** @brief A registered module; only create() allocates its runtime state. */
 typedef struct {
     const char *id;
     const char *title;
+    /** @brief Optional file integration; only the registry knows which editor owns each extension.
+     */
+    bool (*accepts_file)(const char *path);
+    bool (*file_info)(void *editor, const PUIView *view, EditorFileInfo *info);
+    bool (*open_file)(void *editor, PUIView *view, PUIContext *input, const char *path, char *error,
+                      size_t capacity);
+    bool (*save_file)(void *editor, PUIView *view, unsigned document, const char *path, char *error,
+                      size_t capacity);
     void *(*create)(const EditorServices *services, char *error, size_t capacity);
     const PUILayout *(*layout)(const void *editor);
     void (*destroy)(void *editor);

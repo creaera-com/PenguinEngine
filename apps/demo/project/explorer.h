@@ -19,6 +19,8 @@ bool project_explorer_init(ProjectExplorer *explorer, const char *resources, cha
 void project_explorer_destroy(ProjectExplorer *explorer);
 /** @brief Replace tree identity after a successful project change. */
 void project_explorer_set(ProjectExplorer *explorer, const AppProject *project);
+/** @brief Borrow the filesystem path of a file row; NULL for folders or invalid IDs. */
+const char *project_explorer_file(const ProjectExplorer *explorer, const char *row);
 /** @brief Handle row selection and directory expansion; no filesystem work during draw. */
 bool project_explorer_action(ProjectExplorer *explorer, PUIView *view, const char *action,
                              const char *widget);

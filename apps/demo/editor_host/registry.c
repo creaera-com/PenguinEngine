@@ -5,6 +5,17 @@
 #include "editors/vector/adapter.h"
 #include <string.h>
 
+const EditorDefinition *editor_registry_for_file(const char *path) {
+    const EditorDefinition *definitions[] = {vector_editor_definition(),
+                                             scripts_editor_definition(), game_editor_definition()};
+    for (size_t i = 0; i < sizeof definitions / sizeof *definitions; i++) {
+        if (definitions[i]->accepts_file && definitions[i]->accepts_file(path)) {
+            return definitions[i];
+        }
+    }
+    return NULL;
+}
+
 const EditorDefinition *editor_registry_find(const char *id) {
     if (!id) {
         return NULL;

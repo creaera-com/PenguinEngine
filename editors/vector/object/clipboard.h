@@ -13,6 +13,8 @@ typedef struct {
 
 /** @brief Validate clipboard values and parent references; an empty clipboard is valid. */
 bool vector_clipboard_valid(const VectorClipboard *clipboard);
+/** @brief Install a validated file snapshot as a single, protected initial history state. */
+bool vector_objects_initialize(VectorDocument *document, const VectorClipboard *objects);
 /** @brief Deep-copy selected rectangles or the selected artboard and all its children. */
 bool vector_objects_copy(VectorDocument *document, VectorClipboard *clipboard);
 /** @brief Read-only preflight for destructive selection commands. */

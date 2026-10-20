@@ -13,6 +13,7 @@ typedef struct {
 typedef struct {
     VectorCommand commands[VECTOR_HISTORY_CAPACITY];
     int count, cursor;
+    int floor; ///< Imported initial state cannot be undone; edits above it can.
 } VectorHistory;
 
 /** @brief Execute and take ownership on success; caller retains data on failure.

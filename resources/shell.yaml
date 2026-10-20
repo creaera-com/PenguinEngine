@@ -25,7 +25,7 @@ root:
           width: 32
           placement: below
           popup_width: 230
-          popup_height: 92
+          popup_height: 128
           children:
             - type: panel
               padding: 8
@@ -33,6 +33,7 @@ root:
               children:
                 - {type: button, text: Neues Projekt, icon: tabler:folder-plus, action: project.new, height: 30}
                 - {type: button, text: Projekt oeffnen, icon: tabler:folder-open, action: project.open, height: 30}
+                - {type: button, text: Speichern unter, icon: tabler:device-floppy, action: editor.save_as, height: 30}
         - {type: separator}
         - {type: button, id: save, icon: tabler:device-floppy, action: editor.save}
         - {type: separator}

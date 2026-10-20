@@ -83,7 +83,7 @@ Gelöschte oder nicht mehr installierte Fonts werden zur Darstellung durch die
 mitgelieferte Schrift ersetzt; der gespeicherte Fontpfad bleibt erhalten.
 
 Es gibt keine Font-, Textur- oder Heap-Zeiger im Dokument, Clipboard oder in
-History-Payloads. Checkpoint **PVCKPT22** speichert auch die Textwerte und die
+History-Payloads. Checkpoint **PVCKPT23** speichert auch die Textwerte und die
 History. Beim Editorwechsel werden native Schriftressourcen freigegeben und beim
 Wiederherstellen neu aufgebaut. Texteingabezustand und GPU-Caches werden nicht gespeichert.
 

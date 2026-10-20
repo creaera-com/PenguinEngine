@@ -17,8 +17,9 @@ bool vector_history_execute(VectorHistory *history, void *document, VectorComman
 }
 
 bool vector_history_undo(VectorHistory *history, void *document) {
-    if (!history->cursor || !history->commands[history->cursor - 1].revert(
-                                document, history->commands[history->cursor - 1].data)) {
+    if (history->cursor <= history->floor ||
+        !history->commands[history->cursor - 1].revert(
+            document, history->commands[history->cursor - 1].data)) {
         return false;
     }
     history->cursor--;

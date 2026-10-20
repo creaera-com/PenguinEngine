@@ -122,6 +122,19 @@ static bool load(ProjectExplorer *e, int i) {
     return ok;
 }
 
+const char *project_explorer_file(const ProjectExplorer *e, const char *row) {
+    unsigned id = 0;
+    if (!row || sscanf(row, "project_entry_%u", &id) != 1) {
+        return NULL;
+    }
+    for (int i = 0; i < e->count; i++) {
+        if (e->entries[i].id == id && !e->entries[i].directory) {
+            return e->entries[i].path;
+        }
+    }
+    return NULL;
+}
+
 bool project_explorer_action(ProjectExplorer *e, PUIView *view, const char *action,
                              const char *widget) {
     if (!strcmp(action, "project.refresh")) {

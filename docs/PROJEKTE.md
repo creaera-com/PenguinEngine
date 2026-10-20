@@ -73,3 +73,10 @@ Vektordokumente oder deren Undo-History nach einem App-Neustart wieder her.
   weder auf UI noch auf Editorinstanzen zu.
 - `explorer.c`: App-eigene Dateibaum-Anbindung und verzögertes Einlesen.
 - `editor/application.c`: Lebenszyklus und Weiterleitung; keine Dateibaum- oder YAML-Fachlogik.
+
+
+## Dokumentdateien
+
+Vektordokumente können jetzt separat als `.pengvec` gespeichert und per Klick im
+Explorer in einen Tab geladen werden. Die Projektdatei bleibt reine Metadatenverwaltung.
+[Dokumentformat und Speichern](VEKTOR_DATEIFORMAT.md).
