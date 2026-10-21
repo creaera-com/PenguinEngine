@@ -43,7 +43,7 @@ root:
         - {type: separator}
         - {type: button, id: undo, icon: tabler:arrow-back-up, action: editor.undo}
         - {type: button, id: redo, icon: tabler:arrow-forward-up, action: editor.redo}
-        - type: separator
+        - {type: spacer}
         - type: button_group
           id: editor_switcher
           width: 100
@@ -53,8 +53,6 @@ root:
             - {type: button, id: scripts, icon: tabler:code, action: editor.scripts}
             - {type: button, id: vector, icon: tabler:vector-bezier-2, action: editor.vector}
         - {type: separator}
-        - {type: button, icon: tabler:refresh, action: shell.reload, width: 32}
-        - {type: spacer}
         - {type: button, icon: tabler:minus, action: window.minimize, width: 32}
         - {type: button, icon: tabler:square, action: window.maximize, width: 32}
         - {type: button, icon: tabler:x, action: window.close, width: 32}
