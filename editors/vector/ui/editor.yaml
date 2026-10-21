@@ -34,7 +34,7 @@ root:
                 - {type: tree, id: vector_document_tree}
     - type: column
       padding: 0
-      gap: 3
+      gap: 5
       children:
         - type: toolbar
           height: 40
