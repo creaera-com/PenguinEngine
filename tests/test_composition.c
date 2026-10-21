@@ -82,8 +82,25 @@ static void test_image_paths_keep_each_source_directory(void) {
     pui_layout_free(base);
 }
 
+static void test_dynamic_tabs_inherit_theme_shape_and_transition(void) {
+    PUILayout *base = parse("schema: pengui/v1\nroot: {type: tabs, id: documents, children: []}");
+    PUILayout *content = parse("schema: pengui/v1\nroot: {type: canvas}");
+    char error[256];
+    PUILayout *joined = pui_layout_add_tab(base, "documents", "document_1", "Document 1", content,
+                                           error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(joined, error);
+    int tab = joined->nodes[joined->root].child;
+    TEST_ASSERT_TRUE(tab >= 0);
+    TEST_ASSERT_EQUAL_FLOAT(-1, joined->nodes[tab].radius);
+    TEST_ASSERT_EQUAL_FLOAT(-1, joined->nodes[tab].transition_ms);
+    pui_layout_free(joined);
+    pui_layout_free(content);
+    pui_layout_free(base);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_dynamic_tabs_inherit_theme_shape_and_transition);
     RUN_TEST(test_composition_copies_inputs_and_regenerates_automatic_ids);
     RUN_TEST(test_duplicate_ids_missing_slot_and_capacity_fail_atomically);
     RUN_TEST(test_image_paths_keep_each_source_directory);

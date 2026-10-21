@@ -41,7 +41,7 @@ root:
                 - {type: tree, id: vector_document_tree, filter_input: vector_object_search}
     - type: column
       padding: 0
-      gap: 5
+      gap: 6
       children:
         - type: toolbar
           height: 40

@@ -88,6 +88,8 @@ static int copy_node(Composition *c, const PUILayout *source, int index, int dep
         int tab = c->out->count++;
         PUINode *added = &c->out->nodes[tab];
         *added = (PUINode){.type = PUI_NODE_TAB,
+                           .radius = -1,
+                           .transition_ms = -1,
                            .enabled = true,
                            .open = true,
                            .child = -1,
