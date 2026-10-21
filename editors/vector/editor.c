@@ -171,6 +171,9 @@ bool vector_editor_action(void *instance, PUIView *view, const char *name, const
     if (vector_object_actions_action(&editor->object_actions, document, view, name)) {
         return true;
     }
+    if (vector_toolbar_action(view, document, name)) {
+        return true;
+    }
     if (!strcmp(name, "vector.element.snap")) {
         if (document) {
             document->element_snap_enabled = !document->element_snap_enabled;

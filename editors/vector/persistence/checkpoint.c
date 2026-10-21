@@ -9,7 +9,7 @@
 
 /* Native integer/float representation is sufficient for a private file in this process.
  * Changing this schema requires a new signature. This is not an SVG or interchange format. */
-static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '3', '0'};
+static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '3', '1'};
 
 #define WRITE(value) (fwrite(&(value), sizeof(value), 1, file) == 1)
 #define READ(value) (fread(&(value), sizeof(value), 1, file) == 1)
@@ -68,7 +68,7 @@ static bool write_document(const VectorDocument *document, FILE *file) {
     unsigned active_rectangle =
         tool->marquee ? tool->previous_rectangle : document->active_rectangle;
     unsigned grid_visible = document->grid.visible, grid_snap = document->grid.snap_enabled;
-    unsigned element_snap = document->element_snap_enabled;
+    unsigned element_snap = document->element_snap_enabled, rulers_hidden = document->rulers_hidden;
     if (!WRITE(document->id) || !WRITE(document->title) || !WRITE(document->filename) ||
         !WRITE(document->history.floor) || !WRITE(document->next_artboard_id) ||
         !WRITE(active_board) || !WRITE(document->artboard_count) ||
@@ -82,9 +82,10 @@ static bool write_document(const VectorDocument *document, FILE *file) {
         !WRITE(document->viewport.zoom) || !WRITE(grid_visible) || !WRITE(grid_snap) ||
         !WRITE(document->grid.snap_tolerance) || !WRITE(document->grid.type) ||
         !WRITE(document->grid.width) || !WRITE(document->grid.height) ||
-        !WRITE(document->grid.color) || !WRITE(element_snap) || !WRITE(document->preview.board) ||
-        !WRITE(document->preview.region) || !WRITE(document->history.count) ||
-        !WRITE(document->history.cursor) || !WRITE(selection.count) ||
+        !WRITE(document->grid.color) || !WRITE(element_snap) || !WRITE(rulers_hidden) ||
+        !WRITE(document->preview.board) || !WRITE(document->preview.region) ||
+        !WRITE(document->history.count) || !WRITE(document->history.cursor) ||
+        !WRITE(selection.count) ||
         fwrite(selection.ids, sizeof *selection.ids, selection.count, file) !=
             (size_t)selection.count) {
         return false;
@@ -213,7 +214,7 @@ static bool valid_history(const VectorDocument *document) {
 
 static bool read_document(VectorDocument *document, unsigned expected_id, FILE *file) {
     int history_count;
-    unsigned grid_visible, grid_snap, element_snap;
+    unsigned grid_visible, grid_snap, element_snap, rulers_hidden;
     if (!READ(document->id) || document->id != expected_id || !READ(document->title) ||
         !READ(document->filename) || !memchr(document->filename, 0, sizeof document->filename) ||
         !READ(document->history.floor) || document->history.floor < 0 ||
@@ -237,8 +238,8 @@ static bool read_document(VectorDocument *document, unsigned expected_id, FILE *
         document->grid.snap_tolerance < 0 || document->grid.snap_tolerance > 100 ||
         !READ(document->grid.type) || !READ(document->grid.width) || !READ(document->grid.height) ||
         !READ(document->grid.color) || !READ(element_snap) || element_snap > 1 ||
-        !READ(document->preview.board) || !READ(document->preview.region) ||
-        document->preview.board >= document->next_artboard_id ||
+        !READ(rulers_hidden) || rulers_hidden > 1 || !READ(document->preview.board) ||
+        !READ(document->preview.region) || document->preview.board >= document->next_artboard_id ||
         !vector_preview_valid(document->preview.board, document->preview.region) ||
         (document->grid.type != VECTOR_GRID_STANDARD &&
          document->grid.type != VECTOR_GRID_HEXAGONAL &&
@@ -272,6 +273,7 @@ static bool read_document(VectorDocument *document, unsigned expected_id, FILE *
     if (!primary) {
         return false;
     }
+    document->rulers_hidden = rulers_hidden != 0;
     document->element_snap_enabled = element_snap != 0;
     document->grid.visible = grid_visible != 0;
     document->grid.snap_enabled = grid_snap != 0;

@@ -948,8 +948,31 @@ static void test_rounded_rectangle_radius_history_geometry_inspector_and_path(vo
     TEST_ASSERT_EQUAL_FLOAT(20, vector_rectangle_find(d, id)->corner_radius);
 }
 
+static void test_ruler_toggle_preserves_history_and_survives_editor_switch(void) {
+    VectorDocument *d = parent();
+    TEST_ASSERT_FALSE(d->rulers_hidden);
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "vector_rulers_toggle"));
+    int history = d->history.count;
+    action("vector.rulers.toggle", "vector_rulers_toggle");
+    TEST_ASSERT_TRUE(d->rulers_hidden);
+    TEST_ASSERT_FALSE(pui_view_checked(shell.view, "vector_rulers_toggle"));
+    TEST_ASSERT_EQUAL_INT(history, d->history.count);
+    TEST_ASSERT_TRUE(editor_host_request(&host, "scripts", false));
+    commit();
+    TEST_ASSERT_TRUE(editor_host_request(&host, "vector", false));
+    commit();
+    d = document();
+    TEST_ASSERT_TRUE(d->rulers_hidden);
+    TEST_ASSERT_FALSE(pui_view_checked(shell.view, "vector_rulers_toggle"));
+    action("vector.rulers.toggle", "vector_rulers_toggle");
+    TEST_ASSERT_FALSE(d->rulers_hidden);
+    TEST_ASSERT_TRUE(pui_view_checked(shell.view, "vector_rulers_toggle"));
+    TEST_ASSERT_EQUAL_INT(history, d->history.count);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_ruler_toggle_preserves_history_and_survives_editor_switch);
     RUN_TEST(test_rounded_rectangle_radius_history_geometry_inspector_and_path);
     RUN_TEST(test_stroke_inspector_history_validation_and_checkpoint);
     RUN_TEST(test_stroke_render_alignment_rotation_alpha_and_clipping);

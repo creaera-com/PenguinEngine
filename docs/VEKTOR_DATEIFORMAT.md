@@ -150,4 +150,9 @@ Die gemeinsame abgeleitete Kontur wird für Füllung, Rahmen (innen/mittig/auße
 Verlauf, Schatten, Schnittmasken, Trefferprüfung und Rasterexport verwendet.
 Beim Umwandeln in einen Pfad bleibt die Rundung als polygonale Kontur erhalten;
 der parametrische Radius entfällt dann. Der temporäre Checkpoint verwendet wegen
-des zusätzlichen Modellwertes die Signatur `PVCKPT30`.
+des zusätzlichen Modellwertes die Signatur `PVCKPT31`.
+
+Die Toolbar schaltet über `vector.rulers.toggle` die Artboard-Lineale samt
+Mauspositionsmarkierung dokumentweise um. Der aktive Lineal-Button bedeutet sichtbar.
+Dieser Ansichtsstatus bleibt beim Editorwechsel im temporären Checkpoint erhalten,
+verändert aber weder Undo/Redo noch die `.pengvec`-Datei oder den Export.

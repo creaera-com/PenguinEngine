@@ -68,9 +68,11 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         PUIRect label = vector_artboard_label_rect(document, board);
         pui_text_scaled(renderer, label.x, label.y, board->name,
                         board->id == document->active_artboard ? PUI_HIGHLIGHT : 0xEEEEEEFF, .875f);
-        vector_ruler_draw(renderer, rect, viewport->zoom);
-        if (pointer_on_canvas) {
-            vector_ruler_draw_pointer(renderer, rect, pointer_x, pointer_y);
+        if (!document->rulers_hidden) {
+            vector_ruler_draw(renderer, rect, viewport->zoom);
+            if (pointer_on_canvas) {
+                vector_ruler_draw_pointer(renderer, rect, pointer_x, pointer_y);
+            }
         }
         SDL_SetRenderDrawColor(renderer, 242, 242, 242, 255);
         SDL_RenderFillRect(renderer, &rect);
