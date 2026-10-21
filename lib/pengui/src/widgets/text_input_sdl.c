@@ -4,12 +4,13 @@
 #include <math.h>
 #include <string.h>
 
-void pui_draw_text_input(SDL_Renderer *r, SDL_FRect rect, const char *text, PUITextEdit *edit,
-                         bool focused, bool enabled, bool invalid, bool cursor_visible) {
-    pui_panel(r, rect, PUI_CANVAS);
-    Uint32 border = invalid ? 0xc97565ffu : focused ? PUI_ACCENT : PUI_BORDER;
-    pui_render_color(r, border);
-    SDL_RenderRect(r, &rect);
+static void draw_text_input(SDL_Renderer *r, SDL_FRect rect, const char *text, PUITextEdit *edit,
+                            bool focused, bool enabled, bool cursor_visible, float radius,
+                            Uint32 border) {
+    radius = fmaxf(0, fminf(radius, fminf(rect.w, rect.h) * .5f));
+    pui_rounded_panel(r, rect, border, radius, false);
+    SDL_FRect fill = {rect.x + 1, rect.y + 1, fmaxf(0, rect.w - 2), fmaxf(0, rect.h - 2)};
+    pui_rounded_panel(r, fill, PUI_CANVAS, fmaxf(0, radius - 1), false);
     SDL_Rect previous;
     bool clipped = SDL_RenderClipEnabled(r);
     SDL_GetRenderClipRect(r, &previous);
@@ -42,6 +43,34 @@ void pui_draw_text_input(SDL_Renderer *r, SDL_FRect rect, const char *text, PUIT
         SDL_RenderLine(r, x + cursor, rect.y + 4, x + cursor, rect.y + rect.h - 4);
     }
     SDL_SetRenderClipRect(r, clipped ? &previous : NULL);
+}
+
+/* Stateless drawing uses the final focus shape; views retain animation state per field. */
+void pui_draw_text_input(SDL_Renderer *r, SDL_FRect rect, const char *text, PUITextEdit *edit,
+                         bool focused, bool enabled, bool invalid, bool cursor_visible) {
+    draw_text_input(r, rect, text, edit, focused, enabled, cursor_visible,
+                    focused ? 0 : pui_theme.button_radius,
+                    invalid   ? 0xc97565ffu
+                    : focused ? PUI_ACCENT
+                              : PUI_BORDER);
+}
+
+static float input_radius(Widget *s, float target, double now, float duration) {
+    if (!s->input_radius_initialized || duration <= 0) {
+        s->input_radius_initialized = true;
+        s->input_radius = s->input_radius_from = s->input_radius_target = target;
+        s->input_radius_started = now;
+        return target;
+    }
+    float t = fmaxf(0, fminf(1, (float)((now - s->input_radius_started) / duration)));
+    t = t * t * (3 - 2 * t);
+    s->input_radius = s->input_radius_from + (s->input_radius_target - s->input_radius_from) * t;
+    if (target != s->input_radius_target) {
+        s->input_radius_from = s->input_radius;
+        s->input_radius_target = target;
+        s->input_radius_started = now;
+    }
+    return s->input_radius;
 }
 
 /* Column positions are converted by the core into valid UTF-8 byte boundaries. */
@@ -84,8 +113,14 @@ void pui_widget_text_input_draw(PUIView *v, PUIContext *pui, int i, PUIRect area
     if (selecting || ((!pui->active || pui->released) && pui_hovered(pui, area))) {
         pui_view_request_cursor(v, SDL_SYSTEM_CURSOR_TEXT, selecting ? 2 : 1);
     }
-    pui_draw_text_input(v->renderer, pui_frect(area), s->text, &s->edit, v->focused == i,
-                        !pui->blocked, false, SDL_GetTicks() % 1000 < 500);
+    bool focused = v->focused == i;
+    float radius = n->radius >= 0 ? n->radius : pui_theme.button_radius;
+    float duration = n->transition_ms >= 0 ? n->transition_ms : pui_theme.button_transition_ms;
+    radius = input_radius(s, focused ? 0 : radius, v->frame_ms, duration);
+    Uint32 border = pui_color_transition(&s->button_focus, focused ? PUI_ACCENT : PUI_BORDER,
+                                         v->frame_ms, duration);
+    draw_text_input(v->renderer, pui_frect(area), s->text, &s->edit, focused, !pui->blocked,
+                    SDL_GetTicks() % 1000 < 500, radius, border);
     if (v->submit == i) {
         if (action && *n->action) {
             action(context, n->action, n->name);

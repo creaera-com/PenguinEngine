@@ -887,8 +887,46 @@ static void test_toolbars_round_all_corners_and_tabs_only_upper_corners(void) {
     pui_layout_free(l);
 }
 
+static void test_input_corners_animate_on_mouse_focus_and_blur(void) {
+    const char *yaml = "schema: pengui/v1\nroot: {type: input, id: rounded_input, "
+                       "text: Example, radius: 12, transition_ms: 30}";
+    char error[256];
+    PUILayout *l = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(l, error);
+    PUIView *v = pui_view_new(l, renderer);
+    TEST_ASSERT_NOT_NULL(v);
+    PUIContext input;
+    pui_init(&input);
+    pui_panel(renderer, (SDL_FRect){0, 0, 160, 40}, 0xffffffff);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 160, 40}, NULL, NULL);
+    assert_pixel(0, 0, 0xffffffff);
+    SDL_Event event = {0};
+    event.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
+    event.button.button = SDL_BUTTON_LEFT;
+    event.button.x = 30;
+    event.button.y = 20;
+    pui_view_event(v, &input, window, &event);
+    TEST_ASSERT_EQUAL_UINT32(pui_id("rounded_input"), input.focus);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 160, 40}, NULL, NULL);
+    assert_pixel(0, 0, 0xffffffff);
+    SDL_Delay(40);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 160, 40}, NULL, NULL);
+    assert_pixel(0, 0, PUI_ACCENT);
+    event.type = SDL_EVENT_WINDOW_FOCUS_LOST;
+    pui_view_event(v, &input, window, &event);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 160, 40}, NULL, NULL);
+    assert_pixel(0, 0, PUI_ACCENT);
+    SDL_Delay(40);
+    pui_panel(renderer, (SDL_FRect){0, 0, 160, 40}, 0xffffffff);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 160, 40}, NULL, NULL);
+    assert_pixel(0, 0, 0xffffffff);
+    pui_view_free(v);
+    pui_layout_free(l);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_input_corners_animate_on_mouse_focus_and_blur);
     RUN_TEST(test_toolbars_round_all_corners_and_tabs_only_upper_corners);
     RUN_TEST(test_rounded_button_inherits_theme_and_zero_override_is_square);
     RUN_TEST(test_scroll_panel_reveals_clipped_actions_and_respects_wheel_bounds);

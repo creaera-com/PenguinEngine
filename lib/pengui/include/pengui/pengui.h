@@ -642,7 +642,7 @@ void pui_draw_tree_guides(SDL_Renderer *renderer, const int *depths, int count, 
  * @param rect Feldbereich in Fensterpixeln; der bisherige Render-Clip bleibt erhalten.
  * @param text Nullterminierter UTF-8-Text.
  * @param edit Feldzustand; scroll wird für den sichtbaren Cursor angepasst.
- * @param focused Ob Auswahl und orange Fokusumrandung sichtbar sind.
+ * @param focused Ob Auswahl und Fokusumrandung in der Highlight-Farbe sichtbar sind.
  * @param enabled Ob das Feld bedienbar ist.
  * @param invalid Ob eine abgewiesene Eingabe rot markiert wird.
  * @param cursor_visible Blinkphase des Cursors; wird vom Aufrufer gesteuert.

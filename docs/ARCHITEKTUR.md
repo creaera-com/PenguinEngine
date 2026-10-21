@@ -954,3 +954,21 @@ mit festen äußeren Spaltenbreiten von 250 px. Alle aktuellen Widgets und Theme
 werden übernommen; nur die fünf Größenpräferenzen des äußeren Vektor-Splits sind
 für die 1280×800-Klicktests stabilisiert. `tests/PrepareEditorResources.cmake` erzeugt
 diese Kopie. Die normale App und ihre YAML-Dateien behalten die Benutzerwerte.
+
+### Textfelder: Rundung und Fokusübergang
+
+Textfelder übernehmen `theme.button_radius` und `theme.button_transition_ms`.
+Ein `radius` bzw. `transition_ms` am `input` überschreibt diesen Standard:
+
+```yaml
+- {type: input, id: name, radius: 6, transition_ms: 150}
+```
+
+Ohne Fokus ist das Feld abgerundet. Bei Fokus durch Maus oder Tab-Taste
+animiert der Radius auf null und der Rahmen zur Highlight-Farbe. Beim
+Verlassen läuft der Übergang zurück; ein erneuter Fokuswechsel setzt am
+sichtbaren Zwischenzustand an. `transition_ms: 0` schaltet sofort um,
+`radius: 0` hält das Feld immer eckig. Die View hält den Animationszustand
+pro Feld; Text, Auswahl und Fokusverarbeitung bleiben davon unabhängig.
+Der direkte Aufruf von `pui_draw_text_input` ist zustandslos und zeichnet
+deshalb die fertige Form ohne Animation.
