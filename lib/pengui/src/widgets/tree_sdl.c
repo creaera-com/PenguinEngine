@@ -243,6 +243,12 @@ void pui_widget_tree_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
             tree_cells(v, pui, &data->items[index], r, trailing, enabled, action, context, true,
                        selected);
         }
+        if (leading) {
+            pui_panel(v->renderer, (SDL_FRect){r.x + leading * 26 - 1, r.y, 1, r.h}, PUI_HOVER);
+        }
+        if (trailing) {
+            pui_panel(v->renderer, (SDL_FRect){r.x + r.w - trailing * 26, r.y, 1, r.h}, PUI_HOVER);
+        }
     }
     pui_draw_scrollbar(v->renderer, pui, n->id ^ 0x65000000u, track, &s->scroll, PUI_AXIS_Y);
 }

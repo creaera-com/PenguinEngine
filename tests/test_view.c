@@ -784,6 +784,8 @@ static void test_tree_table_cells_do_not_select_or_expand_rows(void) {
     pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, table_action, row);
     TEST_ASSERT_EQUAL_STRING("a", row);
     TEST_ASSERT_EQUAL_STRING("tree.visible", table_action_name);
+    assert_pixel(25, 14, PUI_HOVER);
+    assert_pixel(362, 14, PUI_HOVER);
     assert_pixel(1, 42, 0x535353ff); // Cell action neither changes selection nor opens the root.
     pui_pointer(&pui, 374, 14, true);
     pui_pointer(&pui, 374, 14, false);
