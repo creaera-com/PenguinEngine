@@ -109,7 +109,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         vector_rectangles_draw(document, board, renderer, rect, text, images);
         vector_grid_draw(&document->grid, renderer, rect, viewport->zoom);
         /* Screen-space frame stays one pixel wide and outside the artwork. */
-        SDL_SetRenderDrawColor(renderer, 48, 48, 48, 255);
+        SDL_SetRenderDrawColor(renderer, 144, 144, 144, 255);
         SDL_FRect frame = {rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2};
         SDL_RenderRect(renderer, &frame);
         if (board->id == document->active_artboard && !document->active_rectangle) {
