@@ -214,7 +214,7 @@ void pui_widget_tree_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
                             : (enabled && pui_hovered(pui, r)) ? PUI_HOVER
                                                                : PUI_PANEL;
         pui_panel(v->renderer, pui_frect(r), background);
-        pui_panel(v->renderer, (SDL_FRect){r.x, r.y + r.h - 1, r.w, 1}, PUI_SURFACE);
+        pui_panel(v->renderer, (SDL_FRect){r.x, r.y + r.h - 1, r.w, 1}, PUI_HOVER);
         SDL_Rect outer, content, clip = {0};
         bool clipped = SDL_RenderClipEnabled(v->renderer);
         SDL_GetRenderClipRect(v->renderer, &outer);

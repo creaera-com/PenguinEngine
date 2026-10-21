@@ -251,8 +251,8 @@ static void test_tree_selection_persists_and_moves_without_actions(void) {
     pui_view_draw(tree, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
     assert_pixel(1, 42, 0x535353ff);
     assert_pixel(1, 70, PUI_PANEL);
-    assert_pixel(1, 27, PUI_SURFACE);
-    assert_pixel(1, 55, PUI_SURFACE);
+    assert_pixel(1, 27, PUI_HOVER);
+    assert_pixel(1, 55, PUI_HOVER);
     pui_view_free(tree);
     pui_layout_free(description);
 }
