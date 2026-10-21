@@ -32,6 +32,7 @@ PUILayout *vector_canvas_layout(char *error, size_t capacity) {
 
 void vector_canvas_center(VectorDocument *document) {
     VectorViewport *viewport = &document->viewport;
+    viewport->zooming = false;
     if (viewport->bounds.w <= 0 || viewport->bounds.h <= 0) {
         return;
     }
@@ -76,6 +77,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
                         const VectorWorkspaceStyle *style) {
     VectorViewport *viewport = &document->viewport;
     viewport->bounds = area;
+    vector_viewport_update(viewport, (double)SDL_GetTicksNS() / 1000000.);
     float pointer_x, pointer_y;
     SDL_GetMouseState(&pointer_x, &pointer_y);
     bool pointer_on_canvas = SDL_GetMouseFocus() == SDL_GetRenderWindow(renderer) &&
@@ -134,11 +136,16 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
 }
 
 bool vector_canvas_event(VectorDocument *document, PUIView *view, const SDL_Event *event) {
+    VectorViewport *viewport = &document->viewport;
+    vector_viewport_update(viewport, (double)SDL_GetTicksNS() / 1000000.);
+    /* Freeze the displayed transform before starting any editing gesture. */
+    if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN || event->type == SDL_EVENT_WINDOW_FOCUS_LOST) {
+        viewport->zooming = false;
+    }
     if (vector_rectangle_tool_event(document, view, event) ||
         vector_artboard_tool_event(document, view, event)) {
         return true;
     }
-    VectorViewport *viewport = &document->viewport;
     char id[96];
     snprintf(id, sizeof id, "vector_document_%u.canvas", document->id);
     if (vector_selection_event(document, view, event)) {
@@ -166,17 +173,13 @@ bool vector_canvas_event(VectorDocument *document, PUIView *view, const SDL_Even
         return true;
     } else if (event->type == SDL_EVENT_MOUSE_WHEEL &&
                pui_view_hit(view, id, event->wheel.mouse_x, event->wheel.mouse_y)) {
-        float factor = event->wheel.y > 0 ? 1.1f : event->wheel.y < 0 ? 1 / 1.1f : 1;
+        float steps = event->wheel.y;
         if (event->wheel.direction == SDL_MOUSEWHEEL_FLIPPED) {
-            factor = 1 / factor;
+            steps = -steps;
         }
-        float zoom = viewport->zoom * factor;
-        zoom = zoom < .1f ? .1f : zoom > 4 ? 4 : zoom;
-        float x = event->wheel.mouse_x - viewport->bounds.x;
-        float y = event->wheel.mouse_y - viewport->bounds.y;
-        viewport->x = x - (x - viewport->x) * zoom / viewport->zoom;
-        viewport->y = y - (y - viewport->y) * zoom / viewport->zoom;
-        viewport->zoom = zoom;
+        vector_viewport_zoom(viewport, steps, event->wheel.mouse_x - viewport->bounds.x,
+                             event->wheel.mouse_y - viewport->bounds.y,
+                             (double)SDL_GetTicksNS() / 1000000.);
         return true;
     }
     return false;

@@ -91,6 +91,7 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/history/history.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/style.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/canvas.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/workspace/viewport.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/documents.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/inspector.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree/groups.c

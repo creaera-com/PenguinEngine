@@ -1133,3 +1133,17 @@ Die Dauer folgt `theme.button_transition_ms` aus der Shell-YAML (aktuell 120 ms)
 Beim Schließen wird die Eingabe sofort freigegeben, während das Menü visuell
 weiter ausblendet. Aktionen werden ohne Wartezeit ausgelöst. Untermenüs behalten
 die sichtbaren inneren Ringe, statt das gesamte Menü neu einzublenden.
+
+
+### Sanfter Zoom der Vektor-Zeichenfläche
+
+`workspace/viewport.c` berechnet den Zoom unabhängig von SDL mit expliziter Zeit.
+Mausrad- und Touchpad-Schritte setzen ein Ziel zwischen 10 und 400 Prozent;
+Bruchteile eines Schritts bleiben erhalten. Die Darstellung nähert sich diesem
+Ziel über 140 ms mit sanftem Start und Ende. Weitere Schritte bauen auf dem
+bestehenden Ziel auf. Der Dokumentpunkt unter dem Mauszeiger bleibt währenddessen
+an seiner Bildschirmposition. Zeichnen, Auswählen, Verschieben und Zentrieren
+beenden eine laufende Animation am aktuell sichtbaren Stand.
+
+Die Animationswerte sind vorübergehender Viewport-Zustand. Dokumentdateien und
+Checkpoints speichern weiterhin nur die sichtbare Position und Zoomstufe.

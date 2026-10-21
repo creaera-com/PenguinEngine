@@ -412,6 +412,9 @@ static void test_canvas_is_clipped_and_zoom_keeps_point_under_pointer(void) {
     event.wheel.mouse_y = 300;
     event.wheel.y = 1;
     TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &event));
+    TEST_ASSERT_EQUAL_FLOAT(1.1f, viewport->zoom_target);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 1, viewport->zoom);
+    vector_viewport_update(viewport, viewport->zoom_started_ms + 140);
     TEST_ASSERT_EQUAL_FLOAT(1.1f, viewport->zoom);
     TEST_ASSERT_FLOAT_WITHIN(.001f, point,
                              (400 - viewport->bounds.x - viewport->x) / viewport->zoom);
@@ -636,8 +639,37 @@ static void test_artboard_tool_button_stays_active_until_cancel_or_creation(void
     TEST_ASSERT_FALSE(pui_view_checked(shell.view, "vector_add_artboard"));
 }
 
+static void test_smooth_zoom_anchor_accumulation_fractional_steps_and_limits(void) {
+    VectorViewport v = {.x = 30, .y = -20, .zoom = 1};
+    float world_x = (200 - v.x) / v.zoom, world_y = (150 - v.y) / v.zoom;
+    vector_viewport_zoom(&v, .5f, 200, 150, 1000);
+    TEST_ASSERT_EQUAL_FLOAT(1, v.zoom);
+    vector_viewport_update(&v, 1070);
+    TEST_ASSERT_TRUE(v.zoom > 1 && v.zoom < v.zoom_target);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, world_x, (200 - v.x) / v.zoom);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, world_y, (150 - v.y) / v.zoom);
+    float before = v.zoom;
+    vector_viewport_zoom(&v, .5f, 200, 150, 1070);
+    TEST_ASSERT_EQUAL_FLOAT(before, v.zoom);
+    TEST_ASSERT_FLOAT_WITHIN(.0001f, 1.1f, v.zoom_target);
+    vector_viewport_update(&v, 1210);
+    TEST_ASSERT_FALSE(v.zooming);
+    TEST_ASSERT_FLOAT_WITHIN(.0001f, 1.1f, v.zoom);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, world_x, (200 - v.x) / v.zoom);
+    vector_viewport_zoom(&v, -1, 240, 180, 1300);
+    vector_viewport_update(&v, 1440);
+    TEST_ASSERT_FLOAT_WITHIN(.0001f, 1, v.zoom);
+    vector_viewport_zoom(&v, 1000, 200, 150, 1500);
+    vector_viewport_update(&v, 1640);
+    TEST_ASSERT_EQUAL_FLOAT(4, v.zoom);
+    vector_viewport_zoom(&v, -1000, 200, 150, 1700);
+    vector_viewport_update(&v, 1840);
+    TEST_ASSERT_FLOAT_WITHIN(.0001f, .1f, v.zoom);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_smooth_zoom_anchor_accumulation_fractional_steps_and_limits);
     RUN_TEST(test_ruler_pointer_marks_follow_zoomed_board_and_preserve_clip);
     RUN_TEST(test_artboard_tool_button_stays_active_until_cancel_or_creation);
     RUN_TEST(test_ruler_ticks_follow_document_scale_and_preserve_canvas_clip);
