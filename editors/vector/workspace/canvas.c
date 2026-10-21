@@ -45,6 +45,25 @@ void vector_canvas_center(VectorDocument *document) {
     }
 }
 
+/* A small screen-space shadow separates the board from the workspace without
+ * allocating effect textures or changing the artwork/export model. */
+static void draw_artboard_shadow(SDL_Renderer *renderer, SDL_FRect board) {
+    if (board.w <= 0 || board.h <= 0) {
+        return;
+    }
+    SDL_BlendMode previous;
+    SDL_GetRenderDrawBlendMode(renderer, &previous);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 6);
+    for (int layer = 7; layer >= 0; layer--) {
+        float spread = layer * .7f;
+        SDL_FRect shadow = {board.x + 5 - spread, board.y + 5 - spread, board.w + spread * 2,
+                            board.h + spread * 2};
+        SDL_RenderFillRect(renderer, &shadow);
+    }
+    SDL_SetRenderDrawBlendMode(renderer, previous);
+}
+
 void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRect area,
                         VectorTextRenderer *text, VectorImageRenderer *images) {
     VectorViewport *viewport = &document->viewport;
@@ -65,6 +84,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         SDL_FRect rect = {area.x + viewport->x + display.x * viewport->zoom,
                           area.y + viewport->y + display.y * viewport->zoom,
                           display.w * viewport->zoom, display.h * viewport->zoom};
+        draw_artboard_shadow(renderer, rect);
         PUIRect label = vector_artboard_label_rect(document, board);
         pui_text_scaled(renderer, label.x, label.y, board->name,
                         board->id == document->active_artboard ? PUI_HIGHLIGHT : 0xEEEEEEFF, .875f);
