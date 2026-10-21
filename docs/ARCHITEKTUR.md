@@ -994,3 +994,40 @@ entscheidet über Speichern/Rückfragen und ruft **zwischen Frames**
 Andere Tabs behalten ihre Werte und Reihenfolge. Wird der aktive Tab entfernt,
 wird sein rechter Nachbar aktiv, sonst der linke. Ohne Tabs bleibt die Liste leer.
 `pui_layout_remove_tab` bietet denselben Aufbau als unverändernde Layout-Komposition.
+
+
+### Eingabetypen für Textfelder
+
+`input_type` ist optional und gilt nur für `type: input`:
+
+```yaml
+- {type: input, id: name, input_type: string, text: Rechteck}
+- {type: input, id: count, input_type: integer, text: "4"}
+- {type: input, id: width, input_type: decimal, text: "12,5", action: object.width}
+```
+
+- `string` ist der Standard: einzeiliger UTF-8-Text wie bisher.
+- `integer` erlaubt Ziffern und ein optionales führendes Plus/Minus.
+- `decimal` erlaubt zusätzlich genau einen Dezimalpunkt oder ein Komma sowie
+  optional Exponentialschreibweise wie `1e-6`. Kommas werden intern zu Punkten.
+  Ein Komma ist immer ein Dezimaltrennzeichen, kein Tausendertrennzeichen.
+
+Die Prüfung gilt für native Texteingabe, Zwischenablage und `pui_view_set_text`.
+Eine unzulässige Einfügung wird vollständig abgewiesen; Auswahl und Cursor bleiben
+unverändert. Auch Löschen/Ausschneiden kann keine unzulässige Syntax erzeugen.
+Während des Bearbeitens sind Zwischenstände wie leer, `-`, `.` oder `1e-` erlaubt.
+Beim Bestätigen mit Enter oder Tab wird die Aktion nur für einen vollständigen Wert
+ausgelöst; unvollständige Zahlen bleiben zur Korrektur stehen und erhalten einen
+roten Rahmen. Eine weitere Bearbeitung bzw. erfolgreiches `pui_view_set_text` entfernt
+die Fehlermarkierung. String-Felder dürfen auch leer bestätigt werden.
+
+Die Anwendung erhält weiterhin Text über `pui_view_text`; Typprüfung ersetzt weder
+Wertebereichsprüfung noch fachliche Regeln (beispielsweise Breite größer null).
+Auch sehr große Zahlen können syntaktisch gültig sein. Bereits vorhandene Felder
+bleiben ohne `input_type` String-Felder. Im Playground zeigen Pinselgröße (`integer`)
+und Positionsfelder (`decimal`) die Verwendung.
+
+SDL-freie Funktionen: `pui_text_input_valid(type, text, complete)` prüft Syntax;
+`pui_text_edit_insert_typed` ersetzt eine Auswahl atomar und normalisiert Kommas.
+Beim Neuladen eines Feldes mit geändertem Eingabetyp wird dessen neuer YAML-Anfangswert
+verwendet, statt einen möglicherweise unpassenden alten Feldinhalt zu übernehmen.

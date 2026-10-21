@@ -125,7 +125,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
               "initial_second|initial_last|minimum_first|minimum_second|minimum_last|flex|image_"
               "padding|enabled|open|checked|draggable|scroll|axis|children|value|popup_width|popup_"
               "height|"
-              "placement|preview_action|close_action|mode|radius|transition_ms|")) {
+              "placement|preview_action|close_action|mode|input_type|radius|transition_ms|")) {
         return -1;
     }
     int index = r->layout->count++;
@@ -154,6 +154,29 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
     }
     string(r, yaml, "text", out->text, sizeof out->text);
     string(r, yaml, "action", out->action, sizeof out->action);
+    yaml_node_t *input_type = get(r, yaml, "input_type");
+    if (input_type) {
+        const char *value = scalar(r, input_type);
+        if (out->type != PUI_NODE_INPUT ||
+            (strcmp(value, "string") && strcmp(value, "integer") && strcmp(value, "decimal"))) {
+            fail(r, input_type, "input_type must be string, integer or decimal on an input");
+        }
+        out->input_type = !strcmp(value, "integer")   ? PUI_INPUT_INTEGER
+                          : !strcmp(value, "decimal") ? PUI_INPUT_DECIMAL
+                                                      : PUI_INPUT_STRING;
+    }
+    if (out->type == PUI_NODE_INPUT) {
+        if (!pui_text_input_valid(out->input_type, out->text, false)) {
+            fail(r, yaml, "initial input text does not match input_type");
+        }
+        if (out->input_type == PUI_INPUT_DECIMAL) {
+            for (char *p = out->text; *p; p++) {
+                if (*p == ',') {
+                    *p = '.';
+                }
+            }
+        }
+    }
     string(r, yaml, "icon", out->icon, sizeof out->icon);
     string(r, yaml, "image", out->image, sizeof out->image);
     string(r, yaml, "value", out->value, sizeof out->value);

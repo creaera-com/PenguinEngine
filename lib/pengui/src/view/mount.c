@@ -36,6 +36,9 @@ static void retain_state(PUIView *old, PUIView *next, const char *slot) {
                 (replaced >= 0 && contains(old->layout, replaced, j))) {
                 continue;
             }
+            if (node->type == PUI_NODE_INPUT && node->input_type != previous->input_type) {
+                continue;
+            }
             Widget initial = next->state[i];
             if (initial.image) {
                 SDL_DestroyTexture(initial.image);

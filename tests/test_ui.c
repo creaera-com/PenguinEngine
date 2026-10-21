@@ -606,8 +606,51 @@ static void test_color_transition_retargets_without_jumps_and_zero_snaps(void) {
     TEST_ASSERT_EQUAL_HEX32(0x12345678, pui_color_transition(&b, 0x12345678, 1000, 100));
 }
 
+static void test_typed_input_syntax_and_atomic_replacement(void) {
+    TEST_ASSERT_TRUE(pui_text_input_valid(PUI_INPUT_STRING, "Hallo äöü", true));
+    TEST_ASSERT_FALSE(pui_text_input_valid(PUI_INPUT_STRING, "hello\nworld", true));
+    TEST_ASSERT_TRUE(pui_text_input_valid(PUI_INPUT_INTEGER, "-123", true));
+    TEST_ASSERT_FALSE(pui_text_input_valid(PUI_INPUT_INTEGER, "12.5", false));
+    TEST_ASSERT_FALSE(pui_text_input_valid(PUI_INPUT_INTEGER, "12,5", false));
+    TEST_ASSERT_TRUE(pui_text_input_valid(PUI_INPUT_INTEGER, "-", false));
+    TEST_ASSERT_FALSE(pui_text_input_valid(PUI_INPUT_INTEGER, "-", true));
+    const char *complete[] = {"0", "+12.5", "-12,5", ".5", "5.", "1e-6", "12,5E+2"};
+    for (unsigned i = 0; i < sizeof complete / sizeof complete[0]; i++) {
+        TEST_ASSERT_TRUE_MESSAGE(pui_text_input_valid(PUI_INPUT_DECIMAL, complete[i], true),
+                                 complete[i]);
+    }
+    const char *partial[] = {"", "-", "+", ".", "-.", "1e", "1e-"};
+    for (unsigned i = 0; i < sizeof partial / sizeof partial[0]; i++) {
+        TEST_ASSERT_TRUE(pui_text_input_valid(PUI_INPUT_DECIMAL, partial[i], false));
+        TEST_ASSERT_FALSE(pui_text_input_valid(PUI_INPUT_DECIMAL, partial[i], true));
+    }
+    const char *invalid[] = {"NaN", "inf", "1,2.3", "--1", "1-", "1 2", "2px", "1e2e3"};
+    for (unsigned i = 0; i < sizeof invalid / sizeof invalid[0]; i++) {
+        TEST_ASSERT_FALSE_MESSAGE(pui_text_input_valid(PUI_INPUT_DECIMAL, invalid[i], false),
+                                  invalid[i]);
+    }
+    char text[32] = "123";
+    PUITextEdit edit;
+    pui_text_edit_init(&edit, text, true);
+    PUITextEdit before = edit;
+    TEST_ASSERT_FALSE(
+        pui_text_edit_insert_typed(&edit, text, sizeof text, "12oops", PUI_INPUT_INTEGER));
+    TEST_ASSERT_EQUAL_STRING("123", text);
+    TEST_ASSERT_EQUAL_MEMORY(&before, &edit, sizeof edit);
+    TEST_ASSERT_TRUE(
+        pui_text_edit_insert_typed(&edit, text, sizeof text, "-12,5", PUI_INPUT_DECIMAL));
+    TEST_ASSERT_EQUAL_STRING("-12.5", text);
+    TEST_ASSERT_EQUAL_UINT(strlen(text), edit.cursor);
+    before = edit;
+    TEST_ASSERT_FALSE(
+        pui_text_edit_insert_typed(&edit, text, sizeof text, ",6", PUI_INPUT_DECIMAL));
+    TEST_ASSERT_EQUAL_STRING("-12.5", text);
+    TEST_ASSERT_EQUAL_MEMORY(&before, &edit, sizeof edit);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_typed_input_syntax_and_atomic_replacement);
     RUN_TEST(test_color_transition_retargets_without_jumps_and_zero_snaps);
     RUN_TEST(test_radial_sector_geometry_and_dead_zones);
     RUN_TEST(test_hsl_rgba_roundtrip_primaries_transparency_and_hex);

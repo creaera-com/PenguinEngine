@@ -26,7 +26,7 @@ typedef struct {
     PUIColorTransition button_background, button_foreground, button_focus;
     float input_radius, input_radius_from, input_radius_target;
     double input_radius_started;
-    bool input_radius_initialized;
+    bool input_radius_initialized, input_invalid;
     PUITabs tabs;
     PUIScroll scroll;
     SDL_Texture *image;

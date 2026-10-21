@@ -965,8 +965,84 @@ static void test_closable_tabs_dispatch_and_remove_without_losing_other_state(vo
     pui_layout_free(l);
 }
 
+static int typed_commits;
+
+static void typed_commit(void *context, const char *action, const char *widget) {
+    PUIView *v = context;
+    TEST_ASSERT_EQUAL_STRING("changed", action);
+    TEST_ASSERT_NOT_NULL(pui_view_text(v, widget));
+    typed_commits++;
+}
+
+static void test_typed_fields_filter_native_events_clipboard_setters_and_submission(void) {
+    const char *yaml =
+        "schema: pengui/v1\nroot: {type: column, padding: 0, gap: 0, children: ["
+        "{type: input, id: integer, input_type: integer, text: \"123\", action: changed}, "
+        "{type: input, id: decimal, input_type: decimal, text: \"1.5\", action: changed}, "
+        "{type: input, id: string, text: hello, action: changed}]}";
+    char error[256];
+    PUILayout *l = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(l, error);
+    PUIView *v = pui_view_new(l, renderer);
+    TEST_ASSERT_NOT_NULL(v);
+    PUIContext input;
+    pui_init(&input);
+    typed_commits = 0;
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    TEST_ASSERT_FALSE(pui_view_set_text(v, "integer", "oops"));
+    TEST_ASSERT_EQUAL_STRING("123", pui_view_text(v, "integer"));
+    TEST_ASSERT_TRUE(pui_view_set_text(v, "decimal", "2,5"));
+    TEST_ASSERT_EQUAL_STRING("2.5", pui_view_text(v, "decimal"));
+    SDL_Event e = {.type = SDL_EVENT_KEY_DOWN};
+    e.key.key = SDLK_TAB;
+    pui_view_event(v, &input, window, &e); // Select all in first field.
+    SDL_Event text = {.type = SDL_EVENT_TEXT_INPUT};
+    text.text.text = "abc";
+    pui_view_event(v, &input, window, &text);
+    TEST_ASSERT_EQUAL_STRING("123", pui_view_text(v, "integer"));
+    text.text.text = "-";
+    pui_view_event(v, &input, window, &text);
+    TEST_ASSERT_EQUAL_STRING("-", pui_view_text(v, "integer"));
+    e.key.key = SDLK_RETURN;
+    pui_view_event(v, &input, window, &e);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    TEST_ASSERT_EQUAL_INT(0, typed_commits); // Incomplete number is never submitted.
+    text.text.text = "42";
+    pui_view_event(v, &input, window, &text);
+    e.key.key = SDLK_TAB;
+    pui_view_event(v, &input, window, &e);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    TEST_ASSERT_EQUAL_INT(1, typed_commits);
+    TEST_ASSERT_EQUAL_STRING("-42", pui_view_text(v, "integer"));
+    TEST_ASSERT_TRUE(SDL_SetClipboardText("12,5"));
+    e.key.key = SDLK_V;
+    e.key.mod = SDL_KMOD_CTRL;
+    pui_view_event(v, &input, window, &e);
+    TEST_ASSERT_EQUAL_STRING("12.5", pui_view_text(v, "decimal"));
+    e.key.key = SDLK_A;
+    pui_view_event(v, &input, window, &e);
+    TEST_ASSERT_TRUE(SDL_SetClipboardText("12,3.4"));
+    e.key.key = SDLK_V;
+    pui_view_event(v, &input, window, &e);
+    TEST_ASSERT_EQUAL_STRING("12.5", pui_view_text(v, "decimal"));
+    text.text.text = "-3,75";
+    pui_view_event(v, &input, window, &text);
+    TEST_ASSERT_EQUAL_STRING("-3.75", pui_view_text(v, "decimal"));
+    e.key.key = SDLK_TAB;
+    e.key.mod = 0;
+    pui_view_event(v, &input, window, &e);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    TEST_ASSERT_EQUAL_INT(2, typed_commits);
+    text.text.text = "Text ä 123,45";
+    pui_view_event(v, &input, window, &text);
+    TEST_ASSERT_EQUAL_STRING("Text ä 123,45", pui_view_text(v, "string"));
+    pui_view_free(v);
+    pui_layout_free(l);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_typed_fields_filter_native_events_clipboard_setters_and_submission);
     RUN_TEST(test_closable_tabs_dispatch_and_remove_without_losing_other_state);
     RUN_TEST(test_input_corners_animate_on_mouse_focus_and_blur);
     RUN_TEST(test_toolbars_round_all_corners_and_tabs_only_upper_corners);

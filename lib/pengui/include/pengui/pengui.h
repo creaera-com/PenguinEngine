@@ -338,6 +338,18 @@ typedef struct {
     float scroll;  ///< Horizontaler Darstellungsversatz in Pixeln.
 } PUITextEdit;
 
+/** @brief Allowed text input syntax; numeric fields use signed, locale-independent values. */
+typedef enum { PUI_INPUT_STRING, PUI_INPUT_INTEGER, PUI_INPUT_DECIMAL } PUIInputType;
+
+/** @brief Validate single-line UTF-8 or numeric syntax. Incomplete editing prefixes are allowed
+ * when complete is false. Decimal values accept a dot or comma, and optional scientific notation.
+ * Numeric range and domain constraints remain the application's responsibility. */
+bool pui_text_input_valid(PUIInputType type, const char *text, bool complete);
+/** @brief Atomically replace the selection under a field type; decimal commas normalize to dots.
+ * Failure leaves text, cursor, selection and scroll unchanged. */
+bool pui_text_edit_insert_typed(PUITextEdit *edit, char *text, size_t capacity,
+                                const char *inserted, PUIInputType type);
+
 /** @brief Renderer-unabhängige Bearbeitungstasten eines einzeiligen Felds. */
 typedef enum {
     PUI_TEXT_LEFT,
@@ -531,6 +543,7 @@ typedef struct {
     PUIAxis axis;
     char close_action[64]; ///< Tab close request; tabs containers supply the default for children.
     char preview_action[64]; ///< Optional color-picker live preview/cancellation action.
+    PUIInputType input_type; ///< input_type: string (default), integer or decimal.
     int color_mode;          ///< Color picker: 0=HSL, 1=RGBA.
     char value[128]; ///< Stable option value, initial dropdown value, or initial color-picker hex.
     float popup_width, popup_height;

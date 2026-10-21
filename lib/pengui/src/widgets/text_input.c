@@ -1,5 +1,6 @@
 /** @file @brief SDL-free UTF-8 editing, cursor and selection; native UI is in text_input_sdl.c. */
 #include "pengui/pengui.h"
+#include <stdlib.h>
 #include <string.h>
 
 static size_t boundary(const char *text, size_t pos) {
@@ -57,6 +58,71 @@ static bool single_line_utf8(const unsigned char *p) {
         }
     }
     return true;
+}
+
+bool pui_text_input_valid(PUIInputType type, const char *text, bool complete) {
+    if (!text || type < PUI_INPUT_STRING || type > PUI_INPUT_DECIMAL) {
+        return false;
+    }
+    if (type == PUI_INPUT_STRING) {
+        return single_line_utf8((const unsigned char *)text);
+    }
+    const char *p = text;
+    if (*p == '+' || *p == '-') {
+        p++;
+    }
+    bool digits = false;
+    while (*p >= '0' && *p <= '9') {
+        digits = true;
+        p++;
+    }
+    if (type == PUI_INPUT_DECIMAL && (*p == '.' || *p == ',')) {
+        p++;
+        while (*p >= '0' && *p <= '9') {
+            digits = true;
+            p++;
+        }
+    }
+    if (type == PUI_INPUT_DECIMAL && digits && (*p == 'e' || *p == 'E')) {
+        p++;
+        if (*p == '+' || *p == '-') {
+            p++;
+        }
+        digits = false;
+        while (*p >= '0' && *p <= '9') {
+            digits = true;
+            p++;
+        }
+    }
+    return !*p && (!complete || digits);
+}
+
+bool pui_text_edit_insert_typed(PUITextEdit *edit, char *text, size_t capacity,
+                                const char *inserted, PUIInputType type) {
+    if (!edit || !text || !inserted || strlen(text) >= capacity) {
+        return false;
+    }
+    char *candidate = malloc(capacity);
+    if (!candidate) {
+        return false;
+    }
+    memcpy(candidate, text, strlen(text) + 1);
+    PUITextEdit next = *edit;
+    bool valid = pui_text_edit_insert(&next, candidate, capacity, inserted);
+    if (valid && type == PUI_INPUT_DECIMAL) {
+        for (char *p = candidate; *p; p++) {
+            if (*p == ',') {
+                *p = '.';
+            }
+        }
+    }
+    valid = valid && pui_text_input_valid(type, candidate, false);
+    if (valid) {
+        memcpy(text, candidate, strlen(candidate) + 1);
+        *edit = next;
+    }
+    free(candidate);
+    return valid;
 }
 
 void pui_text_edit_init(PUITextEdit *edit, const char *text, bool select_all) {

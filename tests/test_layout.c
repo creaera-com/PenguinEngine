@@ -245,8 +245,23 @@ static void test_highlight_color_is_central_and_legacy_accent_remains_compatible
                            error));
 }
 
+static void test_input_types_validate_yaml_and_normalize_decimal_initial_values(void) {
+    char error[256];
+    PUILayout *l =
+        parse("schema: pengui/v1\nroot: {type: input, input_type: decimal, text: \"12,5\"}", error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(l, error);
+    TEST_ASSERT_EQUAL_INT(PUI_INPUT_DECIMAL, l->nodes[l->root].input_type);
+    TEST_ASSERT_EQUAL_STRING("12.5", l->nodes[l->root].text);
+    pui_layout_free(l);
+    TEST_ASSERT_NULL(
+        parse("schema: pengui/v1\nroot: {type: input, input_type: integer, text: abc}", error));
+    TEST_ASSERT_NULL(parse("schema: pengui/v1\nroot: {type: label, input_type: integer}", error));
+    TEST_ASSERT_NULL(parse("schema: pengui/v1\nroot: {type: input, input_type: unknown}", error));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_input_types_validate_yaml_and_normalize_decimal_initial_values);
     RUN_TEST(test_highlight_color_is_central_and_legacy_accent_remains_compatible);
     RUN_TEST(test_button_theme_defaults_overrides_and_validation);
     RUN_TEST(test_radial_submenus_are_recursive_and_still_validate_their_children);

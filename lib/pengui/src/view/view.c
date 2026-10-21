@@ -103,7 +103,7 @@ bool pui_view_set_text(PUIView *view, const char *id, const char *text) {
             char copy[256] = {0};
             PUITextEdit edit = {0};
             if (n->type == PUI_NODE_INPUT &&
-                !pui_text_edit_insert(&edit, copy, sizeof copy, text)) {
+                !pui_text_edit_insert_typed(&edit, copy, sizeof copy, text, n->input_type)) {
                 return false;
             }
             if (n->type == PUI_NODE_LABEL || n->type == PUI_NODE_TAB) {
@@ -125,6 +125,7 @@ bool pui_view_set_text(PUIView *view, const char *id, const char *text) {
                     }
                 }
             }
+            view->state[i].input_invalid = false;
             memcpy(view->state[i].text, copy, sizeof copy);
             pui_text_edit_init(&view->state[i].edit, view->state[i].text, false);
             return true;

@@ -191,7 +191,7 @@ root:
                       gap: 8
                       children:
                         - {type: label, text: Brush size}
-                        - {type: input, id: brush_size, text: "16"}
+                        - {type: input, id: brush_size, input_type: integer, text: "16"}
                         - {type: checkbox, id: smooth_edges, text: Smooth edges, checked: true}
                         - {type: button, text: Apply, action: demo.brush}
             - type: section
@@ -211,14 +211,14 @@ root:
                   gap: 8
                   children:
                     - {type: label, text: "X", width: 70}
-                    - {type: input, id: property_x, text: "64"}
+                    - {type: input, id: property_x, input_type: decimal, text: "64"}
                 - type: row
                   height: 30
                   padding: 0
                   gap: 8
                   children:
                     - {type: label, text: "Y", width: 70}
-                    - {type: input, id: property_y, text: "128"}
+                    - {type: input, id: property_y, input_type: decimal, text: "128"}
             - {type: spacer}
     - type: panel
       id: footer

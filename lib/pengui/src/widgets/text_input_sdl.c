@@ -117,12 +117,16 @@ void pui_widget_text_input_draw(PUIView *v, PUIContext *pui, int i, PUIRect area
     float radius = n->radius >= 0 ? n->radius : pui_theme.button_radius;
     float duration = n->transition_ms >= 0 ? n->transition_ms : pui_theme.button_transition_ms;
     radius = input_radius(s, focused ? 0 : radius, v->frame_ms, duration);
-    Uint32 border = pui_color_transition(&s->button_focus, focused ? PUI_ACCENT : PUI_BORDER,
+    Uint32 border = pui_color_transition(&s->button_focus,
+                                         s->input_invalid ? 0xc97565ffu
+                                         : focused        ? PUI_ACCENT
+                                                          : PUI_BORDER,
                                          v->frame_ms, duration);
     draw_text_input(v->renderer, pui_frect(area), s->text, &s->edit, focused, !pui->blocked,
                     SDL_GetTicks() % 1000 < 500, radius, border);
     if (v->submit == i) {
-        if (action && *n->action) {
+        s->input_invalid = !pui_text_input_valid(n->input_type, s->text, true);
+        if (!s->input_invalid && action && *n->action) {
             action(context, n->action, n->name);
         }
         v->submit = -1;
@@ -140,6 +144,29 @@ void pui_view_blur(PUIView *view, PUIContext *pui) {
         }
         view->focused = -1;
         pui_focus(pui, 0);
+    }
+}
+
+static void insert_text(PUIView *view, const char *text) {
+    Widget *state = &view->state[view->focused];
+    if (pui_text_edit_insert_typed(&state->edit, state->text, sizeof state->text, text,
+                                   view->layout->nodes[view->focused].input_type)) {
+        state->input_invalid = false;
+    }
+}
+
+static void input_key(PUIView *view, PUITextKey key, bool shift) {
+    Widget *state = &view->state[view->focused];
+    PUITextEdit edit = state->edit;
+    char candidate[sizeof state->text];
+    memcpy(candidate, state->text, sizeof candidate);
+    bool changed = pui_text_edit_key(&edit, candidate, key, shift);
+    if (pui_text_input_valid(view->layout->nodes[view->focused].input_type, candidate, false)) {
+        memcpy(state->text, candidate, sizeof candidate);
+        state->edit = edit;
+        if (changed) {
+            state->input_invalid = false;
+        }
     }
 }
 
@@ -184,7 +211,7 @@ static bool text_key(PUIView *view, PUIContext *pui, const SDL_KeyboardEvent *ke
         if (ctrl) {
             char *text = SDL_GetClipboardText();
             if (text) {
-                pui_text_edit_insert(&state->edit, state->text, sizeof state->text, text);
+                insert_text(view, text);
                 SDL_free(text);
             }
             return true;
@@ -202,7 +229,7 @@ static bool text_key(PUIView *view, PUIContext *pui, const SDL_KeyboardEvent *ke
                 memcpy(text, state->text + a, b - a);
                 text[b - a] = 0;
                 if (SDL_SetClipboardText(text) && key->key == SDLK_X) {
-                    pui_text_edit_key(&state->edit, state->text, PUI_TEXT_DELETE, false);
+                    input_key(view, PUI_TEXT_DELETE, false);
                 }
             }
             return true;
@@ -211,7 +238,7 @@ static bool text_key(PUIView *view, PUIContext *pui, const SDL_KeyboardEvent *ke
     default:
         return false;
     }
-    pui_text_edit_key(&state->edit, state->text, action, shift);
+    input_key(view, action, shift);
     return true;
 }
 
@@ -317,8 +344,7 @@ bool pui_widget_text_input_event(PUIView *view, PUIContext *pui, const SDL_Event
         return false;
     }
     if (event->type == SDL_EVENT_TEXT_INPUT) {
-        Widget *state = &view->state[view->focused];
-        pui_text_edit_insert(&state->edit, state->text, sizeof state->text, event->text.text);
+        insert_text(view, event->text.text);
         return true;
     }
     return event->type == SDL_EVENT_KEY_DOWN && text_key(view, pui, &event->key);
