@@ -508,7 +508,8 @@ static void test_tab_commits_properties_and_preserves_next_field_selection(void)
     commit();
     SDL_Event key = {.type = SDL_EVENT_KEY_DOWN};
     key.key.key = SDLK_TAB;
-    native_input(&key); // First visible input: name, selected for replacement.
+    native_input(&key); // Object-tree search is the first visible field.
+    native_input(&key); // Inspector name, selected for replacement.
     SDL_Event text = {.type = SDL_EVENT_TEXT_INPUT};
     text.text.text = "Renamed";
     native_input(&text);

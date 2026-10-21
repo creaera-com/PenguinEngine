@@ -10,6 +10,8 @@ typedef struct {
     int count, allocated;
     char root[PROJECT_PATH_CAPACITY];
     bool dirty, reset;
+    char filter[256];
+    int search_cursor;
     PUILayout *layout;
     char pending_parent[PROJECT_PATH_CAPACITY], pending_name[256];
     bool create_pending;

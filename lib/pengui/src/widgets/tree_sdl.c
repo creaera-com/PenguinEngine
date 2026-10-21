@@ -76,20 +76,40 @@ static int tree_rows(PUIView *v, int i, int depth, int *rows, int *depths, int c
     return count;
 }
 
-static int runtime_rows(TreeData *tree, int *rows, int *depths, bool *enabled,
-                        bool parent_enabled) {
+static int runtime_rows(TreeData *tree, int *rows, int *depths, bool *enabled, bool parent_enabled,
+                        const char *query) {
+    bool filtering = query && *query;
+    bool keep[PUI_LAYOUT_NODES] = {0};
+    if (filtering) {
+        for (int i = 0; i < tree->count; i++) {
+            if (SDL_strcasestr(tree->items[i].text, query)) {
+                keep[i] = true;
+                int depth = tree->items[i].depth;
+                for (int j = i - 1; j >= 0 && depth; j--) {
+                    if (tree->items[j].depth < depth) {
+                        keep[j] = true;
+                        depth = tree->items[j].depth;
+                    }
+                }
+            }
+        }
+    }
     int count = 0, hidden_depth = -1;
     bool ancestors[PUI_LAYOUT_NODES + 1] = {parent_enabled};
     for (int i = 0; i < tree->count; i++) {
         PUITreeItem *item = &tree->items[i];
-        if (hidden_depth >= 0 && item->depth > hidden_depth) {
+        if (!filtering && hidden_depth >= 0 && item->depth > hidden_depth) {
             continue;
         }
         hidden_depth = -1;
+        bool active = ancestors[item->depth] && item->enabled;
+        ancestors[item->depth + 1] = active;
+        if (filtering && !keep[i]) {
+            continue;
+        }
         rows[count] = i;
         depths[count] = item->depth;
-        enabled[count] = ancestors[item->depth] && item->enabled;
-        ancestors[item->depth + 1] = enabled[count];
+        enabled[count] = active;
         count++;
         if (!tree->open[i]) {
             hidden_depth = item->depth;
@@ -162,7 +182,13 @@ void pui_widget_tree_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
             trailing = trailing > count ? trailing : count;
         }
     }
-    int count = data ? runtime_rows(data, rows, depths, row_enabled, !pui->blocked)
+    const char *query = pui_view_text(v, n->filter_input);
+    if (strcmp(s->text, query ? query : "")) {
+        snprintf(s->text, sizeof s->text, "%s", query ? query : "");
+        s->scroll.offset = 0;
+    }
+    int count = data ? runtime_rows(data, rows, depths, row_enabled, !pui->blocked,
+                                    pui_view_text(v, n->filter_input))
                      : tree_rows(v, i, 0, rows, depths, 0, !pui->blocked);
     s->scroll.content = count * 28.f;
     s->scroll.viewport = area.h;
@@ -187,7 +213,7 @@ void pui_widget_tree_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
         }
         if (pui_button(pui, item->id, name_area, enabled)) {
             s->selected = item->id;
-            if (item->child >= 0) {
+            if (item->child >= 0 && (!query || !*query)) {
                 if (data) {
                     data->open[index] = !data->open[index];
                 } else {
@@ -233,7 +259,9 @@ void pui_widget_tree_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
                              x + 12, PUI_MUTED);
         PUIIcon marker =
             item->child >= 0
-                ? ((data ? data->open[index] : v->state[index].open) ? ICON_DOWN : ICON_RIGHT)
+                ? ((data ? ((query && *query) || data->open[index]) : v->state[index].open)
+                       ? ICON_DOWN
+                       : ICON_RIGHT)
                 : pui_icon_from_name(item->icon);
         Uint32 foreground = !enabled ? PUI_DISABLED : PUI_TEXT;
         pui_icon(v->renderer, marker, x + 4, r.y + 6, 16, foreground);
@@ -361,7 +389,8 @@ const char *pui_view_tree_item_at(PUIView *view, const char *tree, float x, floa
     int rows[PUI_LAYOUT_NODES], depths[PUI_LAYOUT_NODES];
     bool enabled[PUI_LAYOUT_NODES];
     TreeData *data = view->state[index].tree;
-    int count = data ? runtime_rows(data, rows, depths, enabled, true)
+    int count = data ? runtime_rows(data, rows, depths, enabled, true,
+                                    pui_view_text(view, view->layout->nodes[index].filter_input))
                      : tree_rows(view, index, 0, rows, depths, 0, true);
     int row = (int)floorf((y - area.y + view->state[index].scroll.offset) / 28.f);
     if (row < 0 || row >= count || !(data ? enabled[row] : view->enabled[rows[row]])) {

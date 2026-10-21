@@ -1111,8 +1111,43 @@ static void test_number_expression_commits_once_and_keeps_relative_base(void) {
     pui_layout_free(l);
 }
 
+static void test_runtime_tree_filter_keeps_ancestors_and_restores_collapsed_state(void) {
+    const char *yaml =
+        "schema: pengui/v1\nroot: {type: column, padding: 0, gap: 0, children: ["
+        "{type: input, id: search, height: 28}, {type: tree, id: tree, filter_input: search}]}";
+    char error[256];
+    PUILayout *l = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(l, error);
+    PUIView *v = pui_view_new(l, renderer);
+    TEST_ASSERT_NOT_NULL(v);
+    PUITreeItem items[] = {{.id = "root", .text = "Assets", .enabled = true},
+                           {.id = "match", .text = "Needle", .depth = 1, .enabled = true},
+                           {.id = "hidden", .text = "Other child", .depth = 1, .enabled = true},
+                           {.id = "other", .text = "Unrelated", .enabled = true}};
+    TEST_ASSERT_TRUE(pui_view_set_tree_items(v, "tree", items, 4));
+    PUIContext input;
+    pui_init(&input);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 200}, NULL, NULL);
+    TEST_ASSERT_EQUAL_STRING("other", pui_view_tree_item_at(v, "tree", 100, 70));
+    TEST_ASSERT_TRUE(pui_view_set_text(v, "search", "NEEDLE"));
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 200}, NULL, NULL);
+    TEST_ASSERT_EQUAL_STRING("root", pui_view_tree_item_at(v, "tree", 100, 42));
+    TEST_ASSERT_EQUAL_STRING("match", pui_view_tree_item_at(v, "tree", 100, 70));
+    TEST_ASSERT_NULL(pui_view_tree_item_at(v, "tree", 100, 98));
+    TEST_ASSERT_EQUAL_INT(4, pui_view_tree_item_count(v, "tree"));
+    TEST_ASSERT_TRUE(pui_view_set_text(v, "search", "no matches"));
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 200}, NULL, NULL);
+    TEST_ASSERT_NULL(pui_view_tree_item_at(v, "tree", 100, 42));
+    TEST_ASSERT_TRUE(pui_view_set_text(v, "search", ""));
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 200}, NULL, NULL);
+    TEST_ASSERT_EQUAL_STRING("other", pui_view_tree_item_at(v, "tree", 100, 70));
+    pui_view_free(v);
+    pui_layout_free(l);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_runtime_tree_filter_keeps_ancestors_and_restores_collapsed_state);
     RUN_TEST(test_number_expression_commits_once_and_keeps_relative_base);
     RUN_TEST(test_typed_fields_filter_native_events_clipboard_setters_and_submission);
     RUN_TEST(test_closable_tabs_dispatch_and_remove_without_losing_other_state);

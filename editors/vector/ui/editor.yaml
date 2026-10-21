@@ -31,7 +31,14 @@ root:
             - type: panel
               padding: 8
               children:
-                - {type: tree, id: vector_document_tree}
+                - type: row
+                  padding: 0
+                  gap: 8
+                  height: 28
+                  children:
+                    - {type: label, text: Suche, width: 48}
+                    - {type: input, id: vector_object_search}
+                - {type: tree, id: vector_document_tree, filter_input: vector_object_search}
     - type: column
       padding: 0
       gap: 5

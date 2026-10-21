@@ -43,6 +43,14 @@ static int copy_node(Composition *c, const PUILayout *source, int index, int dep
         }
         n->id = pui_id(n->name);
     }
+    if (c->tab_id && source == c->content && *n->filter_input) {
+        char reference[sizeof n->filter_input];
+        if (snprintf(reference, sizeof reference, "%s.%s", c->tab_id, n->filter_input) >=
+            (int)sizeof reference) {
+            return fail(c, "prefixed filter input ID exceeds capacity");
+        }
+        snprintf(n->filter_input, sizeof n->filter_input, "%s", reference);
+    }
     if (*n->image) {
         const char *image = source->nodes[index].image;
         bool absolute = image[0] == '/' || image[0] == '\\' || (image[0] && image[1] == ':');

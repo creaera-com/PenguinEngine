@@ -1099,3 +1099,27 @@ und weich gerundete Übergänge zu den Innen-/Außenbögen. Die Rundung beträgt
 verfügbaren Platz. Hintergrundflächen haben rund 82 % Deckkraft,
 Icons und Beschriftungen bleiben deckend. Die Klickprüfung berücksichtigt dieselben
 Lücken und Rundungen wie die gezeichnete Form.
+
+
+### Live-Suche in Runtime-Trees
+
+Ein Runtime-Tree kann mit `filter_input` auf die ID eines Textfelds verweisen:
+
+```yaml
+- {type: input, id: object_search}
+- {type: tree, id: objects, filter_input: object_search}
+```
+
+Die Suche berücksichtigt Teilzeichenfolgen ohne Unterscheidung zwischen Groß- und
+Kleinschreibung. Sie zeigt Treffer und ihre übergeordneten Einträge. Während der
+Suche sind passende Zweige aufgeklappt; nach dem Leeren gilt wieder der vorherige
+Aufklappzustand. Die zugrunde liegenden Tree-Daten bleiben unverändert. Darstellung
+und Maustreffer verwenden dieselbe gefilterte Zeilenliste. Bei präfixierter
+Layout-Komposition wird auch die Referenz auf das Suchfeld angepasst. Statische
+`item`-Kinder unterstützen diese Runtime-Filterung nicht.
+
+Der Objekt-Tree bindet sein Suchfeld direkt so an. Der Datei-Explorer lädt für die
+Suche zusätzlich geschlossene Verzeichnisse nach: pro Frame höchstens 16 Einträge,
+bis zu 8192 gecachte Einträge und 32 Hierarchieebenen. Sehr große oder nicht lesbare
+Verzeichnisse können deshalb unvollständige Ergebnisse liefern. Die normale
+Baumansicht mit ihren geöffneten Ordnern kehrt nach dem Leeren der Suche zurück.

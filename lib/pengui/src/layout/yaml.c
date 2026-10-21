@@ -125,7 +125,8 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
               "initial_second|initial_last|minimum_first|minimum_second|minimum_last|flex|image_"
               "padding|enabled|open|checked|draggable|scroll|axis|children|value|popup_width|popup_"
               "height|"
-              "placement|preview_action|close_action|mode|input_type|radius|transition_ms|")) {
+              "placement|preview_action|close_action|filter_input|mode|input_type|radius|"
+              "transition_ms|")) {
         return -1;
     }
     int index = r->layout->count++;
@@ -189,6 +190,10 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
             fail(r, placement, "placement must be below or right");
         }
         out->placement = !strcmp(value, "right") ? PUI_POPUP_RIGHT : PUI_POPUP_BELOW;
+    }
+    string(r, yaml, "filter_input", out->filter_input, sizeof out->filter_input);
+    if (*out->filter_input && out->type != PUI_NODE_TREE) {
+        fail(r, yaml, "filter_input requires a tree");
     }
     string(r, yaml, "close_action", out->close_action, sizeof out->close_action);
     string(r, yaml, "preview_action", out->preview_action, sizeof out->preview_action);

@@ -44,6 +44,7 @@ static void clear(ProjectExplorer *e) {
     free(e->entries);
     e->entries = NULL;
     e->count = e->allocated = 0;
+    e->search_cursor = 0;
 }
 
 bool project_explorer_init(ProjectExplorer *e, const char *resources, char *error,
@@ -63,6 +64,9 @@ void project_explorer_destroy(ProjectExplorer *e) {
 
 static bool add(ProjectExplorer *e, const char *path, const char *name, int parent,
                 bool directory) {
+    if (*e->filter && e->count >= 8192) {
+        return false;
+    }
     if (e->count == e->allocated) {
         int n = e->allocated + 128;
         ProjectEntry *entries = realloc(e->entries, (size_t)n * sizeof *entries);
@@ -219,6 +223,9 @@ bool project_explorer_action(ProjectExplorer *e, PUIView *view, const char *acti
     for (int i = 0; i < e->count; i++) {
         if (e->entries[i].id == id) {
             if (e->entries[i].directory) {
+                if (*e->filter) {
+                    return true;
+                }
                 e->entries[i].open = !e->entries[i].open;
                 e->dirty = true;
             } else {
@@ -286,6 +293,49 @@ static bool rows(ProjectExplorer *e, int i, int depth, PUITreeItem *items, int *
     return true;
 }
 
+/* Search indexes closed folders in bounded batches between frames. Normal paging
+ * and folder disclosure remain unchanged when the search is cleared. */
+static bool search_rows(ProjectExplorer *e, int parent, int depth, const bool *keep,
+                        PUITreeItem *items, int *count) {
+    if (!keep[parent]) {
+        return true;
+    }
+    if (*count >= PUI_LAYOUT_NODES - 1 || depth > 32) {
+        return false;
+    }
+    ProjectEntry *entry = &e->entries[parent];
+    PUITreeItem *row = &items[(*count)++];
+    snprintf(row->id, sizeof row->id, "project_entry_%u", entry->id);
+    snprintf(row->text, sizeof row->text, "%s", entry->name);
+    snprintf(row->action, sizeof row->action, "project.entry");
+    snprintf(row->icon, sizeof row->icon, "%s", entry->directory ? "tabler:folder" : "tabler:file");
+    row->enabled = row->open = true;
+    row->depth = depth;
+    for (int i = 0; i < e->count; i++) {
+        if (e->entries[i].parent == parent && !search_rows(e, i, depth + 1, keep, items, count)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool filtered_rows(ProjectExplorer *e, PUITreeItem *items, int *count) {
+    bool *keep = calloc((size_t)e->count, sizeof *keep);
+    if (!keep && e->count) {
+        return false;
+    }
+    for (int i = 0; i < e->count; i++) {
+        if (SDL_strcasestr(e->entries[i].name, e->filter)) {
+            for (int j = i; j >= 0; j = e->entries[j].parent) {
+                keep[j] = true;
+            }
+        }
+    }
+    bool ok = !e->count || search_rows(e, 0, 0, keep, items, count);
+    free(keep);
+    return ok;
+}
+
 bool project_explorer_commit(ProjectExplorer *e, PUIView *view, PUIContext *input, char *error,
                              size_t capacity) {
     if (pui_view_tree_item_count(view, "project_files") < 0) {
@@ -293,6 +343,27 @@ bool project_explorer_commit(ProjectExplorer *e, PUIView *view, PUIContext *inpu
             return false;
         }
         e->dirty = true;
+    }
+    const char *query = pui_view_text(view, "project_search");
+    if (strcmp(e->filter, query ? query : "")) {
+        snprintf(e->filter, sizeof e->filter, "%s", query ? query : "");
+        e->dirty = true;
+        e->search_cursor = 0;
+    }
+    if (*e->filter) {
+        for (int work = 0; work < 16 && e->search_cursor < e->count; work++) {
+            int i = e->search_cursor++;
+            if (e->entries[i].directory) {
+                int depth = 0;
+                for (int j = i; j >= 0; j = e->entries[j].parent) {
+                    depth++;
+                }
+                if (depth <= 32 && !load(e, i)) {
+                    pui_view_set_text(view, "status", "Suchbereich teilweise nicht lesbar");
+                }
+            }
+            e->dirty = true;
+        }
     }
     char created[PROJECT_PATH_CAPACITY] = {0};
     if (e->create_pending) {
@@ -345,7 +416,8 @@ bool project_explorer_commit(ProjectExplorer *e, PUIView *view, PUIContext *inpu
         return false;
     }
     int count = 0;
-    bool complete = !e->count || rows(e, 0, 0, items, &count);
+    bool complete =
+        *e->filter ? filtered_rows(e, items, &count) : !e->count || rows(e, 0, 0, items, &count);
     if (!complete && count < PUI_LAYOUT_NODES) {
         PUITreeItem *last = &items[count++];
         snprintf(last->id, sizeof last->id, "project_limit");

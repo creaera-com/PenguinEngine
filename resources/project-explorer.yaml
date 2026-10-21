@@ -24,4 +24,11 @@ root:
                 - {type: input, id: project_folder_name, height: 28}
                 - {type: button, text: Anlegen, action: project.folder.create, height: 28}
         - {type: button, icon: tabler:refresh, action: project.refresh, width: 30}
-    - {type: tree, id: project_files}
+    - type: row
+      padding: 0
+      gap: 8
+      height: 28
+      children:
+        - {type: label, text: Suche, width: 48}
+        - {type: input, id: project_search}
+    - {type: tree, id: project_files, filter_input: project_search}

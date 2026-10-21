@@ -265,14 +265,14 @@ static void test_multi_parent_duplicate_keeps_parents_and_offsets(void) {
 static void
 test_tree_context_selects_row_without_collapsing_and_text_shortcuts_stay_in_input(void) {
     VectorDocument *d = document();
-    click(SDL_BUTTON_RIGHT, 65, 130); // Existing selected member keeps the group.
+    click(SDL_BUTTON_RIGHT, 65, 166); // Existing selected member keeps the group.
     TEST_ASSERT_EQUAL_INT(2, d->selection.count);
     key(SDLK_ESCAPE, 0);
-    click(SDL_BUTTON_RIGHT, 65, 102); // Artboard context selects the artboard, not its children.
+    click(SDL_BUTTON_RIGHT, 65, 138); // Artboard context selects the artboard, not its children.
     TEST_ASSERT_EQUAL_INT(0, d->selection.count);
     TEST_ASSERT_EQUAL_INT(1, d->active_artboard);
     key(SDLK_ESCAPE, 0);
-    click(SDL_BUTTON_RIGHT, 65, 158);
+    click(SDL_BUTTON_RIGHT, 65, 194);
     TEST_ASSERT_EQUAL_INT(1, d->selection.count);
     TEST_ASSERT_EQUAL_INT(1, d->active_rectangle);
     key(SDLK_ESCAPE, 0);
@@ -427,13 +427,15 @@ static void test_layer_submenu_back_navigation_tree_rendering_and_hit_order_agre
     commit();
     TEST_ASSERT_EQUAL_UINT8(0, scene_red(d, 65, 75));
     TEST_ASSERT_EQUAL_STRING("vector_document_1.rectangle_2",
-                             pui_view_tree_item_at(shell.view, "vector_document_tree", 65, 130));
+                             pui_view_tree_item_at(shell.view, "vector_document_tree", 65, 166));
     int count = d->history.count;
     click(SDL_BUTTON_RIGHT, 630, 400);
     radial_item("vector_layers_menu"); // Root submenu: Ebenen.
-    key(SDLK_ESCAPE, 0);               // Back to root, not closed.
+    key(SDLK_ESCAPE, 0);               // Escape closes the entire menu.
+    click(SDL_BUTTON_RIGHT, 630, 400);
     radial_item("vector_layers_menu");
-    click(SDL_BUTTON_LEFT, 630, 400); // Center: back.
+    click(SDL_BUTTON_LEFT, 630, 400); // Empty center closes the menu.
+    click(SDL_BUTTON_RIGHT, 630, 400);
     radial_item("vector_layers_menu");
     TEST_ASSERT_EQUAL_INT(count, d->history.count); // Navigation is never a model command.
     radial_item("vector_order_front");              // Outer ring: Ganz nach oben.
@@ -442,7 +444,7 @@ static void test_layer_submenu_back_navigation_tree_rendering_and_hit_order_agre
     TEST_ASSERT_EQUAL_INT(count + 1, d->history.count);
     TEST_ASSERT_EQUAL_UINT8(255, scene_red(d, 65, 75));
     TEST_ASSERT_EQUAL_STRING("vector_document_1.rectangle_1",
-                             pui_view_tree_item_at(shell.view, "vector_document_tree", 65, 130));
+                             pui_view_tree_item_at(shell.view, "vector_document_tree", 65, 166));
     vector_document_select(d, 0);
     d->active_artboard = 0;
     commit();

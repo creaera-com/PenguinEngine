@@ -220,8 +220,41 @@ static void test_create_directories_from_explorer_selection(void) {
     remove_folder();
 }
 
+static void test_file_search_finds_files_in_closed_folders_and_clears(void) {
+    temp_folder();
+    char error[256], path[4096];
+    snprintf(path, sizeof path, "%s/Assets/Closed", folder);
+    TEST_ASSERT_TRUE(SDL_CreateDirectory(path));
+    snprintf(path, sizeof path, "%s/Assets/Closed/needle.txt", folder);
+    file(path, "example");
+    ProjectController c;
+    TEST_ASSERT_TRUE(
+        project_controller_init(&c, PENGUI_EDITOR_RESOURCES, false, error, sizeof error));
+    activate("vector");
+    TEST_ASSERT_TRUE(project_controller_open(&c, folder, true, shell.view));
+    TEST_ASSERT_TRUE(
+        project_explorer_commit(&c.explorer, shell.view, &shell.input, error, sizeof error));
+    TEST_ASSERT_TRUE(pui_view_set_text(shell.view, "project_search", "NEEDLE"));
+    for (int i = 0; i < 5; i++) {
+        TEST_ASSERT_TRUE(
+            project_explorer_commit(&c.explorer, shell.view, &shell.input, error, sizeof error));
+    }
+    TEST_ASSERT_EQUAL_INT(4, pui_view_tree_item_count(shell.view, "project_files"));
+    TEST_ASSERT_TRUE(pui_view_set_text(shell.view, "project_search", "not-present"));
+    TEST_ASSERT_TRUE(
+        project_explorer_commit(&c.explorer, shell.view, &shell.input, error, sizeof error));
+    TEST_ASSERT_EQUAL_INT(0, pui_view_tree_item_count(shell.view, "project_files"));
+    TEST_ASSERT_TRUE(pui_view_set_text(shell.view, "project_search", ""));
+    TEST_ASSERT_TRUE(
+        project_explorer_commit(&c.explorer, shell.view, &shell.input, error, sizeof error));
+    TEST_ASSERT_GREATER_THAN_INT(0, pui_view_tree_item_count(shell.view, "project_files"));
+    project_controller_destroy(&c);
+    remove_folder();
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_file_search_finds_files_in_closed_folders_and_clears);
     RUN_TEST(test_create_directories_from_explorer_selection);
     RUN_TEST(test_create_validate_no_overwrite_and_state_roundtrip);
     RUN_TEST(test_shared_explorer_lazy_folders_paging_and_editor_switch);
