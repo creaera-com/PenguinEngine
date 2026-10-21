@@ -24,21 +24,21 @@ root:
         height: 28
         children:
           - {type: label, text: Breite, width: 64}
-          - {type: input, id: rectangle_width, action: vector.rectangle.width}
+          - {type: input, id: rectangle_width, input_type: decimal, action: vector.rectangle.width}
       - type: row
         padding: 0
         gap: 8
         height: 28
         children:
           - {type: label, text: Hoehe, width: 64}
-          - {type: input, id: rectangle_height, action: vector.rectangle.height}
+          - {type: input, id: rectangle_height, input_type: decimal, action: vector.rectangle.height}
       - type: row
         padding: 0
         gap: 8
         height: 28
         children:
           - {type: label, text: Winkel, width: 64}
-          - {type: input, id: rectangle_angle, action: vector.rectangle.angle}
+          - {type: input, id: rectangle_angle, input_type: decimal, action: vector.rectangle.angle}
           - {type: label, text: Grad, width: 40}
       - type: popup_button
         id: rectangle_fill_button
@@ -69,7 +69,7 @@ root:
         height: 28
         children:
           - {type: label, text: Rahmen, width: 64}
-          - {type: input, id: rectangle_stroke_width, action: vector.rectangle.stroke_width}
+          - {type: input, id: rectangle_stroke_width, input_type: decimal, action: vector.rectangle.stroke_width}
           - {type: label, text: px, width: 24}
       - type: button_group
         padding: 0

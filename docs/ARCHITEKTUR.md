@@ -1065,3 +1065,30 @@ Nach einer Änderung bauen, damit die YAML-Datei in den Ressourcenordner kopiert
 wird, und den Editor mit F6 neu laden oder neu starten. Dokumente und History bleiben
 beim Reload erhalten. Der Schatten bleibt reine Editor-Darstellung und erscheint
 weder in `.pengvec`-Dateien noch im Bildexport.
+
+
+### Rechnen in Zahlenfeldern
+
+`integer`- und `decimal`-Felder unterstützen beim Bearbeiten Ausdrücke mit
+`+`, `-`, `*`, `/`, Klammern und Vorzeichen. Punkt-vor-Strich gilt; Dezimalkommas
+werden wie bisher zu Punkten. Beispiele: `320 + 20`, `320 / 2`, `(100 + 20) * 2`.
+Mit `+=20`, `-=10`, `*=2` und `/=2` wird relativ zum zuletzt bestätigten bzw.
+per `pui_view_set_text` gesetzten Wert gerechnet. Ein einfaches `-20` bleibt
+absolut negativ. Feldnamen, Variablen, Funktionen und Skripte werden nicht ausgewertet.
+
+Enter oder der Wechsel per Tab berechnet den Ausdruck, ersetzt ihn durch das
+Ergebnis und löst genau eine normale Feldaktion aus. Der Inspector nutzt dafür
+seinen vorhandenen Änderungsbefehl: eine Berechnung ist ein Undo-Schritt.
+Breite/Höhe von Artboards und Rechtecken, Winkel, Rahmenbreite und Eckenradius
+sind im YAML jetzt als `decimal` gekennzeichnet.
+
+Unvollständige Ausdrücke, Division durch null, Überlauf und Ergebnisse mit
+Nachkommastellen in einem `integer`-Feld werden rot markiert und nicht übergeben.
+Der letzte bestätigte Zahlenwert bleibt als Basis für die nächste relative
+Berechnung erhalten. Die fachliche Wertebereichsprüfung bleibt beim Inspector.
+String-Felder rechnen nicht. Programmgesteuertes `pui_view_set_text` setzt weiterhin
+Zahlenwerte und nimmt keine Ausdrücke entgegen.
+
+`pui_text_input_evaluate` bietet die reine, begrenzt rekursive Auswertung ohne SDL
+oder Skriptruntime. `pui_text_input_expression_valid` prüft nur editierbare Zeichen
+und Zahlentokens; unvollständige Ausdrücke sind während des Tippens zulässig.

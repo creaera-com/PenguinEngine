@@ -109,14 +109,14 @@ bool pui_text_edit_insert_typed(PUITextEdit *edit, char *text, size_t capacity,
     memcpy(candidate, text, strlen(text) + 1);
     PUITextEdit next = *edit;
     bool valid = pui_text_edit_insert(&next, candidate, capacity, inserted);
-    if (valid && type == PUI_INPUT_DECIMAL) {
+    if (valid && type != PUI_INPUT_STRING) {
         for (char *p = candidate; *p; p++) {
             if (*p == ',') {
                 *p = '.';
             }
         }
     }
-    valid = valid && pui_text_input_valid(type, candidate, false);
+    valid = valid && pui_text_input_expression_valid(type, candidate);
     if (valid) {
         memcpy(text, candidate, strlen(candidate) + 1);
         *edit = next;

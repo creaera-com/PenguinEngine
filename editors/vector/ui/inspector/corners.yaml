@@ -10,5 +10,5 @@ root:
       height: 28
       children:
         - {type: label, text: Radius, width: 64}
-        - {type: input, id: rectangle_radius, action: vector.rectangle.radius}
+        - {type: input, id: rectangle_radius, input_type: decimal, action: vector.rectangle.radius}
         - {type: label, text: px, width: 24}

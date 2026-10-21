@@ -648,8 +648,39 @@ static void test_typed_input_syntax_and_atomic_replacement(void) {
     TEST_ASSERT_EQUAL_MEMORY(&before, &edit, sizeof edit);
 }
 
+static void test_numeric_arithmetic_precedence_relative_edits_and_errors(void) {
+    struct {
+        const char *expression, *expected;
+    } cases[] = {{"320 + 20", "340"},      {"320 / 2", "160"}, {"2+3*4", "14"},
+                 {"(2+3)*4", "20"},        {"-20", "-20"},     {"+=20", "120"},
+                 {"-=10", "90"},           {"*=2", "200"},     {"/=4", "25"},
+                 {"12,5 + 0,25", "12.75"}, {"1e2 + 2", "102"}, {"-(-3)", "3"}};
+
+    char result[256];
+    for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; i++) {
+        TEST_ASSERT_TRUE_MESSAGE(pui_text_input_evaluate(PUI_INPUT_DECIMAL, cases[i].expression,
+                                                         100, result, sizeof result),
+                                 cases[i].expression);
+        TEST_ASSERT_EQUAL_STRING(cases[i].expected, result);
+    }
+    const char *bad[] = {"",    "-",   "1e-",   "2+",       "()",    "(1+2", "1 2",
+                         "1/0", "/=0", "1e999", "1e308*10", "foo()", "1,2.3"};
+    for (unsigned i = 0; i < sizeof bad / sizeof bad[0]; i++) {
+        strcpy(result, "unchanged");
+        TEST_ASSERT_FALSE_MESSAGE(
+            pui_text_input_evaluate(PUI_INPUT_DECIMAL, bad[i], 100, result, sizeof result), bad[i]);
+        TEST_ASSERT_EQUAL_STRING("unchanged", result);
+    }
+    TEST_ASSERT_FALSE(
+        pui_text_input_evaluate(PUI_INPUT_INTEGER, "5/2", 100, result, sizeof result));
+    TEST_ASSERT_TRUE(pui_text_input_evaluate(PUI_INPUT_INTEGER, "6/2", 100, result, sizeof result));
+    TEST_ASSERT_EQUAL_STRING("3", result);
+    TEST_ASSERT_FALSE(pui_text_input_evaluate(PUI_INPUT_DECIMAL, "123", 0, result, 2));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_numeric_arithmetic_precedence_relative_edits_and_errors);
     RUN_TEST(test_typed_input_syntax_and_atomic_replacement);
     RUN_TEST(test_color_transition_retargets_without_jumps_and_zero_snaps);
     RUN_TEST(test_radial_sector_geometry_and_dead_zones);

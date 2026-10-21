@@ -1050,8 +1050,70 @@ static void test_typed_fields_filter_native_events_clipboard_setters_and_submiss
     pui_layout_free(l);
 }
 
+static void test_number_expression_commits_once_and_keeps_relative_base(void) {
+    const char *yaml =
+        "schema: pengui/v1\nroot: {type: column, padding: 0, children: ["
+        "{type: input, id: value, input_type: decimal, text: \"100\", action: changed},"
+        "{type: input, id: next}]}";
+    char error[256];
+    PUILayout *l = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(l, error);
+    PUIView *v = pui_view_new(l, renderer);
+    TEST_ASSERT_NOT_NULL(v);
+    PUIContext input;
+    pui_init(&input);
+    typed_commits = 0;
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    SDL_Event key = {.type = SDL_EVENT_KEY_DOWN};
+    key.key.key = SDLK_TAB;
+    pui_view_event(v, &input, window, &key);
+    SDL_Event text = {.type = SDL_EVENT_TEXT_INPUT};
+    text.text.text = "100 + 20";
+    pui_view_event(v, &input, window, &text);
+    key.key.key = SDLK_RETURN;
+    pui_view_event(v, &input, window, &key);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    TEST_ASSERT_EQUAL_STRING("120", pui_view_text(v, "value"));
+    TEST_ASSERT_EQUAL_INT(1, typed_commits);
+    key.key.key = SDLK_A;
+    key.key.mod = SDL_KMOD_CTRL;
+    pui_view_event(v, &input, window, &key);
+    text.text.text = "+=20";
+    pui_view_event(v, &input, window, &text);
+    key.key.key = SDLK_TAB;
+    key.key.mod = 0;
+    pui_view_event(v, &input, window, &key);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    TEST_ASSERT_EQUAL_STRING("140", pui_view_text(v, "value"));
+    TEST_ASSERT_EQUAL_INT(2, typed_commits);
+    key.key.mod = SDL_KMOD_SHIFT;
+    pui_view_event(v, &input, window, &key);
+    text.text.text = "1/0";
+    pui_view_event(v, &input, window, &text);
+    key.key.key = SDLK_RETURN;
+    key.key.mod = 0;
+    pui_view_event(v, &input, window, &key);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    TEST_ASSERT_EQUAL_INT(2, typed_commits);
+    TEST_ASSERT_EQUAL_STRING("1/0", pui_view_text(v, "value"));
+    key.key.key = SDLK_A;
+    key.key.mod = SDL_KMOD_CTRL;
+    pui_view_event(v, &input, window, &key);
+    text.text.text = "-=10";
+    pui_view_event(v, &input, window, &text);
+    key.key.key = SDLK_RETURN;
+    key.key.mod = 0;
+    pui_view_event(v, &input, window, &key);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    TEST_ASSERT_EQUAL_STRING("130", pui_view_text(v, "value"));
+    TEST_ASSERT_EQUAL_INT(3, typed_commits);
+    pui_view_free(v);
+    pui_layout_free(l);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_number_expression_commits_once_and_keeps_relative_base);
     RUN_TEST(test_typed_fields_filter_native_events_clipboard_setters_and_submission);
     RUN_TEST(test_closable_tabs_dispatch_and_remove_without_losing_other_state);
     RUN_TEST(test_input_corners_animate_on_mouse_focus_and_blur);

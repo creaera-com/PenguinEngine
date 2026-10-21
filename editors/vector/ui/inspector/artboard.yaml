@@ -23,14 +23,14 @@ root:
         height: 28
         children:
           - {type: label, text: Breite, width: 64}
-          - {type: input, id: artboard_width, action: vector.artboard.width}
+          - {type: input, id: artboard_width, input_type: decimal, action: vector.artboard.width}
       - type: row
         padding: 0
         gap: 8
         height: 28
         children:
           - {type: label, text: Hoehe, width: 64}
-          - {type: input, id: artboard_height, action: vector.artboard.height}
+          - {type: input, id: artboard_height, input_type: decimal, action: vector.artboard.height}
 
     - type: section
       id: section_artboard_layer

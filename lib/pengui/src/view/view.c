@@ -29,6 +29,10 @@ PUIView *pui_view_new(const PUILayout *layout, SDL_Renderer *renderer) {
         state->preferred[2] = n->initial_last;
         snprintf(state->text, sizeof state->text, "%s", n->text);
         pui_text_edit_init(&state->edit, state->text, false);
+        state->input_base = pui_text_input_valid(n->input_type, state->text, true) &&
+                                    n->input_type != PUI_INPUT_STRING
+                                ? strtod(state->text, NULL)
+                                : NAN;
         if (*n->image) {
             char path[1600];
             if (snprintf(path, sizeof path, "%s%s", layout->directory, n->image) <
@@ -103,7 +107,8 @@ bool pui_view_set_text(PUIView *view, const char *id, const char *text) {
             char copy[256] = {0};
             PUITextEdit edit = {0};
             if (n->type == PUI_NODE_INPUT &&
-                !pui_text_edit_insert_typed(&edit, copy, sizeof copy, text, n->input_type)) {
+                (!pui_text_edit_insert_typed(&edit, copy, sizeof copy, text, n->input_type) ||
+                 !pui_text_input_valid(n->input_type, copy, false))) {
                 return false;
             }
             if (n->type == PUI_NODE_LABEL || n->type == PUI_NODE_TAB) {
@@ -125,6 +130,10 @@ bool pui_view_set_text(PUIView *view, const char *id, const char *text) {
                     }
                 }
             }
+            view->state[i].input_base =
+                n->input_type != PUI_INPUT_STRING && pui_text_input_valid(n->input_type, copy, true)
+                    ? strtod(copy, NULL)
+                    : NAN;
             view->state[i].input_invalid = false;
             memcpy(view->state[i].text, copy, sizeof copy);
             pui_text_edit_init(&view->state[i].edit, view->state[i].text, false);

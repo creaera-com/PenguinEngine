@@ -345,6 +345,14 @@ typedef enum { PUI_INPUT_STRING, PUI_INPUT_INTEGER, PUI_INPUT_DECIMAL } PUIInput
  * when complete is false. Decimal values accept a dot or comma, and optional scientific notation.
  * Numeric range and domain constraints remain the application's responsibility. */
 bool pui_text_input_valid(PUIInputType type, const char *text, bool complete);
+/** @brief Check editable arithmetic characters and number tokens; incomplete expressions are
+ * allowed. */
+bool pui_text_input_expression_valid(PUIInputType type, const char *text);
+/** @brief Evaluate + - * / and parentheses; optional += -= *= /= uses base. Result is canonical
+ * text. Rejects division by zero, non-finite results and fractional integer results; output
+ * unchanged on error. */
+bool pui_text_input_evaluate(PUIInputType type, const char *text, double base, char *result,
+                             size_t capacity);
 /** @brief Atomically replace the selection under a field type; decimal commas normalize to dots.
  * Failure leaves text, cursor, selection and scroll unchanged. */
 bool pui_text_edit_insert_typed(PUITextEdit *edit, char *text, size_t capacity,

@@ -1015,8 +1015,46 @@ static void test_workspace_shadow_style_defaults_ranges_and_atomic_errors(void) 
     SDL_RemovePath(root);
 }
 
+static void test_inspector_width_arithmetic_is_one_undoable_edit(void) {
+    VectorDocument *d = parent();
+    TEST_ASSERT_TRUE(vector_rectangle_add(d, 1, (PUIRect){40, 30, 100, 60}));
+    commit();
+    bool focused = false;
+    for (int y = 0; y < 800 && !focused; y += 4) {
+        for (int x = 0; x < 1280; x += 4) {
+            if (pui_view_hit(shell.view, "rectangle_width", x, y)) {
+                color_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+                color_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x, y);
+                focused = true;
+                break;
+            }
+        }
+    }
+    TEST_ASSERT_TRUE(focused);
+    int count = d->history.count;
+    SDL_Event key = {.type = SDL_EVENT_KEY_DOWN};
+    key.key.key = SDLK_A;
+    key.key.mod = SDL_KMOD_CTRL;
+    color_event(&key);
+    SDL_Event text = {.type = SDL_EVENT_TEXT_INPUT};
+    text.text.text = "+=20";
+    color_event(&text);
+    TEST_ASSERT_EQUAL_INT(count, d->history.count);
+    key.key.key = SDLK_TAB;
+    key.key.mod = 0;
+    color_event(&key);
+    TEST_ASSERT_EQUAL_FLOAT(120, d->rectangles[0].rect.w);
+    TEST_ASSERT_EQUAL_STRING("120", pui_view_text(shell.view, "rectangle_width"));
+    TEST_ASSERT_EQUAL_INT(count + 1, d->history.count);
+    TEST_ASSERT_TRUE(vector_history_undo(&d->history, d));
+    TEST_ASSERT_EQUAL_FLOAT(100, d->rectangles[0].rect.w);
+    TEST_ASSERT_TRUE(vector_history_redo(&d->history, d));
+    TEST_ASSERT_EQUAL_FLOAT(120, d->rectangles[0].rect.w);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_inspector_width_arithmetic_is_one_undoable_edit);
     RUN_TEST(test_workspace_shadow_style_defaults_ranges_and_atomic_errors);
     RUN_TEST(test_ruler_toggle_preserves_history_and_survives_editor_switch);
     RUN_TEST(test_rounded_rectangle_radius_history_geometry_inspector_and_path);

@@ -2,7 +2,7 @@
 add_library(pengUI STATIC
  src/widgets/radial_menu.c
  src/core/context.c
- src/widgets/color_picker.c src/widgets/button.c src/widgets/toggle.c src/widgets/basic.c src/widgets/text_input.c
+ src/widgets/color_picker.c src/widgets/button.c src/widgets/toggle.c src/widgets/basic.c src/widgets/text_input.c src/widgets/text_input_math.c
  src/widgets/tabs.c src/widgets/tree.c src/widgets/scrollbar.c src/widgets/splitter.c
  src/layout/layout.c src/layout/popup.c src/layout/compose.c src/layout/yaml.c)
 target_include_directories(pengUI PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

@@ -23,6 +23,7 @@ typedef struct {
     float preferred[3];
     char text[256];
     PUITextEdit edit;
+    double input_base; ///< Last committed/set numeric value for relative arithmetic.
     PUIColorTransition button_background, button_foreground, button_focus;
     float input_radius, input_radius_from, input_radius_target;
     double input_radius_started;

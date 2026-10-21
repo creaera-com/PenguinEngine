@@ -9,6 +9,7 @@
 #include "platform/temp_file.h"
 #include "shell/shell.h"
 #include "unity.h"
+#include <math.h>
 #include <string.h>
 
 static SDL_Window *window;
@@ -433,9 +434,10 @@ static void test_artboard_inspector_updates_history_and_survives_editor_switch(v
     TEST_ASSERT_EQUAL_FLOAT(480, document->artboards[0].rect.h);
     int count = document->history.count;
     property("artboard_width", "1e30", "vector.artboard.width");
-    property("artboard_width", "nan", "vector.artboard.width");
+    TEST_ASSERT_FALSE(pui_view_set_text(shell.view, "artboard_width", "nan"));
+    TEST_ASSERT_FALSE(vector_artboard_update(document, 1, "Menu", NAN, 480));
     property("artboard_width", "0", "vector.artboard.width");
-    property("artboard_height", "12junk", "vector.artboard.height");
+    TEST_ASSERT_FALSE(pui_view_set_text(shell.view, "artboard_height", "12junk"));
     property("artboard_name", "", "vector.artboard.name");
     TEST_ASSERT_EQUAL_INT(count, document->history.count);
     TEST_ASSERT_EQUAL_STRING("640", pui_view_text(shell.view, "artboard_width"));

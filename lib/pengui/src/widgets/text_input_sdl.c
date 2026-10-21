@@ -125,7 +125,16 @@ void pui_widget_text_input_draw(PUIView *v, PUIContext *pui, int i, PUIRect area
     draw_text_input(v->renderer, pui_frect(area), s->text, &s->edit, focused, !pui->blocked,
                     SDL_GetTicks() % 1000 < 500, radius, border);
     if (v->submit == i) {
-        s->input_invalid = !pui_text_input_valid(n->input_type, s->text, true);
+        if (n->input_type == PUI_INPUT_STRING) {
+            s->input_invalid = !pui_text_input_valid(n->input_type, s->text, true);
+        } else {
+            char result[sizeof s->text];
+            s->input_invalid = !pui_text_input_evaluate(n->input_type, s->text, s->input_base,
+                                                        result, sizeof result);
+            if (!s->input_invalid) {
+                pui_view_set_text(v, n->name, result);
+            }
+        }
         if (!s->input_invalid && action && *n->action) {
             action(context, n->action, n->name);
         }
@@ -161,7 +170,7 @@ static void input_key(PUIView *view, PUITextKey key, bool shift) {
     char candidate[sizeof state->text];
     memcpy(candidate, state->text, sizeof candidate);
     bool changed = pui_text_edit_key(&edit, candidate, key, shift);
-    if (pui_text_input_valid(view->layout->nodes[view->focused].input_type, candidate, false)) {
+    if (pui_text_input_expression_valid(view->layout->nodes[view->focused].input_type, candidate)) {
         memcpy(state->text, candidate, sizeof candidate);
         state->edit = edit;
         if (changed) {
