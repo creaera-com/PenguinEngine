@@ -51,6 +51,7 @@ static bool store(VectorShape *shape, const VectorPath *path) {
     // Keep the shared transform's minimum 1px box without changing the actual path geometry.
     bounds.w = fmaxf(1, bounds.w);
     bounds.h = fmaxf(1, bounds.h);
+    shape->corner_radius = 0;
     shape->rect = bounds;
     shape->angle = 0;
     shape->curve_kind = VECTOR_CURVE_FREE;
@@ -158,10 +159,14 @@ bool vector_paths_operate(VectorDocument *d, VectorPathOperation op) {
                 }
             }
             if (!shapes[i].path.count) {
-                shapes[i].path = (VectorPath){.count = 4,
-                                              .contours = 1,
-                                              .points = {{0, 0}, {1, 0}, {1, 1}, {0, 1}},
-                                              .ends = {4}};
+                shapes[i].path = vector_shape_path(&shapes[i], shapes[i].rect, 0);
+                for (unsigned n = 0; n < shapes[i].path.count; n++) {
+                    shapes[i].path.points[n].x =
+                        (shapes[i].path.points[n].x - shapes[i].rect.x) / shapes[i].rect.w;
+                    shapes[i].path.points[n].y =
+                        (shapes[i].path.points[n].y - shapes[i].rect.y) / shapes[i].rect.h;
+                }
+                shapes[i].corner_radius = 0;
             }
         }
     } else if (op == VECTOR_PATH_STROKE) {

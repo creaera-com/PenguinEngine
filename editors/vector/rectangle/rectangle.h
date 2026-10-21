@@ -24,6 +24,9 @@ bool vector_rectangle_update(struct VectorDocument *document, unsigned id, const
 /** @brief Undoable angle input; finite values wrap by signed full turns and honor inherited locks.
  */
 bool vector_rectangle_set_angle(struct VectorDocument *document, unsigned id, float degrees);
+/** @brief Change a parametric rectangle radius through history; rejects negative/non-finite values
+ * and locks. */
+bool vector_rectangle_set_radius(struct VectorDocument *document, unsigned id, float radius);
 /** @brief Undoable fill color change; inherited locks prevent editing. */
 bool vector_rectangle_set_fill(struct VectorDocument *document, unsigned id, uint32_t rgba);
 /** @brief Atomically change stroke color, width and placement through history; honors locks. */

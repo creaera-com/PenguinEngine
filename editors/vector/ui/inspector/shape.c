@@ -110,12 +110,13 @@ bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
     bool name = !strcmp(action, "vector.rectangle.name"),
          width = !strcmp(action, "vector.rectangle.width"),
          height = !strcmp(action, "vector.rectangle.height");
+    bool radius = !strcmp(action, "vector.rectangle.radius");
     bool angle = !strcmp(action, "vector.rectangle.angle");
     bool visible = !strcmp(action, "vector.rectangle.visible"),
          locked = !strcmp(action, "vector.rectangle.locked");
     bool stroke = !strncmp(action, "vector.rectangle.stroke_", 24);
-    if (!stroke && !fill && !preview && !name && !width && !height && !angle && !visible &&
-        !locked) {
+    if (!radius && !stroke && !fill && !preview && !name && !width && !height && !angle &&
+        !visible && !locked) {
         return false;
     }
     VectorDocument *document = vector_documents_find(documents, inspector->document_id);
@@ -158,7 +159,16 @@ bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
         return true;
     }
     bool changed = false;
-    if (angle) {
+    if (radius) {
+        const char *text = pui_view_text(view, "rectangle_radius");
+        char *end = NULL;
+        errno = 0;
+        float value = text ? strtof(text, &end) : -1;
+        bool valid = text && *text && end != text && !*end && !errno && isfinite(value);
+        vector_selection_cancel(document);
+        changed = valid && vector_rectangle_set_radius(document, rectangle->id, value);
+        inspector->dirty |= 256u;
+    } else if (angle) {
         const char *text = pui_view_text(view, "rectangle_angle");
         char *end;
         errno = 0;
@@ -209,6 +219,7 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
         inspector->mounted = mount;
         inspector->image_mounted = image;
         inspector->polygon_mounted = false;
+        inspector->corners_mounted = false;
         inspector->gradient.mounted = false;
         switched = true;
     }
@@ -267,7 +278,23 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
                           : rectangle->curve.count                        ? "Bezierkurve"
                           : rectangle->path.count                         ? "Pfad"
                                                                           : "Rechteck");
+        bool parametric_rect = !rectangle->curve.count && !rectangle->path.count &&
+                               !rectangle->text.enabled && !*rectangle->image.source;
+        if (parametric_rect != inspector->corners_mounted) {
+            if (!pui_view_replace_slot(view, input, "rectangle_corner_properties",
+                                       parametric_rect ? inspector->corners_layout : NULL, error,
+                                       capacity)) {
+                return false;
+            }
+            inspector->corners_mounted = parametric_rect;
+            switched = true;
+        }
         char value[64];
+        if (switched || (inspector->dirty & 256u) ||
+            inspector->presented.corner_radius != rectangle->corner_radius) {
+            snprintf(value, sizeof value, "%.7g", (double)rectangle->corner_radius);
+            pui_view_set_text(view, "rectangle_radius", value);
+        }
         if (switched || (inspector->dirty & 1u) ||
             strcmp(inspector->presented.name, rectangle->name)) {
             pui_view_set_text(view, "rectangle_name", rectangle->name);

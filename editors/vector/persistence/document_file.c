@@ -203,15 +203,18 @@ static void shape(Codec *c, VectorShape *s) {
             integer(c, &s->gradient.stops[i].color);
         }
     }
+    if (c->version >= 7) {
+        real(c, &s->corner_radius);
+    }
 }
 
 static bool content(Codec *c, VectorClipboard *values) {
     char magic[8] = {'P', 'E', 'N', 'G', 'V', 'E', 'C', 0}, actual[8];
     memcpy(actual, magic, 8);
     bytes(c, actual, 8);
-    unsigned version = 6;
+    unsigned version = 7;
     integer(c, &version);
-    if (memcmp(actual, magic, 8) || (version < 1 || version > 6)) {
+    if (memcmp(actual, magic, 8) || (version < 1 || version > 7)) {
         return false;
     }
     c->version = version;

@@ -4,6 +4,33 @@
 #include "editors/vector/repeat/repeat.h"
 #include <math.h>
 
+/* Derived contour only: the rectangle remains parametric and resizing retains the requested radius.
+ */
+static VectorPath rounded_rectangle(PUIRect rect, float requested) {
+    VectorPath path = {.contours = 1};
+    float radius = fminf(requested, fminf(rect.w, rect.h) * .5f);
+    float rx = radius / rect.w, ry = radius / rect.h;
+    const float cx[4] = {1 - rx, 1 - rx, rx, rx};
+    const float cy[4] = {ry, 1 - ry, 1 - ry, ry};
+    for (int corner = 0; corner < 4; corner++) {
+        for (int step = 0; step <= 12; step++) {
+            float a = (-1 + corner + step / 12.f) * 1.57079632679f;
+            VectorPoint p = {cx[corner] + cosf(a) * rx, cy[corner] + sinf(a) * ry};
+            if (path.count && hypotf(p.x - path.points[path.count - 1].x,
+                                     p.y - path.points[path.count - 1].y) < 1e-7f) {
+                continue;
+            }
+            path.points[path.count++] = p;
+        }
+    }
+    if (hypotf(path.points[0].x - path.points[path.count - 1].x,
+               path.points[0].y - path.points[path.count - 1].y) < 1e-7f) {
+        path.count--;
+    }
+    path.ends[0] = path.count;
+    return path;
+}
+
 VectorPath vector_shape_path(const VectorShape *shape, PUIRect rect, float angle) {
     VectorPath path = shape->path;
     if (shape->curve.count) {
@@ -18,6 +45,9 @@ VectorPath vector_shape_path(const VectorShape *shape, PUIRect rect, float angle
             }
         }
     }
+    if (!path.count && shape->corner_radius > 0 && !shape->text.enabled && !*shape->image.source) {
+        path = rounded_rectangle(rect, shape->corner_radius);
+    }
     if (!path.count) {
         path = (VectorPath){
             .count = 4, .contours = 1, .points = {{0, 0}, {1, 0}, {1, 1}, {0, 1}}, .ends = {4}};
@@ -30,8 +60,44 @@ VectorPath vector_shape_path(const VectorShape *shape, PUIRect rect, float angle
     return path;
 }
 
+static VectorPath rectangle_outline(const VectorShape *shape, PUIRect rect, float angle,
+                                    float width, int placement) {
+    float outside = placement < 0 ? 0 : placement > 0 ? width : width / 2;
+    float inside = placement > 0 ? 0 : placement < 0 ? width : width / 2;
+    float radius = fminf(shape->corner_radius, fminf(rect.w, rect.h) * .5f);
+    PUIRect boxes[2] = {
+        {rect.x - outside, rect.y - outside, rect.w + 2 * outside, rect.h + 2 * outside},
+        {rect.x + inside, rect.y + inside, rect.w - 2 * inside, rect.h - 2 * inside}};
+    VectorPath result = {0};
+    for (int side = 0; side < 2; side++) {
+        PUIRect box = boxes[side];
+        if (box.w <= 0 || box.h <= 0) {
+            continue;
+        }
+        float r = side ? fmaxf(0, radius - inside) : radius + outside;
+        VectorPath contour =
+            r > 0 ? rounded_rectangle(box, r)
+                  : (VectorPath){.count = 4, .points = {{0, 0}, {1, 0}, {1, 1}, {0, 1}}};
+        for (unsigned i = 0; i < contour.count; i++) {
+            VectorPoint p = contour.points[side ? contour.count - 1 - i : i];
+            float x = box.x + p.x * box.w, y = box.y + p.y * box.h;
+            vector_rotate_point(&x, &y, rect.x + rect.w / 2, rect.y + rect.h / 2, angle);
+            result.points[result.count++] = (VectorPoint){x, y};
+        }
+        result.ends[result.contours++] = result.count;
+    }
+    return result;
+}
+
 bool vector_shape_outline(const VectorShape *shape, PUIRect rect, float angle, float width,
                           int placement, VectorPath *out) {
+    if (shape->corner_radius > 0 && !shape->path.count && !shape->curve.count &&
+        !shape->text.enabled && !*shape->image.source && isfinite(width) && width >= 0 &&
+        placement >= -1 && placement <= 1) {
+        *out =
+            width > 0 ? rectangle_outline(shape, rect, angle, width, placement) : (VectorPath){0};
+        return vector_path_valid(out);
+    }
     VectorPath path = vector_shape_path(shape, rect, angle);
     if (vector_path_outline(&path, width, placement, out)) {
         return true;
@@ -91,7 +157,7 @@ bool vector_shape_contains(const VectorShape *shape, float x, float y) {
         }
         return false;
     }
-    if (shape->curve.count) {
+    if (shape->curve.count || shape->corner_radius > 0) {
         VectorPath path = vector_shape_path(shape, shape->rect, shape->angle);
         return vector_path_contains(&path, x, y);
     }
@@ -145,7 +211,7 @@ bool vector_shape_intersects(const VectorShape *shape, PUIRect box) {
         }
         return false;
     }
-    if (!shape->path.count) {
+    if (!shape->path.count && shape->corner_radius <= 0) {
         return vector_rotated_intersects(shape->rect, shape->angle, box);
     }
     VectorPath path = vector_shape_path(shape, shape->rect, shape->angle);

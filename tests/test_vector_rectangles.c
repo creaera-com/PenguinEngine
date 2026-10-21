@@ -2,6 +2,7 @@
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/geometry/resize.h"
 #include "editors/vector/internal.h"
+#include "editors/vector/path/operations.h"
 #include "editors/vector/rectangle/stroke_render.h"
 #include "editors/vector/workspace/box_tool.h"
 #include "editors/vector/workspace/selection.h"
@@ -897,8 +898,59 @@ static void test_stroke_render_alignment_rotation_alpha_and_clipping(void) {
     TEST_ASSERT_EQUAL_UINT8(outside, local_red(doc, -5, 60));
 }
 
+static void test_rounded_rectangle_radius_history_geometry_inspector_and_path(void) {
+    VectorDocument *d = parent();
+    TEST_ASSERT_TRUE(vector_rectangle_add(d, d->active_artboard, (PUIRect){20, 30, 100, 80}));
+    unsigned id = d->active_rectangle;
+    commit();
+    TEST_ASSERT_TRUE(pui_view_set_text(shell.view, "rectangle_radius", "20"));
+    action("vector.rectangle.radius", "rectangle_radius");
+    VectorShape *s = vector_rectangle_find(d, id);
+    TEST_ASSERT_EQUAL_FLOAT(20, s->corner_radius);
+    TEST_ASSERT_FALSE(vector_shape_contains(s, 21, 31));
+    TEST_ASSERT_TRUE(vector_shape_contains(s, 70, 31));
+    TEST_ASSERT_FALSE(vector_shape_intersects(s, (PUIRect){20, 30, 1, 1}));
+    VectorPath path = vector_shape_path(s, s->rect, s->angle), outline;
+    TEST_ASSERT_TRUE(vector_path_valid(&path));
+    TEST_ASSERT_TRUE(vector_shape_outline(s, s->rect, 0, 3, -1, &outline));
+    TEST_ASSERT_TRUE(vector_shape_outline(s, s->rect, 0, 3, 0, &outline));
+    TEST_ASSERT_TRUE(vector_shape_outline(s, s->rect, 0, 3, 1, &outline));
+    TEST_ASSERT_TRUE(vector_history_undo(&d->history, d));
+    TEST_ASSERT_EQUAL_FLOAT(0, s->corner_radius);
+    TEST_ASSERT_TRUE(vector_history_redo(&d->history, d));
+    TEST_ASSERT_EQUAL_FLOAT(20, s->corner_radius);
+    TEST_ASSERT_FALSE(vector_rectangle_set_radius(d, id, -1));
+    TEST_ASSERT_FALSE(vector_rectangle_set_radius(d, id, NAN));
+    TEST_ASSERT_FALSE(vector_rectangle_set_radius(d, id, INFINITY));
+    TEST_ASSERT_TRUE(vector_rectangle_set_radius(d, id, 1000));
+    path = vector_shape_path(s, s->rect, 0);
+    TEST_ASSERT_TRUE(vector_path_valid(&path));
+    TEST_ASSERT_TRUE(vector_shape_contains(s, 70, 70));
+    TEST_ASSERT_FALSE(vector_shape_contains(s, 21, 31));
+    TEST_ASSERT_TRUE(vector_rectangle_set_radius(d, id, 20));
+    unsigned cursor = d->history.cursor;
+    TEST_ASSERT_TRUE(vector_rectangle_set_state(d, id, VECTOR_OBJECT_LOCKED));
+    TEST_ASSERT_FALSE(vector_rectangle_set_radius(d, id, 10));
+    TEST_ASSERT_TRUE(vector_history_undo(&d->history, d));
+    TEST_ASSERT_EQUAL_UINT(cursor, d->history.cursor);
+    TEST_ASSERT_TRUE(vector_paths_operate(d, VECTOR_PATH_CONVERT));
+    TEST_ASSERT_EQUAL_FLOAT(0, s->corner_radius);
+    TEST_ASSERT_TRUE(s->path.count > 4);
+    TEST_ASSERT_FALSE(vector_shape_contains(s, 21, 31));
+    TEST_ASSERT_TRUE(vector_history_undo(&d->history, d));
+    TEST_ASSERT_EQUAL_FLOAT(20, s->corner_radius);
+    TEST_ASSERT_EQUAL_UINT(0, s->path.count);
+    TEST_ASSERT_TRUE(editor_host_request(&host, "scripts", false));
+    commit();
+    TEST_ASSERT_TRUE(editor_host_request(&host, "vector", false));
+    commit();
+    d = document();
+    TEST_ASSERT_EQUAL_FLOAT(20, vector_rectangle_find(d, id)->corner_radius);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_rounded_rectangle_radius_history_geometry_inspector_and_path);
     RUN_TEST(test_stroke_inspector_history_validation_and_checkpoint);
     RUN_TEST(test_stroke_render_alignment_rotation_alpha_and_clipping);
     RUN_TEST(test_inspector_angle_tab_commit_negative_input_validation_and_locks);

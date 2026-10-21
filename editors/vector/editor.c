@@ -54,6 +54,7 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         pui_layout_free(editor->inspector.rectangle.image_layout);
         pui_layout_free(editor->inspector.rectangle.layout);
         pui_layout_free(editor->inspector.rectangle.polygon_layout);
+        pui_layout_free(editor->inspector.rectangle.corners_layout);
         pui_layout_free(editor->inspector.rectangle.gradient_layout);
         pui_layout_free(editor->inspector.rectangle.text.layout);
         vector_image_renderer_destroy(editor->image_renderer);
@@ -77,6 +78,8 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         editor_load_ui(services, "editors/vector/ui/inspector/shape.yaml", error, capacity);
     editor->inspector.rectangle.gradient_layout =
         editor_load_ui(services, "editors/vector/ui/inspector/gradient.yaml", error, capacity);
+    editor->inspector.rectangle.corners_layout =
+        editor_load_ui(services, "editors/vector/ui/inspector/corners.yaml", error, capacity);
     editor->inspector.rectangle.polygon_layout =
         editor_load_ui(services, "editors/vector/ui/inspector/polygon.yaml", error, capacity);
     editor->inspector.rectangle.image_layout =
@@ -90,6 +93,7 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
     if (!editor->inspector.artboard_layout || !editor->inspector.rectangle.layout ||
         !editor->inspector.rectangle.image_layout || !editor->inspector.multi_layout ||
         !editor->inspector.rectangle.gradient_layout ||
+        !editor->inspector.rectangle.corners_layout ||
         !editor->inspector.rectangle.polygon_layout || !editor->image_renderer ||
         !editor->text_renderer || !editor->inspector.rectangle.text.layout) {
         if (!editor->text_renderer) {
@@ -117,6 +121,7 @@ void vector_editor_destroy(void *instance) {
         pui_layout_free(editor->inspector.rectangle.image_layout);
         pui_layout_free(editor->inspector.rectangle.layout);
         pui_layout_free(editor->inspector.rectangle.polygon_layout);
+        pui_layout_free(editor->inspector.rectangle.corners_layout);
         pui_layout_free(editor->inspector.rectangle.gradient_layout);
         pui_layout_free(editor->inspector.rectangle.text.layout);
         vector_image_renderer_destroy(editor->image_renderer);

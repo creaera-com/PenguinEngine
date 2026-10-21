@@ -128,7 +128,7 @@ static void draw_shape(void *data) {
                               vector_document_is_selected(document, rectangle->id));
         return;
     }
-    if (rectangle->path.count) {
+    if (rectangle->path.count || rectangle->corner_radius > 0) {
         vector_path_draw(renderer, rectangle, rect, angle, board, document->viewport.zoom, fill,
                          !context->silhouette &&
                              vector_document_is_selected(document, rectangle->id));

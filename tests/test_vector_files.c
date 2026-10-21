@@ -123,6 +123,7 @@ static void test_format_roundtrip_all_shapes_and_saved_baseline(void) {
     VectorDocument *d = document();
     char error[256];
     TEST_ASSERT_TRUE(vector_rectangle_add(d, 1, (PUIRect){10, 20, 50, 60}));
+    TEST_ASSERT_TRUE(vector_rectangle_set_radius(d, 1, 13));
     TEST_ASSERT_TRUE(vector_ellipse_add(d, 1, (PUIRect){100, 20, 50, 60}));
     TEST_ASSERT_TRUE(vector_polygon_add(d, 1, (PUIRect){200, 20, 50, 60}, 7));
     TEST_ASSERT_TRUE(vector_text_add(d, 1, (PUIRect){10, 100, 300, 200}));
@@ -286,8 +287,33 @@ static void test_explorer_routes_file_from_other_editor_to_own_tab(void) {
     SDL_RemovePath(folder);
 }
 
+static void test_legacy_version_six_defaults_to_square_corners(void) {
+    filename();
+    VectorDocument *d = document();
+    char error[256];
+    TEST_ASSERT_TRUE(vector_rectangle_add(d, 1, (PUIRect){10, 20, 50, 60}));
+    TEST_ASSERT_TRUE(vector_rectangle_set_radius(d, 1, 13));
+    TEST_ASSERT_TRUE(vector_document_file_save(d, path, error, sizeof error));
+    size_t length;
+    unsigned char *bytes = SDL_LoadFile(path, &length);
+    TEST_ASSERT_NOT_NULL(bytes);
+    TEST_ASSERT_EQUAL_UINT8(7, bytes[8]);
+    bytes[8] = 6;
+    TEST_ASSERT_TRUE(SDL_SaveFile(path, bytes, length - 4));
+    SDL_free(bytes);
+    VectorDocument *loaded = calloc(1, sizeof *loaded);
+    TEST_ASSERT_NOT_NULL(loaded);
+    vector_document_init(loaded, 2);
+    TEST_ASSERT_TRUE_MESSAGE(vector_document_file_load(loaded, path, error, sizeof error), error);
+    TEST_ASSERT_EQUAL_FLOAT(0, loaded->rectangles[0].corner_radius);
+    vector_history_destroy(&loaded->history);
+    free(loaded);
+    SDL_RemovePath(path);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_legacy_version_six_defaults_to_square_corners);
     RUN_TEST(test_explorer_routes_file_from_other_editor_to_own_tab);
     RUN_TEST(test_app_save_routing_and_default_project_directory);
     RUN_TEST(test_format_roundtrip_all_shapes_and_saved_baseline);

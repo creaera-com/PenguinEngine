@@ -60,17 +60,18 @@ bool vector_rectangle_valid(VectorRectangle rectangle) {
             return false;
         }
     }
-    bool valid = isfinite(rectangle.stroke.width) && rectangle.stroke.width >= 0 &&
-                 rectangle.stroke.width <= VECTOR_MAX_ARTBOARD_SIZE &&
-                 rectangle.stroke.alignment >= VECTOR_STROKE_CENTER &&
-                 rectangle.stroke.alignment <= VECTOR_STROKE_OUTSIDE && isfinite(rectangle.angle) &&
-                 rectangle.angle >= -360 && rectangle.angle <= 360 && rectangle.id &&
-                 rectangle.parent_id && !(rectangle.flags & ~VECTOR_OBJECT_STATE_MASK) &&
-                 memchr(rectangle.name, 0, sizeof rectangle.name) && *rectangle.name &&
-                 isfinite(r.x) && isfinite(r.y) && fabsf(r.x) <= VECTOR_MAX_ARTBOARD_SIZE &&
-                 fabsf(r.y) <= VECTOR_MAX_ARTBOARD_SIZE && isfinite(r.w) && isfinite(r.h) &&
-                 r.w >= 1 && r.h >= 1 && r.w <= VECTOR_MAX_ARTBOARD_SIZE &&
-                 r.h <= VECTOR_MAX_ARTBOARD_SIZE;
+    bool valid =
+        isfinite(rectangle.corner_radius) && rectangle.corner_radius >= 0 &&
+        rectangle.corner_radius <= VECTOR_MAX_ARTBOARD_SIZE && isfinite(rectangle.stroke.width) &&
+        rectangle.stroke.width >= 0 && rectangle.stroke.width <= VECTOR_MAX_ARTBOARD_SIZE &&
+        rectangle.stroke.alignment >= VECTOR_STROKE_CENTER &&
+        rectangle.stroke.alignment <= VECTOR_STROKE_OUTSIDE && isfinite(rectangle.angle) &&
+        rectangle.angle >= -360 && rectangle.angle <= 360 && rectangle.id && rectangle.parent_id &&
+        !(rectangle.flags & ~VECTOR_OBJECT_STATE_MASK) &&
+        memchr(rectangle.name, 0, sizeof rectangle.name) && *rectangle.name && isfinite(r.x) &&
+        isfinite(r.y) && fabsf(r.x) <= VECTOR_MAX_ARTBOARD_SIZE &&
+        fabsf(r.y) <= VECTOR_MAX_ARTBOARD_SIZE && isfinite(r.w) && isfinite(r.h) && r.w >= 1 &&
+        r.h >= 1 && r.w <= VECTOR_MAX_ARTBOARD_SIZE && r.h <= VECTOR_MAX_ARTBOARD_SIZE;
     if (valid && !rectangle.curve.count && rectangle.path.count && rectangle.stroke.width > 0) {
         VectorPath path = vector_shape_path(&rectangle, rectangle.rect, rectangle.angle), outline;
         int placement = rectangle.stroke.alignment == VECTOR_STROKE_INSIDE    ? -1
@@ -196,6 +197,18 @@ bool vector_rectangle_set_angle(VectorDocument *document, unsigned id, float deg
     }
     VectorRectangle after = *rectangle;
     after.angle = vector_angle_turn(degrees);
+    return edit(document, *rectangle, after);
+}
+
+bool vector_rectangle_set_radius(VectorDocument *document, unsigned id, float radius) {
+    VectorRectangle *rectangle = vector_rectangle_find(document, id);
+    if (!rectangle || rectangle->curve.count || rectangle->path.count || rectangle->text.enabled ||
+        *rectangle->image.source ||
+        (vector_rectangle_effective_flags(document, rectangle) & VECTOR_OBJECT_LOCKED)) {
+        return false;
+    }
+    VectorRectangle after = *rectangle;
+    after.corner_radius = radius;
     return edit(document, *rectangle, after);
 }
 

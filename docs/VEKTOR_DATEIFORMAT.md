@@ -42,7 +42,7 @@ geschlossen und erst bei Erfolg auf den Zielnamen umbenannt. Bei Schreib-/Validi
 fehlern bleiben die bestehende Zieldatei und die bisherige Dokumentidentität erhalten.
 Dies ist kein automatisches Recovery-System und keine Garantie gegen Stromausfall.
 
-## Format `PENGVEC`, Version 6
+## Format `PENGVEC`, Version 7
 
 Das eigene binäre Format ist unabhängig von C-Struct-Padding und nativer Byte-Reihenfolge.
 Es gibt keinen SVG-Mapping-Schritt und keine gespeicherten Zeiger.
@@ -60,7 +60,7 @@ Grundtypen:
 Datei-Reihenfolge:
 
 1. Acht Magic-Bytes `50 45 4E 47 56 45 43 00` (`PENGVEC` plus Nullbyte).
-2. Version `u32` = 6.
+2. Version `u32` = 7.
 3. Artboardanzahl und Formanzahl als u32, jeweils maximal 64.
 4. Pro Artboard: ID, Flags, Name `string(64)`, Rechteck.
 5. Pro Form, in Ebenenreihenfolge:
@@ -98,10 +98,12 @@ Schnittgruppe. Pro Schnittgruppe sind genau ein Masken-Kind und mindestens ein
 Inhaltsobjekt zulässig. Alle Kinder teilen dasselbe Artboard. Masken müssen geschlossene
 geometrische Formen sein; Textfelder und offene Kurven sind keine Masken.
 
-Der Reader akzeptiert weiterhin Version 1, 2, 3, 4 und 5. Version 1 hat weder Maskenrolle,
+Der Reader akzeptiert weiterhin Version 1, 2, 3, 4, 5 und 6. Version 1 hat weder Maskenrolle,
 Bildfeld, Wiederholung oder Schatten/Verlauf; Version 2 ergänzt die Maskenrolle, Version 3
-die Bildreferenz, Version 4 die Wiederholung, Version 5 den Schlagschatten und Version 6 den Verlauf.
-Fehlende Werte werden auf 0 gesetzt. Neue Dateien werden als Version 6 geschrieben.
+die Bildreferenz, Version 4 die Wiederholung, Version 5 den Schlagschatten Version 6 den Verlauf und Version 7 den Eckenradius.
+Fehlende Werte werden auf 0 gesetzt. Neue Dateien werden als Version 7 geschrieben.
+Der Eckenradius (`f32`) steht nach dem Verlauf am Ende jedes Formdatensatzes.
+Alte Dokumente erhalten Radius 0; ältere Programme können Version 7 nicht lesen.
 
 Bilddateien liegen separat im Projekt unter `assets/images`. Der Reader sucht das
 nächste übergeordnete `project.pengui.yaml` als Pfadbasis; außerhalb eines Projekts
@@ -134,3 +136,18 @@ Die dauerhafte Dokumentdatei und dieser private Checkpoint sind getrennte Format
 Ein App-Neustart öffnet weiterhin zunächst das zuletzt verwendete Projektverzeichnis.
 Die zuletzt geöffneten Dokument-Tabs werden noch nicht automatisch wieder geöffnet;
 gespeicherte Dokumente lassen sich über den Explorer laden.
+
+
+## Abgerundete Rechtecke
+
+Im Rechteck-Inspector bietet der Abschnitt **Ecken** einen gemeinsamen **Radius**
+für alle vier Ecken in Dokumentpixeln. `0` bedeutet eckig. Änderungen werden mit
+Enter oder beim Verlassen des Feldes übernommen und laufen über Undo/Redo.
+Der Radius bleibt als Eigenschaft am Rechteck, auch bei Größenänderungen.
+Die effektive Rundung ist auf die halbe kürzere Rechteckseite begrenzt.
+
+Die gemeinsame abgeleitete Kontur wird für Füllung, Rahmen (innen/mittig/außen),
+Verlauf, Schatten, Schnittmasken, Trefferprüfung und Rasterexport verwendet.
+Beim Umwandeln in einen Pfad bleibt die Rundung als polygonale Kontur erhalten;
+der parametrische Radius entfällt dann. Der temporäre Checkpoint verwendet wegen
+des zusätzlichen Modellwertes die Signatur `PVCKPT30`.

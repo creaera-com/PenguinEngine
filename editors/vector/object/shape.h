@@ -35,6 +35,8 @@ typedef struct {
     unsigned clip_mask; ///< One means this closed shape clips its group; never painted itself.
     uint32_t fill;      ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
     VectorStroke stroke;
+    float corner_radius; ///< Rectangle corner radius in pixels; effective value clamps to half the
+                         ///< shorter side.
     VectorGradient gradient; ///< Closed-area fill, evaluated in object-local coordinates.
     VectorShadow shadow;     ///< Individual non-destructive drop shadow, below object content.
     VectorRepeat repeat; ///< Procedural grid on this source; other cells are not document objects.
