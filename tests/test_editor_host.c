@@ -545,7 +545,7 @@ static void test_ruler_ticks_follow_document_scale_and_preserve_canvas_clip(void
         int y = (int)document->viewport.bounds.y + 50;
         Uint8 r, g, b, a;
         TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, x + 10, y - 2, &r, &g, &b, &a));
-        TEST_ASSERT_EQUAL_UINT8((zoom == 1 ? PUI_MUTED : PUI_PANEL) >> 24, r);
+        TEST_ASSERT_EQUAL_UINT8((zoom == 1 ? PUI_MUTED : PUI_SURFACE) >> 24, r);
         TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, x + 30, y + 30, &r, &g, &b, &a));
         TEST_ASSERT_EQUAL_UINT8(242, r);
         SDL_DestroySurface(surface);

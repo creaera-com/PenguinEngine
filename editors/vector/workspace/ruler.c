@@ -26,7 +26,7 @@ static void draw_axis(SDL_Renderer *renderer, SDL_FRect board, float zoom, bool 
         return;
     }
     SDL_SetRenderClipRect(renderer, &clip);
-    pui_render_color(renderer, PUI_PANEL);
+    pui_render_color(renderer, PUI_SURFACE);
     SDL_RenderFillRect(renderer, &strip);
 
     float origin = vertical ? board.y : board.x;
@@ -79,7 +79,7 @@ void vector_ruler_draw(SDL_Renderer *renderer, SDL_FRect board, float zoom) {
     draw_axis(renderer, board, zoom, true, outer);
     SDL_FRect corner = {board.x - ruler_thickness, board.y - ruler_thickness, ruler_thickness,
                         ruler_thickness};
-    pui_render_color(renderer, PUI_PANEL);
+    pui_render_color(renderer, PUI_SURFACE);
     SDL_RenderFillRect(renderer, &corner);
     pui_text_scaled(renderer, corner.x + 5 * ruler_scale, corner.y + 2 * ruler_scale, "px",
                     PUI_TEXT, text_scale);

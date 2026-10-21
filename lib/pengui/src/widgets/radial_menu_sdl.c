@@ -217,11 +217,16 @@ bool pui_widget_radial_event(PUIView *view, PUIContext *input, const SDL_Event *
            event->type == SDL_EVENT_KEY_UP || event->type == SDL_EVENT_TEXT_INPUT;
 }
 
+/* Slightly translucent surfaces; icons, labels and active outlines retain full contrast. */
+static uint32_t translucent(uint32_t color) {
+    return (color & 0xffffff00u) | ((color & 255u) * 235u / 255u);
+}
+
 /* Thin annular sectors share geometry for the background and the accent edge. */
 static void draw_sector(PUIView *view, float cx, float cy, float inner, float outer, float angle,
                         float half, uint32_t packed) {
     SDL_FColor color = {(packed >> 24) / 255.f, ((packed >> 16) & 255) / 255.f,
-                        ((packed >> 8) & 255) / 255.f, 1};
+                        ((packed >> 8) & 255) / 255.f, (packed & 255u) / 255.f};
     float gap = inner > 0 ? .018f : 0;
     for (int segment = 0; segment < 24; segment++) {
         float a = angle - half + gap + (2 * half - 2 * gap) * segment / 24;
@@ -290,6 +295,9 @@ void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, 
     bool clipped = SDL_RenderClipEnabled(view->renderer);
     SDL_GetRenderClipRect(view->renderer, &previous);
     SDL_SetRenderClipRect(view->renderer, NULL);
+    SDL_BlendMode previous_blend;
+    SDL_GetRenderDrawBlendMode(view->renderer, &previous_blend);
+    SDL_SetRenderDrawBlendMode(view->renderer, SDL_BLENDMODE_BLEND);
     for (int level = 0; level <= view->radial_depth; level++) {
         float inner, outer;
         ring_radii(view, level, &inner, &outer);
@@ -306,7 +314,7 @@ void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, 
             float angle = -1.570796327f + index * 6.283185307f / count;
             float half = 3.141592654f / count;
             uint32_t fill = hovered == k ? pui_theme.hover : pui_theme.surface;
-            draw_sector(view, cx, cy, inner, outer, angle, half, fill);
+            draw_sector(view, cx, cy, inner, outer, angle, half, translucent(fill));
             if (active || hovered == k) {
                 draw_sector(view, cx, cy, outer - 2, outer, angle, half, pui_theme.accent);
             }
@@ -331,7 +339,7 @@ void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, 
     }
     float center_inner, center_outer;
     ring_radii(view, 0, &center_inner, &center_outer);
-    draw_sector(view, cx, cy, 0, center_inner - 2, 0, 3.141592654f, pui_theme.panel);
+    draw_sector(view, cx, cy, 0, center_inner - 2, 0, 3.141592654f, translucent(pui_theme.panel));
     /* Full labels stay legible without inflating every sector. */
     const char *caption = hovered >= 0 ? view->layout->nodes[hovered].text : "";
     if (*caption) {
@@ -339,12 +347,13 @@ void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, 
         ring_radii(view, view->radial_depth, &inner, &outer);
         float width = pui_text_width(caption) * .875f;
         pui_panel(view->renderer, (SDL_FRect){cx - width / 2 - 8, cy + outer + 6, width + 16, 24},
-                  pui_theme.panel);
+                  translucent(pui_theme.panel));
         pui_text_scaled(view->renderer, cx - width / 2, cy + outer + 12, caption, pui_theme.text,
                         .875f);
     }
     const char *center = view->radial_depth ? "Zurueck" : "Esc";
     pui_text_scaled(view->renderer, cx - pui_text_width(center) * .75f / 2, cy - 5, center,
                     pui_theme.text, .75f);
+    SDL_SetRenderDrawBlendMode(view->renderer, previous_blend);
     SDL_SetRenderClipRect(view->renderer, clipped ? &previous : NULL);
 }
