@@ -774,7 +774,7 @@ der Bereich ausserhalb loesen keine Aktion aus. Ein Eintrag wird nur aktiviert,
 wenn Press und Release auf demselben aktiven Sektor liegen. Aktionen werden erst
 beim Zeichnen ueber den normalen `PUIAction`-Callback weitergegeben. Waehrend das
 Menue offen ist, erhalten darunterliegende Widgets keine Mausklicks oder Tasten.
-`Esc` schliesst die erste Ebene; Fokusverlust bricht das gesamte Menue ab.
+`Esc` und Fokusverlust schliessen das gesamte Menue.
 Der schliessende Klick wird verbraucht.
 Layoutaustausch setzt das Menue zurueck.
 
@@ -814,9 +814,9 @@ dem Menue, Eintraege ohne Icon ihren Text direkt im Ring.
 `pui_view_radial_item_center()` liefert die Mitte eines aktuell sichtbaren Eintrags,
 auch wenn dieser deaktiviert ist. Nicht geoeffnete Zweige liefern `false`.
 Der Menue-Stack liegt ausschliesslich in der View und ist durch die Layouttiefe
-begrenzt. Ein Klick auf die Mitte **Zurueck** oder `Esc` kehrt zur Eltern-Ebene
-zurueck, indem nur der aeusserste Ring geschlossen wird. Ausserhalb klicken, Fokusverlust und `pui_view_close_radial()` schliessen
-den gesamten Stack. Das Austauschen des Layouts setzt ihn ebenfalls zurueck.
+begrenzt. Die Mitte bleibt ohne Button und ohne Hintergrund. Ein Klick dort oder
+ausserhalb der Sektoren, `Esc`, Fokusverlust und `pui_view_close_radial()` schliessen
+den gesamten Stack. Die inneren Ringe bleiben zum Wechseln des Zweigs bedienbar. Das Austauschen des Layouts setzt ihn ebenfalls zurueck.
 Nur Blattaktionen gelangen zum `PUIAction`-Callback; reine Navigation aendert
 keine Anwendungsdaten. `pui_view_set_radial_enabled()` funktioniert auch fuer
 ganze Untermenues und deren einzelne Eintraege.

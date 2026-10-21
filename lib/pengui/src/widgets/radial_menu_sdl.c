@@ -139,23 +139,6 @@ bool pui_view_radial_item_center(const PUIView *view, const char *id, float *x, 
     return false;
 }
 
-static bool in_center(const PUIView *view, float x, float y) {
-    float inner, outer;
-    ring_radii(view, 0, &inner, &outer);
-    PUIRect b = view->radial_bounds;
-    return hypotf(x - b.x - b.w / 2, y - b.y - b.h / 2) < inner;
-}
-
-static void back(PUIView *view) {
-    if (view->radial_depth > 0) {
-        view->radial_index = view->radial_parents[--view->radial_depth];
-        view->radial_open = true;
-        view->radial_pressed = view->radial_pending = -1;
-    } else {
-        pui_view_close_radial(view);
-    }
-}
-
 bool pui_widget_radial_event(PUIView *view, PUIContext *input, const SDL_Event *event) {
     if (!view->radial_open) {
         /* A dismissing press also owns its release, even after an intervening frame. */
@@ -173,11 +156,7 @@ bool pui_widget_radial_event(PUIView *view, PUIContext *input, const SDL_Event *
     }
     if (event->type == SDL_EVENT_WINDOW_FOCUS_LOST ||
         (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_ESCAPE)) {
-        if (event->type == SDL_EVENT_WINDOW_FOCUS_LOST) {
-            pui_view_close_radial(view);
-        } else {
-            back(view);
-        }
+        pui_view_close_radial(view);
         pui_cancel(input);
         return event->type != SDL_EVENT_WINDOW_FOCUS_LOST;
     }
@@ -190,17 +169,12 @@ bool pui_widget_radial_event(PUIView *view, PUIContext *input, const SDL_Event *
         bool down = event->type == SDL_EVENT_MOUSE_BUTTON_DOWN;
         if (event->button.button == SDL_BUTTON_LEFT) {
             int item = item_at(view, event->button.x, event->button.y);
-            if (view->radial_depth > 0 && in_center(view, event->button.x, event->button.y)) {
-                item = -2; // Center navigates back; never dispatch an object action.
-            }
             if (down) {
                 view->radial_pressed = item;
                 if (item == -1) {
                     pui_view_close_radial(view);
                     view->radial_release_button = event->button.button;
                 }
-            } else if (item == -2 && view->radial_pressed == -2) {
-                back(view);
             } else {
                 view->radial_pending = item >= 0 && item == view->radial_pressed ? item : -1;
                 view->radial_open = false;
@@ -337,10 +311,6 @@ void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, 
             }
         }
     }
-    float center_inner, center_outer;
-    ring_radii(view, 0, &center_inner, &center_outer);
-    uint32_t center_fill = (pui_theme.panel & 0xffffff00u) | ((pui_theme.panel & 255u) * 140u / 255u);
-    draw_sector(view, cx, cy, 0, center_inner - 2, 0, 3.141592654f, center_fill);
     /* Full labels stay legible without inflating every sector. */
     const char *caption = hovered >= 0 ? view->layout->nodes[hovered].text : "";
     if (*caption) {
@@ -352,9 +322,6 @@ void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, 
         pui_text_scaled(view->renderer, cx - width / 2, cy + outer + 12, caption, pui_theme.text,
                         .875f);
     }
-    const char *center = view->radial_depth ? "Zurueck" : "Esc";
-    pui_text_scaled(view->renderer, cx - pui_text_width(center) * .75f / 2, cy - 5, center,
-                    pui_theme.text, .75f);
     SDL_SetRenderDrawBlendMode(view->renderer, previous_blend);
     SDL_SetRenderClipRect(view->renderer, clipped ? &previous : NULL);
 }

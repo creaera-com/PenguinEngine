@@ -992,7 +992,7 @@ SDL_SystemCursor pui_view_cursor(const PUIView *view);
 /** @brief Apply YAML palette and button shape/transition defaults to the renderer theme. */
 void pui_view_apply_theme(const PUILayout *layout);
 /** @brief Open a YAML radial menu; nested menus add concentric outer rings.
- * Ancestor rings remain interactive. Escape/center closes the outermost ring first.
+ * Ancestor rings remain interactive. Escape or a click outside all sectors closes the menu.
  * popup_width scales the compact rings (320 is the default scale). */
 bool pui_view_open_radial(PUIView *view, const char *id, float x, float y);
 /** @brief Return a visible radial item's center in view coordinates, including disabled items.

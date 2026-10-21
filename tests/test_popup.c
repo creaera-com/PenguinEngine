@@ -299,18 +299,18 @@ static void test_concentric_rings_keep_ancestors_interactive_and_replace_only_th
     TEST_ASSERT_FALSE(radial_visible("copy"));
 }
 
-static void test_escape_pops_one_ring_and_root_actions_remain_available(void) {
+static void test_escape_closes_all_rings_and_root_actions_remain_available(void) {
     radial_fixture(200, 150);
     radial_click_item("transform");
     radial_click_item("align");
     TEST_ASSERT_TRUE(key(SDLK_ESCAPE));
     frame();
     TEST_ASSERT_FALSE(radial_visible("left"));
-    TEST_ASSERT_TRUE(radial_visible("flip"));
-    TEST_ASSERT_TRUE(key(SDLK_ESCAPE));
-    frame();
     TEST_ASSERT_FALSE(radial_visible("flip"));
+    TEST_ASSERT_FALSE(radial_visible("copy"));
+    radial_fixture(200, 150);
     radial_click_item("transform");
+    radial_click_item("align");
     radial_click_item("copy");
     TEST_ASSERT_EQUAL_STRING("copy", last_action);
     TEST_ASSERT_EQUAL_INT(1, actions);
@@ -331,7 +331,7 @@ static void test_outer_rings_stay_inside_small_view_and_center_does_not_jump(voi
     TEST_ASSERT_EQUAL_STRING("left", last_action);
 }
 
-static void test_disabled_inner_action_never_dispatches_and_center_removes_outer_ring(void) {
+static void test_disabled_inner_action_never_dispatches_and_empty_center_closes_menu(void) {
     radial_fixture(200, 150);
     radial_click_item("transform");
     radial_click_item("align");
@@ -348,7 +348,8 @@ static void test_disabled_inner_action_never_dispatches_and_center_removes_outer
     TEST_ASSERT_TRUE(pui_view_event(view, &pui, window, &e));
     frame();
     TEST_ASSERT_FALSE(radial_visible("left"));
-    TEST_ASSERT_TRUE(radial_visible("flip"));
+    TEST_ASSERT_FALSE(radial_visible("flip"));
+    radial_fixture(200, 150);
     TEST_ASSERT_TRUE(pui_view_set_radial_enabled(view, "copy", false));
     radial_click_item("copy");
     TEST_ASSERT_EQUAL_INT(0, actions);
@@ -357,9 +358,9 @@ static void test_disabled_inner_action_never_dispatches_and_center_removes_outer
 
 int main(void) {
     UNITY_BEGIN();
-    RUN_TEST(test_disabled_inner_action_never_dispatches_and_center_removes_outer_ring);
+    RUN_TEST(test_disabled_inner_action_never_dispatches_and_empty_center_closes_menu);
     RUN_TEST(test_concentric_rings_keep_ancestors_interactive_and_replace_only_the_branch);
-    RUN_TEST(test_escape_pops_one_ring_and_root_actions_remain_available);
+    RUN_TEST(test_escape_closes_all_rings_and_root_actions_remain_available);
     RUN_TEST(test_outer_rings_stay_inside_small_view_and_center_does_not_jump);
     RUN_TEST(test_long_dropdown_scrolls_selected_option_into_view);
     RUN_TEST(test_focus_loss_dismisses_popup);
