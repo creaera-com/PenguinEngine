@@ -1095,8 +1095,7 @@ und Zahlentokens; unvollständige Ausdrücke sind während des Tippens zulässig
 
 
 Radialmenü-Segmente verwenden parallele Seitenabstände von 4 Bildschirmpixeln
-und weich gerundete Übergänge zu den Innen-/Außenbögen. Die Rundung liegt bei
-mindestens 8 Pixeln bzw. vier Pixeln über dem Button-Radius; kleine Ringe begrenzen
-sie passend zum verfügbaren Platz. Hintergrundflächen haben rund 82 % Deckkraft,
+und weich gerundete Übergänge zu den Innen-/Außenbögen. Die Rundung beträgt dezente 3 Pixel; kleine Ringe begrenzen sie passend zum
+verfügbaren Platz. Hintergrundflächen haben rund 82 % Deckkraft,
 Icons und Beschriftungen bleiben deckend. Die Klickprüfung berücksichtigt dieselben
 Lücken und Rundungen wie die gezeichnete Form.

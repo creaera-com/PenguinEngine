@@ -83,8 +83,7 @@ void pui_view_close_radial(PUIView *view) {
 /* Parallel side offsets keep gaps constant in screen pixels. Circular corner
  * cut-ins soften the transition from each straight side to the inner/outer arc. */
 static float sector_inset(float radius, float inner, float outer, float half) {
-    float rounding = fminf(fmaxf(8, pui_theme.button_radius + 4),
-                           fminf((outer - inner) * .5f, inner * sinf(half) * .65f));
+    float rounding = fminf(3, fminf((outer - inner) * .5f, inner * sinf(half) * .65f));
     float edge = fminf(radius - inner, outer - radius);
     float cut =
         edge < rounding
