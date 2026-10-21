@@ -125,6 +125,7 @@ root:
 
         - type: tabs
           id: vector_document_tabs
+          close_action: editor.close_document
           children: []
     - type: split
       id: vector_right_split

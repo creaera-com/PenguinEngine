@@ -6,6 +6,7 @@
 /** @brief Deferred UI requests, kept outside the document model. */
 typedef struct {
     int pending;
+    bool initialized; ///< An intentionally empty workspace must remain empty.
 } VectorDocumentTabs;
 
 /** @brief Map the selected workspace tab to a model document; NULL when no document is selected. */

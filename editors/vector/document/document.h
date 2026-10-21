@@ -19,6 +19,8 @@
 /** @brief An unsaved document with artboards, history and viewport; owned by the active editor. */
 typedef struct VectorDocument {
     unsigned id;
+    uint64_t saved_content; ///< Fingerprint of the last successfully saved artwork.
+    bool has_saved_content;
     char title[64];
     char filename[4096]; ///< Absolute saved filename, empty until first save.
     VectorArtboard artboards[VECTOR_MAX_ARTBOARDS];
@@ -48,6 +50,7 @@ typedef struct VectorDocument {
 typedef struct {
     VectorDocument items[VECTOR_MAX_DOCUMENTS];
     int count;
+    unsigned next_id; ///< Monotonic document IDs survive closing other tabs.
 } VectorDocuments;
 
 /** @brief Initialize an empty collection. */
@@ -63,6 +66,14 @@ VectorDocument *vector_documents_find(VectorDocuments *documents, unsigned id);
  * Caller must check count < VECTOR_MAX_DOCUMENTS and pass a document with no owned history data.
  */
 void vector_documents_append(VectorDocuments *documents, const VectorDocument *document);
+/** @brief Whether the artwork differs from its last save; untouched empty documents are clean. */
+bool vector_document_modified(const VectorDocument *document);
+/** @brief Record the current artwork as successfully saved. */
+void vector_document_mark_saved(VectorDocument *document);
+/** @brief Next unused identity, or zero when the identity range is exhausted. */
+unsigned vector_documents_next_id(const VectorDocuments *documents);
+/** @brief Release a document's history and remove it without renumbering remaining IDs. */
+bool vector_documents_remove(VectorDocuments *documents, unsigned id);
 /** @brief Release histories and document collection when the Vector editor is unloaded. */
 void vector_documents_destroy(VectorDocuments *documents);
 #endif

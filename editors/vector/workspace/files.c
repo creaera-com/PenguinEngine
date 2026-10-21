@@ -19,8 +19,10 @@ bool vector_workspace_file_info(void *instance, const PUIView *view, EditorFileI
     if (!d) {
         return false;
     }
-    *info =
-        (EditorFileInfo){.artboard = d->active_artboard, .document = d->id, .extension = "pengvec"};
+    *info = (EditorFileInfo){.artboard = d->active_artboard,
+                             .document = d->id,
+                             .modified = vector_document_modified(d),
+                             .extension = "pengvec"};
     snprintf(info->filename, sizeof info->filename, "%s", d->filename);
     snprintf(info->title, sizeof info->title, "%s", d->title);
     return true;
@@ -37,7 +39,7 @@ bool vector_workspace_open_file(void *instance, PUIView *view, PUIContext *input
     if (!candidate) {
         return false;
     }
-    vector_document_init(candidate, (unsigned)editor->documents.count + 1);
+    vector_document_init(candidate, vector_documents_next_id(&editor->documents));
     bool ok = vector_document_file_load(candidate, path, error, capacity);
     if (ok) {
         char id[64];
@@ -73,4 +75,38 @@ bool vector_workspace_save_file(void *instance, PUIView *view, unsigned id, cons
     snprintf(tab, sizeof tab, "vector_document_%u", id);
     pui_view_set_text(view, tab, d->title);
     return true;
+}
+
+bool vector_workspace_close_info(void *instance, const PUIView *view, const char *widget,
+                                 EditorFileInfo *info) {
+    (void)view;
+    VectorEditor *editor = instance;
+    for (int i = 0; i < editor->documents.count; i++) {
+        VectorDocument *d = &editor->documents.items[i];
+        char tab[64];
+        snprintf(tab, sizeof tab, "vector_document_%u", d->id);
+        if (!strcmp(widget, tab)) {
+            vector_text_tool_end(d);
+            *info = (EditorFileInfo){
+                .document = d->id, .modified = vector_document_modified(d), .extension = "pengvec"};
+            snprintf(info->filename, sizeof info->filename, "%s", d->filename);
+            snprintf(info->title, sizeof info->title, "%s", d->title);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool vector_workspace_close_file(void *instance, PUIView *view, PUIContext *input, unsigned id,
+                                 char *error, size_t capacity) {
+    VectorEditor *editor = instance;
+    if (!vector_documents_find(&editor->documents, id)) {
+        return false;
+    }
+    char tab[64];
+    snprintf(tab, sizeof tab, "vector_document_%u", id);
+    if (!pui_view_remove_tab(view, input, "vector_document_tabs", tab, error, capacity)) {
+        return false;
+    }
+    return vector_documents_remove(&editor->documents, id);
 }

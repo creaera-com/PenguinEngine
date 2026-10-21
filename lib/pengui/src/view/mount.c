@@ -74,6 +74,13 @@ static void retain_state(PUIView *old, PUIView *next, const char *slot) {
                         merged.items[count++] = initial.tabs.items[t];
                     }
                 }
+                merged.count = count;
+                /* If the active tab was removed, prefer its right neighbor, then the last tab. */
+                for (int k = 0; k < old->state[j].tabs.count; k++) {
+                    if (old->state[j].tabs.items[k].id == old->state[j].tabs.selected && count) {
+                        merged.selected = merged.items[k < count ? k : count - 1].id;
+                    }
+                }
                 merged.scroll = old->state[j].tabs.scroll;
                 for (int k = 0; k < count; k++) {
                     if (merged.items[k].id == old->state[j].tabs.selected) {
@@ -138,7 +145,7 @@ static bool apply_layout(PUIView *view, PUIContext *context, PUILayout *layout, 
                 if (next->state[i].tabs.items[k].id == tab->id) {
                     next->state[i].tabs.items[k].width =
                         pui_tab_content_width(pui_icon_from_name(tab->icon), next->state[j].text) +
-                        PUI_TAB_GAP;
+                        PUI_TAB_GAP + ((*tab->close_action || *node->close_action) ? 24 : 0);
                 }
             }
         }
@@ -202,4 +209,13 @@ bool pui_view_add_tab(PUIView *view, PUIContext *context, const char *tabs, cons
         return false;
     }
     return apply_layout(view, context, layout, NULL, tabs, tab_id, error, capacity);
+}
+
+bool pui_view_remove_tab(PUIView *view, PUIContext *context, const char *tabs, const char *tab_id,
+                         char *error, size_t capacity) {
+    if (!view || !context) {
+        return false;
+    }
+    PUILayout *layout = pui_layout_remove_tab(view->layout, tabs, tab_id, error, capacity);
+    return layout && apply_layout(view, context, layout, NULL, NULL, NULL, error, capacity);
 }

@@ -14,6 +14,7 @@ typedef struct {
 /** @brief Selected document identity for app-level Save/Save As routing. */
 typedef struct {
     unsigned document;
+    bool modified;     ///< Artwork contains unsaved changes.
     unsigned artboard; ///< Optional placement target for imports.
     char filename[4096], title[64];
     const char *extension;
@@ -27,6 +28,11 @@ typedef struct {
      */
     bool (*accepts_file)(const char *path);
     bool (*file_info)(void *editor, const PUIView *view, EditorFileInfo *info);
+    /** @brief Resolve a close-request widget without selecting it; includes unsaved state. */
+    bool (*close_info)(void *editor, const PUIView *view, const char *widget, EditorFileInfo *info);
+    /** @brief Release a confirmed document and its tab between frames. */
+    bool (*close_file)(void *editor, PUIView *view, PUIContext *input, unsigned document,
+                       char *error, size_t capacity);
     bool (*open_file)(void *editor, PUIView *view, PUIContext *input, const char *path, char *error,
                       size_t capacity);
     bool (*save_file)(void *editor, PUIView *view, unsigned document, const char *path, char *error,

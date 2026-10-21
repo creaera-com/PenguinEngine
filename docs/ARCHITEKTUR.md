@@ -972,3 +972,25 @@ sichtbaren Zwischenzustand an. `transition_ms: 0` schaltet sofort um,
 pro Feld; Text, Auswahl und Fokusverarbeitung bleiben davon unabhängig.
 Der direkte Aufruf von `pui_draw_text_input` ist zustandslos und zeichnet
 deshalb die fertige Form ohne Animation.
+
+
+### Schließbare Tabs
+
+Ein optionales `close_action` an `tabs` ergänzt bei allen enthaltenen Tabs ein ×.
+Ein `close_action` direkt am `tab` überschreibt diese Aktion. Die Breite des Tabs
+berücksichtigt den zusätzlichen Button, auch nach einer Titeländerung.
+
+```yaml
+- type: tabs
+  id: documents
+  close_action: editor.close_document
+  children: []
+```
+
+Der Button löst eine Aktion mit der **ID des betroffenen Tabs** als Widget-ID aus,
+ohne den Tab vorher zu selektieren. Er entfernt selbst keine Inhalte. Die Anwendung
+entscheidet über Speichern/Rückfragen und ruft **zwischen Frames**
+`pui_view_remove_tab(view, input, "documents", tab_id, error, capacity)` auf.
+Andere Tabs behalten ihre Werte und Reihenfolge. Wird der aktive Tab entfernt,
+wird sein rechter Nachbar aktiv, sonst der linke. Ohne Tabs bleibt die Liste leer.
+`pui_layout_remove_tab` bietet denselben Aufbau als unverändernde Layout-Komposition.

@@ -34,20 +34,26 @@ bool vector_document_tabs_commit(VectorDocumentTabs *tabs, VectorDocuments *docu
                                  PUIView *view, PUIContext *input, char *error, size_t capacity) {
     /* A fresh or empty restored workspace gets one document. An explicit request
      * already provides that document, so do not queue a second one. */
-    bool automatic = !documents->count && !tabs->pending;
+    bool automatic = !tabs->initialized && !documents->count && !tabs->pending;
+    tabs->initialized = true;
     if (automatic) {
         tabs->pending = 1;
     }
     while (tabs->pending > 0) {
+        if (!vector_documents_next_id(documents)) {
+            snprintf(error, capacity, "document identity range exhausted");
+            tabs->pending = 0;
+            return false;
+        }
         VectorDocument document;
         if (automatic) {
-            if (!vector_document_init_default(&document, (unsigned)documents->count + 1)) {
+            if (!vector_document_init_default(&document, vector_documents_next_id(documents))) {
                 snprintf(error, capacity, "could not create the startup artboard");
                 tabs->pending = 0;
                 return false;
             }
         } else {
-            vector_document_init(&document, (unsigned)documents->count + 1);
+            vector_document_init(&document, vector_documents_next_id(documents));
         }
         char tab_id[64];
         snprintf(tab_id, sizeof tab_id, "vector_document_%u", document.id);

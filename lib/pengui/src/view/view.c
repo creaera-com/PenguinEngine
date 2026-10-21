@@ -118,7 +118,9 @@ bool pui_view_set_text(PUIView *view, const char *id, const char *text) {
                         if (view->state[j].tabs.items[k].id == n->id) {
                             view->state[j].tabs.items[k].width =
                                 pui_tab_content_width(pui_icon_from_name(n->icon), copy) +
-                                PUI_TAB_GAP;
+                                PUI_TAB_GAP +
+                                ((*n->close_action || *view->layout->nodes[j].close_action) ? 24
+                                                                                            : 0);
                         }
                     }
                 }

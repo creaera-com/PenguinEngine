@@ -924,8 +924,50 @@ static void test_input_corners_animate_on_mouse_focus_and_blur(void) {
     pui_layout_free(l);
 }
 
+static int close_requests;
+
+static void close_action(void *context, const char *name, const char *widget) {
+    (void)context;
+    TEST_ASSERT_EQUAL_STRING("document.close", name);
+    TEST_ASSERT_EQUAL_STRING("first", widget);
+    close_requests++;
+}
+
+static void test_closable_tabs_dispatch_and_remove_without_losing_other_state(void) {
+    const char *yaml =
+        "schema: pengui/v1\nroot: {type: tabs, id: documents, close_action: document.close, "
+        "children: [{type: tab, id: first, text: First, children: [{type: input, id: text}]}, "
+        "{type: tab, id: second, text: Second}]}";
+    char error[256];
+    PUILayout *l = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(l, error);
+    PUIView *v = pui_view_new(l, renderer);
+    TEST_ASSERT_NOT_NULL(v);
+    PUIContext input;
+    pui_init(&input);
+    close_requests = 0;
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, close_action, NULL);
+    TEST_ASSERT_TRUE(pui_view_set_text(v, "text", "Retained"));
+    // First label occupies 58px; the extra 24px contains the close control.
+    pui_pointer(&input, 70, 15, true);
+    pui_pointer(&input, 70, 15, false);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, close_action, NULL);
+    TEST_ASSERT_EQUAL_INT(1, close_requests);
+    TEST_ASSERT_EQUAL_INT(2, pui_view_tab_count(v, "documents")); // Request only.
+    TEST_ASSERT_FALSE(pui_view_remove_tab(v, &input, "documents", "missing", error, sizeof error));
+    TEST_ASSERT_TRUE(pui_view_remove_tab(v, &input, "documents", "second", error, sizeof error));
+    TEST_ASSERT_EQUAL_STRING("Retained", pui_view_text(v, "text"));
+    TEST_ASSERT_EQUAL_STRING("first", pui_view_selected_tab(v, "documents"));
+    TEST_ASSERT_TRUE(pui_view_remove_tab(v, &input, "documents", "first", error, sizeof error));
+    TEST_ASSERT_EQUAL_INT(0, pui_view_tab_count(v, "documents"));
+    TEST_ASSERT_NULL(pui_view_selected_tab(v, "documents"));
+    pui_view_free(v);
+    pui_layout_free(l);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_closable_tabs_dispatch_and_remove_without_losing_other_state);
     RUN_TEST(test_input_corners_animate_on_mouse_focus_and_blur);
     RUN_TEST(test_toolbars_round_all_corners_and_tabs_only_upper_corners);
     RUN_TEST(test_rounded_button_inherits_theme_and_zero_override_is_square);

@@ -150,9 +150,32 @@ Die gemeinsame abgeleitete Kontur wird für Füllung, Rahmen (innen/mittig/auße
 Verlauf, Schatten, Schnittmasken, Trefferprüfung und Rasterexport verwendet.
 Beim Umwandeln in einen Pfad bleibt die Rundung als polygonale Kontur erhalten;
 der parametrische Radius entfällt dann. Der temporäre Checkpoint verwendet wegen
-des zusätzlichen Modellwertes die Signatur `PVCKPT31`.
+des zusätzlichen Modellwertes die Signatur `PVCKPT32`.
 
 Die Toolbar schaltet über `vector.rulers.toggle` die Artboard-Lineale samt
 Mauspositionsmarkierung dokumentweise um. Der aktive Lineal-Button bedeutet sichtbar.
 Dieser Ansichtsstatus bleibt beim Editorwechsel im temporären Checkpoint erhalten,
 verändert aber weder Undo/Redo noch die `.pengvec`-Datei oder den Export.
+
+
+## Dokument-Tabs schließen
+
+Das × im Dokument-Tab sendet `editor.close_document` an den App-Controller.
+Dieser prüft über den Editor-Vertrag das konkret angeklickte Dokument. Bei
+ungespeicherten Änderungen fragt er nach **Speichern**, **Verwerfen** oder **Abbrechen**.
+Ohne Dateipfad wird vor dem Schließen der normale Speichern-unter-Dialog verwendet.
+Abbruch, Dialogfehler oder fehlgeschlagenes Speichern lassen das Dokument geöffnet.
+
+Der Controller entfernt Tab und Dokument erst zwischen Frames. Das Dokument gibt
+seine History frei; andere Dokument-IDs bleiben stabil. Neue Dokumente erhalten
+fortlaufende IDs. Der letzte Tab kann geschlossen werden; dieser leere Arbeitsbereich
+bleibt auch beim Editorwechsel leer. Beim ersten Start gibt es weiterhin ein
+Startdokument.
+
+Für die Änderungsprüfung merkt sich das Dokument einen 64-Bit-Fingerabdruck der
+Artboard- und Formwerte nach erfolgreichem Laden/Speichern. Undo zurück zum gespeicherten
+Inhalt gilt dadurch wieder als gespeichert. Ansichtsänderungen wie Zoom oder Raster
+gehen nicht in diesen Vergleich ein. Der Fingerabdruck dient der Sitzungslogik,
+ist keine kryptografische Prüfsumme und steht nicht im `.pengvec`-Format.
+Der private Checkpoint `PVCKPT32` enthält zusätzlich den gespeicherten Zustand,
+die nächste Dokument-ID und die Information, ob der Arbeitsbereich bereits gestartet war.

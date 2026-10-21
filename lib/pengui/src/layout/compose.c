@@ -8,6 +8,8 @@ typedef struct {
     PUILayout *out;
     const PUILayout *base, *content;
     int slot;
+    int removed;
+    bool removing;
     const char *tab_id, *title;
     char *error;
     size_t capacity;
@@ -56,6 +58,9 @@ static int copy_node(Composition *c, const PUILayout *source, int index, int dep
     } else {
         int previous = -1;
         for (int k = source->nodes[index].child; k >= 0; k = source->nodes[k].next) {
+            if (c->removing && source == c->base && k == c->removed) {
+                continue;
+            }
             int child = copy_node(c, source, k, depth + 1);
             if (child < 0) {
                 return -1;
@@ -180,6 +185,38 @@ PUILayout *pui_layout_add_tab(const PUILayout *base, const char *tabs, const cha
     }
     if (c.slot < 0) {
         fail(&c, "tabs node not found");
+        return NULL;
+    }
+    return build(&c);
+}
+
+PUILayout *pui_layout_remove_tab(const PUILayout *base, const char *tabs, const char *tab_id,
+                                 char *error, size_t capacity) {
+    if (error && capacity) {
+        *error = 0;
+    }
+    Composition c = {.base = base,
+                     .slot = -1,
+                     .removed = -1,
+                     .removing = true,
+                     .error = error,
+                     .capacity = capacity};
+    if (!base || !tabs || !tab_id) {
+        fail(&c, "layout, tabs and tab ID required");
+        return NULL;
+    }
+    for (int i = 0; i < base->count; i++) {
+        if (base->nodes[i].type == PUI_NODE_TABS && !strcmp(base->nodes[i].name, tabs)) {
+            for (int k = base->nodes[i].child; k >= 0; k = base->nodes[k].next) {
+                if (!strcmp(base->nodes[k].name, tab_id)) {
+                    c.removed = k;
+                    break;
+                }
+            }
+        }
+    }
+    if (c.removed < 0) {
+        fail(&c, "tab not found");
         return NULL;
     }
     return build(&c);

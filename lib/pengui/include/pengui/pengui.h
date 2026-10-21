@@ -529,6 +529,7 @@ typedef struct {
         scrollable; ///< Panel content can scroll vertically with wheel and scrollbar (YAML scroll).
     bool draggable; ///< Empty space in this widget may move a borderless window.
     PUIAxis axis;
+    char close_action[64]; ///< Tab close request; tabs containers supply the default for children.
     char preview_action[64]; ///< Optional color-picker live preview/cancellation action.
     int color_mode;          ///< Color picker: 0=HSL, 1=RGBA.
     char value[128]; ///< Stable option value, initial dropdown value, or initial color-picker hex.
@@ -951,6 +952,12 @@ bool pui_view_add_tab(PUIView *view, PUIContext *context, const char *tabs, cons
 /** @brief Selected tab's YAML ID, borrowed until the next layout replacement; NULL if invalid. */
 const char *pui_view_selected_tab(const PUIView *view, const char *tabs);
 /** @brief Number of tabs; zero for an invalid tabs ID or NULL view. */
+/** @brief Remove a tab and its content between frames; preserve other widgets and visual order. */
+bool pui_view_remove_tab(PUIView *view, PUIContext *context, const char *tabs, const char *tab_id,
+                         char *error, size_t capacity);
+/** @brief Copy a layout without one tab subtree; original remains unchanged on failure. */
+PUILayout *pui_layout_remove_tab(const PUILayout *base, const char *tabs, const char *tab_id,
+                                 char *error, size_t capacity);
 int pui_view_tab_count(const PUIView *view, const char *tabs);
 /** @brief Borrow the tab ID at its displayed zero-based position; NULL if out of range. */
 const char *pui_view_tab_at(const PUIView *view, const char *tabs, int index);

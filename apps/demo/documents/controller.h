@@ -5,12 +5,21 @@
 #include "project/controller.h"
 
 typedef struct {
+    /** @brief Native dialog backend, initialized to SDL; replaceable by deterministic tests. */
+    bool(SDLCALL *confirm)(const SDL_MessageBoxData *data, int *choice);
+    void(SDLCALL *save_dialog)(SDL_DialogFileCallback callback, void *context, SDL_Window *window,
+                               const SDL_DialogFileFilter *filters, int count,
+                               const char *location);
     Uint32 event;
     bool dialog_pending, importing;
     unsigned artboard;
     char import_root[4096], pending_import[4096];
     const EditorDefinition *owner;
     unsigned document;
+    bool close_after_save;
+    unsigned pending_close;
+    char close_request[64];
+    SDL_Window *close_window; ///< Borrowed application window, only used on the main thread.
     char pending_open[4096], pending_save[4096], default_path[4096];
 } DocumentController;
 

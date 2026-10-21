@@ -1,6 +1,7 @@
 /** @file @brief Tab drawing, YAML initialization and wheel input. */
 #include "view/internal.h"
 #include <math.h>
+#include <stdio.h>
 #include <string.h>
 
 float pui_tab_content_width(PUIIcon icon, const char *label) {
@@ -31,6 +32,26 @@ void pui_widget_tabs_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
     const PUINode *n = &v->layout->nodes[i];
     Widget *s = &v->state[i];
     PUIRect bar = {area.x, area.y, area.w, 30};
+    int close = -1;
+    bool clipped = pui_clip_push(pui, bar);
+    for (int k = 0; k < s->tabs.count; k++) {
+        for (int c = n->child; c >= 0; c = v->layout->nodes[c].next) {
+            const PUINode *tab = &v->layout->nodes[c];
+            if (tab->id != s->tabs.items[k].id || (!*tab->close_action && !*n->close_action)) {
+                continue;
+            }
+            PUIRect r = pui_tab_rect(&s->tabs, bar, 100, k);
+            PUIRect button = {r.x + r.w - 25, r.y + 4, 22, 22};
+            char id[96];
+            snprintf(id, sizeof id, "%s.close", tab->name);
+            if (pui_button(pui, pui_id(id), button, tab->enabled)) {
+                close = c;
+            }
+        }
+    }
+    if (clipped) {
+        pui_clip_pop(pui);
+    }
     pui_tabs_update(pui, &s->tabs, bar, 100);
     for (int k = 0; k < s->tabs.count; k++) {
         const PUINode *tab = NULL;
@@ -61,6 +82,15 @@ void pui_widget_tabs_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
                         tab->radius >= 0 ? tab->radius
                         : n->radius >= 0 ? n->radius
                                          : pui_theme.tab_radius);
+        if (*tab->close_action || *n->close_action) {
+            PUIRect button = {r.x + r.w - 25, r.y + 4, 22, 22};
+            if (enabled && pui_hovered(pui, button)) {
+                pui_rounded_panel(v->renderer, pui_frect(button), PUI_HOVER,
+                                  pui_theme.button_radius, false);
+            }
+            pui_icon(v->renderer, pui_icon_from_name("tabler:x"), button.x + 4, button.y + 4, 14,
+                     foreground);
+        }
     }
     for (int k = n->child; k >= 0; k = v->layout->nodes[k].next) {
         if (v->layout->nodes[k].id == s->tabs.selected) {
@@ -68,6 +98,10 @@ void pui_widget_tabs_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
                                (PUIRect){area.x, area.y + bar.h, area.w, fmaxf(0, area.h - bar.h)},
                                action, context);
         }
+    }
+    if (close >= 0 && action) {
+        const PUINode *tab = &v->layout->nodes[close];
+        action(context, *tab->close_action ? tab->close_action : n->close_action, tab->name);
     }
 }
 
@@ -94,7 +128,8 @@ void pui_widget_tabs_init(PUIView *view, int i) {
         }
         tabs[count++] =
             (PUITab){tab->id, tab->enabled,
-                     pui_tab_content_width(pui_icon_from_name(tab->icon), tab->text) + PUI_TAB_GAP};
+                     pui_tab_content_width(pui_icon_from_name(tab->icon), tab->text) + PUI_TAB_GAP +
+                         ((*tab->close_action || *n->close_action) ? 24 : 0)};
     }
     pui_tabs_init(&view->state[i].tabs, tabs, count, selected ? selected : count ? tabs[0].id : 0);
 }

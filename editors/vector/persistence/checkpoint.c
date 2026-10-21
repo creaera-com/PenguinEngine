@@ -9,7 +9,7 @@
 
 /* Native integer/float representation is sufficient for a private file in this process.
  * Changing this schema requires a new signature. This is not an SVG or interchange format. */
-static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '3', '1'};
+static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '3', '2'};
 
 #define WRITE(value) (fwrite(&(value), sizeof(value), 1, file) == 1)
 #define READ(value) (fread(&(value), sizeof(value), 1, file) == 1)
@@ -39,12 +39,13 @@ static bool capture_tabs(const VectorDocuments *documents, const PUIView *view,
     for (int i = 0; i < documents->count; i++) {
         const char *tab = pui_view_tab_at(view, "vector_document_tabs", i);
         bool matched = false;
-        for (unsigned id = 1; id <= (unsigned)documents->count; id++) {
+        for (int j = 0; j < documents->count; j++) {
+            unsigned id = documents->items[j].id;
             char name[64];
             tab_name(name, sizeof name, id);
-            if (tab && !strcmp(tab, name) && !seen[id]) {
+            if (tab && !strcmp(tab, name) && !seen[j]) {
                 order[i] = id;
-                seen[id] = true;
+                seen[j] = true;
                 matched = true;
                 if (active && !strcmp(active, name)) {
                     *selected = id;
@@ -69,9 +70,11 @@ static bool write_document(const VectorDocument *document, FILE *file) {
         tool->marquee ? tool->previous_rectangle : document->active_rectangle;
     unsigned grid_visible = document->grid.visible, grid_snap = document->grid.snap_enabled;
     unsigned element_snap = document->element_snap_enabled, rulers_hidden = document->rulers_hidden;
-    if (!WRITE(document->id) || !WRITE(document->title) || !WRITE(document->filename) ||
-        !WRITE(document->history.floor) || !WRITE(document->next_artboard_id) ||
-        !WRITE(active_board) || !WRITE(document->artboard_count) ||
+    unsigned has_saved_content = document->has_saved_content;
+    if (!WRITE(document->id) || !WRITE(document->saved_content) || !WRITE(has_saved_content) ||
+        !WRITE(document->title) || !WRITE(document->filename) || !WRITE(document->history.floor) ||
+        !WRITE(document->next_artboard_id) || !WRITE(active_board) ||
+        !WRITE(document->artboard_count) ||
         fwrite(document->artboards, sizeof *document->artboards, document->artboard_count, file) !=
             (size_t)document->artboard_count ||
         !WRITE(document->next_rectangle_id) || !WRITE(active_rectangle) ||
@@ -103,8 +106,10 @@ bool vector_editor_checkpoint(const void *instance, const PUIView *view, FILE *f
     const VectorEditor *editor = instance;
     const VectorDocuments *documents = &editor->documents;
     unsigned order[PUI_MAX_TABS], selected;
+    unsigned initialized = editor->document_tabs.initialized;
     if (editor->document_tabs.pending || !capture_tabs(documents, view, order, &selected) ||
-        !WRITE(signature) || !WRITE(documents->count) || !WRITE(selected) ||
+        !WRITE(signature) || !WRITE(documents->next_id) || !WRITE(initialized) ||
+        !WRITE(documents->count) || !WRITE(selected) ||
         fwrite(order, sizeof *order, documents->count, file) != (size_t)documents->count) {
         return fail(error, capacity);
     }
@@ -212,11 +217,13 @@ static bool valid_history(const VectorDocument *document) {
     return true;
 }
 
-static bool read_document(VectorDocument *document, unsigned expected_id, FILE *file) {
+static bool read_document(VectorDocument *document, unsigned next_id, FILE *file) {
     int history_count;
-    unsigned grid_visible, grid_snap, element_snap, rulers_hidden;
-    if (!READ(document->id) || document->id != expected_id || !READ(document->title) ||
-        !READ(document->filename) || !memchr(document->filename, 0, sizeof document->filename) ||
+    unsigned grid_visible, grid_snap, element_snap, rulers_hidden, has_saved_content;
+    if (!READ(document->id) || !document->id || document->id >= next_id ||
+        !READ(document->saved_content) || !READ(has_saved_content) || has_saved_content > 1 ||
+        !READ(document->title) || !READ(document->filename) ||
+        !memchr(document->filename, 0, sizeof document->filename) ||
         !READ(document->history.floor) || document->history.floor < 0 ||
         !memchr(document->title, 0, sizeof document->title) || !READ(document->next_artboard_id) ||
         !document->next_artboard_id || !READ(document->active_artboard) ||
@@ -273,6 +280,7 @@ static bool read_document(VectorDocument *document, unsigned expected_id, FILE *
     if (!primary) {
         return false;
     }
+    document->has_saved_content = has_saved_content != 0;
     document->rulers_hidden = rulers_hidden != 0;
     document->element_snap_enabled = element_snap != 0;
     document->grid.visible = grid_visible != 0;
@@ -287,28 +295,38 @@ static bool read_document(VectorDocument *document, unsigned expected_id, FILE *
 }
 
 static bool read_documents(VectorDocuments *documents, unsigned order[PUI_MAX_TABS],
-                           unsigned *selected, char navigation[64], VectorClipboard *clipboard,
-                           FILE *file) {
+                           unsigned *selected, unsigned *initialized, char navigation[64],
+                           VectorClipboard *clipboard, FILE *file) {
     char actual[sizeof signature];
-    if (!READ(actual) || memcmp(actual, signature, sizeof signature) || !READ(documents->count) ||
+    if (!READ(actual) || memcmp(actual, signature, sizeof signature) || !READ(documents->next_id) ||
+        !documents->next_id || !READ(*initialized) || *initialized > 1 || !READ(documents->count) ||
         documents->count < 0 || documents->count > VECTOR_MAX_DOCUMENTS || !READ(*selected) ||
-        *selected > (unsigned)documents->count || (documents->count && !*selected) ||
+        *selected >= documents->next_id || (documents->count && !*selected) ||
+        (!documents->count && *selected) ||
         fread(order, sizeof *order, documents->count, file) != (size_t)documents->count) {
         /* Keep cleanup bounded even for an invalid count. */
         documents->count = 0;
         return false;
     }
-    bool seen[PUI_MAX_TABS + 1] = {0};
+    bool found_selected = !documents->count;
     for (int i = 0; i < documents->count; i++) {
-        if (!order[i] || order[i] > (unsigned)documents->count || seen[order[i]]) {
+        if (!read_document(&documents->items[i], documents->next_id, file)) {
             return false;
         }
-        seen[order[i]] = true;
+        for (int j = 0; j < i; j++) {
+            if (documents->items[j].id == documents->items[i].id || order[i] == order[j]) {
+                return false;
+            }
+        }
+        found_selected |= documents->items[i].id == *selected;
     }
     for (int i = 0; i < documents->count; i++) {
-        if (!read_document(&documents->items[i], (unsigned)i + 1, file)) {
+        if (!vector_documents_find(documents, order[i])) {
             return false;
         }
+    }
+    if (!found_selected) {
+        return false;
     }
     if (fread(navigation, 64, 1, file) != 1 || !memchr(navigation, 0, 64) ||
         (strcmp(navigation, "vector_explorer_tab") &&
@@ -394,11 +412,11 @@ bool vector_editor_restore(void *instance, FILE *file, char *error, size_t capac
     if (!loaded) {
         return fail(error, capacity);
     }
-    unsigned order[PUI_MAX_TABS], selected;
+    unsigned order[PUI_MAX_TABS], selected, initialized;
     char navigation[64];
     VectorClipboard clipboard;
     PUILayout *layout = NULL;
-    if (read_documents(loaded, order, &selected, navigation, &clipboard, file)) {
+    if (read_documents(loaded, order, &selected, &initialized, navigation, &clipboard, file)) {
         layout = restore_layout(editor->layout, loaded, order, selected, error, capacity);
     }
     if (layout) {
@@ -417,6 +435,7 @@ bool vector_editor_restore(void *instance, FILE *file, char *error, size_t capac
     }
     vector_documents_destroy(&editor->documents);
     editor->documents = *loaded;
+    editor->document_tabs.initialized = initialized != 0;
     editor->object_actions.clipboard = clipboard;
     free(loaded); /* Payload ownership has moved into editor->documents. */
     pui_layout_free(editor->layout);

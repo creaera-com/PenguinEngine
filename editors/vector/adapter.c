@@ -10,6 +10,8 @@ const EditorDefinition *vector_editor_definition(void) {
                                                 .title = "Vector Editor",
                                                 .accepts_file = vector_workspace_accepts_file,
                                                 .file_info = vector_workspace_file_info,
+                                                .close_info = vector_workspace_close_info,
+                                                .close_file = vector_workspace_close_file,
                                                 .open_file = vector_workspace_open_file,
                                                 .save_file = vector_workspace_save_file,
                                                 .import_image = vector_image_import,

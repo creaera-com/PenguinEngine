@@ -255,6 +255,7 @@ static bool absolute_path(const char *path, char *out, size_t capacity) {
 }
 
 static void identity(VectorDocument *d, const char *path) {
+    vector_document_mark_saved(d);
     snprintf(d->filename, sizeof d->filename, "%s", path);
     const char *name = strrchr(path, '/'), *back = strrchr(path, '\\');
     if (back && (!name || back > name)) {
