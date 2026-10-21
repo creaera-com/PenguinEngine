@@ -909,7 +909,7 @@ bool pui_view_hit(const PUIView *view, const char *widget, float x, float y);
 
 #define PUI_TREE_MAX_CELLS 4
 
-/** @brief Optional trailing tree-table icon button; callbacks receive the owning row ID. */
+/** @brief Optional tree-table icon button; callbacks receive the owning row ID. */
 typedef struct {
     char icon[128], action[64];
     bool checked, enabled;
@@ -923,7 +923,8 @@ typedef struct {
     char id[64], text[256], icon[128], action[64];
     int depth;
     bool enabled, open;
-    int cell_count; ///< Optional trailing button columns, zero for an ordinary tree row.
+    int cell_count;    ///< Optional button columns, zero for an ordinary tree row.
+    int leading_cells; ///< Prefix of cells placed before the hierarchy; remaining cells trail it.
     PUITreeCell cells[PUI_TREE_MAX_CELLS];
     bool selected; ///< Optional application-controlled selection highlight in addition to the
                    ///< primary row.

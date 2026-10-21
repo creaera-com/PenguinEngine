@@ -68,6 +68,7 @@ static void fill(PUITreeItem *item, unsigned document, unsigned id, const char *
     item->depth = depth;
     item->enabled = item->open = true;
     item->cell_count = 2;
+    item->leading_cells = 1;
     snprintf(item->cells[0].icon, sizeof item->cells[0].icon, "%s",
              flags & VECTOR_OBJECT_HIDDEN ? "tabler:eye-off" : "tabler:eye");
     snprintf(item->cells[0].action, sizeof item->cells[0].action, "vector.%s.visibility", kind);
@@ -123,6 +124,7 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
                     fill(&items[row], document->id, group, name, "group", 0, 1);
                     snprintf(items[row].icon, sizeof items[row].icon, "tabler:folder");
                     items[row].cell_count = 0;
+                    items[row].leading_cells = 0;
                     items[row++].selected = vector_document_is_selected(
                         document, vector_group_tree_member(document, group));
                 }

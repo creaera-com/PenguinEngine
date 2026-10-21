@@ -1031,3 +1031,7 @@ SDL-freie Funktionen: `pui_text_input_valid(type, text, complete)` prüft Syntax
 `pui_text_edit_insert_typed` ersetzt eine Auswahl atomar und normalisiert Kommas.
 Beim Neuladen eines Feldes mit geändertem Eingabetyp wird dessen neuer YAML-Anfangswert
 verwendet, statt einen möglicherweise unpassenden alten Feldinhalt zu übernehmen.
+
+Bei Runtime-Tree-Tabellen legt `PUITreeItem.leading_cells` fest, wie viele der
+`cells` links vor der Hierarchie stehen. Die übrigen Buttons bleiben rechts.
+Standard ist `0`; der Ebenen-Tree nutzt `1` für Sichtbarkeit links und Sperren rechts.

@@ -762,19 +762,25 @@ static void test_tree_table_cells_do_not_select_or_expand_rows(void) {
          .action = "tree.select",
          .enabled = true,
          .cell_count = 2,
+         .leading_cells = 1,
          .cells =
              {{.icon = "tabler:eye", .action = "tree.visible", .enabled = true, .checked = true},
               {.icon = "tabler:lock", .action = "tree.lock", .enabled = true}}},
         {.id = "child", .text = "Child", .enabled = true, .depth = 1},
-        {.id = "b", .text = "Other", .action = "tree.select", .enabled = true, .cell_count = 2}};
+        {.id = "b",
+         .text = "Other",
+         .action = "tree.select",
+         .enabled = true,
+         .cell_count = 2,
+         .leading_cells = 1}};
     TEST_ASSERT_TRUE(pui_view_set_tree_items(view, "objects", items, 3));
     pui_init(&pui);
-    pui_pointer(&pui, 10, 42, true);
-    pui_pointer(&pui, 10, 42, false);
+    pui_pointer(&pui, 60, 42, true);
+    pui_pointer(&pui, 60, 42, false);
     pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, table_action, row);
     TEST_ASSERT_EQUAL_STRING("b", row);
-    pui_pointer(&pui, 348, 14, true);
-    pui_pointer(&pui, 348, 14, false);
+    pui_pointer(&pui, 13, 14, true);
+    pui_pointer(&pui, 13, 14, false);
     pui_view_draw(view, &pui, (PUIRect){0, 0, 400, 300}, table_action, row);
     TEST_ASSERT_EQUAL_STRING("a", row);
     TEST_ASSERT_EQUAL_STRING("tree.visible", table_action_name);
