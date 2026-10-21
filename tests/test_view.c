@@ -897,7 +897,7 @@ static void test_toolbars_round_all_corners_and_tabs_only_upper_corners(void) {
     pui_layout_free(l);
 }
 
-static void test_input_corners_animate_on_mouse_focus_and_blur(void) {
+static void test_input_keeps_rounded_corners_on_mouse_focus_and_blur(void) {
     const char *yaml = "schema: pengui/v1\nroot: {type: input, id: rounded_input, "
                        "text: Example, radius: 12, transition_ms: 30}";
     char error[256];
@@ -921,11 +921,13 @@ static void test_input_corners_animate_on_mouse_focus_and_blur(void) {
     assert_pixel(0, 0, 0xffffffff);
     SDL_Delay(40);
     pui_view_draw(v, &input, (PUIRect){0, 0, 160, 40}, NULL, NULL);
-    assert_pixel(0, 0, PUI_ACCENT);
+    assert_pixel(0, 0, 0xffffffff);
+    assert_pixel(80, 0, PUI_ACCENT);
     event.type = SDL_EVENT_WINDOW_FOCUS_LOST;
     pui_view_event(v, &input, window, &event);
     pui_view_draw(v, &input, (PUIRect){0, 0, 160, 40}, NULL, NULL);
-    assert_pixel(0, 0, PUI_ACCENT);
+    assert_pixel(0, 0, 0xffffffff);
+    assert_pixel(80, 0, PUI_ACCENT);
     SDL_Delay(40);
     pui_panel(renderer, (SDL_FRect){0, 0, 160, 40}, 0xffffffff);
     pui_view_draw(v, &input, (PUIRect){0, 0, 160, 40}, NULL, NULL);
@@ -1151,7 +1153,7 @@ int main(void) {
     RUN_TEST(test_number_expression_commits_once_and_keeps_relative_base);
     RUN_TEST(test_typed_fields_filter_native_events_clipboard_setters_and_submission);
     RUN_TEST(test_closable_tabs_dispatch_and_remove_without_losing_other_state);
-    RUN_TEST(test_input_corners_animate_on_mouse_focus_and_blur);
+    RUN_TEST(test_input_keeps_rounded_corners_on_mouse_focus_and_blur);
     RUN_TEST(test_toolbars_round_all_corners_and_tabs_only_upper_corners);
     RUN_TEST(test_rounded_button_inherits_theme_and_zero_override_is_square);
     RUN_TEST(test_scroll_panel_reveals_clipped_actions_and_respects_wheel_bounds);

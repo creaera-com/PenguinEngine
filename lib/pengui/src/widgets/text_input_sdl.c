@@ -55,24 +55,6 @@ void pui_draw_text_input(SDL_Renderer *r, SDL_FRect rect, const char *text, PUIT
                               : PUI_BORDER);
 }
 
-static float input_radius(Widget *s, float target, double now, float duration) {
-    if (!s->input_radius_initialized || duration <= 0) {
-        s->input_radius_initialized = true;
-        s->input_radius = s->input_radius_from = s->input_radius_target = target;
-        s->input_radius_started = now;
-        return target;
-    }
-    float t = fmaxf(0, fminf(1, (float)((now - s->input_radius_started) / duration)));
-    t = t * t * (3 - 2 * t);
-    s->input_radius = s->input_radius_from + (s->input_radius_target - s->input_radius_from) * t;
-    if (target != s->input_radius_target) {
-        s->input_radius_from = s->input_radius;
-        s->input_radius_target = target;
-        s->input_radius_started = now;
-    }
-    return s->input_radius;
-}
-
 /* Column positions are converted by the core into valid UTF-8 byte boundaries. */
 static void select_at(PUIView *view, int input, float x, bool extend) {
     Widget *s = &view->state[input];
@@ -116,7 +98,6 @@ void pui_widget_text_input_draw(PUIView *v, PUIContext *pui, int i, PUIRect area
     bool focused = v->focused == i;
     float radius = n->radius >= 0 ? n->radius : pui_theme.button_radius;
     float duration = n->transition_ms >= 0 ? n->transition_ms : pui_theme.button_transition_ms;
-    radius = input_radius(s, focused ? 0 : radius, v->frame_ms, duration);
     Uint32 border = pui_color_transition(&s->button_focus,
                                          s->input_invalid ? 0xc97565ffu
                                          : focused        ? PUI_ACCENT

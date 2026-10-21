@@ -964,8 +964,8 @@ Ein `radius` bzw. `transition_ms` am `input` überschreibt diesen Standard:
 - {type: input, id: name, radius: 6, transition_ms: 150}
 ```
 
-Ohne Fokus ist das Feld abgerundet. Bei Fokus durch Maus oder Tab-Taste
-animiert der Radius auf null und der Rahmen zur Highlight-Farbe. Beim
+Die Rundung bleibt auch bei Fokus erhalten. Bei Fokus durch Maus oder Tab-Taste
+animiert der Rahmen zur Highlight-Farbe. Beim
 Verlassen läuft der Übergang zurück; ein erneuter Fokuswechsel setzt am
 sichtbaren Zwischenzustand an. `transition_ms: 0` schaltet sofort um,
 `radius: 0` hält das Feld immer eckig. Die View hält den Animationszustand
