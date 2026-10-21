@@ -1,5 +1,6 @@
 #include "pengui/pengui.h"
 #include "unity.h"
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -356,8 +357,37 @@ static void test_disabled_inner_action_never_dispatches_and_empty_center_closes_
     TEST_ASSERT_FALSE(radial_visible("copy"));
 }
 
+static void test_parallel_radial_gaps_and_rounded_corners_are_not_clickable(void) {
+    for (int corner = 0; corner < 2; corner++) {
+        radial_fixture(200, 150);
+        float x[3], y[3];
+        const char *ids[] = {"copy", "transform", "layers"};
+        for (int i = 0; i < 3; i++) {
+            TEST_ASSERT_TRUE(pui_view_radial_item_center(view, ids[i], &x[i], &y[i]));
+        }
+        float cx = (x[0] + x[1] + x[2]) / 3, cy = (y[0] + y[1] + y[2]) / 3;
+        float middle = hypotf(x[0] - cx, y[0] - cy);
+        float radius = corner ? middle * 42 / 75 + .1f : middle;
+        float angle = -1.570796327f + 3.141592654f / 3;
+        if (corner) {
+            angle -= asinf(2 / radius) + .001f;
+        }
+        SDL_Event e = {.type = SDL_EVENT_MOUSE_BUTTON_DOWN};
+        e.button.button = SDL_BUTTON_LEFT;
+        e.button.x = cx + cosf(angle) * radius;
+        e.button.y = cy + sinf(angle) * radius;
+        TEST_ASSERT_TRUE(pui_view_event(view, &pui, window, &e));
+        e.type = SDL_EVENT_MOUSE_BUTTON_UP;
+        TEST_ASSERT_TRUE(pui_view_event(view, &pui, window, &e));
+        frame();
+        TEST_ASSERT_EQUAL_INT(0, actions);
+        TEST_ASSERT_FALSE(radial_visible("copy"));
+    }
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_parallel_radial_gaps_and_rounded_corners_are_not_clickable);
     RUN_TEST(test_disabled_inner_action_never_dispatches_and_empty_center_closes_menu);
     RUN_TEST(test_concentric_rings_keep_ancestors_interactive_and_replace_only_the_branch);
     RUN_TEST(test_escape_closes_all_rings_and_root_actions_remain_available);

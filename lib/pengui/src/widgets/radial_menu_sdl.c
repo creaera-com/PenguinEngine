@@ -80,6 +80,21 @@ void pui_view_close_radial(PUIView *view) {
     view->radial_depth = 0;
 }
 
+/* Parallel side offsets keep gaps constant in screen pixels. Circular corner
+ * cut-ins soften the transition from each straight side to the inner/outer arc. */
+static float sector_inset(float radius, float inner, float outer, float half) {
+    float rounding = fminf(fmaxf(8, pui_theme.button_radius + 4),
+                           fminf((outer - inner) * .5f, inner * sinf(half) * .65f));
+    float edge = fminf(radius - inner, outer - radius);
+    float cut =
+        edge < rounding
+            ? rounding -
+                  sqrtf(fmaxf(0, rounding * rounding - (rounding - edge) * (rounding - edge)))
+            : 0;
+    float gap = fminf(4, (outer - inner) * .15f);
+    return asinf(fminf(.99f, (gap * .5f + cut) / radius));
+}
+
 static int ring_item(const PUIView *view, int level, float x, float y) {
     PUIRect b = view->radial_bounds;
     float inner, outer;
@@ -96,9 +111,14 @@ static int ring_item(const PUIView *view, int level, float x, float y) {
         }
         items[count++] = k;
     }
-    PUIRect bounds = {b.x + b.w / 2 - outer, b.y + b.h / 2 - outer, outer * 2, outer * 2};
-    int index = pui_radial_item(bounds, count, x, y);
-    return index < 0 ? -1 : items[index];
+    float turn = 6.283185307f, step = turn / count;
+    float polar = atan2f(y - b.y - b.h / 2, x - b.x - b.w / 2);
+    int index = (int)(fmodf(polar + turn + turn / 4 + step / 2, turn) / step);
+    float angle = atan2f(y - b.y - b.h / 2, x - b.x - b.w / 2);
+    float center = -1.570796327f + index * 6.283185307f / count;
+    float delta = fabsf(remainderf(angle - center, 6.283185307f));
+    float half = 3.141592654f / count;
+    return delta <= half - sector_inset(distance, inner, outer, half) ? items[index] : -1;
 }
 
 static int item_at(PUIView *view, float x, float y) {
@@ -193,26 +213,38 @@ bool pui_widget_radial_event(PUIView *view, PUIContext *input, const SDL_Event *
 
 /* Slightly translucent surfaces; icons, labels and active outlines retain full contrast. */
 static uint32_t translucent(uint32_t color) {
-    return (color & 0xffffff00u) | ((color & 255u) * 235u / 255u);
+    return (color & 0xffffff00u) | ((color & 255u) * 210u / 255u);
 }
 
-/* Thin annular sectors share geometry for the background and the accent edge. */
+/* One non-overlapping mesh per sector avoids alpha stacking along its subdivisions. */
 static void draw_sector(PUIView *view, float cx, float cy, float inner, float outer, float angle,
-                        float half, uint32_t packed) {
+                        float half, uint32_t packed, bool edge_only) {
+    enum { ROWS = 32, COLUMNS = 24 };
+
+    SDL_Vertex vertices[(ROWS + 1) * (COLUMNS + 1)];
+    int indices[ROWS * COLUMNS * 6];
     SDL_FColor color = {(packed >> 24) / 255.f, ((packed >> 16) & 255) / 255.f,
                         ((packed >> 8) & 255) / 255.f, (packed & 255u) / 255.f};
-    float gap = inner > 0 ? .018f : 0;
-    for (int segment = 0; segment < 24; segment++) {
-        float a = angle - half + gap + (2 * half - 2 * gap) * segment / 24;
-        float z = angle - half + gap + (2 * half - 2 * gap) * (segment + 1) / 24;
-        SDL_Vertex vertices[4] = {
-            {.position = {cx + cosf(a) * outer, cy + sinf(a) * outer}, .color = color},
-            {.position = {cx + cosf(z) * outer, cy + sinf(z) * outer}, .color = color},
-            {.position = {cx + cosf(z) * inner, cy + sinf(z) * inner}, .color = color},
-            {.position = {cx + cosf(a) * inner, cy + sinf(a) * inner}, .color = color}};
-        const int indices[6] = {0, 1, 2, 0, 2, 3};
-        SDL_RenderGeometry(view->renderer, NULL, vertices, 4, indices, 6);
+    for (int row = 0; row <= ROWS; row++) {
+        float start = edge_only ? fmaxf(inner, outer - 2) : inner;
+        float radius = start + (outer - start) * row / ROWS;
+        float inset = sector_inset(radius, inner, outer, half);
+        for (int column = 0; column <= COLUMNS; column++) {
+            float a = angle - half + inset + 2 * (half - inset) * column / COLUMNS;
+            vertices[row * (COLUMNS + 1) + column] = (SDL_Vertex){
+                .position = {cx + cosf(a) * radius, cy + sinf(a) * radius}, .color = color};
+        }
     }
+    int count = 0;
+    for (int row = 0; row < ROWS; row++) {
+        for (int column = 0; column < COLUMNS; column++) {
+            int a = row * (COLUMNS + 1) + column, b = a + COLUMNS + 1;
+            int quad[] = {a, b, b + 1, a, b + 1, a + 1};
+            memcpy(indices + count, quad, sizeof quad);
+            count += 6;
+        }
+    }
+    SDL_RenderGeometry(view->renderer, NULL, vertices, (ROWS + 1) * (COLUMNS + 1), indices, count);
 }
 
 /* A radial chevron identifies navigation independently of hover or the active branch. */
@@ -288,9 +320,9 @@ void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, 
             float angle = -1.570796327f + index * 6.283185307f / count;
             float half = 3.141592654f / count;
             uint32_t fill = hovered == k ? pui_theme.hover : pui_theme.surface;
-            draw_sector(view, cx, cy, inner, outer, angle, half, translucent(fill));
+            draw_sector(view, cx, cy, inner, outer, angle, half, translucent(fill), false);
             if (active || hovered == k) {
-                draw_sector(view, cx, cy, outer - 2, outer, angle, half, pui_theme.accent);
+                draw_sector(view, cx, cy, inner, outer, angle, half, pui_theme.accent, true);
             }
             float x = cx + cosf(angle) * (inner + outer) / 2;
             float y = cy + sinf(angle) * (inner + outer) / 2;
