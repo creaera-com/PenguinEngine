@@ -50,6 +50,7 @@ struct PUIView {
     int popups[PUI_LAYOUT_DEPTH], popup_count;
     PUIRect popup_rects[PUI_LAYOUT_DEPTH], bounds;
     bool radial_open;
+    PUIColorTransition radial_opacity; ///< Visual fade continues after modal input closes.
     int radial_index, radial_pressed, radial_pending;
     Uint8 radial_release_button;
     int radial_parents[PUI_LAYOUT_DEPTH], radial_depth;

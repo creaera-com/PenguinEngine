@@ -1123,3 +1123,13 @@ Suche zusätzlich geschlossene Verzeichnisse nach: pro Frame höchstens 16 Eintr
 bis zu 8192 gecachte Einträge und 32 Hierarchieebenen. Sehr große oder nicht lesbare
 Verzeichnisse können deshalb unvollständige Ergebnisse liefern. Die normale
 Baumansicht mit ihren geöffneten Ordnern kehrt nach dem Leeren der Suche zurück.
+
+
+### Ein- und Ausblenden des radialen Menüs
+
+Das radiale Menü animiert die Deckkraft seiner Flächen, Symbole und Beschriftungen.
+Die Dauer folgt `theme.button_transition_ms` aus der Shell-YAML (aktuell 120 ms);
+`0` schaltet die Animation aus. Die bestehende Transparenz bleibt dabei erhalten.
+Beim Schließen wird die Eingabe sofort freigegeben, während das Menü visuell
+weiter ausblendet. Aktionen werden ohne Wartezeit ausgelöst. Untermenüs behalten
+die sichtbaren inneren Ringe, statt das gesamte Menü neu einzublenden.

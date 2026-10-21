@@ -3,6 +3,22 @@
 #include <math.h>
 #include <string.h>
 
+/* Reuse the theme duration; alpha animates independently of modal input ownership. */
+static float opacity(PUIView *view) {
+    double now = (double)SDL_GetTicksNS() / 1000000.;
+    if (!view->radial_opacity.initialized) {
+        pui_color_transition(&view->radial_opacity, 0, now, 0);
+    }
+    return (pui_color_transition(&view->radial_opacity, view->radial_open ? 255 : 0, now,
+                                 pui_theme.button_transition_ms) &
+            255) /
+           255.f;
+}
+
+static uint32_t faded(uint32_t color, float alpha) {
+    return (color & 0xffffff00u) | (uint32_t)((color & 255u) * alpha);
+}
+
 /* Reserve all declared rings up front so opening a branch never moves the center. */
 static int menu_depth(const PUIView *view, int menu) {
     int depth = 1;
@@ -47,7 +63,9 @@ bool pui_view_open_radial(PUIView *view, const char *id, float x, float y) {
                       fminf(y - size / 2, view->bounds.y + view->bounds.h - size - 36)),
                 size, size};
             view->radial_release_button = 0;
+            view->radial_opacity = (PUIColorTransition){0};
             view->radial_open = true;
+            opacity(view);
             view->radial_index = i;
             view->radial_depth = 0;
             view->radial_pressed = view->radial_pending = -1;
@@ -77,7 +95,7 @@ bool pui_view_set_radial_enabled(PUIView *view, const char *id, bool enabled) {
 void pui_view_close_radial(PUIView *view) {
     view->radial_open = false;
     view->radial_pending = -1;
-    view->radial_depth = 0;
+    opacity(view);
 }
 
 /* Parallel side offsets keep gaps constant in screen pixels. Circular corner
@@ -288,14 +306,17 @@ void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, 
             action(context, node->action, node->name);
         }
     }
-    if (!view->radial_open) {
+    float alpha = opacity(view);
+    if (!view->radial_open && alpha <= 0) {
         return;
     }
-    pui_view_blur(view, input);
-    pui_cancel(input);
+    if (view->radial_open) {
+        pui_view_blur(view, input);
+        pui_cancel(input);
+    }
     PUIRect b = view->radial_bounds;
     float cx = b.x + b.w / 2, cy = b.y + b.h / 2;
-    int hovered = item_at(view, view->radial_x, view->radial_y);
+    int hovered = view->radial_open ? item_at(view, view->radial_x, view->radial_y) : -1;
     SDL_Rect previous;
     bool clipped = SDL_RenderClipEnabled(view->renderer);
     SDL_GetRenderClipRect(view->renderer, &previous);
@@ -319,9 +340,11 @@ void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, 
             float angle = -1.570796327f + index * 6.283185307f / count;
             float half = 3.141592654f / count;
             uint32_t fill = hovered == k ? pui_theme.hover : pui_theme.surface;
-            draw_sector(view, cx, cy, inner, outer, angle, half, translucent(fill), false);
+            draw_sector(view, cx, cy, inner, outer, angle, half, faded(translucent(fill), alpha),
+                        false);
             if (active || hovered == k) {
-                draw_sector(view, cx, cy, inner, outer, angle, half, pui_theme.accent, true);
+                draw_sector(view, cx, cy, inner, outer, angle, half, faded(pui_theme.accent, alpha),
+                            true);
             }
             float x = cx + cosf(angle) * (inner + outer) / 2;
             float y = cy + sinf(angle) * (inner + outer) / 2;
@@ -330,8 +353,9 @@ void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, 
                                            : pui_theme.text;
             if (node->type == PUI_NODE_RADIAL_MENU) {
                 draw_submenu_hint(view, cx, cy, outer - 8, angle,
-                                  enabled ? pui_theme.accent : pui_theme.disabled);
+                                  faded(enabled ? pui_theme.accent : pui_theme.disabled, alpha));
             }
+            foreground = faded(foreground, alpha);
             bool has_icon = *node->icon != 0;
             if (has_icon) {
                 pui_icon(view->renderer, pui_icon_from_name(node->icon), x - 9, y - 9, 18,
@@ -349,9 +373,9 @@ void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, 
         ring_radii(view, view->radial_depth, &inner, &outer);
         float width = pui_text_width(caption) * .875f;
         pui_panel(view->renderer, (SDL_FRect){cx - width / 2 - 8, cy + outer + 6, width + 16, 24},
-                  translucent(pui_theme.panel));
-        pui_text_scaled(view->renderer, cx - width / 2, cy + outer + 12, caption, pui_theme.text,
-                        .875f);
+                  faded(translucent(pui_theme.panel), alpha));
+        pui_text_scaled(view->renderer, cx - width / 2, cy + outer + 12, caption,
+                        faded(pui_theme.text, alpha), .875f);
     }
     SDL_SetRenderDrawBlendMode(view->renderer, previous_blend);
     SDL_SetRenderClipRect(view->renderer, clipped ? &previous : NULL);

@@ -56,6 +56,8 @@ static bool key(SDL_Keycode code) {
 }
 
 void setUp(void) {
+    PUITheme theme = pui_dark_theme();
+    pui_set_theme(&theme);
     TEST_ASSERT_TRUE(SDL_Init(SDL_INIT_VIDEO));
     window = SDL_CreateWindow("popups", 400, 300, SDL_WINDOW_HIDDEN);
     renderer = SDL_CreateRenderer(window, NULL);
@@ -385,8 +387,51 @@ static void test_parallel_radial_gaps_and_rounded_corners_are_not_clickable(void
     }
 }
 
+/* Clear each frame so the test measures opacity rather than accumulated blending. */
+static Uint8 radial_pixel(float x, float y) {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    frame();
+    SDL_Rect pixel = {(int)x, (int)y, 1, 1};
+    SDL_Surface *surface = SDL_RenderReadPixels(renderer, &pixel);
+    TEST_ASSERT_NOT_NULL(surface);
+    Uint8 r, g, b, a;
+    TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 0, 0, &r, &g, &b, &a));
+    SDL_DestroySurface(surface);
+    return r;
+}
+
+static void test_radial_fades_without_delaying_close_or_dispatch(void) {
+    PUITheme theme = pui_dark_theme();
+    theme.button_transition_ms = 240;
+    pui_set_theme(&theme);
+    radial_fixture(200, 150);
+    float x, y;
+    TEST_ASSERT_TRUE(pui_view_radial_item_center(view, "copy", &x, &y));
+    /* Avoid the centered caption and the rounded sector edges. */
+    x += 14;
+    y += 12;
+    Uint8 start = radial_pixel(x, y);
+    SDL_Delay(60);
+    Uint8 middle = radial_pixel(x, y);
+    SDL_Delay(240);
+    Uint8 end = radial_pixel(x, y);
+    TEST_ASSERT_TRUE(start < middle);
+    TEST_ASSERT_TRUE(middle <= end);
+    TEST_ASSERT_TRUE(key(SDLK_ESCAPE));
+    TEST_ASSERT_FALSE(radial_visible("copy"));
+    Uint8 closing = radial_pixel(x, y);
+    SDL_Delay(60);
+    Uint8 fading = radial_pixel(x, y);
+    SDL_Delay(240);
+    TEST_ASSERT_TRUE(fading < closing);
+    TEST_ASSERT_EQUAL_UINT8(0, radial_pixel(x, y));
+    TEST_ASSERT_EQUAL_INT(0, actions);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_radial_fades_without_delaying_close_or_dispatch);
     RUN_TEST(test_parallel_radial_gaps_and_rounded_corners_are_not_clickable);
     RUN_TEST(test_disabled_inner_action_never_dispatches_and_empty_center_closes_menu);
     RUN_TEST(test_concentric_rings_keep_ancestors_interactive_and_replace_only_the_branch);
