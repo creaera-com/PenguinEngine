@@ -37,7 +37,7 @@ typedef struct VectorDocument {
     VectorHistory history;
     VectorViewport viewport;
     VectorGrid grid;
-    bool rulers_hidden;        ///< Per-document viewing preference; rulers start visible.
+    bool rulers_hidden;        ///< Per-document viewing preference; rulers start hidden.
     VectorPreview preview;     ///< Per-document viewing region; not a persistent artwork edit.
     bool element_snap_enabled; ///< Object alignment guides and magnetic movement, independent of
                                ///< grid.

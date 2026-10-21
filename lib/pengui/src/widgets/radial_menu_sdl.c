@@ -339,7 +339,8 @@ void pui_widget_radial_draw(PUIView *view, PUIContext *input, PUIAction action, 
     }
     float center_inner, center_outer;
     ring_radii(view, 0, &center_inner, &center_outer);
-    draw_sector(view, cx, cy, 0, center_inner - 2, 0, 3.141592654f, translucent(pui_theme.panel));
+    uint32_t center_fill = (pui_theme.panel & 0xffffff00u) | ((pui_theme.panel & 255u) * 140u / 255u);
+    draw_sector(view, cx, cy, 0, center_inner - 2, 0, 3.141592654f, center_fill);
     /* Full labels stay legible without inflating every sector. */
     const char *caption = hovered >= 0 ? view->layout->nodes[hovered].text : "";
     if (*caption) {

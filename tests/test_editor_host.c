@@ -533,6 +533,7 @@ static void test_artboard_cancel_empty_drag_and_release_outside_canvas(void) {
 static void test_ruler_ticks_follow_document_scale_and_preserve_canvas_clip(void) {
     activate("vector");
     VectorDocument *document = add_vector_document();
+    document->rulers_hidden = false;
     document->viewport.x = 40;
     document->viewport.y = 50;
     TEST_ASSERT_TRUE(vector_artboard_add(document, (PUIRect){0, 0, 80, 100}));

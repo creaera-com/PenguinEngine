@@ -153,7 +153,7 @@ der parametrische Radius entfällt dann. Der temporäre Checkpoint verwendet weg
 des zusätzlichen Modellwertes die Signatur `PVCKPT32`.
 
 Die Toolbar schaltet über `vector.rulers.toggle` die Artboard-Lineale samt
-Mauspositionsmarkierung dokumentweise um. Der aktive Lineal-Button bedeutet sichtbar.
+Mauspositionsmarkierung dokumentweise um. Neue Dokumente starten mit ausgeblendeten Linealen. Der aktive Lineal-Button bedeutet sichtbar.
 Dieser Ansichtsstatus bleibt beim Editorwechsel im temporären Checkpoint erhalten,
 verändert aber weder Undo/Redo noch die `.pengvec`-Datei oder den Export.
 

@@ -11,6 +11,7 @@ void vector_documents_init(VectorDocuments *documents) {
 void vector_document_init(VectorDocument *document, unsigned id) {
     *document = (VectorDocument){
         .id = id,
+        .rulers_hidden = true,
         .next_artboard_id = 1,
         .next_rectangle_id = 1,
         .grid = {.snap_tolerance = 5, .width = 16, .height = 16, .color = 0x80808080},
