@@ -244,13 +244,15 @@ static void test_tree_selection_persists_and_moves_without_actions(void) {
     pui_pointer(&pui, 20, 42, true);
     pui_pointer(&pui, 20, 42, false);
     pui_view_draw(tree, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
-    assert_pixel(1, 14, PUI_HOVER);
+    assert_pixel(1, 14, PUI_PANEL);
     assert_pixel(1, 42, 0x535353ff);
     pui_pointer(&pui, 20, 70, true);
     pui_pointer(&pui, 20, 70, false);
     pui_view_draw(tree, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
     assert_pixel(1, 42, 0x535353ff);
-    assert_pixel(1, 70, PUI_HOVER);
+    assert_pixel(1, 70, PUI_PANEL);
+    assert_pixel(1, 27, PUI_SURFACE);
+    assert_pixel(1, 55, PUI_SURFACE);
     pui_view_free(tree);
     pui_layout_free(description);
 }

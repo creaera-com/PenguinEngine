@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* A neutral selection stays distinct from both alternating rows and hover. */
+/* A neutral selection stays distinct from the panel background and hover. */
 static Uint32 selection_color(void) {
     Uint32 color = 255;
     for (int shift = 8; shift <= 24; shift += 8) {
@@ -208,9 +208,9 @@ void pui_widget_tree_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIA
         bool selected = s->selected == item->id || (data && data->items[index].selected);
         Uint32 background = selected                           ? selection_color()
                             : (enabled && pui_hovered(pui, r)) ? PUI_HOVER
-                            : k % 2                            ? PUI_SURFACE
-                                                               : PUI_HOVER;
+                                                               : PUI_PANEL;
         pui_panel(v->renderer, pui_frect(r), background);
+        pui_panel(v->renderer, (SDL_FRect){r.x, r.y + r.h - 1, r.w, 1}, PUI_SURFACE);
         SDL_Rect outer, content, clip = {0};
         bool clipped = SDL_RenderClipEnabled(v->renderer);
         SDL_GetRenderClipRect(v->renderer, &outer);
