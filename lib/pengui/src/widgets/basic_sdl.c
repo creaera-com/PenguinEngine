@@ -24,11 +24,16 @@ void pui_widget_section_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, P
                              void *context) {
     const PUINode *n = &v->layout->nodes[i];
     Widget *s = &v->state[i];
-    pui_panel(v->renderer, pui_frect(area), PUI_SURFACE);
     PUIRect header = {area.x, area.y, area.w, 28};
     pui_disclosure(pui, n->id, header, &s->open, !pui->blocked);
-    pui_draw_button(v->renderer, pui_frect(header), s->open ? ICON_DOWN : ICON_RIGHT, n->text,
-                    false, !pui->blocked, pui_hovered(pui, header));
+    Uint32 foreground = pui->blocked               ? PUI_DISABLED
+                        : pui_hovered(pui, header) ? PUI_TEXT
+                                                   : PUI_MUTED;
+    pui_icon(v->renderer, s->open ? ICON_DOWN : ICON_RIGHT, header.x + 9, header.y + 6, 16,
+             foreground);
+    pui_text(v->renderer, header.x + 31, header.y + 6, n->text, foreground);
+    pui_panel(v->renderer, (SDL_FRect){header.x, header.y + header.h - 1, header.w, 1},
+              PUI_SURFACE);
     area.y += 30;
     area.h -= 30;
     area.x += n->padding;
