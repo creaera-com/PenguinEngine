@@ -11,9 +11,11 @@
 #include "editors/vector/ui/tools/repeat.h"
 #include "ui/export/dialog.h"
 #include "workspace/documents.h"
+#include "workspace/style.h"
 
 typedef struct {
     PUILayout *layout;
+    VectorWorkspaceStyle workspace_style;
     PUIFonts *fonts;
     VectorTextRenderer *text_renderer;
     VectorImageRenderer *image_renderer;

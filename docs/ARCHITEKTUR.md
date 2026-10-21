@@ -1035,3 +1035,33 @@ verwendet, statt einen möglicherweise unpassenden alten Feldinhalt zu übernehm
 Bei Runtime-Tree-Tabellen legt `PUITreeItem.leading_cells` fest, wie viele der
 `cells` links vor der Hierarchie stehen. Die übrigen Buttons bleiben rechts.
 Standard ist `0`; der Ebenen-Tree nutzt `1` für Sichtbarkeit links und Sperren rechts.
+
+
+### Artboard-Schatten der Editor-Ansicht
+
+Der Vektoreditor lädt seine eigene Darstellungskonfiguration aus
+`editors/vector/ui/workspace/style.yaml`. Sie gehört zum Workspace und erweitert
+nicht das pengUI-Layoutschema:
+
+```yaml
+artboard_shadow:
+  enabled: true
+  color: "#000000"
+  opacity: 0.06
+  offset_x: 3
+  offset_y: 3
+  softness: 4
+```
+
+`opacity` ist die gesamte Deckkraft (0 bis 1), zusätzlich multipliziert mit der
+Alpha-Komponente von `color`. `offset_x`/`offset_y` liegen zwischen -100 und 100
+Bildschirmpixeln; positive Werte verschieben nach rechts/unten. `softness` (0 bis
+32 Bildschirmpixel) bestimmt die weiche Ausdehnung, `0` ergibt eine harte Kante.
+Die Darstellung bleibt unabhängig vom Zoom. `enabled: false` schaltet sie aus.
+Fehlende Einträge verwenden die oben gezeigten Standardwerte; unbekannte und
+doppelte Schlüssel sowie ungültige Werte werden abgewiesen.
+
+Nach einer Änderung bauen, damit die YAML-Datei in den Ressourcenordner kopiert
+wird, und den Editor mit F6 neu laden oder neu starten. Dokumente und History bleiben
+beim Reload erhalten. Der Schatten bleibt reine Editor-Darstellung und erscheint
+weder in `.pengvec`-Dateien noch im Bildexport.

@@ -970,8 +970,54 @@ static void test_ruler_toggle_preserves_history_and_survives_editor_switch(void)
     TEST_ASSERT_EQUAL_INT(history, d->history.count);
 }
 
+static void test_workspace_shadow_style_defaults_ranges_and_atomic_errors(void) {
+    VectorWorkspaceStyle style = vector_workspace_style_default();
+    char error[256];
+    TEST_ASSERT_TRUE_MESSAGE(
+        vector_workspace_style_load(&style, PENGUI_EDITOR_RESOURCES, error, sizeof error), error);
+    TEST_ASSERT_FLOAT_WITHIN(.0001f, .06f, style.opacity);
+    TEST_ASSERT_EQUAL_FLOAT(3, style.offset_x);
+    char root[512], directory[640], path[700];
+    snprintf(root, sizeof root, "workspace-style-%llu",
+             (unsigned long long)SDL_GetPerformanceCounter());
+    snprintf(directory, sizeof directory, "%s/editors/vector/ui/workspace", root);
+    TEST_ASSERT_TRUE(SDL_CreateDirectory(directory));
+    snprintf(path, sizeof path, "%s/style.yaml", directory);
+    const char *valid = "artboard_shadow: {enabled: false, color: '#12345680', opacity: 0.1, "
+                        "offset_x: -4, offset_y: 2, softness: 0}";
+    TEST_ASSERT_TRUE(SDL_SaveFile(path, valid, strlen(valid)));
+    TEST_ASSERT_TRUE_MESSAGE(vector_workspace_style_load(&style, root, error, sizeof error), error);
+    TEST_ASSERT_FALSE(style.enabled);
+    TEST_ASSERT_EQUAL_HEX32(0x12345680, style.color);
+    TEST_ASSERT_EQUAL_FLOAT(-4, style.offset_x);
+    VectorWorkspaceStyle saved = style;
+    const char *invalid[] = {"artboard_shadow: {opacity: 2}",
+                             "artboard_shadow: {opacity: nan}",
+                             "artboard_shadow: {opacity: 0.1, opacity: 0.2}",
+                             "artboard_shadow: {unknown: 1}",
+                             "artboard_shadow: {enabled: yes}",
+                             "artboard_shadow: {color: orange}",
+                             "artboard_shadow: {softness: 33}",
+                             "artboard_shadow: {offset_x: 101}"};
+    for (unsigned i = 0; i < sizeof invalid / sizeof invalid[0]; i++) {
+        TEST_ASSERT_TRUE(SDL_SaveFile(path, invalid[i], strlen(invalid[i])));
+        TEST_ASSERT_FALSE(vector_workspace_style_load(&style, root, error, sizeof error));
+        TEST_ASSERT_EQUAL_MEMORY(&saved, &style, sizeof style);
+    }
+    SDL_RemovePath(path);
+    SDL_RemovePath(directory);
+    snprintf(path, sizeof path, "%s/editors/vector/ui", root);
+    SDL_RemovePath(path);
+    snprintf(path, sizeof path, "%s/editors/vector", root);
+    SDL_RemovePath(path);
+    snprintf(path, sizeof path, "%s/editors", root);
+    SDL_RemovePath(path);
+    SDL_RemovePath(root);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_workspace_shadow_style_defaults_ranges_and_atomic_errors);
     RUN_TEST(test_ruler_toggle_preserves_history_and_survives_editor_switch);
     RUN_TEST(test_rounded_rectangle_radius_history_geometry_inspector_and_path);
     RUN_TEST(test_stroke_inspector_history_validation_and_checkpoint);

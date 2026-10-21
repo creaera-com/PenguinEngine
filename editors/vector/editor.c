@@ -23,6 +23,11 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         snprintf(error, capacity, "could not allocate Vector editor");
         return NULL;
     }
+    if (!vector_workspace_style_load(&editor->workspace_style, services->resource_root, error,
+                                     capacity)) {
+        free(editor);
+        return NULL;
+    }
     editor->repeat_ui.property = VECTOR_REPEAT_ANGLE;
     PUILayout *root = editor_load_ui(services, "editors/vector/ui/editor.yaml", error, capacity);
     if (!root) {
@@ -259,7 +264,7 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
             editor->active_document_id = document->id;
             vector_workspace_cancel_inactive(&editor->documents, document);
             vector_canvas_draw(document, renderer, area, editor->text_renderer,
-                               editor->image_renderer);
+                               editor->image_renderer, &editor->workspace_style);
             return;
         }
     }

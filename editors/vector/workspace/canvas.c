@@ -12,6 +12,7 @@
 #include "element_snap.h"
 #include "marquee.h"
 #include "ruler.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -47,25 +48,32 @@ void vector_canvas_center(VectorDocument *document) {
 
 /* A small screen-space shadow separates the board from the workspace without
  * allocating effect textures or changing the artwork/export model. */
-static void draw_artboard_shadow(SDL_Renderer *renderer, SDL_FRect board) {
-    if (board.w <= 0 || board.h <= 0) {
+static void draw_artboard_shadow(SDL_Renderer *renderer, SDL_FRect board,
+                                 const VectorWorkspaceStyle *style) {
+    if (!style->enabled || style->opacity <= 0 || !(style->color & 255u) || board.w <= 0 ||
+        board.h <= 0) {
         return;
     }
     SDL_BlendMode previous;
     SDL_GetRenderDrawBlendMode(renderer, &previous);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 6);
-    for (int layer = 7; layer >= 0; layer--) {
-        float spread = layer * .7f;
-        SDL_FRect shadow = {board.x + 5 - spread, board.y + 5 - spread, board.w + spread * 2,
-                            board.h + spread * 2};
+    float opacity = style->opacity * (style->color & 255u) / 255.f;
+    int layers = style->softness > 0 ? 8 : 1;
+    Uint8 alpha = (Uint8)lroundf((1 - powf(1 - opacity, 1.f / layers)) * 255);
+    SDL_SetRenderDrawColor(renderer, style->color >> 24, (style->color >> 16) & 255,
+                           (style->color >> 8) & 255, alpha);
+    for (int layer = layers - 1; layer >= 0; layer--) {
+        float spread = layers > 1 ? layer * style->softness / (layers - 1) : 0;
+        SDL_FRect shadow = {board.x + style->offset_x - spread, board.y + style->offset_y - spread,
+                            board.w + spread * 2, board.h + spread * 2};
         SDL_RenderFillRect(renderer, &shadow);
     }
     SDL_SetRenderDrawBlendMode(renderer, previous);
 }
 
 void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRect area,
-                        VectorTextRenderer *text, VectorImageRenderer *images) {
+                        VectorTextRenderer *text, VectorImageRenderer *images,
+                        const VectorWorkspaceStyle *style) {
     VectorViewport *viewport = &document->viewport;
     viewport->bounds = area;
     float pointer_x, pointer_y;
@@ -84,7 +92,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         SDL_FRect rect = {area.x + viewport->x + display.x * viewport->zoom,
                           area.y + viewport->y + display.y * viewport->zoom,
                           display.w * viewport->zoom, display.h * viewport->zoom};
-        draw_artboard_shadow(renderer, rect);
+        draw_artboard_shadow(renderer, rect, style);
         PUIRect label = vector_artboard_label_rect(document, board);
         pui_text_scaled(renderer, label.x, label.y, board->name,
                         board->id == document->active_artboard ? PUI_HIGHLIGHT : 0xEEEEEEFF, .875f);
