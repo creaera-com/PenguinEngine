@@ -580,14 +580,14 @@ static void test_ruler_pointer_marks_follow_zoomed_board_and_preserve_clip(void)
         TEST_ASSERT_NOT_NULL(surface);
         Uint8 r, g, b, a;
         TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, (int)x, 112, &r, &g, &b, &a));
-        TEST_ASSERT_EQUAL_UINT8(0, r);
-        TEST_ASSERT_EQUAL_UINT8(0, g);
-        TEST_ASSERT_EQUAL_UINT8(0, b);
+        TEST_ASSERT_EQUAL_UINT8(255, r);
+        TEST_ASSERT_EQUAL_UINT8(255, g);
+        TEST_ASSERT_EQUAL_UINT8(255, b);
         TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 142, (int)y, &r, &g, &b, &a));
-        TEST_ASSERT_EQUAL_UINT8(0, r);
+        TEST_ASSERT_EQUAL_UINT8(255, r);
         /* Neighbouring pixels stay gray, so the indicator remains one screen pixel wide. */
         TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, (int)x + 1, 112, &r, &g, &b, &a));
-        TEST_ASSERT_NOT_EQUAL(0, r);
+        TEST_ASSERT_NOT_EQUAL(255, r);
         SDL_DestroySurface(surface);
         SDL_SetRenderDrawColor(renderer, 104, 104, 104, 255);
         SDL_RenderClear(renderer);
@@ -597,9 +597,9 @@ static void test_ruler_pointer_marks_follow_zoomed_board_and_preserve_clip(void)
         surface = SDL_RenderReadPixels(renderer, NULL);
         TEST_ASSERT_NOT_NULL(surface);
         TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, (int)x, 112, &r, &g, &b, &a));
-        TEST_ASSERT_NOT_EQUAL(0, r);
+        TEST_ASSERT_NOT_EQUAL(255, r);
         TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 142, (int)y, &r, &g, &b, &a));
-        TEST_ASSERT_NOT_EQUAL(0, r);
+        TEST_ASSERT_NOT_EQUAL(255, r);
         SDL_DestroySurface(surface);
     }
     SDL_SetRenderClipRect(renderer, NULL);

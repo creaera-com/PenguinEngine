@@ -19,9 +19,11 @@ seinen ursprünglichen Dokument-Tab: Ein zwischenzeitlich anderer aktiver Tab wi
 nicht versehentlich gespeichert. Bei einem Wechsel des gesamten Editors wird
 stattdessen zum erneuten Speichern aufgefordert.
 
-Mehrmaliges Öffnen derselben Datei erzeugt derzeit weitere unabhängige Tabs. Es gilt
-die bestehende Grenze von 15 Dokumenten; Änderungen werden nicht automatisch zwischen
-diesen Tabs synchronisiert. Ein fehlerhafter Ladevorgang fügt keinen Tab hinzu.
+Mehrmaliges Öffnen derselben Datei aktiviert ihren vorhandenen Tab. Ungespeicherte
+Änderungen, Undo/Redo, Auswahl und Ansicht bleiben erhalten; die Datei wird dabei
+nicht erneut geladen. Es gilt die bestehende Grenze von 15 Dokumenten, wobei auch
+bei erreichtem Limit zu einem bereits offenen Dokument gewechselt werden kann.
+Ein fehlerhafter Ladevorgang fügt keinen Tab hinzu.
 
 ## Inhalt und Speichersicherheit
 

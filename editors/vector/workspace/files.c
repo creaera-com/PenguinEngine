@@ -8,6 +8,27 @@
 #include <stdlib.h>
 #include <string.h>
 
+static bool same_document_path(const char *a, const char *b) {
+#ifdef _WIN32
+    /* SDL enumeration and native dialogs can use different separators. */
+    while (*a && *b) {
+        unsigned char x = (unsigned char)*a++, y = (unsigned char)*b++;
+        if (x == '\\') {
+            x = '/';
+        }
+        if (y == '\\') {
+            y = '/';
+        }
+        if (SDL_tolower(x) != SDL_tolower(y)) {
+            return false;
+        }
+    }
+    return *a == *b;
+#else
+    return !strcmp(a, b);
+#endif
+}
+
 bool vector_workspace_accepts_file(const char *path) {
     const char *ext = path ? strrchr(path, '.') : NULL;
     return ext && !SDL_strcasecmp(ext, ".pengvec");
@@ -31,6 +52,20 @@ bool vector_workspace_file_info(void *instance, const PUIView *view, EditorFileI
 bool vector_workspace_open_file(void *instance, PUIView *view, PUIContext *input, const char *path,
                                 char *error, size_t capacity) {
     VectorEditor *editor = instance;
+    if (!path || !*path) {
+        snprintf(error, capacity, "Kein Dokumentpfad angegeben");
+        return false;
+    }
+    /* Reuse the live document before checking capacity or touching disk:
+     * unsaved edits, history, viewport and selection must remain intact. */
+    for (int i = 0; i < editor->documents.count; i++) {
+        const VectorDocument *open = &editor->documents.items[i];
+        if (same_document_path(open->filename, path)) {
+            char tab[64];
+            snprintf(tab, sizeof tab, "vector_document_%u", open->id);
+            return pui_view_select_tab(view, "vector_document_tabs", tab);
+        }
+    }
     if (editor->documents.count >= VECTOR_MAX_DOCUMENTS) {
         snprintf(error, capacity, "Dokument-Tab-Limit erreicht");
         return false;

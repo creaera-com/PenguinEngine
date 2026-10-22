@@ -197,3 +197,31 @@ void pui_widget_tabs_draw_drag(PUIView *view, PUIContext *pui) {
         }
     }
 }
+
+bool pui_view_select_tab(PUIView *view, const char *tabs, const char *tab) {
+    int i = tabs_index(view, tabs);
+    if (i < 0 || !tab) {
+        return false;
+    }
+    for (int c = view->layout->nodes[i].child; c >= 0; c = view->layout->nodes[c].next) {
+        if (!strcmp(view->layout->nodes[c].name, tab) && view->layout->nodes[c].enabled) {
+            PUITabs *state = &view->state[i].tabs;
+            state->selected = view->layout->nodes[c].id;
+            PUIRect bar = view->rect[i];
+            if (bar.w > 0) {
+                for (int k = 0; k < state->count; k++) {
+                    if (state->items[k].id == state->selected) {
+                        PUIRect r = pui_tab_rect(state, bar, 100, k);
+                        float delta = r.x < bar.x                 ? r.x - bar.x
+                                      : r.x + r.w > bar.x + bar.w ? r.x + r.w - bar.x - bar.w
+                                                                  : 0;
+                        pui_tabs_scroll(state, bar.w, 100, delta);
+                        break;
+                    }
+                }
+            }
+            return true;
+        }
+    }
+    return false;
+}

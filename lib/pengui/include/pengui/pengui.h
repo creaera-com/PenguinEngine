@@ -982,6 +982,8 @@ bool pui_view_add_tab(PUIView *view, PUIContext *context, const char *tabs, cons
                       const char *title, const PUILayout *content, char *error, size_t capacity);
 /** @brief Selected tab's YAML ID, borrowed until the next layout replacement; NULL if invalid. */
 const char *pui_view_selected_tab(const PUIView *view, const char *tabs);
+/** @brief Select an existing enabled tab by widget ID and scroll its caption into view. */
+bool pui_view_select_tab(PUIView *view, const char *tabs, const char *tab);
 /** @brief Number of tabs; zero for an invalid tabs ID or NULL view. */
 /** @brief Remove a tab and its content between frames; preserve other widgets and visual order. */
 bool pui_view_remove_tab(PUIView *view, PUIContext *context, const char *tabs, const char *tab_id,

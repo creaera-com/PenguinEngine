@@ -174,6 +174,8 @@ static void test_saved_tabs_open_and_survive_editor_switch_with_undo(void) {
     TEST_ASSERT_TRUE(vector_ellipse_add(d, 1, (PUIRect){30, 40, 80, 90}));
     TEST_ASSERT_TRUE(
         vector_workspace_save_file(host.instance, shell.view, d->id, path, error, sizeof error));
+    TEST_ASSERT_TRUE(vector_workspace_close_file(host.instance, shell.view, &shell.input, d->id,
+                                                 error, sizeof error));
     int count = ((VectorEditor *)host.instance)->documents.count;
     TEST_ASSERT_TRUE(vector_workspace_open_file(host.instance, shell.view, &shell.input, path,
                                                 error, sizeof error));
@@ -206,14 +208,18 @@ static void test_invalid_files_and_failed_save_preserve_state(void) {
     const unsigned char badversion[4] = {99, 0, 0, 0};
     SDL_WriteIO(io, badversion, 4);
     SDL_CloseIO(io);
+    char broken[8192];
+    snprintf(broken, sizeof broken, "%s.broken.pengvec", path);
+    TEST_ASSERT_TRUE(SDL_CopyFile(path, broken));
     int count = ((VectorEditor *)host.instance)->documents.count;
-    TEST_ASSERT_FALSE(vector_workspace_open_file(host.instance, shell.view, &shell.input, path,
+    TEST_ASSERT_FALSE(vector_workspace_open_file(host.instance, shell.view, &shell.input, broken,
                                                  error, sizeof error));
     TEST_ASSERT_EQUAL_INT(count, ((VectorEditor *)host.instance)->documents.count);
     TEST_ASSERT_EQUAL_PTR(d, document());
     TEST_ASSERT_FALSE(
         vector_document_file_save(d, "/missing-dir/doc.pengvec", error, sizeof error));
     TEST_ASSERT_EQUAL_STRING(path, d->filename);
+    SDL_RemovePath(broken);
     SDL_RemovePath(path);
 }
 
@@ -298,7 +304,7 @@ static void test_explorer_routes_file_from_other_editor_to_own_tab(void) {
     commit();
     TEST_ASSERT_EQUAL_STRING("vector", host.active->id);
     TEST_ASSERT_TRUE(same_file_path(file, document()->filename));
-    TEST_ASSERT_EQUAL_INT(2, ((VectorEditor *)host.instance)->documents.count);
+    TEST_ASSERT_EQUAL_INT(1, ((VectorEditor *)host.instance)->documents.count);
     document_controller_destroy(&controller);
     project_controller_destroy(&project);
     SDL_RemovePath(file);
@@ -359,8 +365,50 @@ static void test_tab_marks_unsaved_changes_and_tracks_saved_content(void) {
     SDL_RemovePath(path);
 }
 
+static void test_open_existing_file_selects_tab_without_reloading_changes(void) {
+    filename();
+    char error[256];
+    VectorDocument *d = document();
+    unsigned original = d->id;
+    TEST_ASSERT_TRUE(
+        vector_workspace_save_file(host.instance, shell.view, d->id, path, error, sizeof error));
+    TEST_ASSERT_TRUE(vector_ellipse_add(d, 1, (PUIRect){10, 10, 100, 80}));
+    int history = d->history.count;
+    d->viewport.x = 123;
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_document", ""));
+    commit();
+    TEST_ASSERT_TRUE(document()->id != original);
+    int count = ((VectorEditor *)host.instance)->documents.count;
+    for (int i = 0; i < 3; i++) {
+        TEST_ASSERT_TRUE_MESSAGE(vector_workspace_open_file(host.instance, shell.view, &shell.input,
+                                                            path, error, sizeof error),
+                                 error);
+        commit();
+        TEST_ASSERT_EQUAL_UINT(original, document()->id);
+        TEST_ASSERT_EQUAL_INT(count, ((VectorEditor *)host.instance)->documents.count);
+        TEST_ASSERT_EQUAL_INT(history, document()->history.count);
+        TEST_ASSERT_EQUAL_INT(1, document()->rectangle_count);
+        TEST_ASSERT_EQUAL_FLOAT(123, document()->viewport.x);
+        TEST_ASSERT_TRUE(vector_document_modified(document()));
+    }
+    while (((VectorEditor *)host.instance)->documents.count < VECTOR_MAX_DOCUMENTS) {
+        TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.add_document", ""));
+        commit();
+    }
+    count = VECTOR_MAX_DOCUMENTS;
+    activate("scripts");
+    activate("vector");
+    TEST_ASSERT_TRUE(vector_workspace_open_file(host.instance, shell.view, &shell.input, path,
+                                                error, sizeof error));
+    commit();
+    TEST_ASSERT_EQUAL_INT(count, ((VectorEditor *)host.instance)->documents.count);
+    TEST_ASSERT_EQUAL_UINT(original, document()->id);
+    SDL_RemovePath(path);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_open_existing_file_selects_tab_without_reloading_changes);
     RUN_TEST(test_tab_marks_unsaved_changes_and_tracks_saved_content);
     RUN_TEST(test_legacy_version_six_defaults_to_square_corners);
     RUN_TEST(test_explorer_routes_file_from_other_editor_to_own_tab);
