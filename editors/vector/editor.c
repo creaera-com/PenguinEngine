@@ -298,5 +298,6 @@ bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, c
         return false;
     }
     vector_object_actions_commit(&editor->object_actions, active, view);
+    vector_document_tabs_sync(&editor->documents, view);
     return true;
 }

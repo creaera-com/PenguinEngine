@@ -330,8 +330,38 @@ static void test_legacy_version_six_defaults_to_square_corners(void) {
     SDL_RemovePath(path);
 }
 
+static void test_tab_marks_unsaved_changes_and_tracks_saved_content(void) {
+    filename();
+    VectorDocument *d = document();
+    char error[256], tab[64], marked[256];
+    snprintf(tab, sizeof tab, "vector_document_%u", d->id);
+    snprintf(marked, sizeof marked, "%s *", d->title);
+    commit();
+    TEST_ASSERT_EQUAL_STRING(marked, pui_view_text(shell.view, tab));
+    TEST_ASSERT_TRUE(
+        vector_workspace_save_file(host.instance, shell.view, d->id, path, error, sizeof error));
+    commit();
+    TEST_ASSERT_EQUAL_STRING(d->title, pui_view_text(shell.view, tab));
+    snprintf(marked, sizeof marked, "%s *", d->title);
+    TEST_ASSERT_TRUE(vector_artboard_add(d, (PUIRect){700, 0, 100, 100}));
+    commit();
+    TEST_ASSERT_EQUAL_STRING(marked, pui_view_text(shell.view, tab));
+    TEST_ASSERT_TRUE(vector_history_undo(&d->history, d));
+    commit();
+    TEST_ASSERT_EQUAL_STRING(d->title, pui_view_text(shell.view, tab));
+    TEST_ASSERT_TRUE(vector_history_redo(&d->history, d));
+    commit();
+    TEST_ASSERT_EQUAL_STRING(marked, pui_view_text(shell.view, tab));
+    activate("scripts");
+    activate("vector");
+    commit();
+    TEST_ASSERT_EQUAL_STRING(marked, pui_view_text(shell.view, tab));
+    SDL_RemovePath(path);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_tab_marks_unsaved_changes_and_tracks_saved_content);
     RUN_TEST(test_legacy_version_six_defaults_to_square_corners);
     RUN_TEST(test_explorer_routes_file_from_other_editor_to_own_tab);
     RUN_TEST(test_app_save_routing_and_default_project_directory);

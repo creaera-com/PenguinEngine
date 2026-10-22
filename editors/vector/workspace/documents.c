@@ -82,3 +82,19 @@ void vector_workspace_cancel_inactive(VectorDocuments *documents, const VectorDo
         }
     }
 }
+
+void vector_document_tabs_sync(const VectorDocuments *documents, PUIView *view) {
+    for (int i = 0; i < documents->count; i++) {
+        const VectorDocument *document = &documents->items[i];
+        char id[64], title[256];
+        snprintf(id, sizeof id, "vector_document_%u", document->id);
+        /* A new, even empty document has no file yet. Undo may restore the saved
+         * artwork, so use the content baseline rather than the history position. */
+        bool unsaved = !document->filename[0] || vector_document_modified(document);
+        snprintf(title, sizeof title, "%s%s", document->title, unsaved ? " *" : "");
+        const char *current = pui_view_text(view, id);
+        if (!current || strcmp(current, title)) {
+            pui_view_set_text(view, id, title);
+        }
+    }
+}

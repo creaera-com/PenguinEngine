@@ -18,6 +18,8 @@ void vector_document_tabs_request(VectorDocumentTabs *tabs, const VectorDocument
  * empty; append model data only after successful UI composition. */
 bool vector_document_tabs_commit(VectorDocumentTabs *tabs, VectorDocuments *documents,
                                  PUIView *view, PUIContext *input, char *error, size_t capacity);
+/** @brief Refresh all tab captions; an asterisk marks new or modified documents. */
+void vector_document_tabs_sync(const VectorDocuments *documents, PUIView *view);
 /** @brief Cancel native interactions in all documents except active (NULL cancels all). */
 void vector_workspace_cancel_inactive(VectorDocuments *documents, const VectorDocument *active);
 #endif
