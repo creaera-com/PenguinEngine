@@ -47,6 +47,10 @@ Refactorings und Fehlerkorrekturen:
 - `persistence/`: Temporäres Sichern und Wiederherstellen.
 - `ui/`: YAML-Beschreibungen und UI-Anbindungen nach Bereichen:
   `inspector/`, `document_tree/`, `toolbar/`, `tools/`, `context_menu/`.
+  Der Inspector gliedert sich weiter nach `artboard/`, `selection/`, `object/`,
+  `appearance/` (Füllung, Kontur, Effekte), `rectangle/`, `polygon/`, `image/` und `text/`.
+  C-Anbindung und YAML bleiben zusammen. `inspector.c` koordiniert die Auswahl;
+  `lifecycle.c` besitzt die Formulare. `editor.c` verwendet nur die Inspector-Schnittstelle.
   C-Dateien nicht flach in `ui/` ablegen. `ui/editor.yaml` bleibt der Layout-Einstieg.
 
 Andere Editoren nach ihren tatsächlichen Aufgaben gliedern. Leere Verzeichnisse und

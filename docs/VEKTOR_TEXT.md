@@ -47,8 +47,8 @@ ein optionaler Rahmen umrandet den Textkasten.
 4. Aufeinanderfolgende Eingaben werden innerhalb einer Schreibsitzung zu einem
    History-Schritt zusammengefasst. Werkzeugwechsel, Formatänderungen, Undo und
    erneutes Aktivieren beginnen eine neue Gruppe. Andere Befehle werden nicht vermischt.
-5. `ui/inspector/text.yaml` wird nur bei ausgewählten Textfeldern in den Slot
-   `text_properties` eingesetzt. `ui/inspector/text.c` übersetzt Formularaktionen
+5. `ui/inspector/text/text.yaml` wird nur bei ausgewählten Textfeldern in den Slot
+   `text_properties` eingesetzt. `ui/inspector/text/text.c` übersetzt Formularaktionen
    in `vector_text_update`; reine Modelldateien kennen keine Widgets.
 6. `text/layout.c` berechnet Wortumbruch, Ausrichtung und Spalten mit einer
    austauschbaren Metrik-Funktion. Es gibt dort keine SDL-, Fontdatei- oder GPU-Abhängigkeit.

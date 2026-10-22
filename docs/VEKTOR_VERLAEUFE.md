@@ -66,9 +66,9 @@ Wiederholungswerkzeugs verändern dabei alle Stoppfarben.
 - `gradient/render.c`: erzeugt eine auf sichtbaren Bereich begrenzte Verlaufstextur
   und zeichnet sie durch tessellierte Formkonturen. Teilweise sichtbare Dreiecke
   werden vor dem Texturieren zugeschnitten; Löcher bleiben ausgespart.
-- `ui/inspector/gradient.yaml`: eigenständiger Formularbaustein. Der Inspector
+- `ui/inspector/appearance/fill/gradient.yaml`: eigenständiger Formularbaustein. Der Inspector
   lädt ihn über den Slot `object_gradient` nur für geschlossene geometrische Formen.
-- `ui/inspector/gradient.c`: Formularaktionen → validierter Formwert → bestehende
+- `ui/inspector/appearance/fill/gradient.c`: Formularaktionen → validierter Formwert → bestehende
   atomare Shape-History. Die Auswahl des gerade bearbeiteten Stopps ist nur UI-Zustand.
 - `rectangle/render.c`: zeichnet die Verlaufsfüllung vor Rahmen und Auswahlkontur.
   Derselbe Ablauf wird in Schatten-Silhouetten, Masken und Vorschau verwendet.

@@ -67,6 +67,14 @@ for path in (root / 'apps').rglob('*.c'):
     for name in includes.findall(path.read_text()):
         if name.startswith('editors/'):
             errors.append(f'{path.relative_to(root)}: concrete editor includes belong in the registry')
+# The editor coordinates lifecycle through the inspector facade, never individual forms.
+editor_entry = root / 'editors/vector/editor.c'
+entry_text = editor_entry.read_text()
+if re.search(r'editor->inspector\.', entry_text):
+    errors.append('editors/vector/editor.c: inspector internals belong behind its lifecycle contract')
+for name in includes.findall(entry_text):
+    if 'ui/inspector/' in name and not name.endswith('/inspector/inspector.h'):
+        errors.append(f'editors/vector/editor.c: use the inspector facade instead of {name}')
 # Vector model/history may use plain state and geometry headers, but not UI/event wiring.
 vector = root / 'editors/vector'
 # UI bindings are organized by panel; the root contains only the layout entry and guidance.

@@ -1,21 +1,27 @@
 /** @file @brief Inspector UI assembly; independent of the editor's private instance. */
 #ifndef PE_VECTOR_INSPECTOR_H
 #define PE_VECTOR_INSPECTOR_H
+#include "artboard/artboard.h"
 #include "editor_host/editor.h"
 #include "editors/vector/document/document.h"
-#include "shape.h"
+#include "object/object.h"
 
 typedef struct {
-    PUILayout *artboard_layout, *multi_layout;
+    PUILayout *multi_layout;
     bool multi_mounted;
-    VectorRectangleInspector rectangle;
-    unsigned document_id, artboard_id;
-    VectorArtboard presented;
-    bool mounted;
-    unsigned dirty;
+    VectorObjectInspector object;
+    VectorArtboardInspector artboard;
 } VectorInspector;
 
-/** @brief Mount properties only for a selected artboard; synchronize model changes between frames.
+/** @brief Load inspector resources; fonts and text renderer are borrowed. Start with zeroed state.
+ * On failure all acquired layouts are freed; the error describes the first failed load.
+ */
+bool vector_inspector_init(VectorInspector *inspector, const EditorServices *services,
+                           PUIFonts *fonts, VectorTextRenderer *text, char *error, size_t capacity);
+/** @brief Free owned layouts; safe after failed initialization and repeated destruction. */
+void vector_inspector_destroy(VectorInspector *inspector);
+
+/** @brief Select and synchronize the appropriate artboard, object or selection panel.
  */
 bool vector_inspector_sync(VectorInspector *inspector, VectorDocument *document, PUIView *view,
                            PUIContext *input, char *error, size_t capacity);

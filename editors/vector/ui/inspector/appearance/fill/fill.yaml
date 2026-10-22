@@ -1,0 +1,19 @@
+schema: pengui/v1
+root:
+  type: popup_button
+  id: rectangle_fill_button
+  text: Fuellung
+  placement: below
+  height: 28
+  popup_width: 260
+  popup_height: 304
+  children:
+    - type: panel
+      padding: 12
+      children:
+        - type: color_picker
+          id: rectangle_fill
+          mode: hsl
+          value: "#7393AFFF"
+          action: vector.rectangle.fill
+          preview_action: vector.rectangle.fill_preview

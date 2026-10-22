@@ -430,8 +430,8 @@ Funktionen können dadurch im jeweiligen Editor und seinen einzelnen Bereichen e
 äußere Anordnung; optionale Inspector-Inhalte liegen daneben im Ordner `inspector/`.
 
 Der äußere Innenabstand steht in `inspector/inspector.yaml`. Formeigenschaften von
-Rechtecken, Polygonen und Bézierkurven stehen in `inspector/shape.yaml`, Artboards
-in `inspector/artboard.yaml` und die Mehrfachauswahl in `inspector/selection.yaml`.
+Rechtecken, Polygonen und Bézierkurven stehen in `inspector/object/object.yaml`, Artboards
+in `inspector/artboard/artboard.yaml` und die Mehrfachauswahl in `inspector/selection/selection.yaml`.
 Die jeweilige C-Anbindung liegt im selben Bereich. Fachliche Änderungen werden weiter
 an `object/`, `artboard/`, `curve/` usw. delegiert. Neue UI-Dateien gehören in ihren
 zuständigen Bereich; die Modell-/UI-Grenze bleibt unverändert.

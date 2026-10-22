@@ -1,0 +1,54 @@
+schema: pengui/v1
+root:
+  type: panel
+  padding: 0
+  gap: 8
+  children:
+    - {type: label, id: rectangle_kind, text: Rechteck, height: 24}
+    - {type: slot, id: polygon_properties}
+    - {type: slot, id: text_properties}
+    - type: section
+      id: section_rectangle_settings
+      text: Einstellungen
+      children:
+      - type: row
+        padding: 0
+        gap: 8
+        height: 28
+        children:
+          - {type: label, text: Name, width: 64}
+          - {type: input, id: rectangle_name, action: vector.rectangle.name}
+      - type: row
+        padding: 0
+        gap: 8
+        height: 28
+        children:
+          - {type: label, text: Breite, width: 64}
+          - {type: input, id: rectangle_width, input_type: decimal, action: vector.rectangle.width}
+          - {type: label, text: Hoehe, width: 64}
+          - {type: input, id: rectangle_height, input_type: decimal, action: vector.rectangle.height}
+      - type: row
+        padding: 0
+        gap: 8
+        height: 28
+        children:
+          - {type: label, text: Winkel, width: 64}
+          - {type: input, id: rectangle_angle, input_type: decimal, action: vector.rectangle.angle}
+          - {type: label, text: Grad, width: 40}
+          - {type: slot, id: object_fill}
+    - {type: slot, id: rectangle_corner_properties}
+    - {type: slot, id: object_gradient}
+    - {type: slot, id: object_stroke}
+    - {type: slot, id: object_effects}
+    - type: section
+      id: section_layer_settings
+      text: Ebene
+      children:
+      - type: row
+        padding: 0
+        gap: 8
+        height: 28
+        children:
+          - {type: checkbox, id: rectangle_visible, text: Sichtbar, action: vector.rectangle.visible, height: 28}
+          - {type: checkbox, id: rectangle_locked, text: Gesperrt, action: vector.rectangle.locked, height: 28}
+      - {type: label, id: rectangle_edit_hint, text: "", height: 24}

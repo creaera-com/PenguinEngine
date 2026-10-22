@@ -9,8 +9,8 @@
 
 PUILayout *vector_effects_layout(const EditorServices *services, PUILayout *base, char *error,
                                  size_t capacity) {
-    PUILayout *effects =
-        editor_load_ui(services, "editors/vector/ui/inspector/effects.yaml", error, capacity);
+    PUILayout *effects = editor_load_ui(
+        services, "editors/vector/ui/inspector/appearance/effects/effects.yaml", error, capacity);
     PUILayout *result = base && effects
                             ? pui_layout_compose(base, "object_effects", effects, error, capacity)
                             : NULL;

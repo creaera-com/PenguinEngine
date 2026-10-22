@@ -206,8 +206,13 @@ static void request_action(void *context, const char *name, const char *widget) 
 
 static void test_toolbar_action_queues_switch_until_commit(void) {
     activate("vector");
-    pui_pointer(&shell.input, 306, 20, true);
-    pui_pointer(&shell.input, 306, 20, false);
+    int x = 0;
+    while (x < 800 && !pui_view_hit(shell.view, "scripts", (float)x, 20)) {
+        x++;
+    }
+    TEST_ASSERT_TRUE(x < 800);
+    pui_pointer(&shell.input, (float)x + 1, 20, true);
+    pui_pointer(&shell.input, (float)x + 1, 20, false);
     pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 800, 600}, request_action, &host);
     TEST_ASSERT_EQUAL_STRING("vector", host.active->id);
     TEST_ASSERT_NOT_NULL(host.pending);
@@ -667,8 +672,56 @@ static void test_smooth_zoom_anchor_accumulation_fractional_steps_and_limits(voi
     TEST_ASSERT_FLOAT_WITHIN(.0001f, .1f, v.zoom);
 }
 
+static void test_inspector_owns_layouts_and_cleans_up_partial_initialization(void) {
+    activate("vector");
+    VectorEditor *editor = host.instance;
+    VectorInspector inspector = {0};
+    char error[256], path[2048];
+    char temporary[256];
+    snprintf(temporary, sizeof temporary, "/tmp/pengui-inspector-%llu/",
+             (unsigned long long)SDL_GetTicksNS());
+    TEST_ASSERT_TRUE(SDL_CreateDirectory(temporary));
+    const char *folders[] = {"editors", "editors/vector", "editors/vector/ui",
+                             "editors/vector/ui/inspector", "editors/vector/ui/inspector/text"};
+    for (int i = 0; i < 5; i++) {
+        snprintf(path, sizeof path, "%s%s", temporary, folders[i]);
+        TEST_ASSERT_TRUE(SDL_CreateDirectory(path));
+    }
+    snprintf(path, sizeof path, "%seditors/vector/ui/inspector/text/text.yaml", temporary);
+    const char *yaml = "schema: pengui/v1\nroot: {type: panel}";
+    TEST_ASSERT_TRUE(SDL_SaveFile(path, yaml, strlen(yaml)));
+    EditorServices incomplete = {.resource_root = temporary};
+    /* Typography loads first; the following artboard file deliberately does not exist. */
+    TEST_ASSERT_FALSE(vector_inspector_init(&inspector, &incomplete, editor->fonts,
+                                            editor->text_renderer, error, sizeof error));
+    TEST_ASSERT_NOT_NULL(strstr(error, "artboard"));
+    TEST_ASSERT_NULL(inspector.object.text.layout);
+    TEST_ASSERT_NULL(inspector.artboard.layout);
+    vector_inspector_destroy(&inspector);
+    TEST_ASSERT_TRUE(SDL_RemovePath(path));
+    for (int i = 4; i >= 0; i--) {
+        snprintf(path, sizeof path, "%s%s", temporary, folders[i]);
+        TEST_ASSERT_TRUE(SDL_RemovePath(path));
+    }
+    TEST_ASSERT_TRUE(SDL_RemovePath(temporary));
+    EditorServices complete = {.resource_root = PENGUI_EDITOR_RESOURCES};
+    TEST_ASSERT_TRUE_MESSAGE(vector_inspector_init(&inspector, &complete, editor->fonts,
+                                                   editor->text_renderer, error, sizeof error),
+                             error);
+    TEST_ASSERT_NOT_NULL(inspector.object.layout);
+    TEST_ASSERT_NOT_NULL(inspector.object.image_layout);
+    vector_inspector_destroy(&inspector);
+    vector_inspector_destroy(&inspector);
+    /* Destroying the inspector must not destroy the borrowed text/font services. */
+    TEST_ASSERT_NOT_NULL(editor->fonts);
+    TEST_ASSERT_NOT_NULL(editor->text_renderer);
+    activate("scripts");
+    activate("vector");
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_inspector_owns_layouts_and_cleans_up_partial_initialization);
     RUN_TEST(test_smooth_zoom_anchor_accumulation_fractional_steps_and_limits);
     RUN_TEST(test_ruler_pointer_marks_follow_zoomed_board_and_preserve_clip);
     RUN_TEST(test_artboard_tool_button_stays_active_until_cancel_or_creation);

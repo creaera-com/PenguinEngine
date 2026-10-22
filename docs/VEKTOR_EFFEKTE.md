@@ -35,9 +35,9 @@ an einzelnen Objekten gespeichert; Gruppen haben noch keinen gemeinsamen Effekt.
 - `effects/render.c`: zeichnet die Objekt-Alphaform in ein begrenztes temporäres
   Renderziel, erweitert sie, glättet sie mit drei separaten Boxfilter-Pässen,
   färbt sie und zeichnet den Schatten. Alle SDL-Ressourcen bleiben beim Rendering.
-- `ui/inspector/effects.yaml`: wiederverwendbare Formularbeschreibung, über einen
+- `ui/inspector/appearance/effects/effects.yaml`: wiederverwendbare Formularbeschreibung, über einen
   Slot sowohl in den Form- als auch in den Bild-Inspector eingebunden.
-- `ui/inspector/effects.c`: übersetzt Formulareingaben in `vector_shape_update`.
+- `ui/inspector/appearance/effects/effects.c`: übersetzt Formulareingaben in `vector_shape_update`.
 - `object/commands.c`: bestehender atomarer Vorher/Nachher-Befehl samt History.
 - `rectangle/render.c`: ruft den Effekt vor dem normalen Objektinhalt auf; die
   vorhandenen Form-, Text- und Bildrenderer erzeugen auch dessen Silhouette.

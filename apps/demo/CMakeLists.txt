@@ -34,7 +34,6 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/text/layout.c
  ${PROJECT_SOURCE_DIR}/editors/vector/text/tool.c
  ${PROJECT_SOURCE_DIR}/editors/vector/text/render.c
- ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/text.c
  documents/controller.c
  ${PROJECT_SOURCE_DIR}/editors/vector/persistence/document_file.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/files.c
@@ -69,12 +68,9 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/gradient/state.c
  ${PROJECT_SOURCE_DIR}/editors/vector/gradient/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/gradient/tool.c
- ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/gradient.c
  ${PROJECT_SOURCE_DIR}/editors/vector/effects/shadow.c
  ${PROJECT_SOURCE_DIR}/editors/vector/effects/render.c
- ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/effects.c
  ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/render.c
- ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/shape.c
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard/artboard.c
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard/tool.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/marquee.c
@@ -93,7 +89,19 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/canvas.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/viewport.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/documents.c
+ # Inspector bindings, grouped by property domain.
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/appearance/effects/effects.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/appearance/fill/fill.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/appearance/fill/gradient.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/appearance/stroke/stroke.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/artboard/artboard.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/inspector.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/lifecycle.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/object/object.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/polygon/polygon.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/rectangle/corners.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/selection/selection.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/text/text.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree/groups.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree/document_tree.c
  ${PROJECT_SOURCE_DIR}/editors/vector/geometry/bezier.c

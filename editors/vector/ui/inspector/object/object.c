@@ -1,15 +1,30 @@
-/** @file @brief Rectangle properties remain separate from artboard inspector bindings. */
-#include "shape.h"
+/** @file @brief Common object fields and composition of optional property sections. */
+#include "object.h"
+#include "../appearance/effects/effects.h"
+#include "../appearance/fill/fill.h"
+#include "../appearance/stroke/stroke.h"
+#include "../polygon/polygon.h"
+#include "../rectangle/corners.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/gradient/tool.h"
 #include "editors/vector/object/commands.h"
-#include "editors/vector/polygon/polygon.h"
 #include "editors/vector/workspace/selection.h"
-#include "effects.h"
 #include <errno.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+
+enum {
+    FIELD_NAME = 1u,
+    FIELD_WIDTH = 2u,
+    FIELD_HEIGHT = 4u,
+    FIELD_FILL = 8u,
+    FIELD_ANGLE = 16u,
+    FIELD_STROKE = 32u,
+    FIELD_POLYGON = 64u,
+    FIELD_EFFECTS = 128u,
+    FIELD_CORNERS = 256u
+};
 
 static bool dimension(const char *text, float *value) {
     if (!text || !*text) {
@@ -21,11 +36,11 @@ static bool dimension(const char *text, float *value) {
     return !errno && end != text && !*end && isfinite(*value) && *value >= 1;
 }
 
-void vector_rectangle_inspector_cancel_color(VectorRectangleInspector *inspector,
-                                             VectorDocuments *documents, PUIView *view) {
+void vector_object_inspector_cancel_color(VectorObjectInspector *inspector,
+                                          VectorDocuments *documents, PUIView *view) {
     VectorDocument *document = vector_documents_find(documents, inspector->document_id);
     VectorRectangle *rectangle =
-        document ? vector_rectangle_find(document, inspector->rectangle_id) : NULL;
+        document ? vector_rectangle_find(document, inspector->object_id) : NULL;
     if (document) {
         document->fill_preview = (VectorFillPreview){0};
     }
@@ -37,72 +52,31 @@ void vector_rectangle_inspector_cancel_color(VectorRectangleInspector *inspector
     }
 }
 
-/* Translate inspector controls into one atomic domain edit. Picker changes commit on release. */
-static bool stroke_action(VectorRectangleInspector *inspector, VectorDocument *document,
-                          VectorRectangle *rectangle, PUIView *view, const char *action) {
-    VectorStroke stroke = rectangle->stroke;
-    bool valid = true;
-    if (!strcmp(action, "vector.rectangle.stroke_width")) {
-        const char *text = pui_view_text(view, "rectangle_stroke_width");
-        char *end;
-        errno = 0;
-        stroke.width = text ? strtof(text, &end) : -1;
-        valid = text && *text && end != text && !*end && !errno;
-    } else if (!strcmp(action, "vector.rectangle.stroke_color")) {
-        valid = pui_view_color(view, "rectangle_stroke_color", &stroke.color);
-    } else if (!strcmp(action, "vector.rectangle.stroke_inside")) {
-        stroke.alignment = VECTOR_STROKE_INSIDE;
-    } else if (!strcmp(action, "vector.rectangle.stroke_center")) {
-        stroke.alignment = VECTOR_STROKE_CENTER;
-    } else if (!strcmp(action, "vector.rectangle.stroke_outside")) {
-        stroke.alignment = VECTOR_STROKE_OUTSIDE;
-    } else {
-        return false;
-    }
-    vector_selection_cancel(document);
-    bool changed = valid && vector_rectangle_set_stroke(document, rectangle->id, stroke);
-    inspector->dirty |= 32u;
-    pui_view_set_text(view, "status",
-                      changed ? "Rahmen aktualisiert (0 px: aus)"
-                              : "Rechteck gesperrt oder ungueltiger Rahmen");
-    return true;
-}
-
-bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
-                                       VectorDocuments *documents, PUIView *view,
-                                       const char *action) {
+bool vector_object_inspector_action(VectorObjectInspector *inspector, VectorDocuments *documents,
+                                    PUIView *view, const char *action) {
     if (vector_gradient_inspector_action(&inspector->gradient,
                                          vector_documents_find(documents, inspector->document_id),
-                                         inspector->rectangle_id, view, action)) {
+                                         inspector->object_id, view, action)) {
         return true;
     }
     if (vector_effects_action(vector_documents_find(documents, inspector->document_id),
-                              inspector->rectangle_id, view, action)) {
-        inspector->dirty |= 128u;
+                              inspector->object_id, view, action)) {
+        inspector->dirty |= FIELD_EFFECTS;
         return true;
     }
     if (vector_text_inspector_action(&inspector->text,
                                      vector_documents_find(documents, inspector->document_id),
-                                     inspector->rectangle_id, view, action)) {
+                                     inspector->object_id, view, action)) {
         return true;
     }
+    VectorDocument *selected_document = vector_documents_find(documents, inspector->document_id);
+    VectorShape *selected_shape =
+        selected_document ? vector_rectangle_find(selected_document, inspector->object_id) : NULL;
     if (!strcmp(action, "vector.polygon.sides")) {
-        VectorDocument *d = vector_documents_find(documents, inspector->document_id);
-        const char *text = pui_view_text(view, "polygon_sides");
-        char *end = NULL;
-        errno = 0;
-        long sides = text ? strtol(text, &end, 10) : 0;
-        bool valid = text && end != text && !*end && !errno && sides >= 3 &&
-                     sides <= VECTOR_POLYGON_MAX_SIDES;
-        if (d) {
-            vector_selection_cancel(d);
+        if (selected_shape) {
+            vector_inspector_polygon_action(selected_document, selected_shape, view, action);
         }
-        bool changed =
-            d && valid && vector_polygon_set_sides(d, inspector->rectangle_id, (unsigned)sides);
-        inspector->dirty |= 64u;
-        pui_view_set_text(view, "status",
-                          changed ? "Eckenzahl aktualisiert"
-                                  : "Polygon gesperrt oder Eckenzahl ungueltig (3 bis 32)");
+        inspector->dirty |= FIELD_POLYGON;
         return true;
     }
     bool fill = !strcmp(action, "vector.rectangle.fill"),
@@ -121,53 +95,24 @@ bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
     }
     VectorDocument *document = vector_documents_find(documents, inspector->document_id);
     VectorRectangle *rectangle =
-        document ? vector_rectangle_find(document, inspector->rectangle_id) : NULL;
+        document ? vector_rectangle_find(document, inspector->object_id) : NULL;
     if (!rectangle) {
         return true;
     }
     if (stroke) {
-        return stroke_action(inspector, document, rectangle, view, action);
+        inspector->dirty |= FIELD_STROKE;
+        return vector_inspector_stroke_action(document, rectangle, view, action);
     }
     if (fill || preview) {
-        uint32_t color;
-        if (!pui_view_color(view, "rectangle_fill", &color)) {
-            return true;
+        if (fill) {
+            inspector->dirty |= FIELD_FILL;
         }
-        if (preview) {
-            document->fill_preview = (VectorFillPreview){
-                .rectangle_id = rectangle->id,
-                .color = color,
-                .active = pui_view_color_editing(view, "rectangle_fill") &&
-                          !(vector_rectangle_effective_flags(document, rectangle) &
-                            VECTOR_OBJECT_LOCKED)};
-            return true;
-        }
-        document->fill_preview = (VectorFillPreview){0};
-        bool changed;
-        if (rectangle->gradient.kind) {
-            VectorShape value = *rectangle;
-            value.fill = color;
-            value.gradient.kind = VECTOR_GRADIENT_SOLID;
-            changed = vector_shape_update(document, &value);
-        } else {
-            changed = vector_rectangle_set_fill(document, rectangle->id, color);
-        }
-        inspector->dirty |= 8u;
-        pui_view_set_text(view, "status",
-                          changed ? "Fuellfarbe aktualisiert"
-                                  : "Rechteck oder Artboard ist gesperrt");
-        return true;
+        return vector_inspector_fill_action(document, rectangle, view, action);
     }
     bool changed = false;
     if (radius) {
-        const char *text = pui_view_text(view, "rectangle_radius");
-        char *end = NULL;
-        errno = 0;
-        float value = text ? strtof(text, &end) : -1;
-        bool valid = text && *text && end != text && !*end && !errno && isfinite(value);
-        vector_selection_cancel(document);
-        changed = valid && vector_rectangle_set_radius(document, rectangle->id, value);
-        inspector->dirty |= 256u;
+        inspector->dirty |= FIELD_CORNERS;
+        return vector_inspector_corners_action(document, rectangle, view, action);
     } else if (angle) {
         const char *text = pui_view_text(view, "rectangle_angle");
         char *end;
@@ -176,7 +121,7 @@ bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
         bool valid = text && end != text && !*end && !errno && isfinite(value);
         vector_selection_cancel(document);
         changed = valid && vector_rectangle_set_angle(document, rectangle->id, value);
-        inspector->dirty |= 16u;
+        inspector->dirty |= FIELD_ANGLE;
     } else if (visible || locked) {
         unsigned bit = visible ? VECTOR_OBJECT_HIDDEN : VECTOR_OBJECT_LOCKED;
         bool enabled = pui_view_checked(view, visible ? "rectangle_visible" : "rectangle_locked");
@@ -192,7 +137,7 @@ bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
         bool valid = !width || dimension(pui_view_text(view, "rectangle_width"), &rect.w);
         valid = valid && (!height || dimension(pui_view_text(view, "rectangle_height"), &rect.h));
         changed = valid && vector_rectangle_update(document, rectangle->id, text, rect);
-        inspector->dirty |= name ? 1u : width ? 2u : 4u;
+        inspector->dirty |= name ? FIELD_NAME : width ? FIELD_WIDTH : FIELD_HEIGHT;
     }
     pui_view_set_text(view, "status",
                       changed ? "Rechteck aktualisiert"
@@ -200,14 +145,13 @@ bool vector_rectangle_inspector_action(VectorRectangleInspector *inspector,
     return true;
 }
 
-bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, VectorDocument *document,
-                                     PUIView *view, PUIContext *input, char *error,
-                                     size_t capacity) {
+bool vector_object_inspector_sync(VectorObjectInspector *inspector, VectorDocument *document,
+                                  PUIView *view, PUIContext *input, char *error, size_t capacity) {
     VectorRectangle *rectangle =
         document ? vector_rectangle_find(document, document->active_rectangle) : NULL;
     bool mount = rectangle != NULL;
     bool switched = inspector->document_id != (document ? document->id : 0) ||
-                    inspector->rectangle_id != (rectangle ? rectangle->id : 0);
+                    inspector->object_id != (rectangle ? rectangle->id : 0);
     bool image = rectangle && *rectangle->image.source;
     if (mount != inspector->mounted || image != inspector->image_mounted) {
         if (!pui_view_replace_slot(view, input, "selection_properties",
@@ -263,11 +207,9 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
             inspector->polygon_mounted = polygon;
             switched = true;
         }
-        if (polygon && (switched || (inspector->dirty & 64u) ||
-                        inspector->presented.curve.count != rectangle->curve.count)) {
-            char corners[16];
-            snprintf(corners, sizeof corners, "%u", rectangle->curve.count);
-            pui_view_set_text(view, "polygon_sides", corners);
+        if (polygon) {
+            vector_inspector_polygon_sync(rectangle, &inspector->presented, view,
+                                          switched || (inspector->dirty & FIELD_POLYGON));
         }
         pui_view_set_text(view, "rectangle_kind",
                           *rectangle->image.source                        ? "Bild"
@@ -290,28 +232,25 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
             switched = true;
         }
         char value[64];
-        if (switched || (inspector->dirty & 256u) ||
-            inspector->presented.corner_radius != rectangle->corner_radius) {
-            snprintf(value, sizeof value, "%.7g", (double)rectangle->corner_radius);
-            pui_view_set_text(view, "rectangle_radius", value);
-        }
-        if (switched || (inspector->dirty & 1u) ||
+        vector_inspector_corners_sync(rectangle, &inspector->presented, view,
+                                      switched || (inspector->dirty & FIELD_CORNERS));
+        if (switched || (inspector->dirty & FIELD_NAME) ||
             strcmp(inspector->presented.name, rectangle->name)) {
             pui_view_set_text(view, "rectangle_name", rectangle->name);
         }
-        if (switched || (inspector->dirty & 2u) ||
+        if (switched || (inspector->dirty & FIELD_WIDTH) ||
             inspector->presented.rect.w != rectangle->rect.w) {
             snprintf(value, sizeof value, "%.7g", (double)rectangle->rect.w);
             pui_view_set_text(view, "rectangle_width", value);
         }
-        if (switched || (inspector->dirty & 4u) ||
+        if (switched || (inspector->dirty & FIELD_HEIGHT) ||
             inspector->presented.rect.h != rectangle->rect.h) {
             snprintf(value, sizeof value, "%.7g", (double)rectangle->rect.h);
             pui_view_set_text(view, "rectangle_height", value);
         }
         bool angle_preview = document->selection_tool.rotating;
         float displayed_angle = vector_rectangle_display_angle(document, rectangle);
-        if (switched || (inspector->dirty & 16u) ||
+        if (switched || (inspector->dirty & FIELD_ANGLE) ||
             inspector->presented.angle != rectangle->angle ||
             inspector->angle_preview != angle_preview ||
             inspector->displayed_angle != displayed_angle) {
@@ -328,34 +267,16 @@ bool vector_rectangle_inspector_sync(VectorRectangleInspector *inspector, Vector
                                   VECTOR_OBJECT_LOCKED
                               ? "Objekt oder Artboard gesperrt."
                               : "");
-        if (switched || (inspector->dirty & 8u) || inspector->presented.fill != rectangle->fill) {
-            uint32_t current;
-            if (switched || !pui_view_color(view, "rectangle_fill", &current) ||
-                current != rectangle->fill) {
-                document->fill_preview = (VectorFillPreview){0};
-                pui_view_set_color(view, "rectangle_fill", rectangle->fill);
-            }
-        }
-        if (switched || (inspector->dirty & 32u) ||
-            inspector->presented.stroke.width != rectangle->stroke.width) {
-            snprintf(value, sizeof value, "%.7g", (double)rectangle->stroke.width);
-            pui_view_set_text(view, "rectangle_stroke_width", value);
-        }
-        const char *alignment =
-            rectangle->stroke.alignment == VECTOR_STROKE_INSIDE    ? "rectangle_stroke_inside"
-            : rectangle->stroke.alignment == VECTOR_STROKE_OUTSIDE ? "rectangle_stroke_outside"
-                                                                   : "rectangle_stroke_center";
-        pui_view_set_checked(view, alignment, true);
-        if (switched || (inspector->dirty & 32u) ||
-            inspector->presented.stroke.color != rectangle->stroke.color) {
-            pui_view_set_color(view, "rectangle_stroke_color", rectangle->stroke.color);
-        }
+        vector_inspector_fill_sync(document, rectangle, &inspector->presented, view,
+                                   switched || (inspector->dirty & FIELD_FILL));
+        vector_inspector_stroke_sync(rectangle, &inspector->presented, view,
+                                     switched || (inspector->dirty & FIELD_STROKE));
         vector_effects_sync(view, &rectangle->shadow, &inspector->presented.shadow,
-                            switched || (inspector->dirty & 128u));
+                            switched || (inspector->dirty & FIELD_EFFECTS));
         inspector->presented = *rectangle;
     }
     inspector->document_id = document ? document->id : 0;
-    inspector->rectangle_id = rectangle ? rectangle->id : 0;
+    inspector->object_id = rectangle ? rectangle->id : 0;
     inspector->dirty = 0;
     return true;
 }

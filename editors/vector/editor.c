@@ -10,7 +10,6 @@
 #include "internal.h"
 #include "preview/render.h"
 #include "preview/tool.h"
-#include "ui/inspector/effects.h"
 #include "workspace/box_tool.h"
 #include "workspace/canvas.h"
 #include <stdio.h>
@@ -55,17 +54,10 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
     pui_layout_free(root);
     vector_documents_init(&editor->documents);
     if (!editor->layout) {
-        pui_layout_free(editor->inspector.multi_layout);
-        pui_layout_free(editor->inspector.rectangle.image_layout);
-        pui_layout_free(editor->inspector.rectangle.layout);
-        pui_layout_free(editor->inspector.rectangle.polygon_layout);
-        pui_layout_free(editor->inspector.rectangle.corners_layout);
-        pui_layout_free(editor->inspector.rectangle.gradient_layout);
-        pui_layout_free(editor->inspector.rectangle.text.layout);
+        vector_inspector_destroy(&editor->inspector);
         vector_image_renderer_destroy(editor->image_renderer);
         vector_text_renderer_destroy(editor->text_renderer);
         pui_fonts_destroy(editor->fonts);
-        pui_layout_free(editor->inspector.artboard_layout);
         pui_layout_free(editor->layout);
         free(editor);
         return NULL;
@@ -73,34 +65,9 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
     editor->image_renderer = vector_image_renderer_create();
     editor->fonts = pui_fonts_create(services->resource_root);
     editor->text_renderer = editor->fonts ? vector_text_renderer_create(editor->fonts) : NULL;
-    editor->inspector.rectangle.text.fonts = editor->fonts;
-    editor->inspector.rectangle.text.renderer = editor->text_renderer;
-    editor->inspector.rectangle.text.layout =
-        editor_load_ui(services, "editors/vector/ui/inspector/text.yaml", error, capacity);
-    editor->inspector.artboard_layout =
-        editor_load_ui(services, "editors/vector/ui/inspector/artboard.yaml", error, capacity);
-    editor->inspector.rectangle.layout =
-        editor_load_ui(services, "editors/vector/ui/inspector/shape.yaml", error, capacity);
-    editor->inspector.rectangle.gradient_layout =
-        editor_load_ui(services, "editors/vector/ui/inspector/gradient.yaml", error, capacity);
-    editor->inspector.rectangle.corners_layout =
-        editor_load_ui(services, "editors/vector/ui/inspector/corners.yaml", error, capacity);
-    editor->inspector.rectangle.polygon_layout =
-        editor_load_ui(services, "editors/vector/ui/inspector/polygon.yaml", error, capacity);
-    editor->inspector.rectangle.image_layout =
-        editor_load_ui(services, "editors/vector/ui/inspector/image.yaml", error, capacity);
-    editor->inspector.rectangle.layout =
-        vector_effects_layout(services, editor->inspector.rectangle.layout, error, capacity);
-    editor->inspector.rectangle.image_layout =
-        vector_effects_layout(services, editor->inspector.rectangle.image_layout, error, capacity);
-    editor->inspector.multi_layout =
-        editor_load_ui(services, "editors/vector/ui/inspector/selection.yaml", error, capacity);
-    if (!editor->inspector.artboard_layout || !editor->inspector.rectangle.layout ||
-        !editor->inspector.rectangle.image_layout || !editor->inspector.multi_layout ||
-        !editor->inspector.rectangle.gradient_layout ||
-        !editor->inspector.rectangle.corners_layout ||
-        !editor->inspector.rectangle.polygon_layout || !editor->image_renderer ||
-        !editor->text_renderer || !editor->inspector.rectangle.text.layout) {
+    if (!editor->image_renderer || !editor->text_renderer ||
+        !vector_inspector_init(&editor->inspector, services, editor->fonts, editor->text_renderer,
+                               error, capacity)) {
         if (!editor->text_renderer) {
             snprintf(error, capacity,
                      "could not load bundled fonts; build the editor resource target");
@@ -122,17 +89,10 @@ void vector_editor_destroy(void *instance) {
         vector_export_ui_destroy(&editor->export_ui);
         vector_workspace_cancel_inactive(&editor->documents, NULL);
         vector_documents_destroy(&editor->documents);
-        pui_layout_free(editor->inspector.multi_layout);
-        pui_layout_free(editor->inspector.rectangle.image_layout);
-        pui_layout_free(editor->inspector.rectangle.layout);
-        pui_layout_free(editor->inspector.rectangle.polygon_layout);
-        pui_layout_free(editor->inspector.rectangle.corners_layout);
-        pui_layout_free(editor->inspector.rectangle.gradient_layout);
-        pui_layout_free(editor->inspector.rectangle.text.layout);
+        vector_inspector_destroy(&editor->inspector);
         vector_image_renderer_destroy(editor->image_renderer);
         vector_text_renderer_destroy(editor->text_renderer);
         pui_fonts_destroy(editor->fonts);
-        pui_layout_free(editor->inspector.artboard_layout);
         pui_layout_free(editor->layout);
         free(editor);
     }

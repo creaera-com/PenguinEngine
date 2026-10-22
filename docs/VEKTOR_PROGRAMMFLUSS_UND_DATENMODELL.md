@@ -625,7 +625,7 @@ Ein ausgewähltes Rechteck öffnet die zugehörigen Tree-Vorfahren. Auswahl ist 
 Auswahlwerkzeug per Zeichenfläche oder Tree möglich. Der Inspector lädt dann
 `rectangle_inspector.yaml` in den gemeinsamen Slot `selection_properties`.
 Name, Breite, Höhe, Sichtbarkeit und Sperre sind über eigene bindings in
-`ui/inspector/shape.c` bearbeitbar. Im Tree beziehen sich Auge und Schloss auf
+`ui/inspector/object/object.c` bearbeitbar. Im Tree beziehen sich Auge und Schloss auf
 die eigenen Flags; effektive Sichtbarkeit und Sperre berücksichtigen zusätzlich
 die Flags des Eltern-Artboards. Eine eigene Sperre oder Elternsperre verhindert
 Geometrie- und Namensänderungen; eigene Zustandsflags bleiben bearbeitbar.
@@ -673,7 +673,7 @@ wieder zurückgezogen werden. Die Eltern-ID ändert sich durch Verschieben nicht
 `VectorRectangle.fill` speichert `0xRRGGBBAA`; der Standard ist `0x7393AFFF`.
 `rectangle_inspector.yaml` enthält das allgemeine pengUI-Widget `rectangle_fill`.
 Die Aktionen `vector.rectangle.fill_preview` und `vector.rectangle.fill` werden
-in `ui/inspector/shape.c` in Vorschau bzw. Modelländerung übersetzt.
+in `ui/inspector/object/object.c` in Vorschau bzw. Modelländerung übersetzt.
 
 Während eines Reglerzugs hält `VectorDocument.fill_preview` nur Rechteck-ID, vorläufige
 Farbe und ein Aktiv-Flag. Der Renderer liest diese Farbe anstelle der gespeicherten
@@ -779,7 +779,7 @@ atomar an. Checkpoint-Typ 5 speichert diese Werte; Schema `PVCKPT29` speichert
 zusaetzlich die Auswahl-IDs. Ein Editorwechsel verwirft Gestenvorschauen,
 behaelt aber Auswahl und abgeschlossene Gruppenbewegungen.
 
-Der Inspector laedt bei mehreren Rechtecken `ui/inspector/selection.yaml` mit
+Der Inspector laedt bei mehreren Rechtecken `ui/inspector/selection/selection.yaml` mit
 Auswahlanzahl und Bedienhinweisen. Gemeinsame Eigenschaftseingaben sind noch
 nicht enthalten; Formulare bearbeiten weiterhin einzeln ausgewaehlte Rechtecke. Markierungen
 erscheinen sowohl auf der Zeichenflaeche als auch im Dokument-Tree.
@@ -1358,7 +1358,7 @@ der Kapazitaet von `VectorBezier`. Die Form speichert gerade Segmente als kubisc
 Kurve mit identischen Anker- und Kontrollpunkten sowie `VECTOR_CURVE_POLYGON` als
 Identitaet. Es ist keine weitere Heap-Ressource oder separate Datei noetig.
 
-Der Inspector laedt `ui/inspector/polygon.yaml` nur bei einem parametrischen Polygon
+Der Inspector laedt `ui/inspector/polygon/polygon.yaml` nur bei einem parametrischen Polygon
 in den Slot `polygon_properties`. `vector.polygon.sides` validiert die ganzzahlige
 Eingabe (3 bis 32) und ruft `vector_polygon_set_sides` auf. Die Operation ersetzt nur
 die Geometrie, behaelt ID, Namen, Transformation, Fuellung und Rahmen bei und erzeugt
