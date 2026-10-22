@@ -120,7 +120,7 @@ static void draw_shape(void *data) {
                          !context->silhouette && vector_document_is_selected(document, shown->id));
         return;
     }
-    if (shown->curve_kind == VECTOR_CURVE_ELLIPSE) {
+    if (shown->curve_kind == VECTOR_CURVE_ELLIPSE && shown->ellipse.mode == VECTOR_ELLIPSE_FULL) {
         vector_ellipse_draw(renderer, shown, rect, angle, board, document->viewport.zoom, fill,
                             !context->silhouette &&
                                 vector_document_is_selected(document, rectangle->id));

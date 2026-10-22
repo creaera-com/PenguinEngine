@@ -42,7 +42,7 @@ geschlossen und erst bei Erfolg auf den Zielnamen umbenannt. Bei Schreib-/Validi
 fehlern bleiben die bestehende Zieldatei und die bisherige Dokumentidentität erhalten.
 Dies ist kein automatisches Recovery-System und keine Garantie gegen Stromausfall.
 
-## Format `PENGVEC`, Version 8
+## Format `PENGVEC`, Version 9
 
 Das eigene binäre Format ist unabhängig von C-Struct-Padding und nativer Byte-Reihenfolge.
 Es gibt keinen SVG-Mapping-Schritt und keine gespeicherten Zeiger.
@@ -60,7 +60,7 @@ Grundtypen:
 Datei-Reihenfolge:
 
 1. Acht Magic-Bytes `50 45 4E 47 56 45 43 00` (`PENGVEC` plus Nullbyte).
-2. Version `u32` = 8.
+2. Version `u32` = 9.
 3. Artboardanzahl und Formanzahl als u32, jeweils maximal 64.
 4. Pro Artboard: ID, Flags, Name `string(64)`, Rechteck.
 5. Pro Form, in Ebenenreihenfolge:
@@ -86,6 +86,7 @@ Datei-Reihenfolge:
      je Stopp Position (f32) und Farbe (u32), maximal acht Stopps. Alle sechs
      Grundfelder werden auch bei deaktiviertem Verlauf geschrieben.
    - Instanz: Quellobjekt-ID (u32, 0 = unabhaengig), Basisbreite/-hoehe (f32).
+   - Ellipsensegment: Modus (u32), Start- und Endwinkel (f32, Grad).
    - Eckenradius (f32).
 6. Dateiende; zusätzliche Bytes werden abgelehnt.
 
@@ -100,10 +101,10 @@ Schnittgruppe. Pro Schnittgruppe sind genau ein Masken-Kind und mindestens ein
 Inhaltsobjekt zulässig. Alle Kinder teilen dasselbe Artboard. Masken müssen geschlossene
 geometrische Formen sein; Textfelder und offene Kurven sind keine Masken.
 
-Der Reader akzeptiert weiterhin Version 1 bis 8. Version 1 hat weder Maskenrolle,
+Der Reader akzeptiert weiterhin Version 1 bis 9. Version 1 hat weder Maskenrolle,
 Bildfeld, Wiederholung oder Schatten/Verlauf; Version 2 ergänzt die Maskenrolle, Version 3
 die Bildreferenz, Version 4 die Wiederholung, Version 5 den Schlagschatten Version 6 den Verlauf und Version 7 den Eckenradius.
-Fehlende Werte werden auf 0 gesetzt. Neue Dateien werden als Version 8 geschrieben.
+Fehlende Werte werden auf 0 gesetzt. Neue Dateien werden als Version 9 geschrieben.
 Version 8 ergänzt die Instanzreferenz und deren Basisdimensionen unmittelbar vor dem Eckenradius.
 Der Eckenradius (`f32`) bleibt das letzte Feld jedes Formdatensatzes.
 Alte Dokumente erhalten Radius 0; Programme mit Formatunterstützung bis Version 7 können neue Dateien nicht lesen.
@@ -182,3 +183,26 @@ gehen nicht in diesen Vergleich ein. Der Fingerabdruck dient der Sitzungslogik,
 ist keine kryptografische Prüfsumme und steht nicht im `.pengvec`-Format.
 Der private Checkpoint `PVCKPT32` enthält zusätzlich den gespeicherten Zustand,
 die nächste Dokument-ID und die Information, ob der Arbeitsbereich bereits gestartet war.
+
+Version 9 ergänzt nach den Instanz-Basisdimensionen und vor dem Eckenradius drei
+32-Bit-Werte: Ellipsenmodus (`u32`: 0 vollständig, 1 Bogen, 2 Tortenstück,
+3 Kreisabschnitt), Startwinkel und Endwinkel (`f32`, Grad). Ältere Dateien laden
+weiterhin als vollständige Ellipsen. Die gespeicherten Bézierpunkte bilden die
+aktuelle Geometrie ab; die Parameter bleiben für spätere Inspector-Änderungen erhalten.
+
+## Ellipsensegmente im Inspector
+
+Bei einer ausgewählten Ellipse erscheint **Ellipsensegment**. Der Modus bestimmt,
+ob die Winkel einen offenen Kreisbogen, ein geschlossenes Tortenstück mit zwei
+Radien oder einen Kreisabschnitt mit gerader Sehne beschreiben. **Volle Ellipse**
+zeigt die gesamte Form. Start und Ende liegen zwischen -360 und 360 Grad;
+0 Grad liegt rechts, positive Winkel laufen im Uhrzeigersinn. Die Differenz darf
+höchstens eine volle Umdrehung betragen und bei Segmenten nicht null sein.
+Die Größe und der Drehpunkt bleiben die ursprüngliche Ellipsenbox.
+
+Geschlossene Formen verwenden die vorhandene Füllung, Verläufe und Kontur.
+Offene Bögen werden nur mit Kontur gezeichnet; falls die Ellipse bisher keine
+Kontur hatte, wird beim Umschalten eine 1-Pixel-Kontur in ihrer Füllfarbe angelegt.
+Die übrigen Stilwerte bleiben erhalten. Jede bestätigte Änderung ist rückgängig
+machbar. Knotenbearbeitung bzw. Umwandlung zum freien Pfad beendet wie bisher die
+parametrische Bearbeitung. Verknüpfte Instanzen übernehmen Änderungen vom Original.

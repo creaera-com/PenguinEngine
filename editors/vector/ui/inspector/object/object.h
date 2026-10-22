@@ -7,12 +7,13 @@
 #include "editors/vector/document/document.h"
 
 typedef struct {
-    PUILayout *layout, *polygon_layout, *image_layout, *gradient_layout, *corners_layout;
+    PUILayout *layout, *polygon_layout, *image_layout, *gradient_layout, *corners_layout,
+        *ellipse_layout;
     VectorTextInspector text;
     VectorGradientInspector gradient;
     unsigned document_id, object_id, dirty;
     VectorShape presented;
-    bool mounted, image_mounted, angle_preview, polygon_mounted, corners_mounted;
+    bool mounted, image_mounted, angle_preview, polygon_mounted, corners_mounted, ellipse_mounted;
     float displayed_angle;
 } VectorObjectInspector;
 

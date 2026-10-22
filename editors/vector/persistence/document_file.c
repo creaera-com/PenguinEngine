@@ -208,6 +208,11 @@ static void shape(Codec *c, VectorShape *s) {
         real(c, &s->instance_basis_w);
         real(c, &s->instance_basis_h);
     }
+    if (c->version >= 9) {
+        integer(c, &s->ellipse.mode);
+        real(c, &s->ellipse.start);
+        real(c, &s->ellipse.end);
+    }
     if (c->version >= 7) {
         real(c, &s->corner_radius);
     }
@@ -217,9 +222,9 @@ static bool content(Codec *c, VectorClipboard *values) {
     char magic[8] = {'P', 'E', 'N', 'G', 'V', 'E', 'C', 0}, actual[8];
     memcpy(actual, magic, 8);
     bytes(c, actual, 8);
-    unsigned version = 8;
+    unsigned version = 9;
     integer(c, &version);
-    if (memcmp(actual, magic, 8) || (version < 1 || version > 8)) {
+    if (memcmp(actual, magic, 8) || (version < 1 || version > 9)) {
         return false;
     }
     c->version = version;

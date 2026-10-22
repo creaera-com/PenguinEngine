@@ -3,6 +3,7 @@
 #include "../appearance/effects/effects.h"
 #include "../appearance/fill/fill.h"
 #include "../appearance/stroke/stroke.h"
+#include "../ellipse/ellipse.h"
 #include "../polygon/polygon.h"
 #include "../rectangle/corners.h"
 #include "editors/vector/artboard/tool.h"
@@ -24,7 +25,8 @@ enum {
     FIELD_STROKE = 32u,
     FIELD_POLYGON = 64u,
     FIELD_EFFECTS = 128u,
-    FIELD_CORNERS = 256u
+    FIELD_CORNERS = 256u,
+    FIELD_ELLIPSE = 512u
 };
 
 static bool dimension(const char *text, float *value) {
@@ -64,10 +66,10 @@ bool vector_object_inspector_action(VectorObjectInspector *inspector, VectorDocu
     bool appearance =
         !strncmp(action, "vector.rectangle.", 17) || !strncmp(action, "vector.gradient.", 16) ||
         !strncmp(action, "vector.shadow.", 14) || !strncmp(action, "vector.text.", 12) ||
-        !strncmp(action, "vector.polygon.", 15);
+        !strncmp(action, "vector.polygon.", 15) || !strncmp(action, "vector.ellipse.", 15);
     if (object && object->instance_source && appearance && !local) {
-        inspector->dirty |=
-            FIELD_FILL | FIELD_STROKE | FIELD_EFFECTS | FIELD_CORNERS | FIELD_POLYGON;
+        inspector->dirty |= FIELD_FILL | FIELD_STROKE | FIELD_EFFECTS | FIELD_CORNERS |
+                            FIELD_POLYGON | FIELD_ELLIPSE;
         inspector->gradient.dirty = true;
         pui_view_set_text(view, "status",
                           "Gestaltung am Original bearbeiten oder Instanz entkoppeln");
@@ -96,6 +98,13 @@ bool vector_object_inspector_action(VectorObjectInspector *inspector, VectorDocu
             vector_inspector_polygon_action(selected_document, selected_shape, view, action);
         }
         inspector->dirty |= FIELD_POLYGON;
+        return true;
+    }
+    if (!strncmp(action, "vector.ellipse.", 15)) {
+        if (selected_shape) {
+            vector_inspector_ellipse_action(selected_document, selected_shape, view, action);
+        }
+        inspector->dirty |= FIELD_ELLIPSE;
         return true;
     }
     bool fill = !strcmp(action, "vector.rectangle.fill"),
@@ -188,6 +197,7 @@ bool vector_object_inspector_sync(VectorObjectInspector *inspector, VectorDocume
         inspector->mounted = mount;
         inspector->image_mounted = image;
         inspector->polygon_mounted = false;
+        inspector->ellipse_mounted = false;
         inspector->corners_mounted = false;
         inspector->gradient.mounted = false;
         switched = true;
@@ -221,6 +231,20 @@ bool vector_object_inspector_sync(VectorObjectInspector *inspector, VectorDocume
             }
             vector_gradient_inspector_sync(&inspector->gradient, view, &rectangle->gradient,
                                            &inspector->presented.gradient, switched);
+        }
+        bool ellipse = rectangle->curve_kind == VECTOR_CURVE_ELLIPSE;
+        if (ellipse != inspector->ellipse_mounted) {
+            if (!pui_view_replace_slot(view, input, "ellipse_properties",
+                                       ellipse ? inspector->ellipse_layout : NULL, error,
+                                       capacity)) {
+                return false;
+            }
+            inspector->ellipse_mounted = ellipse;
+            switched = true;
+        }
+        if (ellipse) {
+            vector_inspector_ellipse_sync(rectangle, &inspector->presented, view,
+                                          switched || (inspector->dirty & FIELD_ELLIPSE));
         }
         bool polygon = rectangle->curve_kind == VECTOR_CURVE_POLYGON;
         if (polygon != inspector->polygon_mounted) {

@@ -74,6 +74,11 @@ bool vector_inspector_init(VectorInspector *inspector, const EditorServices *ser
     if (!object->polygon_layout) {
         goto failed;
     }
+    object->ellipse_layout = editor_load_ui(
+        services, "editors/vector/ui/inspector/ellipse/ellipse.yaml", error, capacity);
+    if (!object->ellipse_layout) {
+        goto failed;
+    }
     return true;
 failed:
     vector_inspector_destroy(inspector);
@@ -88,6 +93,7 @@ void vector_inspector_destroy(VectorInspector *inspector) {
     pui_layout_free(inspector->object.gradient_layout);
     pui_layout_free(inspector->object.corners_layout);
     pui_layout_free(inspector->object.polygon_layout);
+    pui_layout_free(inspector->object.ellipse_layout);
     pui_layout_free(inspector->object.text.layout);
     *inspector = (VectorInspector){0};
 }

@@ -103,6 +103,7 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/inspector.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/lifecycle.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/object/object.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/ellipse/ellipse.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/polygon/polygon.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/rectangle/corners.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/selection/selection.c

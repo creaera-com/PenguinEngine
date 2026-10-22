@@ -3,6 +3,7 @@
 #define PE_VECTOR_OBJECT_SHAPE_H
 #include "editors/vector/artboard/artboard.h"
 #include "editors/vector/effects/shadow.h"
+#include "editors/vector/ellipse/state.h"
 #include "editors/vector/geometry/bezier.h"
 #include "editors/vector/geometry/path.h"
 #include "editors/vector/gradient/state.h"
@@ -38,6 +39,7 @@ typedef struct {
     unsigned clip_mask;   ///< One means this closed shape clips its group; never painted itself.
     uint32_t fill;        ///< Packed 0xRRGGBBAA; alpha is actual rendering opacity.
     VectorStroke stroke;
+    VectorEllipse ellipse; ///< Editable full ellipse, arc, pie or chord parameters.
     float corner_radius; ///< Rectangle corner radius in pixels; effective value clamps to half the
                          ///< shorter side.
     VectorGradient gradient; ///< Closed-area fill, evaluated in object-local coordinates.

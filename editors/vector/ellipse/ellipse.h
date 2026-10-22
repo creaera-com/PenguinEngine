@@ -6,4 +6,7 @@
 bool vector_ellipse_shape(PUIRect rect, VectorShape *out);
 /** @brief Add an ellipse inside an editable artboard through one undoable command. */
 bool vector_ellipse_add(VectorDocument *document, unsigned parent, PUIRect rect);
+/** @brief Rebuild parametric geometry and commit one undoable change, preserving style/transform.
+ */
+bool vector_ellipse_set_segment(VectorDocument *document, unsigned id, VectorEllipse value);
 #endif

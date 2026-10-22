@@ -5,10 +5,13 @@
 #include "editors/vector/ellipse/render.h"
 #include "editors/vector/internal.h"
 #include "editors/vector/object/clipboard.h"
+#include "editors/vector/object/orientation.h"
+#include "editors/vector/persistence/document_file.h"
 #include "editors/vector/workspace/box_tool.h"
 #include "shell/shell.h"
 #include "unity.h"
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 static SDL_Window *window;
@@ -249,8 +252,69 @@ static void test_ellipse_border_placement_rotation_and_clip(void) {
     SDL_SetRenderClipRect(renderer, NULL);
 }
 
+static void test_segments_preserve_geometry_history_inspector_and_files(void) {
+    VectorDocument *d = document();
+    TEST_ASSERT_TRUE(vector_ellipse_add(d, 1, (PUIRect){40, 30, 200, 100}));
+    TEST_ASSERT_TRUE(vector_ellipse_set_segment(d, 1, (VectorEllipse){VECTOR_ELLIPSE_PIE, 0, 90}));
+    VectorShape *shape = &d->rectangles[0];
+    TEST_ASSERT_TRUE(shape->curve.closed);
+    TEST_ASSERT_EQUAL_UINT(3, shape->curve.count);
+    TEST_ASSERT_TRUE(vector_shape_contains(shape, 155, 90));
+    TEST_ASSERT_FALSE(vector_shape_contains(shape, 90, 50));
+    TEST_ASSERT_EQUAL_FLOAT(200, shape->rect.w);
+    int history = d->history.count;
+    TEST_ASSERT_FALSE(
+        vector_ellipse_set_segment(d, 1, (VectorEllipse){VECTOR_ELLIPSE_ARC, 10, 10}));
+    TEST_ASSERT_FALSE(
+        vector_ellipse_set_segment(d, 1, (VectorEllipse){VECTOR_ELLIPSE_PIE, NAN, 90}));
+    TEST_ASSERT_EQUAL_INT(history, d->history.count);
+    TEST_ASSERT_TRUE(
+        vector_ellipse_set_segment(d, 1, (VectorEllipse){VECTOR_ELLIPSE_CHORD, 0, 90}));
+    TEST_ASSERT_EQUAL_UINT(2, shape->curve.count);
+    TEST_ASSERT_FALSE(vector_shape_contains(shape, 150, 85));
+    TEST_ASSERT_TRUE(vector_shape_contains(shape, 210, 105));
+    TEST_ASSERT_TRUE(vector_history_undo(&d->history, d));
+    TEST_ASSERT_EQUAL_UINT(VECTOR_ELLIPSE_PIE, shape->ellipse.mode);
+    TEST_ASSERT_TRUE(vector_history_redo(&d->history, d));
+    TEST_ASSERT_EQUAL_UINT(VECTOR_ELLIPSE_CHORD, shape->ellipse.mode);
+    commit();
+    TEST_ASSERT_EQUAL_STRING("chord", pui_view_value(shell.view, "ellipse_mode"));
+    TEST_ASSERT_EQUAL_STRING("90", pui_view_text(shell.view, "ellipse_end"));
+    pui_view_set_text(shell.view, "ellipse_end", "180");
+    tool("vector.ellipse.end");
+    TEST_ASSERT_EQUAL_FLOAT(180, shape->ellipse.end);
+    TEST_ASSERT_TRUE(vector_objects_orient(d, VECTOR_MIRROR_HORIZONTAL));
+    TEST_ASSERT_EQUAL_FLOAT(-180, shape->ellipse.end - shape->ellipse.start);
+    TEST_ASSERT_TRUE(vector_history_undo(&d->history, d));
+    char path[4096], error[256];
+    char *cwd = SDL_GetCurrentDirectory();
+    snprintf(path, sizeof path, "%sellipse-segment-%llu.pengvec", cwd,
+             (unsigned long long)SDL_GetPerformanceCounter());
+    SDL_free(cwd);
+    TEST_ASSERT_TRUE_MESSAGE(vector_document_file_save(d, path, error, sizeof error), error);
+    VectorDocument *loaded = calloc(1, sizeof *loaded);
+    TEST_ASSERT_NOT_NULL(loaded);
+    vector_document_init(loaded, 2);
+    TEST_ASSERT_TRUE_MESSAGE(vector_document_file_load(loaded, path, error, sizeof error), error);
+    TEST_ASSERT_EQUAL_UINT(VECTOR_ELLIPSE_CHORD, loaded->rectangles[0].ellipse.mode);
+    TEST_ASSERT_EQUAL_FLOAT(180, loaded->rectangles[0].ellipse.end);
+    vector_history_destroy(&loaded->history);
+    free(loaded);
+    SDL_RemovePath(path);
+    activate("scripts");
+    activate("vector");
+    d = document();
+    TEST_ASSERT_EQUAL_FLOAT(180, d->rectangles[0].ellipse.end);
+    TEST_ASSERT_TRUE(vector_ellipse_set_segment(d, 1, (VectorEllipse){VECTOR_ELLIPSE_ARC, 0, -90}));
+    TEST_ASSERT_FALSE(d->rectangles[0].curve.closed);
+    TEST_ASSERT_EQUAL_UINT(0, d->rectangles[0].path.count);
+    TEST_ASSERT_TRUE(d->rectangles[0].stroke.width > 0);
+    TEST_ASSERT_TRUE(vector_rectangle_valid(d->rectangles[0]));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_segments_preserve_geometry_history_inspector_and_files);
     RUN_TEST(test_ellipse_border_placement_rotation_and_clip);
     RUN_TEST(test_factory_ellipse_extents_corners_style_and_undo);
     RUN_TEST(test_native_preview_stays_active_and_switches_exclusively);

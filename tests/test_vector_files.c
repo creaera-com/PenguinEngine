@@ -316,9 +316,9 @@ static void test_legacy_version_six_defaults_to_square_corners(void) {
     size_t length;
     unsigned char *bytes = SDL_LoadFile(path, &length);
     TEST_ASSERT_NOT_NULL(bytes);
-    TEST_ASSERT_EQUAL_UINT8(8, bytes[8]);
+    TEST_ASSERT_EQUAL_UINT8(9, bytes[8]);
     bytes[8] = 6;
-    TEST_ASSERT_TRUE(SDL_SaveFile(path, bytes, length - 16));
+    TEST_ASSERT_TRUE(SDL_SaveFile(path, bytes, length - 28));
     SDL_free(bytes);
     VectorDocument *loaded = calloc(1, sizeof *loaded);
     TEST_ASSERT_NOT_NULL(loaded);

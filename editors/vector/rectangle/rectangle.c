@@ -40,7 +40,8 @@ bool vector_rectangle_valid(VectorRectangle rectangle) {
          rectangle.instance_basis_h < 1)) {
         return false;
     }
-    if (!vector_gradient_valid(&rectangle.gradient) || !vector_shadow_valid(&rectangle.shadow) ||
+    if (!vector_ellipse_parameters_valid(rectangle.ellipse) ||
+        !vector_gradient_valid(&rectangle.gradient) || !vector_shadow_valid(&rectangle.shadow) ||
         !vector_repeat_valid(&rectangle.repeat) ||
         (rectangle.repeat.enabled && rectangle.clip_mask) ||
         !vector_image_valid(&rectangle.image) ||
@@ -58,7 +59,11 @@ bool vector_rectangle_valid(VectorRectangle rectangle) {
         (rectangle.curve_kind == VECTOR_CURVE_POLYGON &&
          (rectangle.curve.count < 3 || !rectangle.curve.closed)) ||
         (rectangle.curve_kind == VECTOR_CURVE_ELLIPSE &&
-         (rectangle.curve.count != 4 || !rectangle.curve.closed))) {
+         (rectangle.curve.count < 2 ||
+          (rectangle.ellipse.mode == VECTOR_ELLIPSE_FULL &&
+           (rectangle.curve.count != 4 || !rectangle.curve.closed)) ||
+          (rectangle.ellipse.mode != VECTOR_ELLIPSE_FULL &&
+           rectangle.curve.closed != (rectangle.ellipse.mode != VECTOR_ELLIPSE_ARC))))) {
         return false;
     }
     for (unsigned i = 0; i < rectangle.path.count; i++) {

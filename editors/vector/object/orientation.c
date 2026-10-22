@@ -102,6 +102,21 @@ static bool prepare(VectorDocument *d, VectorOrientation op, Orientation *plan) 
                     after->gradient.stops[i].position = 1 - after->gradient.stops[i].position;
                 }
             }
+            if (after->curve_kind == VECTOR_CURVE_ELLIPSE &&
+                after->ellipse.mode != VECTOR_ELLIPSE_FULL) {
+                float sweep = after->ellipse.end - after->ellipse.start;
+                float start = remainderf((horizontal ? 180.f : 0.f) - after->ellipse.start, 360.f);
+                float end = start - sweep;
+                if (end > 360) {
+                    start -= 360;
+                    end -= 360;
+                } else if (end < -360) {
+                    start += 360;
+                    end += 360;
+                }
+                after->ellipse.start = start;
+                after->ellipse.end = end;
+            }
             mirror_path(&after->path, horizontal);
             for (unsigned n = 0; n < after->curve.count; n++) {
                 VectorBezierNode *node = &after->curve.nodes[n];
