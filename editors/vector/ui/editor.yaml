@@ -202,6 +202,7 @@ root:
                         - {type: input, id: vector_grid_height, text: "16", action: vector.grid.height}
                     - type: popup_button
                       text: Rasterfarbe
+                      color_input: vector_grid_color
                       icon: tabler:palette
                       placement: below
                       height: 28

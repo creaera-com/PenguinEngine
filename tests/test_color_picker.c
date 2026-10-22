@@ -166,6 +166,7 @@ static void test_picker_layout_validation_mount_retention_and_tab_prefixes(void)
     const char *invalid[] = {
         "schema: pengui/v1\nroot: {type: color_picker, value: '#GG0000'}",
         "schema: pengui/v1\nroot: {type: color_picker, mode: hsv}",
+        "schema: pengui/v1\nroot: {type: button, color_input: paint}",
         "schema: pengui/v1\nroot: {type: color_picker, children: [{type: input}]}"};
     for (size_t i = 0; i < sizeof invalid / sizeof *invalid; i++) {
         PUILayout *bad = pui_layout_parse(invalid[i], strlen(invalid[i]), error, sizeof error);
@@ -221,8 +222,63 @@ static void test_programmatic_replacement_cancels_capture_without_blocking_next_
     TEST_ASSERT_EQUAL_INT(1, commits);
 }
 
+static void test_popup_swatch_tracks_color_and_transparency(void) {
+    const char *yaml = "schema: pengui/v1\nroot: {type: popup_button, id: swatch, "
+                       "color_input: paint, height: 28, children: [{type: panel, children: [{type: "
+                       "color_picker, id: paint, "
+                       "value: '#FF0000'}]}]}";
+    char error[256];
+    pui_view_free(view);
+    view = NULL;
+    pui_layout_free(layout);
+    layout = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+    view = pui_view_new(layout, renderer);
+    TEST_ASSERT_NOT_NULL(view);
+    const uint32_t colors[] = {0xff0000ff, 0x00ff00ff, 0x00000000};
+    for (int i = 0; i < 3; i++) {
+        TEST_ASSERT_TRUE(pui_view_set_color(view, "paint", colors[i]));
+        frame();
+        SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
+        TEST_ASSERT_NOT_NULL(surface);
+        Uint8 r, g, b, a;
+        TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 4, 4, &r, &g, &b, &a));
+        if (i < 2) {
+            TEST_ASSERT_EQUAL_UINT8(i == 0 ? 255 : 0, r);
+            TEST_ASSERT_EQUAL_UINT8(i == 1 ? 255 : 0, g);
+            TEST_ASSERT_EQUAL_UINT8(0, b);
+        } else {
+            TEST_ASSERT_EQUAL_UINT8(176, r);
+            TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 10, 4, &r, &g, &b, &a));
+            TEST_ASSERT_EQUAL_UINT8(150, r);
+        }
+        SDL_DestroySurface(surface);
+    }
+    const char *tabs_yaml = "schema: pengui/v1\nroot: {type: tabs, id: docs}";
+    PUILayout *tabs = pui_layout_parse(tabs_yaml, strlen(tabs_yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL(tabs);
+    PUILayout *composed =
+        pui_layout_add_tab(tabs, "docs", "doc", "Document", layout, error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(composed, error);
+    bool found = false;
+    for (int i = 0; i < composed->count; i++) {
+        if (!strcmp(composed->nodes[i].name, "doc.swatch")) {
+            TEST_ASSERT_EQUAL_STRING("doc.paint", composed->nodes[i].color_input);
+            found = true;
+        }
+    }
+    TEST_ASSERT_TRUE(found);
+    pui_layout_free(composed);
+    pui_layout_free(tabs);
+    click(15, 12);
+    SDL_Event escape = {.type = SDL_EVENT_KEY_DOWN};
+    escape.key.key = SDLK_ESCAPE;
+    TEST_ASSERT_TRUE(pui_view_event(view, &input, window, &escape));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_popup_swatch_tracks_color_and_transparency);
     RUN_TEST(test_programmatic_replacement_cancels_capture_without_blocking_next_gesture);
     RUN_TEST(test_slider_preview_release_and_escape);
     RUN_TEST(test_hsl_fields_commit_on_tab_and_keep_next_selection);

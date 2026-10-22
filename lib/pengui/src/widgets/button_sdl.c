@@ -108,6 +108,34 @@ void pui_draw_image_button(SDL_Renderer *renderer, SDL_FRect rect, SDL_Texture *
     }
 }
 
+/* Keep the button rim visible; the checkerboard makes alpha readable on dark themes. */
+static void color_swatch(SDL_Renderer *renderer, PUIRect area, uint32_t rgba) {
+    SDL_FRect rect = {area.x + 3, area.y + 3, fmaxf(0, area.w - 6), fmaxf(0, area.h - 6)};
+    if ((rgba & 255) < 255) {
+        pui_render_color(renderer, 0xb0b0b0ff);
+        SDL_RenderFillRect(renderer, &rect);
+        pui_render_color(renderer, 0x969696ff);
+        SDL_FRect cells[256];
+        int count = 0;
+        for (int y = 0; y * 6 < rect.h; y++) {
+            for (int x = 0; x * 6 < rect.w; x++) {
+                if ((x + y) % 2) {
+                    cells[count++] =
+                        (SDL_FRect){rect.x + x * 6, rect.y + y * 6, fminf(6, rect.w - x * 6),
+                                    fminf(6, rect.h - y * 6)};
+                    if (count == 256) {
+                        SDL_RenderFillRects(renderer, cells, count);
+                        count = 0;
+                    }
+                }
+            }
+        }
+        SDL_RenderFillRects(renderer, cells, count);
+    }
+    pui_render_color(renderer, rgba);
+    SDL_RenderFillRect(renderer, &rect);
+}
+
 void pui_widget_button_paint(PUIView *v, PUIContext *pui, int i, PUIRect area, bool active,
                              PUIIcon icon) {
     const PUINode *n = &v->layout->nodes[i];
@@ -130,7 +158,10 @@ void pui_widget_button_paint(PUIView *v, PUIContext *pui, int i, PUIRect area, b
     SDL_GetRenderDrawBlendMode(v->renderer, &blend);
     SDL_SetRenderDrawBlendMode(v->renderer, SDL_BLENDMODE_BLEND);
     background(v->renderer, pui_frect(area), radius, bg, border);
-    if (s->image) {
+    uint32_t swatch;
+    if (*n->color_input && pui_view_color(v, n->color_input, &swatch)) {
+        color_swatch(v->renderer, area, swatch);
+    } else if (s->image) {
         image_content(v->renderer, pui_frect(area), s->image, n->text,
                       fmaxf(n->image_padding, fminf(radius, fminf(area.w, area.h) / 2) * .3f),
                       enabled);

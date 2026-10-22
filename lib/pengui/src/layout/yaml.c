@@ -120,13 +120,14 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
         fail(r, yaml, "layout depth/node limit exceeded");
         return -1;
     }
-    if (!keys(r, yaml,
-              "|type|id|text|action|icon|image|width|height|gap|padding|initial|"
-              "initial_second|initial_last|minimum_first|minimum_second|minimum_last|flex|image_"
-              "padding|enabled|open|checked|draggable|scroll|axis|children|value|popup_width|popup_"
-              "height|"
-              "placement|preview_action|close_action|filter_input|mode|input_type|radius|"
-              "transition_ms|")) {
+    if (!keys(
+            r, yaml,
+            "|type|id|text|action|icon|image|width|height|gap|padding|initial|"
+            "initial_second|initial_last|minimum_first|minimum_second|minimum_last|flex|image_"
+            "padding|enabled|open|checked|draggable|scroll|axis|children|value|popup_width|popup_"
+            "height|"
+            "placement|preview_action|close_action|filter_input|color_input|mode|input_type|radius|"
+            "transition_ms|")) {
         return -1;
     }
     int index = r->layout->count++;
@@ -190,6 +191,10 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
             fail(r, placement, "placement must be below or right");
         }
         out->placement = !strcmp(value, "right") ? PUI_POPUP_RIGHT : PUI_POPUP_BELOW;
+    }
+    string(r, yaml, "color_input", out->color_input, sizeof out->color_input);
+    if (*out->color_input && out->type != PUI_NODE_POPUP_BUTTON) {
+        fail(r, yaml, "color_input requires a popup_button");
     }
     string(r, yaml, "filter_input", out->filter_input, sizeof out->filter_input);
     if (*out->filter_input && out->type != PUI_NODE_TREE) {

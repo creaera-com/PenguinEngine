@@ -35,6 +35,7 @@ root:
         - {type: input, id: shadow_spread, action: vector.shadow.spread}
     - type: popup_button
       id: shadow_color_button
+      color_input: shadow_color
       text: Farbe / Deckkraft
       placement: below
       height: 28

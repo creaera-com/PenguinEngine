@@ -36,6 +36,7 @@ root:
         - {type: label, text: "%", width: 20}
     - type: popup_button
       id: gradient_color_button
+      color_input: gradient_stop_color
       text: Stoppfarbe / Deckkraft
       height: 28
       placement: below

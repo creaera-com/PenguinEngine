@@ -22,6 +22,7 @@ root:
       - {type: button, id: rectangle_stroke_outside, text: Aussen, action: vector.rectangle.stroke_outside}
   - type: popup_button
     id: rectangle_stroke_button
+    color_input: rectangle_stroke_color
     text: Rahmenfarbe
     placement: below
     popup_width: 260

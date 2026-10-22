@@ -1184,3 +1184,27 @@ Caller-Transformationen bleibt die bisherige direkte Darstellung als Rückfall e
 Die zusätzliche Auflösung kostet Renderarbeit; sie rekonstruiert keine fehlenden
 Details niedrig aufgelöster importierter Bilder. Große Ellipsen erhalten außerdem
 mehr Kontursegmente, damit die Geometrie beim Vergrößern nicht sichtbar kantig wird.
+
+### Farbfläche auf einem Popup-Button
+
+Mit `color_input` zeigt ein `popup_button` die aktuelle Farbe eines `color_picker`
+als Farbfläche anstelle von Text oder Icon. Ein schmaler Button-Rand bleibt für
+Hover und Fokus sichtbar; transparente Farben liegen auf einem Schachbrettmuster.
+Die Referenz wird beim Einfügen in Dokument-Tabs automatisch mit deren ID präfixiert.
+
+```yaml
+- type: popup_button
+  color_input: fill_color
+  width: 40
+  height: 28
+  popup_width: 260
+  popup_height: 304
+  children:
+    - type: panel
+      padding: 12
+      children:
+        - type: color_picker
+          id: fill_color
+          value: "#7393AFFF"
+          action: object.fill
+```

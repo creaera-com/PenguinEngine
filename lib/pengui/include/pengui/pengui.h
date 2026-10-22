@@ -549,6 +549,7 @@ typedef struct {
         scrollable; ///< Panel content can scroll vertically with wheel and scrollbar (YAML scroll).
     bool draggable; ///< Empty space in this widget may move a borderless window.
     PUIAxis axis;
+    char color_input[64];  ///< Color picker ID displayed as a live popup-button swatch.
     char filter_input[64]; ///< Runtime tree filter bound to an input ID; empty disables filtering.
     char close_action[64]; ///< Tab close request; tabs containers supply the default for children.
     char preview_action[64]; ///< Optional color-picker live preview/cancellation action.

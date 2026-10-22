@@ -2,6 +2,8 @@ schema: pengui/v1
 root:
   type: popup_button
   id: rectangle_fill_button
+  color_input: rectangle_fill
+  width: 40
   text: Fuellung
   placement: below
   height: 28
