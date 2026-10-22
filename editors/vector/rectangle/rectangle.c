@@ -2,6 +2,7 @@
 #include "rectangle.h"
 #include "editors/vector/document/document.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/instance/instance.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,6 +34,12 @@ unsigned vector_rectangle_effective_flags(VectorDocument *document,
 
 bool vector_rectangle_valid(VectorRectangle rectangle) {
     PUIRect r = rectangle.rect;
+    if (rectangle.instance_source &&
+        (rectangle.instance_source == rectangle.id || !isfinite(rectangle.instance_basis_w) ||
+         !isfinite(rectangle.instance_basis_h) || rectangle.instance_basis_w < 1 ||
+         rectangle.instance_basis_h < 1)) {
+        return false;
+    }
     if (!vector_gradient_valid(&rectangle.gradient) || !vector_shadow_valid(&rectangle.shadow) ||
         !vector_repeat_valid(&rectangle.repeat) ||
         (rectangle.repeat.enabled && rectangle.clip_mask) ||
@@ -157,7 +164,7 @@ bool vector_rectangle_add(VectorDocument *document, unsigned parent_id, PUIRect 
 }
 
 static bool edit(VectorDocument *document, VectorRectangle before, VectorRectangle after) {
-    if (!vector_rectangle_valid(after)) {
+    if (!vector_rectangle_valid(after) || !vector_instance_edit_valid(&before, &after)) {
         return false;
     }
     if (!memcmp(&before, &after, sizeof before)) {
@@ -184,7 +191,7 @@ bool vector_rectangle_update(VectorDocument *document, unsigned id, const char *
         return false;
     }
     VectorRectangle after = *rectangle;
-    after.rect = rect;
+    after.rect = vector_instance_store_rect(document, rectangle, rect);
     snprintf(after.name, sizeof after.name, "%s", name);
     return edit(document, *rectangle, after);
 }

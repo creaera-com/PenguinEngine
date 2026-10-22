@@ -88,11 +88,15 @@ static void draw_shape(void *data) {
         document->fill_preview.active && document->fill_preview.rectangle_id == rectangle->id
             ? document->fill_preview.color
             : rectangle->fill;
-    const VectorShape *shown =
-        context->instance ? rectangle : vector_curve_display_shape(document, rectangle);
+    VectorShape resolved =
+        context->instance ? *rectangle : vector_curve_display_shape(document, rectangle);
+    const VectorShape *shown = &resolved;
     PUIRect rect = context->instance ? shown->rect : vector_rectangle_display_rect(document, shown);
     float angle =
         context->instance ? shown->angle : vector_rectangle_display_angle(document, shown);
+    if (!(document->fill_preview.active && document->fill_preview.rectangle_id == rectangle->id)) {
+        fill = shown->fill;
+    }
     VectorShape fill_shape = *shown;
     fill_shape.gradient = *vector_gradient_display(document, shown);
     if (document->fill_preview.active && document->fill_preview.rectangle_id == shown->id) {
@@ -128,20 +132,20 @@ static void draw_shape(void *data) {
                               vector_document_is_selected(document, rectangle->id));
         return;
     }
-    if (rectangle->path.count || rectangle->corner_radius > 0) {
-        vector_path_draw(renderer, rectangle, rect, angle, board, document->viewport.zoom, fill,
+    if (shown->path.count || shown->corner_radius > 0) {
+        vector_path_draw(renderer, shown, rect, angle, board, document->viewport.zoom, fill,
                          !context->silhouette &&
                              vector_document_is_selected(document, rectangle->id));
         return;
     }
     draw(renderer, board, document->viewport.zoom, rect,
          !context->silhouette && vector_document_is_selected(document, rectangle->id), false, fill,
-         angle, rectangle->stroke);
+         angle, shown->stroke);
 }
 
 static void paint_silhouette(void *data, float dx, float dy) {
     DrawShape content = *(DrawShape *)data;
-    VectorShape shape = *vector_curve_display_shape(content.document, content.rectangle);
+    VectorShape shape = vector_curve_display_shape(content.document, content.rectangle);
     if (!content.instance) {
         shape.rect = vector_rectangle_display_rect(content.document, &shape);
         shape.angle = vector_rectangle_display_angle(content.document, &shape);
@@ -164,9 +168,10 @@ static void paint_silhouette(void *data, float dx, float dy) {
 }
 
 static void draw_with_shadow(DrawShape *content) {
-    const VectorShape *shown =
-        content->instance ? content->rectangle
-                          : vector_curve_display_shape(content->document, content->rectangle);
+    VectorShape resolved = content->instance
+                               ? *content->rectangle
+                               : vector_curve_display_shape(content->document, content->rectangle);
+    const VectorShape *shown = &resolved;
     if (shown->shadow.enabled) {
         PUIRect rect = content->instance ? shown->rect
                                          : vector_rectangle_display_rect(content->document, shown);
@@ -231,7 +236,8 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
         if (rectangle->clip_mask) {
             if (document->selection.count == 1 &&
                 vector_document_is_selected(document, rectangle->id)) {
-                const VectorShape *shown = vector_curve_display_shape(document, rectangle);
+                VectorShape resolved = vector_curve_display_shape(document, rectangle);
+                const VectorShape *shown = &resolved;
                 VectorShape outline = *shown;
                 outline.stroke.width = 0;
                 vector_path_draw(renderer, &outline, vector_rectangle_display_rect(document, shown),
@@ -243,7 +249,8 @@ void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *pare
         DrawShape content = {document, rectangle, renderer, board, text, images, false, false};
         const VectorShape *mask = vector_mask_find(document, rectangle->group_id);
         if (mask) {
-            const VectorShape *shown = vector_curve_display_shape(document, mask);
+            VectorShape resolved = vector_curve_display_shape(document, mask);
+            const VectorShape *shown = &resolved;
             vector_mask_render(&masks, shown, vector_rectangle_display_rect(document, shown),
                                vector_rectangle_display_angle(document, shown), board,
                                document->viewport.zoom, draw_repeated, &content);

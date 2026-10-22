@@ -4,6 +4,7 @@
 #include "editors/vector/geometry/rotation.h"
 #include "editors/vector/geometry/scale.h"
 #include "editors/vector/grid/snap.h"
+#include "editors/vector/instance/instance.h"
 #include "editors/vector/rectangle/transform.h"
 #include <float.h>
 #include <math.h>
@@ -18,10 +19,10 @@ bool vector_group_capture(VectorDocument *document) {
             (vector_rectangle_effective_flags(document, rectangle) & VECTOR_OBJECT_STATE_MASK)) {
             return false;
         }
-        tool->group_originals[i] = rectangle->rect;
+        tool->group_originals[i] = vector_instance_rect(document, rectangle);
         tool->group_angles[i] = rectangle->angle;
         tool->group_parents[i] = parent->rect;
-        PUIRect world = rectangle->rect;
+        PUIRect world = vector_instance_rect(document, rectangle);
         world.x += parent->rect.x;
         world.y += parent->rect.y;
         world = vector_rotated_bounds(world, rectangle->angle);
@@ -110,7 +111,7 @@ PUIRect vector_group_display_rect(const VectorDocument *document,
             return valid ? rects[i] : tool->group_originals[i];
         }
     }
-    return rectangle->rect;
+    return vector_instance_rect(document, rectangle);
 }
 
 bool vector_group_commit(VectorDocument *document) {

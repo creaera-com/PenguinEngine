@@ -1,6 +1,7 @@
 /** @file @brief Axis-aligned bounds of rotated objects drive alignment and equal-gap placement. */
 #include "alignment.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/instance/instance.h"
 #include "editors/vector/rectangle/transform.h"
 #include <math.h>
 
@@ -38,8 +39,8 @@ static bool prepare(VectorDocument *d, VectorAlignment kind, Alignment *plan) {
         }
         int at = plan->count++;
         plan->ids[at] = r->id;
-        plan->rects[at] = r->rect;
-        plan->bounds[at] = vector_rotated_bounds(r->rect, r->angle);
+        plan->rects[at] = vector_instance_rect(d, r);
+        plan->bounds[at] = vector_rotated_bounds(vector_instance_rect(d, r), r->angle);
         plan->bounds[at].x += parent->rect.x;
         plan->bounds[at].y += parent->rect.y;
     }

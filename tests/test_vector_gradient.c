@@ -370,7 +370,7 @@ static void test_legacy_version_five_and_malformed_stop_count(void) {
     TEST_ASSERT_NOT_NULL(bytes);
     TEST_ASSERT_TRUE(length > 24);
     bytes[8] = 5;
-    TEST_ASSERT_TRUE(SDL_SaveFile(path, bytes, length - 28));
+    TEST_ASSERT_TRUE(SDL_SaveFile(path, bytes, length - 40));
     VectorDocument *loaded = calloc(1, sizeof *loaded);
     TEST_ASSERT_NOT_NULL(loaded);
     vector_document_init(loaded, 1);

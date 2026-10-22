@@ -10,7 +10,7 @@ void vector_repeat_render(const VectorDocument *d, const VectorShape *source,
     if (!source->repeat.enabled) {
         return;
     }
-    VectorShape base = *vector_curve_display_shape(d, source);
+    VectorShape base = vector_curve_display_shape(d, source);
     base.gradient = *vector_gradient_display(d, source);
     base.rect = vector_rectangle_display_rect(d, &base);
     base.angle = vector_rectangle_display_angle(d, &base);

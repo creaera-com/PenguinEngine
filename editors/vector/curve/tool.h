@@ -9,7 +9,7 @@ bool vector_curve_tool_action(VectorDocument *document, PUIView *view, const cha
 /** @brief Click/drag creation and anchor/handle editing. Enter/right/double click finishes open;
  * clicking the first node closes; Escape/focus loss cancels. Alt moves handles independently. */
 bool vector_curve_tool_event(VectorDocument *document, PUIView *view, const SDL_Event *event);
-/** @brief Read-only live node-edit preview for one shape, otherwise the committed value. */
-const VectorShape *vector_curve_display_shape(const VectorDocument *document,
-                                              const VectorShape *shape);
+/** @brief Return caller-owned live geometry, resolving linked appearance without changing the
+ * model. */
+VectorShape vector_curve_display_shape(const VectorDocument *document, const VectorShape *shape);
 #endif

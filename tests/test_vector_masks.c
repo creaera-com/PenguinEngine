@@ -290,7 +290,7 @@ static void test_reader_accepts_v1_and_rejects_malformed_mask_relations(void) {
     TEST_ASSERT_TRUE(mask_offset + 4 < length);
     memmove(bytes + mask_offset, bytes + mask_offset + 4, length - mask_offset - 4);
     bytes[8] = 1;
-    TEST_ASSERT_TRUE(SDL_SaveFile(path, bytes, length - 64));
+    TEST_ASSERT_TRUE(SDL_SaveFile(path, bytes, length - 76));
     SDL_free(bytes);
     VectorDocument *loaded = calloc(1, sizeof *loaded);
     TEST_ASSERT_NOT_NULL(loaded);

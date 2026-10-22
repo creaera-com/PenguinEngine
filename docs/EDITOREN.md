@@ -451,3 +451,8 @@ Dateibaum werden von der App betreut. [Projekte und Benutzerzustand](PROJEKTE.md
 
 Neben dem Inspector erzeugt der Tab **Farbschema** Harmonien über ein interaktives Farbrad.
 Bedienung und Modulaufteilung stehen unter [Farbschema-Designer](VEKTOR_FARBSCHEMA.md).
+
+## Verknüpfte Instanzen
+
+Das radiale Menü bietet unter **Kopien** frei transformierbare verknüpfte Instanzen
+und deren Entkopplung. [Bedienung und Datenmodell](VEKTOR_INSTANZEN.md).

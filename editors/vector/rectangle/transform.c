@@ -1,6 +1,7 @@
 /** @file @brief One group transform is one history command with atomic apply/revert. */
 #include "transform.h"
 #include "editors/vector/document/document.h"
+#include "editors/vector/instance/instance.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,9 +82,10 @@ bool vector_rectangles_set_transforms(VectorDocument *document, const unsigned *
             free(command);
             return false;
         }
-        command->items[i] = (TransformItem){ids[i], rectangle->rect, rects[i], rectangle->angle,
-                                            angles ? angles[i] : rectangle->angle};
-        changed |= memcmp(&rectangle->rect, &rects[i], sizeof rects[i]) != 0 ||
+        command->items[i] = (TransformItem){
+            ids[i], rectangle->rect, vector_instance_store_rect(document, rectangle, rects[i]),
+            rectangle->angle, angles ? angles[i] : rectangle->angle};
+        changed |= memcmp(&rectangle->rect, &command->items[i].after, sizeof rects[i]) != 0 ||
                    rectangle->angle != command->items[i].after_angle;
     }
     if (!changed) {
@@ -114,7 +116,7 @@ bool vector_rectangles_translate(VectorDocument *document, const unsigned *ids, 
         if (!rectangle) {
             return false;
         }
-        rects[i] = rectangle->rect;
+        rects[i] = vector_instance_rect(document, rectangle);
         rects[i].x += dx;
         rects[i].y += dy;
     }

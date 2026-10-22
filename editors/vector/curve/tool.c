@@ -2,6 +2,7 @@
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/document/selection.h"
 #include "editors/vector/grid/snap.h"
+#include "editors/vector/instance/instance.h"
 #include "editors/vector/mask/mask.h"
 #include "tool.h"
 #include <math.h>
@@ -34,10 +35,14 @@ bool vector_curve_tool_action(VectorDocument *d, PUIView *view, const char *acti
     return true;
 }
 
-const VectorShape *vector_curve_display_shape(const VectorDocument *d, const VectorShape *s) {
-    return d->curve_tool.editing && d->curve_tool.dragging && d->curve_tool.shape_id == s->id
-               ? &d->curve_tool.preview
-               : s;
+VectorShape vector_curve_display_shape(const VectorDocument *d, const VectorShape *s) {
+    VectorShape out;
+    const VectorShape *shown =
+        d->curve_tool.editing && d->curve_tool.dragging && d->curve_tool.shape_id == s->id
+            ? &d->curve_tool.preview
+            : s;
+    vector_instance_resolve(d, shown, &out);
+    return out;
 }
 
 static VectorPoint local(const VectorDocument *d, const VectorArtboard *b, float x, float y,

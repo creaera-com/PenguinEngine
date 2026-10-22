@@ -136,7 +136,9 @@ bool vector_document_tree_sync(VectorDocumentTree *tree, const VectorDocument *d
                     items[row].selected = vector_document_is_selected(document, child->id);
                     fill(&items[row++], document->id, child->id, child->name, "rectangle",
                          child->flags, group ? 2 : 1);
-                    if (child->repeat.enabled) {
+                    if (child->instance_source) {
+                        snprintf(items[row - 1].icon, sizeof items[row - 1].icon, "tabler:link");
+                    } else if (child->repeat.enabled) {
                         snprintf(items[row - 1].text, sizeof items[row - 1].text, "%s [%ux%u]",
                                  child->name, child->repeat.columns, child->repeat.rows);
                         snprintf(items[row - 1].icon, sizeof items[row - 1].icon, "tabler:copy");

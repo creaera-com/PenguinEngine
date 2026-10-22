@@ -2,6 +2,7 @@
 #include "orientation.h"
 #include "clipboard.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/instance/instance.h"
 #include <math.h>
 #include <string.h>
 
@@ -40,21 +41,24 @@ static bool prepare(VectorDocument *d, VectorOrientation op, Orientation *plan) 
         if (!vector_document_is_selected(d, shape->id)) {
             continue;
         }
-        if (vector_rectangle_effective_flags(d, shape) & VECTOR_OBJECT_STATE_MASK) {
+        if ((shape->instance_source &&
+             (op == VECTOR_MIRROR_HORIZONTAL || op == VECTOR_MIRROR_VERTICAL)) ||
+            vector_rectangle_effective_flags(d, shape) & VECTOR_OBJECT_STATE_MASK) {
             return false;
         }
         VectorArtboard *parent = vector_artboard_find(d, shape->parent_id);
         if (!parent) {
             return false;
         }
-        PUIRect bounds = vector_rotated_bounds(shape->rect, shape->angle);
+        PUIRect bounds = vector_rotated_bounds(vector_instance_rect(d, shape), shape->angle);
         bounds.x += parent->rect.x;
         bounds.y += parent->rect.y;
         left = fminf(left, bounds.x);
         top = fminf(top, bounds.y);
         right = fmaxf(right, bounds.x + bounds.w);
         bottom = fmaxf(bottom, bounds.y + bounds.h);
-        plan->shapes[plan->count++] = *shape;
+        plan->shapes[plan->count] = *shape;
+        plan->shapes[plan->count++].rect = vector_instance_rect(d, shape);
     }
     if (!plan->count) {
         return false;
@@ -126,6 +130,7 @@ static bool prepare(VectorDocument *d, VectorOrientation op, Orientation *plan) 
             after->rect.x = cx - parent->rect.x - after->rect.w / 2;
             after->rect.y = cy - parent->rect.y - after->rect.h / 2;
         }
+        after->rect = vector_instance_store_rect(d, before, after->rect);
         if (!vector_rectangle_valid(*after)) {
             return false;
         }

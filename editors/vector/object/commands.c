@@ -1,6 +1,7 @@
 /** @file @brief Atomic shape insertion and value replacement, shared by curves and text. */
 #include "commands.h"
 #include "editors/vector/document/selection.h"
+#include "editors/vector/instance/instance.h"
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -91,7 +92,8 @@ bool vector_shape_add(VectorDocument *d, const VectorShape *shape) {
 
 bool vector_shape_update(VectorDocument *d, const VectorShape *after) {
     VectorShape *before = after ? vector_rectangle_find(d, after->id) : NULL;
-    if (!before || after->parent_id != before->parent_id || !vector_rectangle_valid(*after) ||
+    if (!before || !vector_instance_edit_valid(before, after) ||
+        after->parent_id != before->parent_id || !vector_rectangle_valid(*after) ||
         vector_rectangle_effective_flags(d, before) & VECTOR_OBJECT_STATE_MASK) {
         return false;
     }
@@ -135,6 +137,7 @@ bool vector_shape_update_typing(VectorDocument *d, const VectorShape *after, int
         VectorShape *current = vector_rectangle_find(d, after->id);
         if (command->apply == apply && !e->adding && current && e->after.id == after->id &&
             !memcmp(current, &e->after, sizeof *current) && vector_rectangle_valid(*after) &&
+            vector_instance_edit_valid(current, after) &&
             !(vector_rectangle_effective_flags(d, current) & VECTOR_OBJECT_STATE_MASK)) {
             e->after = *after;
             *current = *after;

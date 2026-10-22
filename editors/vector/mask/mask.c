@@ -1,5 +1,6 @@
 /** @file @brief A clipping group owns one special mask child; original geometry/style survive. */
 #include "mask.h"
+#include "editors/vector/instance/instance.h"
 #include "editors/vector/object/clipboard.h"
 #include <limits.h>
 
@@ -110,6 +111,9 @@ bool vector_mask_release(VectorDocument *d) {
 }
 
 bool vector_mask_contains(const VectorDocument *d, const VectorShape *s, float x, float y) {
+    VectorShape resolved;
+    vector_instance_resolve(d, s, &resolved);
+    s = &resolved;
     if (s->clip_mask || !vector_shape_contains(s, x, y)) {
         return false;
     }
@@ -120,11 +124,17 @@ bool vector_mask_contains(const VectorDocument *d, const VectorShape *s, float x
     if (mask->flags & VECTOR_OBJECT_HIDDEN) {
         return false;
     }
+    VectorShape mask_value;
+    vector_instance_resolve(d, mask, &mask_value);
+    mask = &mask_value;
     VectorPath path = vector_shape_path(mask, mask->rect, mask->angle);
     return vector_path_contains(&path, x, y);
 }
 
 bool vector_mask_intersects(const VectorDocument *d, const VectorShape *s, PUIRect box) {
+    VectorShape resolved;
+    vector_instance_resolve(d, s, &resolved);
+    s = &resolved;
     if (s->clip_mask || !vector_shape_intersects(s, box)) {
         return false;
     }
@@ -135,6 +145,9 @@ bool vector_mask_intersects(const VectorDocument *d, const VectorShape *s, PUIRe
     if (mask->flags & VECTOR_OBJECT_HIDDEN) {
         return false;
     }
+    VectorShape mask_value;
+    vector_instance_resolve(d, mask, &mask_value);
+    mask = &mask_value;
     VectorPath a = vector_shape_path(s, s->rect, s->angle);
     VectorPath b = vector_shape_path(mask, mask->rect, mask->angle), intersection;
     return vector_path_combine(&a, &b, VECTOR_AREA_INTERSECTION, &intersection) &&

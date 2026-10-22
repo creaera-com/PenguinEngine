@@ -1,6 +1,7 @@
 /** @file @brief Pointer-free session snapshots; candidate restoration is transactional. */
 #include "checkpoint.h"
 #include "commands.h"
+#include "editors/vector/instance/instance.h"
 #include "editors/vector/internal.h"
 #include "editors/vector/workspace/canvas.h"
 #include <math.h>
@@ -9,7 +10,7 @@
 
 /* Native integer/float representation is sufficient for a private file in this process.
  * Changing this schema requires a new signature. This is not an SVG or interchange format. */
-static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '3', '2'};
+static const char signature[8] = {'P', 'V', 'C', 'K', 'P', 'T', '3', '3'};
 
 #define WRITE(value) (fwrite(&(value), sizeof(value), 1, file) == 1)
 #define READ(value) (fread(&(value), sizeof(value), 1, file) == 1)
@@ -309,7 +310,8 @@ static bool read_document(VectorDocument *document, unsigned next_id, FILE *file
         }
         document->history.count++;
     }
-    return valid_history(document);
+    return vector_instances_valid(document->rectangles, document->rectangle_count) &&
+           valid_history(document);
 }
 
 static bool read_documents(VectorDocuments *documents, unsigned order[PUI_MAX_TABS],

@@ -38,7 +38,8 @@ void vector_preview_draw(const VectorDocument *d, SDL_Renderer *r, PUIRect area,
     }
     *copy = *d; // Borrow history payloads for this read-only draw; never destroy them here.
     for (int i = 0; i < d->rectangle_count; i++) {
-        const VectorShape *shown = vector_curve_display_shape(d, &d->rectangles[i]);
+        VectorShape resolved = vector_curve_display_shape(d, &d->rectangles[i]);
+        const VectorShape *shown = &resolved;
         copy->rectangles[i] = *shown;
         copy->rectangles[i].gradient = *vector_gradient_display(d, shown);
         copy->rectangles[i].rect = vector_rectangle_display_rect(d, shown);

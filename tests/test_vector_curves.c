@@ -201,7 +201,8 @@ static void test_nodes_live_preview_commit_escape_alt_and_delete(void) {
     pointer(SDL_EVENT_MOUSE_MOTION, 90, 110);
     TEST_ASSERT_EQUAL_MEMORY(&original, &d->rectangles[0], sizeof original);
     TEST_ASSERT_EQUAL_INT(history, d->history.count);
-    const VectorShape *shown = vector_curve_display_shape(d, &d->rectangles[0]);
+    VectorShape resolved = vector_curve_display_shape(d, &d->rectangles[0]);
+    const VectorShape *shown = &resolved;
     VectorBezier preview = vector_curve_parent(shown);
     TEST_ASSERT_FLOAT_WITHIN(.01f, 90, preview.nodes[0].point.x);
     key(SDLK_ESCAPE);

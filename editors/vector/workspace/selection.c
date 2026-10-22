@@ -4,6 +4,7 @@
 #include "editors/vector/geometry/resize.h"
 #include "editors/vector/geometry/rotation.h"
 #include "editors/vector/grid/snap.h"
+#include "editors/vector/instance/instance.h"
 #include "editors/vector/mask/mask.h"
 #include "editors/vector/rectangle/transform.h"
 #include "element_snap.h"
@@ -68,6 +69,9 @@ PUIRect vector_artboard_display_rect(const VectorDocument *document, const Vecto
 
 PUIRect vector_rectangle_display_rect(const VectorDocument *document,
                                       const VectorRectangle *rectangle) {
+    VectorShape resolved;
+    vector_instance_resolve(document, rectangle, &resolved);
+    rectangle = &resolved;
     const VectorSelectionTool *tool = &document->selection_tool;
     if (tool->rotating) {
         return vector_rotation_display_rect(document, rectangle);
@@ -422,7 +426,8 @@ bool vector_selection_event(VectorDocument *document, PUIView *view, const SDL_E
         VectorRectangle *rectangle = vector_rectangle_find(document, document->active_rectangle);
         VectorArtboard *board = vector_artboard_find(document, rectangle->parent_id);
         if (!contains(board->rect, world_x, world_y) &&
-            vector_shape_contains(rectangle, world_x - board->rect.x, world_y - board->rect.y)) {
+            vector_mask_contains(document, rectangle, world_x - board->rect.x,
+                                 world_y - board->rect.y)) {
             if (additive) {
                 vector_document_toggle(document, rectangle->id);
             } else {

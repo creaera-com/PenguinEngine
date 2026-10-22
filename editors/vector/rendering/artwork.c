@@ -147,8 +147,8 @@ void vector_artwork_draw(VectorArtworkRenderer *cache, VectorDocument *document,
         /* Resolve live transforms at the real interaction zoom: supersampling must
          * never change pixel-based snap tolerances or apply a transform twice. */
         for (int i = 0; i < document->rectangle_count; i++) {
-            const VectorShape *shown =
-                vector_curve_display_shape(document, &document->rectangles[i]);
+            VectorShape resolved = vector_curve_display_shape(document, &document->rectangles[i]);
+            const VectorShape *shown = &resolved;
             c->scratch->rectangles[i] = *shown;
             c->scratch->rectangles[i].rect = vector_rectangle_display_rect(document, shown);
             c->scratch->rectangles[i].angle = vector_rectangle_display_angle(document, shown);

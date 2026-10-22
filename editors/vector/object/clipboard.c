@@ -1,5 +1,6 @@
 /** @file @brief Object hierarchy transfer and reversible structural snapshots. */
 #include "clipboard.h"
+#include "editors/vector/instance/instance.h"
 #include <limits.h>
 #include <math.h>
 #include <stdio.h>
@@ -37,6 +38,9 @@ bool vector_clipboard_valid(const VectorClipboard *c) {
                 return false;
             }
         }
+    }
+    if (!vector_instances_valid(c->rectangles, c->rectangle_count)) {
+        return false;
     }
     unsigned instances = 0;
     for (int i = 0; i < c->rectangle_count; i++) {
@@ -184,6 +188,15 @@ bool vector_objects_copy(VectorDocument *d, VectorClipboard *clipboard) {
         VectorRectangle r = d->rectangles[i];
         if ((rectangles && vector_document_is_selected(d, r.id)) ||
             (!rectangles && r.parent_id == d->active_artboard)) {
+            if (r.instance_source) {
+                VectorShape resolved;
+                vector_instance_resolve(d, &r, &resolved);
+                VectorShape *source = vector_rectangle_find(d, r.instance_source);
+                resolved.instance_source = r.instance_source;
+                resolved.instance_basis_w = source ? source->rect.w : r.instance_basis_w;
+                resolved.instance_basis_h = source ? source->rect.h : r.instance_basis_h;
+                r = resolved;
+            }
             copy.rectangles[copy.rectangle_count++] = r;
         }
     }
@@ -248,6 +261,18 @@ bool vector_objects_delete(VectorDocument *d) {
         }
     }
     objects->rectangle_count = count;
+    for (int i = 0; i < count; i++) {
+        VectorShape *s = &objects->rectangles[i];
+        bool source = false;
+        for (int j = 0; j < count; j++) {
+            source |= objects->rectangles[j].id == s->instance_source;
+        }
+        if (s->instance_source && !source) {
+            VectorShape resolved;
+            vector_instance_resolve(d, s, &resolved);
+            *s = resolved;
+        }
+    }
     if (whole_board) {
         count = 0;
         for (int i = 0; i < objects->board_count; i++) {
@@ -279,6 +304,11 @@ static bool replace_selection(VectorDocument *d, const VectorShape *shapes, int 
     unsigned next = d->next_rectangle_id;
     for (int i = 0; i < count; i++) {
         result[i] = shapes[i];
+        VectorShape *before = result[i].id ? vector_rectangle_find(d, result[i].id) : NULL;
+        if (before && !vector_instance_edit_valid(before, &result[i])) {
+            free(edit);
+            return false;
+        }
         if (!result[i].id) {
             if (!next || next == UINT_MAX) {
                 free(edit);
@@ -361,7 +391,8 @@ bool vector_objects_cut(VectorDocument *d, VectorClipboard *clipboard) {
     return true;
 }
 
-static bool paste(VectorDocument *d, const VectorClipboard *c, bool duplicate, bool preview) {
+static bool paste(VectorDocument *d, const VectorClipboard *c, bool duplicate, bool preview,
+                  bool linked) {
     if (d->history.cursor >= VECTOR_HISTORY_CAPACITY || !vector_clipboard_valid(c) ||
         !c->board_count || d->rectangle_count + c->rectangle_count > VECTOR_MAX_RECTANGLES ||
         !d->next_rectangle_id || d->next_rectangle_id > UINT_MAX - c->rectangle_count ||
@@ -404,6 +435,20 @@ static bool paste(VectorDocument *d, const VectorClipboard *c, bool duplicate, b
         while (parent < c->board_count && c->boards[parent].id != r.parent_id) {
             parent++;
         }
+        if (linked) {
+            VectorShape resolved;
+            vector_instance_resolve(d, &r, &resolved);
+            unsigned source = r.instance_source ? r.instance_source : r.id;
+            VectorShape *original = vector_rectangle_find(d, source);
+            if (!original) {
+                free(edit);
+                return false;
+            }
+            r = resolved;
+            r.instance_source = source;
+            r.instance_basis_w = original->rect.w;
+            r.instance_basis_h = original->rect.h;
+        }
         if (r.group_id) {
             for (int j = 0; j <= i; j++) {
                 if (c->rectangles[j].group_id == r.group_id) {
@@ -412,7 +457,25 @@ static bool paste(VectorDocument *d, const VectorClipboard *c, bool duplicate, b
                 }
             }
         }
+        if (r.instance_source && !linked) {
+            unsigned remapped = 0;
+            for (int j = 0; j < c->rectangle_count; j++) {
+                if (c->rectangles[j].id == r.instance_source) {
+                    remapped = d->next_rectangle_id + (unsigned)j;
+                    break;
+                }
+            }
+            if (remapped) {
+                r.instance_source = remapped;
+            } else if (!duplicate) {
+                r.instance_source = 0;
+                r.instance_basis_w = r.instance_basis_h = 0;
+            }
+        }
         r.id = next_rectangle++;
+        if (linked) {
+            snprintf(r.name, sizeof r.name, "Instanz %u", r.id);
+        }
         r.parent_id = parent_ids[parent];
         if (!new_boards) {
             r.rect.x += 16 + (duplicate ? 0 : c->boards[parent].rect.x - c->boards[0].rect.x);
@@ -440,21 +503,25 @@ static bool paste(VectorDocument *d, const VectorClipboard *c, bool duplicate, b
 }
 
 bool vector_objects_can_paste(VectorDocument *d, const VectorClipboard *clipboard) {
-    return paste(d, clipboard, false, true);
+    return paste(d, clipboard, false, true, false);
 }
 
 bool vector_objects_can_duplicate(VectorDocument *d) {
     VectorClipboard copy;
-    return vector_objects_copy(d, &copy) && paste(d, &copy, true, true);
+    return vector_objects_copy(d, &copy) && paste(d, &copy, true, true, false);
 }
 
 bool vector_objects_paste(VectorDocument *d, const VectorClipboard *clipboard) {
-    return paste(d, clipboard, false, false);
+    return paste(d, clipboard, false, false, false);
 }
 
 bool vector_objects_duplicate(VectorDocument *d) {
     VectorClipboard copy;
-    return vector_objects_copy(d, &copy) && paste(d, &copy, true, false);
+    return vector_objects_copy(d, &copy) && paste(d, &copy, true, false, false);
+}
+
+bool vector_objects_duplicate_values(VectorDocument *d, const VectorClipboard *values) {
+    return paste(d, values, true, false, true);
 }
 
 bool vector_objects_command_write(const VectorCommand *command, FILE *file) {

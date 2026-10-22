@@ -7,6 +7,7 @@
 #include "../rectangle/corners.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/gradient/tool.h"
+#include "editors/vector/instance/instance.h"
 #include "editors/vector/object/commands.h"
 #include "editors/vector/workspace/selection.h"
 #include <errno.h>
@@ -54,6 +55,24 @@ void vector_object_inspector_cancel_color(VectorObjectInspector *inspector,
 
 bool vector_object_inspector_action(VectorObjectInspector *inspector, VectorDocuments *documents,
                                     PUIView *view, const char *action) {
+    VectorDocument *active = vector_documents_find(documents, inspector->document_id);
+    VectorShape *object = active ? vector_rectangle_find(active, inspector->object_id) : NULL;
+    bool local =
+        !strcmp(action, "vector.rectangle.name") || !strcmp(action, "vector.rectangle.width") ||
+        !strcmp(action, "vector.rectangle.height") || !strcmp(action, "vector.rectangle.angle") ||
+        !strcmp(action, "vector.rectangle.visible") || !strcmp(action, "vector.rectangle.locked");
+    bool appearance =
+        !strncmp(action, "vector.rectangle.", 17) || !strncmp(action, "vector.gradient.", 16) ||
+        !strncmp(action, "vector.shadow.", 14) || !strncmp(action, "vector.text.", 12) ||
+        !strncmp(action, "vector.polygon.", 15);
+    if (object && object->instance_source && appearance && !local) {
+        inspector->dirty |=
+            FIELD_FILL | FIELD_STROKE | FIELD_EFFECTS | FIELD_CORNERS | FIELD_POLYGON;
+        inspector->gradient.dirty = true;
+        pui_view_set_text(view, "status",
+                          "Gestaltung am Original bearbeiten oder Instanz entkoppeln");
+        return true;
+    }
     if (vector_gradient_inspector_action(&inspector->gradient,
                                          vector_documents_find(documents, inspector->document_id),
                                          inspector->object_id, view, action)) {
@@ -132,7 +151,7 @@ bool vector_object_inspector_action(VectorObjectInspector *inspector, VectorDocu
         changed = vector_rectangle_set_state(
             document, rectangle->id, enabled ? rectangle->flags | bit : rectangle->flags & ~bit);
     } else {
-        PUIRect rect = rectangle->rect;
+        PUIRect rect = vector_instance_rect(document, rectangle);
         const char *text = name ? pui_view_text(view, "rectangle_name") : rectangle->name;
         bool valid = !width || dimension(pui_view_text(view, "rectangle_width"), &rect.w);
         valid = valid && (!height || dimension(pui_view_text(view, "rectangle_height"), &rect.h));
@@ -149,6 +168,12 @@ bool vector_object_inspector_sync(VectorObjectInspector *inspector, VectorDocume
                                   PUIView *view, PUIContext *input, char *error, size_t capacity) {
     VectorRectangle *rectangle =
         document ? vector_rectangle_find(document, document->active_rectangle) : NULL;
+    bool linked = rectangle && rectangle->instance_source;
+    VectorShape resolved;
+    if (linked) {
+        vector_instance_resolve(document, rectangle, &resolved);
+        rectangle = &resolved;
+    }
     bool mount = rectangle != NULL;
     bool switched = inspector->document_id != (document ? document->id : 0) ||
                     inspector->object_id != (rectangle ? rectangle->id : 0);
@@ -212,7 +237,8 @@ bool vector_object_inspector_sync(VectorObjectInspector *inspector, VectorDocume
                                           switched || (inspector->dirty & FIELD_POLYGON));
         }
         pui_view_set_text(view, "rectangle_kind",
-                          *rectangle->image.source                        ? "Bild"
+                          linked                                          ? "Verknuepfte Instanz"
+                          : *rectangle->image.source                      ? "Bild"
                           : rectangle->clip_mask                          ? "Schnittmaske"
                           : rectangle->text.enabled                       ? "Textfeld"
                           : rectangle->curve_kind == VECTOR_CURVE_POLYGON ? "Polygon"
@@ -266,7 +292,8 @@ bool vector_object_inspector_sync(VectorObjectInspector *inspector, VectorDocume
                           vector_rectangle_effective_flags(document, rectangle) &
                                   VECTOR_OBJECT_LOCKED
                               ? "Objekt oder Artboard gesperrt."
-                              : "");
+                          : linked ? "Gestaltung folgt dem Original."
+                                   : "");
         vector_inspector_fill_sync(document, rectangle, &inspector->presented, view,
                                    switched || (inspector->dirty & FIELD_FILL));
         vector_inspector_stroke_sync(rectangle, &inspector->presented, view,

@@ -78,7 +78,14 @@ root:
                 - {type: button, id: vector_objects_copy, text: Kopieren, icon: tabler:copy, action: vector.objects.copy}
                 - {type: button, id: vector_objects_cut, text: Ausschneiden, icon: tabler:cut, action: vector.objects.cut}
                 - {type: button, id: vector_objects_paste, text: Einfuegen, icon: tabler:clipboard, action: vector.objects.paste}
-                - {type: button, id: vector_objects_duplicate, text: Duplizieren, icon: tabler:layers-subtract, action: vector.objects.duplicate}
+                - type: radial_menu
+                  id: vector_copies_menu
+                  text: Kopien
+                  icon: tabler:copy-plus
+                  children:
+                    - {type: button, id: vector_objects_duplicate, text: Duplizieren, icon: tabler:layers-subtract, action: vector.objects.duplicate}
+                    - {type: button, id: vector_objects_clone_linked, text: Verknuepfte Instanz, icon: tabler:link, action: vector.objects.clone_linked}
+                    - {type: button, id: vector_objects_detach_instance, text: Instanz entkoppeln, icon: tabler:unlink, action: vector.objects.detach_instance}
                 - {type: button, id: vector_objects_delete, text: Loeschen, icon: tabler:trash, action: vector.objects.delete}
                 - type: radial_menu
                   id: vector_layers_menu

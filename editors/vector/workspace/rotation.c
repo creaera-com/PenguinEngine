@@ -1,6 +1,7 @@
 /** @file @brief Stable rotation snapshots shared by individual and grouped rectangles. */
 #include "rotation.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/instance/instance.h"
 #include "editors/vector/rectangle/transform.h"
 #include "modifiers.h"
 #include "selection.h"
@@ -39,7 +40,7 @@ bool vector_rotation_begin(VectorDocument *document, PUIRect screen, float x, fl
             vector_rectangle_effective_flags(document, rectangle) & VECTOR_OBJECT_STATE_MASK) {
             return false;
         }
-        tool.group_originals[i] = rectangle->rect;
+        tool.group_originals[i] = vector_instance_rect(document, rectangle);
         tool.group_parents[i] = parent->rect;
         tool.group_angles[i] = rectangle->angle;
     }
@@ -79,7 +80,7 @@ PUIRect vector_rotation_display_rect(const VectorDocument *document,
             return valid ? rects[i] : document->selection_tool.group_originals[i];
         }
     }
-    return rectangle->rect;
+    return vector_instance_rect(document, rectangle);
 }
 
 float vector_rotation_display_angle(const VectorDocument *document,

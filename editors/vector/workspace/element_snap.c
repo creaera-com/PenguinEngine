@@ -2,10 +2,11 @@
 #include "element_snap.h"
 #include "editors/vector/document/selection.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/instance/instance.h"
 #include <math.h>
 
 static PUIRect world_rect(const VectorDocument *d, const VectorRectangle *r) {
-    PUIRect rect = vector_rotated_bounds(r->rect, r->angle);
+    PUIRect rect = vector_rotated_bounds(vector_instance_rect(d, r), r->angle);
     for (int i = 0; i < d->artboard_count; i++) {
         if (d->artboards[i].id == r->parent_id) {
             rect.x += d->artboards[i].rect.x;

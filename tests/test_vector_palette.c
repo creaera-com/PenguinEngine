@@ -97,7 +97,7 @@ static void test_palette_actions_leave_artwork_unchanged(void) {
 static void test_wheel_drag_changes_base_only_in_visible_canvas(void) {
     VectorEditor *editor = host.instance;
     /* Locate the tab through the actual rendered layout rather than assuming column widths. */
-    for (int x = 700; x < 1280 && editor->palette_ui.area.w == 0; x += 20) {
+    for (int x = 1270; x >= 700 && editor->palette_ui.area.w == 0; x -= 20) {
         pui_pointer(&shell.input, (float)x, 64, true);
         pui_pointer(&shell.input, (float)x, 64, false);
         pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 1280, 800}, NULL, NULL);

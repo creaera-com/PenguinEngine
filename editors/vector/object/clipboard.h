@@ -41,6 +41,8 @@ bool vector_objects_replace_selection(VectorDocument *document, const VectorShap
  */
 bool vector_objects_replace_selection_block(VectorDocument *document, const VectorShape *shapes,
                                             int count);
+/** @brief Duplicate prepared values in their original parents; preserve source references. */
+bool vector_objects_duplicate_values(VectorDocument *document, const VectorClipboard *values);
 /** @brief Private native codecs for structural command type 6. */
 bool vector_objects_command_write(const VectorCommand *command, FILE *file);
 bool vector_objects_command_read(VectorCommand *command, FILE *file);

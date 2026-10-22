@@ -2,6 +2,7 @@
 #include "object_actions.h"
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/instance/instance.h"
 #include "editors/vector/mask/mask.h"
 #include "editors/vector/object/alignment.h"
 #include "editors/vector/object/group.h"
@@ -50,7 +51,11 @@ bool vector_object_actions_action(VectorObjectActions *actions, VectorDocument *
         }
     }
     bool changed;
-    if (!strcmp(name, "vector.objects.mask_create")) {
+    if (!strcmp(name, "vector.objects.clone_linked")) {
+        changed = vector_instances_create(document);
+    } else if (!strcmp(name, "vector.objects.detach_instance")) {
+        changed = vector_instances_detach(document);
+    } else if (!strcmp(name, "vector.objects.mask_create")) {
         changed = vector_mask_create(document);
     } else if (!strcmp(name, "vector.objects.mask_release")) {
         changed = vector_mask_release(document);
@@ -180,6 +185,17 @@ void vector_object_actions_commit(VectorObjectActions *actions, VectorDocument *
     if (actions->pending) {
         VectorClipboard selection;
         bool copy = vector_objects_copy(document, &selection);
+        pui_view_set_radial_enabled(view, "vector_objects_clone_linked",
+                                    vector_instances_can_create(document));
+        bool linked = false;
+        for (int i = 0; i < document->rectangle_count; i++) {
+            linked |= document->rectangles[i].instance_source &&
+                      vector_document_is_selected(document, document->rectangles[i].id);
+        }
+        pui_view_set_radial_enabled(view, "vector_objects_detach_instance",
+                                    linked && vector_objects_can_delete(document));
+        pui_view_set_radial_enabled(view, "vector_copies_menu",
+                                    linked || vector_objects_can_duplicate(document));
         bool remove = vector_objects_can_delete(document);
         pui_view_set_radial_enabled(view, "vector_objects_copy", copy);
         pui_view_set_radial_enabled(view, "vector_objects_cut", remove);

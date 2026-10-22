@@ -2,6 +2,7 @@
 #include "plan.h"
 #include "editors/vector/document/selection.h"
 #include "editors/vector/geometry/rotation.h"
+#include "editors/vector/instance/instance.h"
 #include "editors/vector/mask/mask.h"
 #include "editors/vector/repeat/repeat.h"
 #include <math.h>
@@ -90,7 +91,9 @@ bool vector_export_plan(const VectorDocument *d, VectorExportScope scope, Vector
         PUIRect total = {0};
         bool any = false;
         for (int i = 0; i < d->rectangle_count; i++) {
-            const VectorShape *s = &d->rectangles[i];
+            VectorShape resolved;
+            vector_instance_resolve(d, &d->rectangles[i], &resolved);
+            const VectorShape *s = &resolved;
             if (!vector_document_is_selected(d, s->id) || (s->flags & VECTOR_OBJECT_HIDDEN)) {
                 continue;
             }
@@ -119,7 +122,8 @@ bool vector_export_plan(const VectorDocument *d, VectorExportScope scope, Vector
                     const VectorShape *mask = vector_mask_find(d, s->group_id);
                     if (mask && !s->clip_mask) {
                         if ((mask->flags & VECTOR_OBJECT_HIDDEN) ||
-                            !intersect(&b, vector_rotated_bounds(mask->rect, mask->angle))) {
+                            !intersect(&b, vector_rotated_bounds(vector_instance_rect(d, mask),
+                                                                 mask->angle))) {
                             continue;
                         }
                     }
