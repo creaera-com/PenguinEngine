@@ -61,4 +61,9 @@ root:
       height: 24
       padding: 0
       children:
-        - {type: label, id: status, text: "Ready", height: 24}
+        - type: row
+          padding: 0
+          height: 24
+          children:
+            - {type: label, id: status, text: "Ready", height: 24}
+            - {type: label, id: viewport_status, text: "", width: 120, height: 24}

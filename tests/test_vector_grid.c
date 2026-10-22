@@ -281,8 +281,32 @@ static void test_rotation_geometry_bounds_and_exact_intersections(void) {
     TEST_ASSERT_FLOAT_WITHIN(.001f, 34, moved.y);
 }
 
+static void test_zoom_buttons_reset_and_report_active_document_zoom(void) {
+    VectorDocument *d = document();
+    TEST_ASSERT_EQUAL_STRING("Zoom: 100 %", pui_view_text(shell.view, "viewport_status"));
+    float cx = d->viewport.bounds.w / 2, cy = d->viewport.bounds.h / 2;
+    float anchor = (cx - d->viewport.x) / d->viewport.zoom;
+    action("vector.zoom.in");
+    vector_viewport_update(&d->viewport, d->viewport.zoom_started_ms + 150);
+    commit();
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 1.1f, d->viewport.zoom);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, anchor, (cx - d->viewport.x) / d->viewport.zoom);
+    TEST_ASSERT_EQUAL_STRING("Zoom: 110 %", pui_view_text(shell.view, "viewport_status"));
+    action("vector.zoom.reset");
+    vector_viewport_update(&d->viewport, d->viewport.zoom_started_ms + 150);
+    commit();
+    TEST_ASSERT_EQUAL_FLOAT(1, d->viewport.zoom);
+    action("vector.zoom.out");
+    vector_viewport_update(&d->viewport, d->viewport.zoom_started_ms + 150);
+    commit();
+    TEST_ASSERT_TRUE(d->viewport.zoom < 1);
+    activate("scripts");
+    TEST_ASSERT_EQUAL_STRING("", pui_view_text(shell.view, "viewport_status"));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_zoom_buttons_reset_and_report_active_document_zoom);
     RUN_TEST(test_rotation_geometry_bounds_and_exact_intersections);
     RUN_TEST(test_modifier_geometry_all_handles_preserves_ratio_and_center);
     RUN_TEST(test_snap_points_use_screen_radius_for_all_lattices);

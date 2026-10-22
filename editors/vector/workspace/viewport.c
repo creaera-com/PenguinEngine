@@ -17,16 +17,24 @@ void vector_viewport_update(VectorViewport *v, double now_ms) {
     }
 }
 
+void vector_viewport_set_zoom(VectorViewport *v, float zoom, float x, float y, double now_ms) {
+    if (!isfinite(zoom) || !isfinite(x) || !isfinite(y)) {
+        return;
+    }
+    vector_viewport_update(v, now_ms);
+    v->zoom_target = fmaxf(.1f, fminf(4, zoom));
+    v->zoom_from = v->zoom;
+    v->zoom_anchor_x = x;
+    v->zoom_anchor_y = y;
+    v->zoom_started_ms = now_ms;
+    v->zooming = v->zoom_target != v->zoom;
+}
+
 void vector_viewport_zoom(VectorViewport *v, float steps, float x, float y, double now_ms) {
     if (!isfinite(steps) || !isfinite(x) || !isfinite(y) || steps == 0) {
         return;
     }
     vector_viewport_update(v, now_ms);
     float target = v->zooming ? v->zoom_target : v->zoom;
-    v->zoom_target = fmaxf(.1f, fminf(4, target * powf(1.1f, steps)));
-    v->zoom_from = v->zoom;
-    v->zoom_anchor_x = x;
-    v->zoom_anchor_y = y;
-    v->zoom_started_ms = now_ms;
-    v->zooming = v->zoom_target != v->zoom;
+    vector_viewport_set_zoom(v, fmaxf(.1f, fminf(4, target * powf(1.1f, steps))), x, y, now_ms);
 }

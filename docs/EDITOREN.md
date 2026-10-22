@@ -456,3 +456,11 @@ Bedienung und Modulaufteilung stehen unter [Farbschema-Designer](VEKTOR_FARBSCHE
 
 Das radiale Menü bietet unter **Kopien** frei transformierbare verknüpfte Instanzen
 und deren Entkopplung. [Bedienung und Datenmodell](VEKTOR_INSTANZEN.md).
+
+## Zoom-Steuerung
+
+Im Vektoreditor zoomen die Toolbar-Buttons **−** und **+** um jeweils einen
+Mausrad-Schritt. **0** setzt auf 100 % zurück. Die Übergänge bleiben animiert und
+behalten den Punkt in der Mitte der Zeichenfläche bei. Die Statusleiste zeigt
+den tatsächlichen Zoom des aktiven Dokuments in Prozent; beim Editorwechsel wird
+die Anzeige geleert.

@@ -15,6 +15,9 @@ typedef struct {
 
 /** @brief Advance the 140 ms zoom transition, keeping its screen anchor fixed. */
 void vector_viewport_update(VectorViewport *viewport, double now_ms);
+/** @brief Animate to an absolute zoom (10–400%), retaining the given screen anchor. */
+void vector_viewport_set_zoom(VectorViewport *viewport, float zoom, float x, float y,
+                              double now_ms);
 /** @brief Accumulate fractional wheel steps; x/y are relative to viewport bounds. */
 void vector_viewport_zoom(VectorViewport *viewport, float steps, float x, float y, double now_ms);
 #endif

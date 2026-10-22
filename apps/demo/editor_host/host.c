@@ -78,6 +78,7 @@ bool editor_host_commit(EditorHost *host, PUIView *shell, PUIContext *input, cha
     host->active = next;
     pui_view_set_canvas_renderer(shell, draw_canvas, host);
     pui_view_set_text(shell, "status", next->title);
+    pui_view_set_text(shell, "viewport_status", "");
     pui_view_set_checked(shell, next->id, true);
     return true;
 }
