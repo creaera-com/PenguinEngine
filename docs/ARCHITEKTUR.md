@@ -1261,7 +1261,7 @@ Animation voll bedienbar.
 ### Zahlenwerte mit der Maus verändern
 
 Inputs mit `input_type: integer` oder `input_type: decimal` unterstützen einen
-Ziehmodus: linke Maustaste eine Sekunde ruhig halten, dann horizontal ziehen.
+Ziehmodus: linke Maustaste 0,5 Sekunden ruhig halten, dann horizontal ziehen.
 Das Feld wird heller und der Cursor zeigt die horizontale Ziehrichtung an.
 Je 6 Bildschirm-Pixel wird der Startwert um 1 erhöht beziehungsweise verringert;
 Dezimalstellen des Startwerts bleiben erhalten. Die Änderung wird beim Loslassen

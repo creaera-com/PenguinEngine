@@ -1201,7 +1201,7 @@ static void test_numeric_long_press_scrubs_in_units_and_commits_only_on_release(
     typed_commits = 0;
     pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_DOWN, 40);
-    SDL_Delay(1050);
+    SDL_Delay(550);
     pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_MOTION, 58);
     TEST_ASSERT_EQUAL_STRING("13.5", pui_view_text(v, "number"));
@@ -1212,7 +1212,7 @@ static void test_numeric_long_press_scrubs_in_units_and_commits_only_on_release(
     TEST_ASSERT_EQUAL_INT(1, typed_commits);
     TEST_ASSERT_EQUAL_UINT(pui_id("number"), input.focus);
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_DOWN, 40);
-    SDL_Delay(1050);
+    SDL_Delay(550);
     pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_MOTION, 64);
     SDL_Event escape = {.type = SDL_EVENT_KEY_DOWN};
@@ -1222,7 +1222,7 @@ static void test_numeric_long_press_scrubs_in_units_and_commits_only_on_release(
     TEST_ASSERT_EQUAL_INT(1, typed_commits);
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_UP, 64);
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_DOWN, 40);
-    SDL_Delay(1050);
+    SDL_Delay(550);
     pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_MOTION, 70);
     SDL_Event lost = {.type = SDL_EVENT_WINDOW_FOCUS_LOST};
@@ -1248,7 +1248,7 @@ static void test_numeric_mouse_selection_prevents_long_press_activation(void) {
     pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_DOWN, 10);
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_MOTION, 60);
-    SDL_Delay(1050);
+    SDL_Delay(550);
     pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_MOTION, 80);
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_UP, 80);

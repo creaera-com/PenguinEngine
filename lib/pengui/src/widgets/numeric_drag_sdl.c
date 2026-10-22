@@ -54,7 +54,7 @@ void pui_numeric_drag_update(PUIView *v, PUIContext *pui, int index) {
         }
         return;
     }
-    if (!v->numeric_drag.active && SDL_GetTicks() - v->numeric_drag.started >= 1000) {
+    if (!v->numeric_drag.active && SDL_GetTicks() - v->numeric_drag.started >= 500) {
         v->numeric_drag.active = true;
         v->selecting = false;
         v->numeric_drag.x = pui->x;

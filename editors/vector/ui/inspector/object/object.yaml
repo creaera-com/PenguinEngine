@@ -7,7 +7,6 @@ root:
   children:
     - {type: label, id: rectangle_kind, text: Rechteck, height: 24}
     - {type: slot, id: polygon_properties}
-    - {type: slot, id: ellipse_properties}
     - {type: slot, id: text_properties}
     - type: section
       id: section_rectangle_settings
@@ -54,3 +53,4 @@ root:
           - {type: checkbox, id: rectangle_visible, text: Sichtbar, action: vector.rectangle.visible, height: 28}
           - {type: checkbox, id: rectangle_locked, text: Gesperrt, action: vector.rectangle.locked, height: 28}
       - {type: label, id: rectangle_edit_hint, text: "", height: 24}
+    - {type: slot, id: ellipse_properties}
