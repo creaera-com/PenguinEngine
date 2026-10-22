@@ -262,9 +262,29 @@ static void test_real_font_rasterization_and_inspector_focus(void) {
     VectorDocument *d = document();
     TEST_ASSERT_TRUE(vector_text_add(d, 1, (PUIRect){30, 40, 400, 260}));
     commit();
-    screen_click(1150, 130);
-    TEST_ASSERT_TRUE(pui_view_hit(shell.view, "text_size", 1180, 345));
-    screen_click(1180, 345);
+    /* Typography is mounted directly; find the field, scrolling the inspector
+     * when its small fixture viewport cannot show the whole form at once. */
+    float field_x = -1, field_y = -1;
+    for (int attempt = 0; attempt < 8 && field_x < 0; attempt++) {
+        for (int y = 90; y < 580 && field_x < 0; y += 4) {
+            for (int x = 1000; x < 1270; x += 4) {
+                if (pui_view_hit(shell.view, "text_size", x, y)) {
+                    field_x = x + 2;
+                    field_y = y + 2;
+                    break;
+                }
+            }
+        }
+        if (field_x < 0) {
+            SDL_Event wheel = {.type = SDL_EVENT_MOUSE_WHEEL};
+            wheel.wheel.mouse_x = 1200;
+            wheel.wheel.mouse_y = 220;
+            wheel.wheel.y = -2;
+            send(&wheel);
+        }
+    }
+    TEST_ASSERT_TRUE(field_x >= 0);
+    screen_click(field_x, field_y);
     key(SDLK_A, SDL_KMOD_CTRL);
     type("32");
     key(SDLK_TAB, 0);

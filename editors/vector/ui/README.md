@@ -11,7 +11,7 @@ Operationen. YAML und die zugehörige C-Anbindung liegen möglichst nah zusammen
 | `inspector/inspector.yaml` | Äußerer Inspector mit Innenabstand und `selection_properties`-Slot. |
 | `inspector/artboard/artboard.yaml` | Eigenschaften eines Artboards. Die Anbindung liegt im selben Unterverzeichnis in `artboard.c`. |
 | `inspector/object/object.c/.h` und `object.yaml` | Gemeinsame Eigenschaften von Rechtecken, Polygonpfaden und Bézierkurven. |
-| `inspector/text/text.c/.h` und `text.yaml` | Optionaler Typografie-Popup: Schriftwahl, Abstaende, Ausrichtung und Spalten. |
+| `inspector/text/text.c/.h` und `text.yaml` | Direkter Typografie-Abschnitt bei Textauswahl: Schriftwahl, Abstaende, Ausrichtung und Spalten. |
 | `inspector/selection/selection.yaml` | Anzeige einer Mehrfachauswahl. |
 | `document_tree/document_tree.c/.h` | Dokumentdaten in Tree-Zeilen übersetzen, Auswahl und Objektstatus anbinden. |
 | `document_tree/groups.c/.h` | Gruppenzeilen identifizieren und ihre Auswahl weiterleiten. |

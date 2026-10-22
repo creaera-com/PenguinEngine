@@ -17,10 +17,10 @@ Aufzieh-Regeln wie die anderen Box-Werkzeuge.
 
 Zum Verschieben, Drehen oder Ändern des Rahmens das Auswahlwerkzeug aktivieren.
 Beim Ändern der Rahmengröße fließt der Text neu um; die Schriftgröße bleibt gleich.
-Ein roter Rahmen und der Hinweis im Typografie-Popup kennzeichnen Textüberlauf.
+Ein roter Rahmen und der Hinweis im Typografie-Abschnitt kennzeichnen Textüberlauf.
 Der überlaufende Inhalt bleibt im Modell erhalten und wird nach Vergrößern wieder sichtbar.
 
-Im Inspector öffnet **Typografie** die Textformatierung. Der Schriftfilter wird mit
+Im Inspector erscheint **Typografie** bei ausgewähltem Textfeld direkt als standardmäßig geöffneter Abschnitt. Der Schriftfilter wird mit
 Enter oder Fokuswechsel übernommen. Die Liste zeigt installierte Schriftschnitte
 und die mitgelieferte JetBrains Mono. **Weitere Schriften** blättert durch die
 gefilterte Liste, ohne das Node-Limit der YAML-Oberfläche zu überschreiten.

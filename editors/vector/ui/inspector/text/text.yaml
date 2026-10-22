@@ -1,72 +1,67 @@
 schema: pengui/v1
 root:
-  type: popup_button
+  type: section
   id: text_typography
   text: Typografie
-  placement: below
-  height: 30
-  popup_width: 320
-  popup_height: 520
+  open: true
+  padding: 4
+  gap: 6
   children:
-    - type: panel
-      padding: 12
-      gap: 6
+    - {type: input, id: text_font_search, text: "", action: vector.text.font_search, height: 28}
+    - {type: label, text: "Schriftfilter: Eingabe + Enter", height: 20}
+    - {type: slot, id: text_font_choices, height: 30}
+    - {type: button, text: Weitere Schriften, action: vector.text.font_page, height: 26}
+    - type: row
+      padding: 0
+      height: 28
+      gap: 8
       children:
-        - {type: input, id: text_font_search, text: "", action: vector.text.font_search, height: 28}
-        - {type: label, text: "Schriftfilter: Eingabe + Enter", height: 20}
-        - {type: slot, id: text_font_choices, height: 30}
-        - {type: button, text: Weitere Schriften, action: vector.text.font_page, height: 26}
-        - type: row
-          padding: 0
-          height: 28
-          gap: 8
-          children:
-            - {type: checkbox, id: text_bold, text: Fett, action: vector.text.bold}
-            - {type: checkbox, id: text_italic, text: Kursiv, action: vector.text.italic}
-        - type: row
-          padding: 0
-          height: 28
-          gap: 8
-          children:
-            - {type: label, text: Groesse (px), width: 132}
-            - {type: input, id: text_size, action: vector.text.size}
-        - type: row
-          padding: 0
-          height: 28
-          gap: 8
-          children:
-            - {type: label, text: Zeilenhoehe, width: 132}
-            - {type: input, id: text_line_height, action: vector.text.line_height}
-        - type: row
-          padding: 0
-          height: 28
-          gap: 8
-          children:
-            - {type: label, text: Zeichen (px), width: 132}
-            - {type: input, id: text_letter_spacing, action: vector.text.letter_spacing}
-        - type: dropdown
-          id: text_alignment
-          action: vector.text.alignment
-          height: 28
-          children:
-            - {type: option, text: Linksbuendig, value: left}
-            - {type: option, text: Zentriert, value: center}
-            - {type: option, text: Rechtsbuendig, value: right}
-            - {type: option, text: Blocksatz, value: justify}
-        - type: row
-          padding: 0
-          height: 28
-          gap: 8
-          children:
-            - {type: label, text: Spalten (1-16), width: 132}
-            - {type: input, id: text_columns, action: vector.text.columns}
-        - type: row
-          padding: 0
-          height: 28
-          gap: 8
-          children:
-            - {type: label, text: Spaltenabstand, width: 132}
-            - {type: input, id: text_column_gap, action: vector.text.column_gap}
-        - {type: label, id: text_overflow, text: "", height: 24}
-        - {type: label, text: "Doppelklick: Text bearbeiten", height: 22}
-        - {type: label, text: "Enter: Absatz / Strg+Enter: fertig", height: 22}
+        - {type: checkbox, id: text_bold, text: Fett, action: vector.text.bold}
+        - {type: checkbox, id: text_italic, text: Kursiv, action: vector.text.italic}
+    - type: row
+      padding: 0
+      height: 28
+      gap: 8
+      children:
+        - {type: label, text: Groesse (px), width: 132}
+        - {type: input, id: text_size, action: vector.text.size}
+    - type: row
+      padding: 0
+      height: 28
+      gap: 8
+      children:
+        - {type: label, text: Zeilenhoehe, width: 132}
+        - {type: input, id: text_line_height, action: vector.text.line_height}
+    - type: row
+      padding: 0
+      height: 28
+      gap: 8
+      children:
+        - {type: label, text: Zeichen (px), width: 132}
+        - {type: input, id: text_letter_spacing, action: vector.text.letter_spacing}
+    - type: dropdown
+      id: text_alignment
+      action: vector.text.alignment
+      height: 28
+      children:
+        - {type: option, text: Linksbuendig, value: left}
+        - {type: option, text: Zentriert, value: center}
+        - {type: option, text: Rechtsbuendig, value: right}
+        - {type: option, text: Blocksatz, value: justify}
+    - type: row
+      padding: 0
+      height: 28
+      gap: 8
+      children:
+        - {type: label, text: Spalten (1-16), width: 132}
+        - {type: input, id: text_columns, action: vector.text.columns}
+    - type: row
+      padding: 0
+      height: 28
+      gap: 8
+      children:
+        - {type: label, text: Spaltenabstand, width: 132}
+        - {type: input, id: text_column_gap, action: vector.text.column_gap}
+    - {type: label, id: text_overflow, text: "", height: 24}
+    - {type: label, text: "Doppelklick: Text bearbeiten", height: 22}
+    - {type: label, text: "Enter: Absatz / Strg+Enter: fertig", height: 22}
