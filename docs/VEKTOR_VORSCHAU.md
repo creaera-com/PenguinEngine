@@ -1,6 +1,6 @@
 # 1:1-Vorschau
 
-Die aufklappbare **Vorschau** steht im rechten **Tools**-Tab vor den Rastereinstellungen.
+Die **Vorschau** steht in einem eigenen Tab neben **Tools** im unteren Bereich der rechten Spalte.
 Mit **Bereich wählen** oder dem Scan-Icon in der Zeichen-Toolbar das Werkzeug aktivieren,
 dann mit der linken Maustaste einen Bereich innerhalb eines Artboards aufziehen.
 Der Bereich ist auf dieses Artboard begrenzt und wird auf der Zeichenfläche gestrichelt
@@ -28,7 +28,7 @@ und Farbänderungsvorschauen werden übernommen.
 - Wird das Artboard verkleinert, wird der Bereich für die Anzeige begrenzt. Nach Undo
   ist der ursprüngliche Ausschnitt wieder verfügbar. Gelöschte/ausgeblendete Artboards
   liefern keine Vorschau; ihre Region bleibt für ein mögliches Undo vorgemerkt.
-- Vorschau und Raster lassen sich einzeln zuklappen. Die Höhe des Tools-Panels bleibt
+- Die Vorschau nutzt die verfügbare Tab-Fläche; das Raster bleibt im Tools-Tab einklappbar. Die Höhe des unteren Panels bleibt
   über den vorhandenen horizontalen Greifer veränderbar.
 
 ## Aufteilung
@@ -40,7 +40,7 @@ und Farbänderungsvorschauen werden übernommen.
   enthält die angezeigte Geometrie; das Originaldokument und sein Zoom bleiben unverändert.
   Es wird nur in das sichtbare Vorschaufenster gezeichnet, kein riesiges Artboardbild erzeugt.
 - `document/document.h`: besitzt den Vorschaubereich pro Dokument.
-- `ui/editor.yaml`: beschreibt Werkzeugbutton, Vorschausektion und Canvas
+- `ui/editor.yaml`: beschreibt Werkzeugbutton, Vorschau-Tab und Canvas
   `vector_preview_canvas`; deren feste Höhe lässt sich hier ändern.
 - `editor.c`: leitet Aktionen, Events und die zusätzliche Canvas-Zeichenanfrage weiter.
 - `persistence/checkpoint.c`: Schema **PVCKPT29** sichert ausschließlich den bestätigten

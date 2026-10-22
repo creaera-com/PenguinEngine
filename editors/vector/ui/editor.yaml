@@ -152,6 +152,7 @@ root:
               children:
                 - {type: slot, id: inspector_content}
         - type: tabs
+          id: vector_utility_tabs
           children:
             - type: tab
               id: vector_tools_tab
@@ -164,19 +165,6 @@ root:
                   padding: 4
                   gap: 8
                   children:
-                    - type: section
-                      id: section_tools_preview
-                      text: Vorschau
-                      padding: 4
-                      children:
-                        - type: row
-                          padding: 0
-                          height: 28
-                          gap: 4
-                          children:
-                            - {type: toggle, id: vector_preview_select, text: Bereich waehlen, icon: tabler:scan, action: vector.preview.select}
-                            - {type: button, icon: tabler:x, action: vector.preview.clear, width: 28}
-                        - {type: canvas, id: vector_preview_canvas, height: 128}
                     - {type: slot, id: repeat_content}
                     - type: section
                       id: section_tools_grid_settings
@@ -224,3 +212,20 @@ root:
                           children:
                             - {type: label, text: Toleranz, width: 80}
                             - {type: input, id: vector_grid_tolerance, text: "5", action: vector.grid.tolerance}
+            - type: tab
+              id: vector_preview_tab
+              text: Vorschau
+              padding: 0
+              children:
+                - type: panel
+                  padding: 8
+                  gap: 8
+                  children:
+                    - type: row
+                      padding: 0
+                      height: 28
+                      gap: 4
+                      children:
+                        - {type: toggle, id: vector_preview_select, text: Bereich waehlen, icon: tabler:scan, action: vector.preview.select}
+                        - {type: button, icon: tabler:x, action: vector.preview.clear, width: 28}
+                    - {type: canvas, id: vector_preview_canvas}
