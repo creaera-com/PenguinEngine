@@ -52,28 +52,34 @@ root:
             - {type: separator}
             - {type: toggle, id: vector_add_artboard, icon: tabler:artboard, action: vector.add_artboard, width: 30}
             - {type: separator}
-            - {type: toggle, id: vector_add_rect, icon: tabler:rectangle, action: vector.add_rect, width: 30}
-            - {type: toggle, id: vector_add_text, icon: tabler:typography, action: vector.add_text, width: 30}
-            - {type: toggle, id: vector_add_polygon, icon: tabler:polygon, action: vector.add_polygon, width: 30}
-            - {type: toggle, id: vector_add_ellipse, icon: tabler:oval, action: vector.add_ellipse, width: 30}
-            - {type: toggle, id: vector_pen, icon: tabler:ballpen, action: vector.tool_pen, width: 30}
-            - {type: toggle, id: vector_nodes, icon: tabler:vector-bezier, action: vector.tool_nodes, width: 30}
-            - {type: toggle, id: vector_gradient, icon: tabler:color-filter, action: vector.tool_gradient, width: 30}
             - {type: toggle, id: vector_selection, icon: tabler:pointer-2, action: vector.tool_selection, width: 30}
+            - {type: separator}
+            - {type: toggle, id: vector_add_rect, icon: tabler:rectangle, action: vector.add_rect, width: 30}
+            - {type: toggle, id: vector_add_ellipse, icon: tabler:oval, action: vector.add_ellipse, width: 30}
+            - {type: toggle, id: vector_add_polygon, icon: tabler:pentagon, action: vector.add_polygon, width: 30}
+            - {type: separator}
+            - {type: toggle, id: vector_pen, icon: tabler:pencil, action: vector.tool_pen, width: 30}
+            - {type: toggle, id: vector_nodes, icon: tabler:vector-bezier, action: vector.tool_nodes, width: 30}
+            - {type: separator}
+            - {type: toggle, id: vector_add_text, icon: tabler:typography, action: vector.add_text, width: 30}
+            - {type: separator}
+            - {type: toggle, id: vector_gradient, icon: tabler:color-swatch, action: vector.tool_gradient, width: 30}
             - {type: separator}
             - {type: toggle, id: vector_rulers_toggle, icon: tabler:ruler-2, action: vector.rulers.toggle, width: 30}
             - {type: toggle, id: vector_grid_toggle, icon: tabler:grid-4x4, action: vector.grid.toggle, width: 30}
             - {type: toggle, id: vector_grid_snap, icon: tabler:magnet, action: vector.grid.snap, width: 30}
-            - {type: toggle, id: vector_element_snap, icon: tabler:magnetic, action: vector.element.snap, width: 30}
-            - {type: toggle, id: vector_preview_toolbar, icon: tabler:scan, action: vector.preview.select, width: 30}
+            - {type: toggle, id: vector_element_snap, icon: tabler:grid-goldenratio, action: vector.element.snap, width: 30}
             - {type: separator}
-            - {type: button, id: vector_center_artboard, icon: tabler:focus-2, action: vector.artboard.center, width: 30}
+            - {type: toggle, id: vector_preview_toolbar, icon: tabler:photo-search, action: vector.preview.select, width: 30}
+            - {type: separator}
+            - {type: button, id: vector_center_artboard, icon: tabler:zoom-pan, action: vector.artboard.center, width: 30}
+            - {type: button, id: vector_zoom_out, icon: tabler:zoom-out, action: vector.zoom.out, width: 28}
+            - {type: button, id: vector_zoom_reset, icon: tabler:zoom-cancel, action: vector.zoom.reset, width: 28}
+            - {type: button, id: vector_zoom_in, icon: tabler:zoom-in, action: vector.zoom.in, width: 28}
+            - {type: separator}
             - {type: button, id: vector_import_image, icon: tabler:photo-plus, action: editor.import_image, width: 30}
-            - {type: slot, id: vector_export_toolbar, width: 30}
-            - {type: button, id: vector_zoom_out, icon: tabler:minus, action: vector.zoom.out, width: 28}
-            - {type: button, id: vector_zoom_reset, text: "0", action: vector.zoom.reset, width: 28}
-            - {type: button, id: vector_zoom_in, icon: tabler:plus, action: vector.zoom.in, width: 28}
             - {type: spacer}
+            - {type: slot, id: vector_export_toolbar, width: 30}
             - type: radial_menu
               id: vector_object_menu
               popup_width: 320
@@ -184,7 +190,7 @@ root:
                       height: 28
                       gap: 4
                       children:
-                        - {type: toggle, id: vector_preview_select, text: Bereich waehlen, icon: tabler:scan, action: vector.preview.select}
+                        - {type: toggle, id: vector_preview_select, text: Bereich waehlen, icon: tabler:photo-search, action: vector.preview.select}
                         - {type: button, icon: tabler:x, action: vector.preview.clear, width: 28}
                     - {type: canvas, id: vector_preview_canvas}
             - type: tab
