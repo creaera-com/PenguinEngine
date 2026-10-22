@@ -1,0 +1,35 @@
+schema: pengui/v1
+root:
+  type: panel
+  padding: 8
+  gap: 8
+  scroll: true
+  children:
+    - type: dropdown
+      id: palette_harmony
+      action: vector.palette.harmony
+      value: "0"
+      children:
+        - {type: option, text: Monochromatisch, value: "0"}
+        - {type: option, text: Benachbarte Farben, value: "1"}
+        - {type: option, text: Triade, value: "2"}
+        - {type: option, text: Tetrade, value: "3"}
+        - {type: option, text: Komplementaer, value: "4"}
+        - {type: option, text: Geteilt komplementaer, value: "5"}
+        - {type: option, text: Quadrat, value: "6"}
+    - {type: canvas, id: palette_wheel, height: 270}
+    - type: row
+      height: 28
+      padding: 0
+      children:
+        - {type: label, text: Winkelabstand, width: 140}
+        - {type: input, id: palette_spread, text: "30", input_type: decimal, action: vector.palette.spread}
+        - {type: label, text: Grad, width: 40}
+    - {type: label, text: "Farbfeld anklicken: Hex kopieren", height: 24}
+    - {type: button, text: Palette kopieren, action: vector.palette.copy, height: 28}
+    - type: section
+      text: Basisfarbe
+      open: true
+      padding: 0
+      children:
+        - {type: color_picker, id: palette_base, value: "#5B9BD5FF", height: 280, action: vector.palette.base, preview_action: vector.palette.base}

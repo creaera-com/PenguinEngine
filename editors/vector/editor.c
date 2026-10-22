@@ -27,6 +27,7 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
         free(editor);
         return NULL;
     }
+    editor->palette_ui = (VectorPaletteUI){.base = 0x5b9bd5ff, .spread = 30};
     editor->repeat_ui.property = VECTOR_REPEAT_ANGLE;
     PUILayout *root = editor_load_ui(services, "editors/vector/ui/editor.yaml", error, capacity);
     if (!root) {
@@ -45,6 +46,16 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
                    : NULL;
         pui_layout_free(editor->layout);
         pui_layout_free(repeat);
+        editor->layout = combined;
+    }
+    if (editor->layout) {
+        PUILayout *palette =
+            editor_load_ui(services, "editors/vector/ui/palette/palette.yaml", error, capacity);
+        PUILayout *combined = palette ? pui_layout_compose(editor->layout, "palette_content",
+                                                           palette, error, capacity)
+                                      : NULL;
+        pui_layout_free(editor->layout);
+        pui_layout_free(palette);
         editor->layout = combined;
     }
     if (editor->layout) {
@@ -102,6 +113,9 @@ void vector_editor_destroy(void *instance) {
 
 bool vector_editor_action(void *instance, PUIView *view, const char *name, const char *widget) {
     VectorEditor *editor = instance;
+    if (vector_palette_ui_action(&editor->palette_ui, view, name)) {
+        return true;
+    }
     vector_text_tool_end(vector_document_tabs_active(&editor->documents, view));
     if (!strncmp(name, "vector.objects.", 15) || !strcmp(name, "vector.tool_selection") ||
         !strcmp(name, "vector.add_rect") || !strcmp(name, "vector.add_ellipse") ||
@@ -213,6 +227,10 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
     VectorEditor *editor = instance;
     vector_export_ui_render(&editor->export_ui, renderer, editor->text_renderer,
                             editor->image_renderer);
+    if (!strcmp(widget, "palette_wheel")) {
+        vector_palette_ui_draw(&editor->palette_ui, renderer, area);
+        return;
+    }
     if (!strcmp(widget, "vector_preview_canvas")) {
         vector_preview_draw(vector_documents_find(&editor->documents, editor->active_document_id),
                             renderer, area, editor->text_renderer, editor->image_renderer,
@@ -235,6 +253,9 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
 
 bool vector_editor_event(void *instance, PUIView *view, const SDL_Event *event) {
     VectorEditor *editor = instance;
+    if (vector_palette_ui_event(&editor->palette_ui, view, event)) {
+        return true;
+    }
     VectorDocument *document = vector_document_tabs_active(&editor->documents, view);
     vector_workspace_cancel_inactive(&editor->documents, document);
     if (event->type == SDL_EVENT_KEY_DOWN && !event->key.repeat &&

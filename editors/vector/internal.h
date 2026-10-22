@@ -11,6 +11,7 @@
 #include "editors/vector/ui/inspector/inspector.h"
 #include "editors/vector/ui/tools/repeat.h"
 #include "ui/export/dialog.h"
+#include "ui/palette/palette.h"
 #include "workspace/documents.h"
 #include "workspace/style.h"
 
@@ -27,6 +28,7 @@ typedef struct {
     VectorInspector inspector;
     VectorRepeatUI repeat_ui;
     VectorExportUI export_ui;
+    VectorPaletteUI palette_ui;
     unsigned grid_document_id;
     unsigned active_document_id; ///< Resolved during UI commit for shared preview canvas routing.
     VectorObjectActions object_actions;

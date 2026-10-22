@@ -151,6 +151,12 @@ root:
               padding: 0
               children:
                 - {type: slot, id: inspector_content}
+            - type: tab
+              id: vector_palette_tab
+              text: Farbschema
+              padding: 0
+              children:
+                - {type: slot, id: palette_content}
         - type: tabs
           id: vector_utility_tabs
           children:

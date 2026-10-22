@@ -116,6 +116,8 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/element_snap.c
  ${PROJECT_SOURCE_DIR}/editors/vector/grid/snap.c
  ${PROJECT_SOURCE_DIR}/editors/vector/grid/render.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/palette/palette.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/palette/palette.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/tools/grid.c
  ${PROJECT_SOURCE_DIR}/editors/vector/preview/region.c
  ${PROJECT_SOURCE_DIR}/editors/vector/preview/tool.c

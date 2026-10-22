@@ -446,3 +446,8 @@ Bedienung, Datenmodell, Schriftservice und Grenzen stehen in [Textfelder im Vekt
 
 Die Editoren bieten den gemeinsamen Slot `project_explorer`. Projektzustand und
 Dateibaum werden von der App betreut. [Projekte und Benutzerzustand](PROJEKTE.md).
+
+## Farbschema-Designer
+
+Neben dem Inspector erzeugt der Tab **Farbschema** Harmonien über ein interaktives Farbrad.
+Bedienung und Modulaufteilung stehen unter [Farbschema-Designer](VEKTOR_FARBSCHEMA.md).
