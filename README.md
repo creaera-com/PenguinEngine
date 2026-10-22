@@ -439,3 +439,7 @@ die Trennung vom Vektoreditor, CMake, Zeichen-Callbacks und Ressourcenbesitz.
 Mit installiertem Doxygen zuerst CMake konfigurieren, dann
 `cmake --build build --target api_docs` ausführen. Die HTML-Doku steht unter
 `build/docs/html/index.html`. [Anleitung und Konfiguration](docs/DOKUMENTATION.md).
+
+## Benutzerhandbuch
+
+Das [Vector-Tool-Benutzerhandbuch](docs/handbuch/vector/index.md) beschreibt die Bedienung mit Übungen. Die [manuelle Testcheckliste](docs/handbuch/vector/testcheckliste.md) dient der eigenen Abnahme. In Doxygen stehen beide unter **Benutzerhandbuch → Vector Tool**.

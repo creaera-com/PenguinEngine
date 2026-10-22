@@ -7,6 +7,7 @@
  * nicht enthalten.
  *
  * @section start Einstieg
+ * Das @subpage user_manual führt durch die Bedienung des Vector Tools.
  * Das @subpage handbook bündelt die Markdown-Anleitungen in der Seitennavigation.
  * Zuerst @ref README.md lesen, danach @ref docs/ARCHITEKTUR.md für die UI und
  * @ref docs/PENGDRAW.md für den Zeichenkern. @ref docs/EDITOREN.md beschreibt
@@ -53,4 +54,11 @@
  * @section handbook_tools Entwicklung
  * - @subpage docs/MONITORING.md
  * - @subpage docs/DOKUMENTATION.md
+ */
+
+/**
+ * @page user_manual Benutzerhandbuch
+ *
+ * Schrittweise Bedienungsanleitung mit Übungen und manueller Testcheckliste:
+ * - @subpage docs/handbuch/vector/index.md
  */
