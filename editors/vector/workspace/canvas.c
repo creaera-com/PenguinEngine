@@ -7,6 +7,7 @@
 #include "editors/vector/grid/render.h"
 #include "editors/vector/preview/render.h"
 #include "editors/vector/rectangle/render.h"
+#include "editors/vector/rendering/artwork.h"
 #include "editors/vector/workspace/box_tool.h"
 #include "editors/vector/workspace/selection.h"
 #include "element_snap.h"
@@ -74,7 +75,7 @@ static void draw_artboard_shadow(SDL_Renderer *renderer, SDL_FRect board,
 
 void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRect area,
                         VectorTextRenderer *text, VectorImageRenderer *images,
-                        const VectorWorkspaceStyle *style) {
+                        const VectorWorkspaceStyle *style, VectorArtworkRenderer *artwork) {
     VectorViewport *viewport = &document->viewport;
     viewport->bounds = area;
     vector_viewport_update(viewport, (double)SDL_GetTicksNS() / 1000000.);
@@ -106,7 +107,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
         }
         SDL_SetRenderDrawColor(renderer, 242, 242, 242, 255);
         SDL_RenderFillRect(renderer, &rect);
-        vector_rectangles_draw(document, board, renderer, rect, text, images);
+        vector_artwork_draw(artwork, document, board, renderer, rect, text, images);
         vector_grid_draw(&document->grid, renderer, rect, viewport->zoom);
         if (board->id == document->active_artboard && !document->active_rectangle) {
             pui_render_color(renderer, PUI_HIGHLIGHT);

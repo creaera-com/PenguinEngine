@@ -201,7 +201,7 @@ static void test_preview_draws_masks_at_one_to_one_without_mutating_selection_or
     SDL_SetRenderClipRect(renderer, NULL);
     vector_preview_draw(d, renderer, (PUIRect){0, 0, 208, 228},
                         ((VectorEditor *)host.instance)->text_renderer,
-                        ((VectorEditor *)host.instance)->image_renderer);
+                        ((VectorEditor *)host.instance)->image_renderer, NULL);
     // Region starts at (60,50), displayed at (4,24), regardless of workspace zoom.
     TEST_ASSERT_EQUAL_UINT8(0xe0, red(104, 124));
     TEST_ASSERT_EQUAL_UINT8(242, red(25, 45)); // Ellipse corner is clipped out.
@@ -228,7 +228,7 @@ static void test_preview_shows_live_move_without_selection_handles_or_model_chan
     SDL_SetRenderClipRect(renderer, NULL);
     vector_preview_draw(d, renderer, (PUIRect){0, 0, 108, 128},
                         ((VectorEditor *)host.instance)->text_renderer,
-                        ((VectorEditor *)host.instance)->image_renderer);
+                        ((VectorEditor *)host.instance)->image_renderer, NULL);
     TEST_ASSERT_EQUAL_UINT8(242, red(30, 50));
     TEST_ASSERT_EQUAL_UINT8(0xe0, red(70, 70));
     TEST_ASSERT_EQUAL_MEMORY(&before, &d->rectangles[0], sizeof before);

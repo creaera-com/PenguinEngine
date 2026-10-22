@@ -347,7 +347,7 @@ static void test_shadow_mask_and_preview_use_gradient_alpha(void) {
     d->preview.region = (PUIRect){0, 0, 200, 140};
     VectorEditor *editor = host.instance;
     vector_preview_draw(d, renderer, (PUIRect){0, 0, 208, 168}, editor->text_renderer,
-                        editor->image_renderer);
+                        editor->image_renderer, NULL);
     pixels = SDL_RenderReadPixels(renderer, NULL);
     TEST_ASSERT_INT_WITHIN(3, 121, (pixel(pixels, 29, 64) >> 16) & 255);
     TEST_ASSERT_EQUAL_HEX32(0xf2f2f2ff, pixel(pixels, 59, 64));

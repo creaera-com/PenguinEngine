@@ -55,6 +55,7 @@ void *vector_editor_create(const EditorServices *services, char *error, size_t c
     vector_documents_init(&editor->documents);
     if (!editor->layout) {
         vector_inspector_destroy(&editor->inspector);
+        vector_artwork_renderer_destroy(&editor->artwork);
         vector_image_renderer_destroy(editor->image_renderer);
         vector_text_renderer_destroy(editor->text_renderer);
         pui_fonts_destroy(editor->fonts);
@@ -90,6 +91,7 @@ void vector_editor_destroy(void *instance) {
         vector_workspace_cancel_inactive(&editor->documents, NULL);
         vector_documents_destroy(&editor->documents);
         vector_inspector_destroy(&editor->inspector);
+        vector_artwork_renderer_destroy(&editor->artwork);
         vector_image_renderer_destroy(editor->image_renderer);
         vector_text_renderer_destroy(editor->text_renderer);
         pui_fonts_destroy(editor->fonts);
@@ -213,7 +215,8 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
                             editor->image_renderer);
     if (!strcmp(widget, "vector_preview_canvas")) {
         vector_preview_draw(vector_documents_find(&editor->documents, editor->active_document_id),
-                            renderer, area, editor->text_renderer, editor->image_renderer);
+                            renderer, area, editor->text_renderer, editor->image_renderer,
+                            &editor->artwork);
         return;
     }
     for (int i = 0; i < editor->documents.count; i++) {
@@ -224,7 +227,7 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
             editor->active_document_id = document->id;
             vector_workspace_cancel_inactive(&editor->documents, document);
             vector_canvas_draw(document, renderer, area, editor->text_renderer,
-                               editor->image_renderer, &editor->workspace_style);
+                               editor->image_renderer, &editor->workspace_style, &editor->artwork);
             return;
         }
     }

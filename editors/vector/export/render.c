@@ -3,6 +3,7 @@
 #include "editor_host/editor.h"
 #include "editors/vector/document/selection.h"
 #include "editors/vector/rectangle/render.h"
+#include "editors/vector/rendering/artwork.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -79,6 +80,7 @@ SDL_Surface *vector_export_render(const VectorDocument *d, const VectorExportPla
     SDL_BlendMode blend;
     SDL_GetRenderDrawBlendMode(r, &blend);
     SDL_Surface *pixels = NULL, *rgba = NULL;
+    VectorArtworkRenderer artwork = {0};
     if (target && SDL_SetRenderTarget(r, target)) {
         SDL_SetRenderScale(r, 1, 1);
         SDL_SetRenderViewport(r, NULL);
@@ -92,7 +94,7 @@ SDL_Surface *vector_export_render(const VectorDocument *d, const VectorExportPla
                 continue;
             }
             SDL_FRect board = {b->rect.x - area.x, b->rect.y - area.y, b->rect.w, b->rect.h};
-            vector_rectangles_draw(copy, b, r, board, text, images);
+            vector_artwork_draw(&artwork, copy, b, r, board, text, images);
         }
         pixels = SDL_RenderReadPixels(r, NULL);
         rgba = pixels ? SDL_ConvertSurface(pixels, SDL_PIXELFORMAT_RGBA32) : NULL;
@@ -104,6 +106,7 @@ SDL_Surface *vector_export_render(const VectorDocument *d, const VectorExportPla
     SDL_SetRenderDrawColor(r, red, green, blue, alpha);
     SDL_SetRenderDrawBlendMode(r, blend);
     SDL_DestroySurface(pixels);
+    vector_artwork_renderer_destroy(&artwork);
     SDL_DestroyTexture(target);
     free(copy);
     if (rgba && transparent) {

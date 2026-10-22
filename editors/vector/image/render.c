@@ -86,6 +86,7 @@ static SDL_Texture *texture(VectorImageRenderer *c, SDL_Renderer *r, const char 
     c->bytes += e->bytes;
     if (e->texture) {
         SDL_SetTextureBlendMode(e->texture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureScaleMode(e->texture, SDL_SCALEMODE_LINEAR);
     }
     return e->texture;
 }

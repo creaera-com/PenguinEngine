@@ -178,7 +178,7 @@ static void test_virtual_picking_and_rendering_select_source_and_track_fill(void
     VectorEditor *editor = host.instance;
     SDL_SetRenderClipRect(renderer, NULL);
     vector_preview_draw(d, renderer, (PUIRect){0, 0, 208, 168}, editor->text_renderer,
-                        editor->image_renderer);
+                        editor->image_renderer, NULL);
     SDL_Surface *pixels = SDL_RenderReadPixels(renderer, NULL);
     TEST_ASSERT_NOT_NULL(pixels);
     Uint8 red, green, blue, alpha;

@@ -277,7 +277,7 @@ static void test_image_content_is_clipped_and_rendered_in_preview(void) {
     SDL_SetRenderClipRect(renderer, NULL);
     VectorEditor *editor = host.instance;
     vector_preview_draw(d, renderer, (PUIRect){0, 0, 208, 228}, editor->text_renderer,
-                        editor->image_renderer);
+                        editor->image_renderer, NULL);
     SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
     TEST_ASSERT_NOT_NULL(surface);
     Uint8 r, g, b, a;

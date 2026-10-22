@@ -22,8 +22,9 @@ void vector_ellipse_draw(SDL_Renderer *r, const VectorShape *shape, PUIRect rect
     SDL_BlendMode blend;
     SDL_GetRenderDrawBlendMode(r, &blend);
     SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
-    const int segments = 128;
-    SDL_FPoint outline[129];
+    /* Keep the chord error below roughly 0.15 raster pixels as zoom increases. */
+    int segments = (int)fminf(1024, fmaxf(128, ceilf(3.141592654f * sqrtf(fmaxf(a, b) / .3f))));
+    SDL_FPoint outline[1025];
     float width = shape->stroke.width * zoom;
     float inward = shape->stroke.alignment == VECTOR_STROKE_OUTSIDE  ? 0
                    : shape->stroke.alignment == VECTOR_STROKE_INSIDE ? width

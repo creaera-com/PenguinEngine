@@ -32,6 +32,8 @@ Refactorings und Fehlerkorrekturen:
 
 - `document/`: Dokumentdaten, IDs und Speicherbesitz.
 - `artboard/`: Artboards, Änderungsbefehle und zugehöriges Mauswerkzeug.
+- `rendering/`: gemeinsamer Artwork-Kompositor für Zeichenfläche, Vorschau und Export;
+  Render-Caches gehören dem Editor, Modell und History bleiben davon unabhängig.
 - `workspace/`: Zeichenfläche, Lineale, Anbindung der Dokument-Tabs und gemeinsame
   Aufzieh-Geste für Rechtecke/Ellipsen/Polygone (`box_tool.c`, reine Werte in `box_tool_state.h`).
 - `polygon/`: Parametrische Polygone und Eckenzahl-Aenderungen ueber History.

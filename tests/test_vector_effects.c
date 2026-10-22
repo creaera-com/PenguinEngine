@@ -296,7 +296,7 @@ static void test_clipping_masks_clip_shadows_and_preview_uses_the_same_rendering
     d->preview.region = (PUIRect){0, 0, 200, 100};
     VectorEditor *editor = host.instance;
     vector_preview_draw(d, renderer, (PUIRect){0, 0, 208, 128}, editor->text_renderer,
-                        editor->image_renderer);
+                        editor->image_renderer, NULL);
     pixels = SDL_RenderReadPixels(renderer, NULL);
     TEST_ASSERT_EQUAL_UINT8(0, red(pixels, 134, 64));
     TEST_ASSERT_EQUAL_UINT8(242, red(pixels, 154, 64));

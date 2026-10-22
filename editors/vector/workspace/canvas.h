@@ -2,6 +2,7 @@
 #ifndef PE_VECTOR_CANVAS_H
 #define PE_VECTOR_CANVAS_H
 #include "editors/vector/image/render.h"
+#include "editors/vector/rendering/artwork.h"
 #include "editors/vector/text/render.h"
 #include "pengui/pengui.h"
 #include "style.h"
@@ -12,7 +13,7 @@ struct VectorDocument;
 PUILayout *vector_canvas_layout(char *error, size_t capacity);
 void vector_canvas_draw(struct VectorDocument *document, SDL_Renderer *renderer, PUIRect area,
                         VectorTextRenderer *text, VectorImageRenderer *images,
-                        const VectorWorkspaceStyle *style);
+                        const VectorWorkspaceStyle *style, VectorArtworkRenderer *artwork);
 bool vector_canvas_event(struct VectorDocument *document, PUIView *view, const SDL_Event *event);
 /** @brief Center the selected artboard without modifying the document history. */
 void vector_canvas_center(struct VectorDocument *document);

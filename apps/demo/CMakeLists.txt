@@ -86,6 +86,7 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/ruler.c
  ${PROJECT_SOURCE_DIR}/editors/vector/history/history.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/style.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/rendering/artwork.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/canvas.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/viewport.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/documents.c

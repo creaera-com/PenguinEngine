@@ -2,10 +2,12 @@
 #ifndef PE_VECTOR_PREVIEW_RENDER_H
 #define PE_VECTOR_PREVIEW_RENDER_H
 #include "editors/vector/image/render.h"
+#include "editors/vector/rendering/artwork.h"
 #include "editors/vector/text/render.h"
 /** @brief Render only content, including masks and live transforms, without editing overlays. */
 void vector_preview_draw(const VectorDocument *document, SDL_Renderer *renderer, PUIRect area,
-                         VectorTextRenderer *text, VectorImageRenderer *images);
+                         VectorTextRenderer *text, VectorImageRenderer *images,
+                         VectorArtworkRenderer *artwork);
 /** @brief Mark the chosen/draft region on the zoomed workspace. */
 void vector_preview_overlay(const VectorDocument *document, SDL_Renderer *renderer);
 #endif

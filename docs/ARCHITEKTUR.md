@@ -1159,3 +1159,28 @@ hinterlegt. Große Dokument-Sammlungen werden direkt an ihrem Speicherort
 initialisiert; die History-Prüfung verwendet einen freigegebenen Heap-Arbeitsbereich.
 Die Linker-Einstellung betrifft die ausführbaren Programme dieses Projekts,
 nicht die Schnittstelle oder Speicherverwaltung der pengUI-Bibliothek.
+
+### Kantenglättung des Vektor-Artworks
+
+`editors/vector/rendering/artwork.c` ist der gemeinsame Kompositor für Zeichenfläche,
+1:1-Vorschau und Rasterexport. Formen werden mit zweifacher Auflösung pro Achse
+gezeichnet und linear auf die Zielgröße heruntergerechnet (vier Abdeckungssamples
+pro Pixel). Premultipliziertes Alpha verhindert dunkle Säume an transparenten Kanten;
+der PNG-Export wandelt anschließend wie bisher in gerades Alpha um.
+
+Ein editor-eigener `VectorArtworkRenderer` verwendet seine Textur und Dokumentkopie
+wieder. Ausgabe-Kacheln sind höchstens 1024 × 1024 Pixel groß, die dazugehörige
+Zwischentextur höchstens 2048 × 2048 RGBA-Pixel (16 MiB). Dadurch bestimmt auch ein
+sehr großes Artboard nicht die Größe der Zwischentextur. Zusätzliche Masken-,
+Schatten- und Schriftressourcen werden weiterhin von ihren Render-Modulen verwaltet.
+Beim Entladen des Editors werden die Scratch-Ressourcen freigegeben. Ein Export
+verwendet einen eigenen, auf seine Laufzeit begrenzten Cache.
+
+Live-Geometrie und Snap-Ergebnisse werden vor der höheren Rasterauflösung berechnet.
+Der Abtastfaktor verändert weder Zoom, Einrasttoleranzen noch Dokument oder History.
+Renderziel, Clip, Viewport, Skalierung, Zeichenfarbe und Blendmodus werden nach dem
+Zeichnen wiederhergestellt. Ohne verfügbare Renderziel-Textur oder bei besonderen
+Caller-Transformationen bleibt die bisherige direkte Darstellung als Rückfall erhalten.
+Die zusätzliche Auflösung kostet Renderarbeit; sie rekonstruiert keine fehlenden
+Details niedrig aufgelöster importierter Bilder. Große Ellipsen erhalten außerdem
+mehr Kontursegmente, damit die Geometrie beim Vergrößern nicht sichtbar kantig wird.

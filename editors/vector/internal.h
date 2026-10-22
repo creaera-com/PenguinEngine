@@ -4,6 +4,7 @@
 #include "editor_host/editor.h"
 #include "editors/vector/document/document.h"
 #include "editors/vector/image/render.h"
+#include "editors/vector/rendering/artwork.h"
 #include "editors/vector/text/render.h"
 #include "editors/vector/ui/context_menu/object_actions.h"
 #include "editors/vector/ui/document_tree/document_tree.h"
@@ -16,6 +17,7 @@
 typedef struct {
     PUILayout *layout;
     VectorWorkspaceStyle workspace_style;
+    VectorArtworkRenderer artwork;
     PUIFonts *fonts;
     VectorTextRenderer *text_renderer;
     VectorImageRenderer *image_renderer;

@@ -3,13 +3,15 @@
 #include "editors/vector/curve/tool.h"
 #include "editors/vector/gradient/tool.h"
 #include "editors/vector/rectangle/render.h"
+#include "editors/vector/rendering/artwork.h"
 #include "editors/vector/workspace/selection.h"
 #include "tool.h"
 #include <math.h>
 #include <stdlib.h>
 
 void vector_preview_draw(const VectorDocument *d, SDL_Renderer *r, PUIRect area,
-                         VectorTextRenderer *text, VectorImageRenderer *images) {
+                         VectorTextRenderer *text, VectorImageRenderer *images,
+                         VectorArtworkRenderer *artwork) {
     SDL_SetRenderDrawColor(r, 38, 38, 38, 255);
     SDL_RenderFillRect(r, &(SDL_FRect){area.x, area.y, area.w, area.h});
     PUIRect region;
@@ -64,7 +66,7 @@ void vector_preview_draw(const VectorDocument *d, SDL_Renderer *r, PUIRect area,
                                        window.destination.w, window.destination.h});
     SDL_FRect target = {window.destination.x - window.source.x,
                         window.destination.y - window.source.y, display.w, display.h};
-    vector_rectangles_draw(copy, board, r, target, text, images);
+    vector_artwork_draw(artwork, copy, board, r, target, text, images);
     SDL_SetRenderClipRect(r, clipped ? &previous : NULL);
     free(copy);
 }
