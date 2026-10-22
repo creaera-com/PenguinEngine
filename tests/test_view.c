@@ -207,6 +207,32 @@ static void assert_pixel(float x, float y, Uint32 color) {
     SDL_DestroySurface(surface);
 }
 
+static void test_dragged_tab_preview_follows_pointer_and_disappears_on_release(void) {
+    char error[256];
+    const char *yaml = "schema: pengui/v1\nroot: {type: tabs, children: [{type: tab, "
+                       "id: first, text: Document, children: [{type: panel}]}]}";
+    PUILayout *description = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(description, error);
+    PUIView *tabs = pui_view_new(description, renderer);
+    TEST_ASSERT_NOT_NULL(tabs);
+    pui_pointer(&pui, 20, 15, true);
+    pui_view_draw(tabs, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    pui_pointer(&pui, 100, 100, true);
+    pui_view_draw(tabs, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
+    Uint8 r, g, b, a;
+    TEST_ASSERT_NOT_NULL(surface);
+    TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 115, 135, &r, &g, &b, &a));
+    TEST_ASSERT_TRUE(r != (Uint8)(PUI_PANEL >> 24) || g != (Uint8)(PUI_PANEL >> 16) ||
+                     b != (Uint8)(PUI_PANEL >> 8));
+    SDL_DestroySurface(surface);
+    pui_pointer(&pui, 100, 100, false);
+    pui_view_draw(tabs, &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    assert_pixel(115, 135, PUI_PANEL);
+    pui_view_free(tabs);
+    pui_layout_free(description);
+}
+
 static void test_tabs_join_content_without_background_gap(void) {
     char error[256];
     const char *yaml = "schema: pengui/v1\nroot: {type: tabs, children: [{type: tab, "
@@ -1267,6 +1293,7 @@ int main(void) {
     RUN_TEST(test_reverse_tab_entry_single_field_and_no_inputs);
     RUN_TEST(test_toggle_checkbox_and_groups_keep_independent_state);
     RUN_TEST(test_vertical_group_default_and_keyboard_selection);
+    RUN_TEST(test_dragged_tab_preview_follows_pointer_and_disappears_on_release);
     RUN_TEST(test_tabs_join_content_without_background_gap);
     RUN_TEST(test_tree_selection_persists_and_moves_without_actions);
     RUN_TEST(test_three_pane_grips_and_resize_keep_outer_preferences);

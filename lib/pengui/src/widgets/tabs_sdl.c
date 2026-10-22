@@ -162,3 +162,38 @@ const char *pui_view_selected_tab(const PUIView *view, const char *tabs) {
     }
     return NULL;
 }
+
+/* Draw after the complete view, so neighboring panels cannot cover the ghost.
+ * This is visual feedback only: tab ownership and drop behavior stay unchanged. */
+void pui_widget_tabs_draw_drag(PUIView *view, PUIContext *pui) {
+    if (!pui->active || !pui->down || pui->blocked || pui_view_modal_active(view)) {
+        return;
+    }
+    for (int i = 0; i < view->layout->count; i++) {
+        const PUINode *tabs = &view->layout->nodes[i];
+        if (tabs->type != PUI_NODE_TABS || !view->visible[i] || !view->state[i].tabs.dragging) {
+            continue;
+        }
+        for (int c = tabs->child; c >= 0; c = view->layout->nodes[c].next) {
+            const PUINode *tab = &view->layout->nodes[c];
+            if (tab->id != pui->active || !tab->enabled) {
+                continue;
+            }
+            const char *text = view->state[c].text;
+            PUIIcon icon = pui_icon_from_name(tab->icon);
+            bool close = *tab->close_action || *tabs->close_action;
+            SDL_FRect rect = {pui->x + 12, pui->y + 12,
+                              pui_tab_content_width(icon, text) + (close ? 24 : 0), 30};
+            float radius = tab->radius >= 0    ? tab->radius
+                           : tabs->radius >= 0 ? tabs->radius
+                                               : pui_theme.tab_radius;
+            draw_tab_colors(view->renderer, rect, icon, text, (PUI_HOVER & 0xffffff00u) | 210,
+                            (PUI_TEXT & 0xffffff00u) | 220, radius);
+            if (close) {
+                pui_icon(view->renderer, pui_icon_from_name("tabler:x"), rect.x + rect.w - 21,
+                         rect.y + 8, 14, (PUI_TEXT & 0xffffff00u) | 220);
+            }
+            return;
+        }
+    }
+}

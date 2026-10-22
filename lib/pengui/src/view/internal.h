@@ -146,6 +146,7 @@ void pui_numeric_drag_update(PUIView *view, PUIContext *input, int index);
 bool pui_numeric_drag_event(PUIView *view, PUIContext *input, const SDL_Event *event);
 bool pui_widget_text_input_event(PUIView *view, PUIContext *pui, const SDL_Event *event);
 bool pui_widget_tree_scroll(PUIView *view, int index, const SDL_Event *event);
+void pui_widget_tabs_draw_drag(PUIView *view, PUIContext *pui);
 bool pui_widget_tabs_scroll(PUIView *view, int index, const SDL_Event *event);
 void pui_widget_tabs_init(PUIView *view, int index);
 void pui_widget_section_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,

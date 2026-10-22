@@ -100,6 +100,7 @@ void pui_view_draw(PUIView *view, PUIContext *pui, PUIRect area, PUIAction actio
     }
     pui_widget_color_picker_finish_frame(view, pui, action, context);
     pui_widget_radial_draw(view, pui, action, context);
+    pui_widget_tabs_draw_drag(view, pui);
     pui_end_frame(pui);
     pui_view_apply_cursor(view, pui);
 }
