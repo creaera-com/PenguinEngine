@@ -243,6 +243,25 @@ static void test_app_save_routing_and_default_project_directory(void) {
     SDL_RemovePath(path);
 }
 
+/* SDL directory enumeration may use native separators on Windows, while the
+ * fixture joins paths with '/'. Both spellings identify the same Windows file. */
+static bool same_file_path(const char *a, const char *b) {
+#ifdef _WIN32
+    while (*a && *b) {
+        char x = *a == '\\' ? '/' : *a;
+        char y = *b == '\\' ? '/' : *b;
+        if (SDL_tolower((unsigned char)x) != SDL_tolower((unsigned char)y)) {
+            return false;
+        }
+        a++;
+        b++;
+    }
+    return !*a && !*b;
+#else
+    return !strcmp(a, b);
+#endif
+}
+
 static void test_explorer_routes_file_from_other_editor_to_own_tab(void) {
     char *cwd = SDL_GetCurrentDirectory(), folder[4096], file[4096], metadata[4096], error[256];
     snprintf(folder, sizeof folder, "%sfile-project-%llu", cwd,
@@ -263,7 +282,7 @@ static void test_explorer_routes_file_from_other_editor_to_own_tab(void) {
     for (unsigned id = 1; id < 10; id++) {
         snprintf(row, sizeof row, "project_entry_%u", id);
         const char *candidate = project_explorer_file(&project.explorer, row);
-        if (candidate && !strcmp(candidate, file)) {
+        if (candidate && same_file_path(candidate, file)) {
             found = true;
             break;
         }
@@ -278,7 +297,7 @@ static void test_explorer_routes_file_from_other_editor_to_own_tab(void) {
     document_controller_commit(&controller, &host, &project, shell.view, &shell.input);
     commit();
     TEST_ASSERT_EQUAL_STRING("vector", host.active->id);
-    TEST_ASSERT_EQUAL_STRING(file, document()->filename);
+    TEST_ASSERT_TRUE(same_file_path(file, document()->filename));
     TEST_ASSERT_EQUAL_INT(2, ((VectorEditor *)host.instance)->documents.count);
     document_controller_destroy(&controller);
     project_controller_destroy(&project);
