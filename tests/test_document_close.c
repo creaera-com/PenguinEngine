@@ -214,9 +214,13 @@ static void test_cross_button_requests_close_without_selecting_another_tab(void)
     action(NULL, "vector.add_document", "");
     frame();
     TEST_ASSERT_EQUAL_UINT(2, document()->id);
-    // Workspace starts at x=260; "Dokument 1" has 90px label + 24px close space.
-    pui_pointer(&shell.input, 260 + 100, 107, true);
-    pui_pointer(&shell.input, 260 + 100, 107, false);
+    /* Workspace starts at x=260. Measure the live caption, including its
+     * unsaved marker, to click the close button rather than the tab label. */
+    const char *title = pui_view_text(shell.view, "vector_document_1");
+    TEST_ASSERT_NOT_NULL(title);
+    float close_x = 260 + pui_tab_content_width(ICON_NONE, title) + 24 - 14;
+    pui_pointer(&shell.input, close_x, 107, true);
+    pui_pointer(&shell.input, close_x, 107, false);
     frame();
     TEST_ASSERT_EQUAL_STRING("vector_document_1", controller.close_request);
     TEST_ASSERT_EQUAL_UINT(2, document()->id);

@@ -426,7 +426,7 @@ static void test_artboard_inspector_updates_history_and_survives_editor_switch(v
     commit();
     TEST_ASSERT_EQUAL_STRING("Artboard 1", pui_view_text(shell.view, "artboard_name"));
     property("artboard_name", "Menu", "vector.artboard.name");
-    TEST_ASSERT_EQUAL_STRING("Dokument 1", pui_view_text(shell.view, "vector_document_1"));
+    TEST_ASSERT_EQUAL_STRING("Dokument 1 *", pui_view_text(shell.view, "vector_document_1"));
     property("artboard_width", "640", "vector.artboard.width");
     property("artboard_height", "480", "vector.artboard.height");
     TEST_ASSERT_EQUAL_STRING("Menu", document->artboards[0].name);
@@ -515,7 +515,7 @@ static void test_tab_commits_properties_and_preserves_next_field_selection(void)
     native_input(&text);
     native_input(&key); // Name -> width commits name.
     TEST_ASSERT_EQUAL_STRING("Renamed", document->artboards[0].name);
-    TEST_ASSERT_EQUAL_STRING("Dokument 1", pui_view_text(shell.view, "vector_document_1"));
+    TEST_ASSERT_EQUAL_STRING("Dokument 1 *", pui_view_text(shell.view, "vector_document_1"));
     text.text.text = "640";
     native_input(&text);
     native_input(&key); // Width -> height commits width.
