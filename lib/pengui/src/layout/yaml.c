@@ -145,6 +145,9 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
         return -1;
     }
     out->type = (PUINodeType)kind;
+    if (out->type == PUI_NODE_SEPARATOR) {
+        out->axis = PUI_AXIS_Y; /* Preserve vertical toolbar separators by default. */
+    }
     snprintf(out->name, sizeof out->name, "_node_%d", index);
     string(r, yaml, "id", out->name, sizeof out->name);
     out->generated_id = !get(r, yaml, "id");

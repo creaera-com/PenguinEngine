@@ -1275,3 +1275,15 @@ die registrierte Action bleibt für Bereichsprüfung und Dokument-History zustä
 ```yaml
 - {type: input, id: width, input_type: decimal, text: "100", action: object.width}
 ```
+
+### Trennlinien
+
+`separator` ist eine wiederverwendbare, nicht interaktive Trennlinie.
+Ohne `axis` bleibt sie vertikal (z.B. in Toolbars). In Menüs oder Panels:
+
+```yaml
+- {type: separator, axis: horizontal, height: 6}
+```
+
+Die Linie nutzt die Rahmenfarbe des Themes; ihre Höhe reserviert Platz einschließlich
+Abstand, die Linie selbst bleibt einen Pixel dick.

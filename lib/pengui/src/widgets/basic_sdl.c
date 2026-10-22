@@ -13,9 +13,11 @@ void pui_widget_basic_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUI
     if (n->type == PUI_NODE_LABEL) {
         pui_text(v->renderer, area.x + 4, area.y + fmaxf(0, (area.h - 16) / 2), s->text, PUI_TEXT);
     } else if (n->type == PUI_NODE_SEPARATOR) {
-        pui_panel(v->renderer,
-                  (SDL_FRect){area.x + area.w / 2, area.y + 4, 1, fmaxf(0, area.h - 8)},
-                  PUI_BORDER);
+        SDL_FRect line =
+            n->axis == PUI_AXIS_X
+                ? (SDL_FRect){area.x + 4, area.y + area.h / 2, fmaxf(0, area.w - 8), 1}
+                : (SDL_FRect){area.x + area.w / 2, area.y + 4, 1, fmaxf(0, area.h - 8)};
+        pui_panel(v->renderer, line, PUI_BORDER);
     }
 }
 
