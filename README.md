@@ -430,3 +430,6 @@ Schlagschatten pro Objekt: [Bedienung, Architektur und Speicherung](docs/VEKTOR_
 Verlaufsfuellungen: [Werkzeug, Farbstopps, Architektur und Speicherung](docs/VEKTOR_VERLAEUFE.md).
 
 PNG-/JPEG-Export: [Exportdialog, Bereiche und Architektur](docs/VEKTOR_EXPORT.md).
+
+[Aufbau und Verwendung von pengDraw](docs/PENGDRAW.md) beschreibt den unabhängigen Zeichenkern,
+die Trennung vom Vektoreditor, CMake, Zeichen-Callbacks und Ressourcenbesitz.

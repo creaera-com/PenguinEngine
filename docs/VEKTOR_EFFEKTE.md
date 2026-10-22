@@ -39,7 +39,7 @@ an einzelnen Objekten gespeichert; Gruppen haben noch keinen gemeinsamen Effekt.
   Slot sowohl in den Form- als auch in den Bild-Inspector eingebunden.
 - `ui/inspector/appearance/effects/effects.c`: übersetzt Formulareingaben in `vector_shape_update`.
 - `object/commands.c`: bestehender atomarer Vorher/Nachher-Befehl samt History.
-- `rectangle/render.c`: ruft den Effekt vor dem normalen Objektinhalt auf; die
+- `rendering/objects.c`: ruft den Effekt vor dem normalen Objektinhalt auf; die
   vorhandenen Form-, Text- und Bildrenderer erzeugen auch dessen Silhouette.
 
 Temporäre Alpha-Puffer werden auf den sichtbaren Bereich mit Filterrand begrenzt.

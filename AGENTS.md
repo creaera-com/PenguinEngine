@@ -22,6 +22,9 @@ Refactorings und Fehlerkorrekturen:
 - Editor-Module kommunizieren mit dem Host über den gemeinsamen Adapter-Vertrag.
   Nur die Registry kennt alle konkreten Adapter. Editoren greifen nicht auf Interna
   anderer Editoren zu.
+- pengDraw unter `lib/pengdraw/` kennt keine Editoren, Dokumente, pengUI oder App-Services.
+  Geometrie, Textfluss und Farbwerte liegen im SDL-freien Kern; GPU-Ressourcen im SDL-Backend.
+  Editor-Adapter übersetzen Modelle in Zeichenwerte; Auswahl und Werkzeuge bleiben im Editor.
 - pengUI bleibt eine eigenständige Bibliothek ohne Abhängigkeiten von Apps oder Editoren.
 - Gemeinsamen Code nur dann auslagern, wenn er tatsächlich fachlich unabhängig ist.
   Keine unspezifischen Sammeldateien oder `shared`-Ordner als Ablage für unklaren Code.

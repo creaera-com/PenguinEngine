@@ -2,8 +2,8 @@
 #include "render.h"
 #include "editors/vector/curve/tool.h"
 #include "editors/vector/gradient/tool.h"
-#include "editors/vector/rectangle/render.h"
 #include "editors/vector/rendering/artwork.h"
+#include "editors/vector/rendering/objects.h"
 #include "editors/vector/workspace/selection.h"
 #include "tool.h"
 #include <math.h>

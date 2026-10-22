@@ -614,7 +614,7 @@ Button-Klick, Escape, Fokusverlust oder Werkzeugwechsel beendet das Werkzeug.
 
 `rectangle/rectangle.h` beschreibt `VectorRectangle` mit stabiler ID, `parent_id`, Name,
 eigenen Objektflags und einem lokalen Rechteck. Positionen beziehen sich auf die linke
-obere Artboard-Ecke. `workspace/box_tool.c` verarbeitet die Geste, `rectangle/render.c`
+obere Artboard-Ecke. `workspace/box_tool.c` verarbeitet die Geste, `rendering/objects.c`
 wendet den Artboard-Transform an und beschneidet die Ausgabe auf das Artboard.
 Beim Verschieben des Artboards folgen die Kinder einschließlich der Live-Vorschau.
 Eine Artboard-Größenänderung verändert den Ausschnitt, skaliert jedoch keine Kinder.
@@ -862,7 +862,7 @@ Grad, mit vorzeichenbehafteter Darstellung von -360 bis 360. `rect` beschreibt w
 Lage vor der Drehung; gedreht wird um dessen Mittelpunkt. Die Winkel sind
 Teil von History und temporaeren Checkpoints (Schema `PVCKPT29`).
 
-`geometry/rotation.c` berechnet Punkte, Ecken, umschliessende Rahmen und exakte
+`lib/pengdraw/src/geometry/rotation.c` berechnet Punkte, Ecken, umschliessende Rahmen und exakte
 Trefferflaechen ohne SDL oder Objektwissen. `workspace/rotation.c` besitzt die
 transiente Geste: urspruengliche Positionen/Winkel/Elternpositionen, gemeinsamen
 Pivot und momentanen Drehwinkel. Bei einer Gruppe drehen sich die Rechteckmitten
@@ -871,7 +871,7 @@ weitergedreht. Groessen und Eltern-IDs bleiben erhalten. `rectangle/transform.c`
 uebernimmt Geometrien und Winkel beim Loslassen als einen atomaren Befehl.
 Esc, Fokusverlust, Werkzeug- und Editorwechsel verwerfen die Vorschau.
 
-`rectangle/render.c` zeichnet gedrehte Rechtecke als zwei Dreiecke mit
+`rendering/objects.c` zeichnet gedrehte Rechtecke als zwei Dreiecke mit
 transparenter Fuellfarbe und behaelt das Clipping am Artboard bei. Auswahltests
 und Auswahlrahmen pruefen die gedrehte Form, nicht deren alte Flaeche.
 Einzelne Groessengreifer drehen mit dem Rechteck mit; `workspace/oriented_resize.c`
@@ -906,7 +906,7 @@ bisherigen Wert zurueckgesetzt. Objekte und gesperrte Eltern behalten ihre Sperr
 
 `vector_rectangle_set_angle` validiert endliche Werte und erhaelt das Vorzeichen
 beim Begrenzen auf eine Umdrehung, etwa 450 auf 90 oder -450 auf -90.
-`geometry/rotation.c` trennt diese Darstellung (`vector_angle_turn`) von der
+`lib/pengdraw/src/geometry/rotation.c` trennt diese Darstellung (`vector_angle_turn`) von der
 kurzen Winkeldifferenz (`vector_angle_normalize`) fuer die Gestenberechnung.
 Die Checkpoint-Validierung fuer Einzel- und Gruppenbefehle akzeptiert die
 vorzeichenbehafteten Winkel einschliesslich voller Umdrehungen (Schema `PVCKPT29`).
@@ -1091,8 +1091,8 @@ Transformation, Eltern-ID, Name, Fuellung und Rahmen. Die vorhandene Sammlung
 `VectorRectangle` ist dazu ein dokumentierter Kompatibilitaetsalias auf `VectorShape`.
 Pfadalgorithmen sind deshalb keine Erweiterungen des Rechteck-Zeichenwerkzeugs:
 
-- `geometry/path.h`, `path.c`: geschlossene Konturen, Bounds, Winding, Komponenten und Hit-Tests.
-- `geometry/path_tess.c`: reine C-Anbindung von libtess2 fuer Flaechen, Dreiecke und Konturbaender.
+- `lib/pengdraw/include/pengdraw/pengdraw.h`, `lib/pengdraw/src/geometry/path.c`: geschlossene Konturen, Bounds, Winding, Komponenten und Hit-Tests.
+- `lib/pengdraw/src/geometry/tessellation.c`: reine C-Anbindung von libtess2 fuer Flaechen, Dreiecke und Konturbaender.
 - `object/shape.c`: normierte Pfadpunkte in Elternkoordinaten abbilden und drehen.
 - `path/operations.c`: Konvertierung, boolesche Plaene und atomare Ersetzung der Auswahl.
 - `path/render.c`: SDL-Darstellung der gefuellten Flaechen, Loecher und Rahmen.
@@ -1293,7 +1293,7 @@ gegenseitig exklusiv und werden beim Editor-/Dokumentwechsel entladen.
   Teilung ein, ohne ihre Form zu aendern. Entf/Backspace loescht den ausgewaehlten Knoten,
   solange eine gueltige Kurve mit mindestens zwei Knoten uebrig bleibt.
 
-`geometry/bezier.c` enthaelt reine kubische Geometrie, analytische Extremwert-Bounds und
+`lib/pengdraw/src/geometry/bezier.c` enthaelt reine kubische Geometrie, analytische Extremwert-Bounds und
 adaptive de-Casteljau-Unterteilung. `VectorShape.curve` speichert bis zu 32 echte Anker
 mit eingehenden/ausgehenden Kontrollpunkten. Diese liegen wie Polygonpunkte normalisiert
 im Formrechteck; Griffe duerfen ausserhalb der Box liegen. `VectorShape.path` ist bei

@@ -11,8 +11,8 @@
 #include "editors/vector/persistence/document_file.h"
 #include "editors/vector/preview/render.h"
 #include "editors/vector/preview/tool.h"
-#include "editors/vector/rectangle/render.h"
 #include "editors/vector/rectangle/transform.h"
+#include "editors/vector/rendering/objects.h"
 #include "editors/vector/repeat/render.h"
 #include "editors/vector/repeat/repeat.h"
 #include "editors/vector/text/text.h"
@@ -95,8 +95,8 @@ static SDL_Surface *render_objects(void) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
     d->viewport.zoom = 1;
-    vector_rectangles_draw(d, &d->artboards[0], renderer, (SDL_FRect){0, 0, 600, 400},
-                           editor->text_renderer, editor->image_renderer);
+    vector_objects_draw(d, &d->artboards[0], renderer, (SDL_FRect){0, 0, 600, 400},
+                        editor->text_renderer, editor->image_renderer);
     return SDL_RenderReadPixels(renderer, NULL);
 }
 
@@ -245,8 +245,8 @@ static void test_offscreen_source_still_casts_visible_shadow_and_zoom_scales_it(
     SDL_Rect clip = {0, 0, 500, 300};
     SDL_SetRenderClipRect(renderer, &clip);
     SDL_SetRenderDrawColor(renderer, 7, 8, 9, 10);
-    vector_rectangles_draw(d, &d->artboards[0], renderer, (SDL_FRect){0, 0, 1200, 800},
-                           editor->text_renderer, editor->image_renderer);
+    vector_objects_draw(d, &d->artboards[0], renderer, (SDL_FRect){0, 0, 1200, 800},
+                        editor->text_renderer, editor->image_renderer);
     SDL_Rect after;
     SDL_GetRenderClipRect(renderer, &after);
     TEST_ASSERT_EQUAL_MEMORY(&clip, &after, sizeof clip);

@@ -14,3 +14,6 @@ Regenerationsanleitung unter [tabler-icons/README.md](tabler-icons/README.md).
 
 - stb_image_write 1.16: PNG/JPEG export, vendored from [nothings/stb](https://github.com/nothings/stb/blob/master/stb_image_write.h); MIT/public domain, license in stb/LICENSE and the header.
   Retained header SHA-256: `92269d6955c03809dd9193e2ead06503b94c24756aa1f30c7949f3dcca037b7e`.
+
+- libtess2: der gemeinsame Geometriekern von pengDraw verwendet die mitgelieferten C-Quellen;
+  SGI Free Software License B 2.0, Lizenz unter libtess2/LICENSE.txt.

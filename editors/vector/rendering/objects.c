@@ -1,5 +1,5 @@
 /** @file @brief Render rectangle children and creation previews inside their artboard. */
-#include "render.h"
+#include "objects.h"
 #include "editors/vector/curve/render.h"
 #include "editors/vector/curve/tool.h"
 #include "editors/vector/document/selection.h"
@@ -12,10 +12,11 @@
 #include "editors/vector/mask/render.h"
 #include "editors/vector/path/render.h"
 #include "editors/vector/polygon/polygon.h"
+#include "editors/vector/rectangle/stroke_render.h"
+#include "editors/vector/rendering/drawing.h"
 #include "editors/vector/repeat/render.h"
 #include "editors/vector/workspace/box_tool.h"
 #include "editors/vector/workspace/selection.h"
-#include "stroke_render.h"
 #include <math.h>
 
 static void draw(SDL_Renderer *renderer, SDL_FRect board, float zoom, PUIRect local, bool selected,
@@ -29,23 +30,10 @@ static void draw(SDL_Renderer *renderer, SDL_FRect board, float zoom, PUIRect lo
     if (preview) {
         alpha = alpha * 150 / 255;
     }
-    SDL_SetRenderDrawColor(renderer, fill >> 24, (fill >> 16) & 255, (fill >> 8) & 255,
-                           (Uint8)alpha);
-    if (vector_angle_normalize(angle) == 0) {
-        SDL_RenderFillRect(renderer, &rect);
-    } else {
-        PUIRect corners[4];
-        vector_rotated_corners((PUIRect){rect.x, rect.y, rect.w, rect.h}, angle, corners);
-        SDL_Vertex vertices[4];
-        SDL_FColor color = {(fill >> 24) / 255.f, ((fill >> 16) & 255) / 255.f,
-                            ((fill >> 8) & 255) / 255.f, alpha / 255.f};
-        for (int i = 0; i < 4; i++) {
-            vertices[i] = (SDL_Vertex){.position = {corners[i].x, corners[i].y}, .color = color};
-        }
-        const int indices[6] = {0, 1, 2, 0, 2, 3};
-        SDL_RenderGeometry(renderer, NULL, vertices, 4, indices, 6);
-    }
-    vector_stroke_draw(renderer, (PUIRect){rect.x, rect.y, rect.w, rect.h}, angle, zoom, stroke);
+    PDrawShape drawing = {
+        .stroke = {stroke.color, stroke.width, (PDrawStrokeAlignment)stroke.alignment}};
+    pdraw_shape_draw(renderer, &drawing, vector_draw_rect(local), angle, board, zoom,
+                     (fill & 0xffffff00u) | alpha);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     if (!selected && !preview) {
         SDL_SetRenderDrawBlendMode(renderer, blend);
@@ -203,9 +191,9 @@ static void draw_repeated(void *data) {
     vector_repeat_render(content->document, content->rectangle, draw_instance, content);
 }
 
-void vector_rectangles_draw(VectorDocument *document, const VectorArtboard *parent,
-                            SDL_Renderer *renderer, SDL_FRect board, VectorTextRenderer *text,
-                            VectorImageRenderer *images) {
+void vector_objects_draw(VectorDocument *document, const VectorArtboard *parent,
+                         SDL_Renderer *renderer, SDL_FRect board, VectorTextRenderer *text,
+                         VectorImageRenderer *images) {
     bool clipped = SDL_RenderClipEnabled(renderer);
     SDL_Rect outer, clip = {0};
     SDL_GetRenderClipRect(renderer, &outer);

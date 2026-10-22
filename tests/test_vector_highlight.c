@@ -1,6 +1,6 @@
 #include "editors/vector/document/document.h"
 #include "editors/vector/document/selection.h"
-#include "editors/vector/rectangle/render.h"
+#include "editors/vector/rendering/objects.h"
 #include "unity.h"
 #include <stdlib.h>
 static SDL_Window *window;
@@ -40,8 +40,7 @@ static void test_selection_uses_central_theme_without_modifying_artwork(void) {
         pui_set_theme(&theme);
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderClear(renderer);
-        vector_rectangles_draw(d, &d->artboards[0], renderer, (SDL_FRect){0, 0, 100, 100}, NULL,
-                               NULL);
+        vector_objects_draw(d, &d->artboards[0], renderer, (SDL_FRect){0, 0, 100, 100}, NULL, NULL);
         SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
         TEST_ASSERT_NOT_NULL(surface);
         Uint8 r, g, b, a;

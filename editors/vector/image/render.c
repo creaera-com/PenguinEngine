@@ -99,7 +99,7 @@ void vector_image_draw(VectorImageRenderer *c, SDL_Renderer *r, const VectorShap
     if (t) {
         SDL_FlipMode flip = (SDL_FlipMode)((s->image.flip_x ? SDL_FLIP_HORIZONTAL : 0) |
                                            (s->image.flip_y ? SDL_FLIP_VERTICAL : 0));
-        SDL_RenderTextureRotated(r, t, NULL, &rect, angle, NULL, flip);
+        pdraw_texture_draw(r, t, NULL, &rect, angle, flip, 0xffffffffu);
     } else {
         SDL_SetRenderDrawColor(r, 160, 80, 70, 255);
         SDL_RenderRect(r, &rect);

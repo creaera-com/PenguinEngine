@@ -35,7 +35,6 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/image/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/commands.c
  ${PROJECT_SOURCE_DIR}/editors/vector/text/text.c
- ${PROJECT_SOURCE_DIR}/editors/vector/text/layout.c
  ${PROJECT_SOURCE_DIR}/editors/vector/text/tool.c
  ${PROJECT_SOURCE_DIR}/editors/vector/text/render.c
  documents/controller.c
@@ -54,8 +53,6 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/rectangle.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/box_tool.c
  ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/stroke_render.c
- ${PROJECT_SOURCE_DIR}/editors/vector/geometry/path.c
- ${PROJECT_SOURCE_DIR}/editors/vector/geometry/path_tess.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/shape.c
  ${PROJECT_SOURCE_DIR}/editors/vector/path/operations.c
  ${PROJECT_SOURCE_DIR}/editors/vector/path/render.c
@@ -69,17 +66,14 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/mask/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/object/clipboard.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/context_menu/object_actions.c
- ${PROJECT_SOURCE_DIR}/editors/vector/gradient/state.c
  ${PROJECT_SOURCE_DIR}/editors/vector/gradient/render.c
  ${PROJECT_SOURCE_DIR}/editors/vector/gradient/tool.c
- ${PROJECT_SOURCE_DIR}/editors/vector/effects/shadow.c
  ${PROJECT_SOURCE_DIR}/editors/vector/effects/render.c
- ${PROJECT_SOURCE_DIR}/editors/vector/rectangle/render.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/rendering/objects.c
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard/artboard.c
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard/tool.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/marquee.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/selection.c
- ${PROJECT_SOURCE_DIR}/editors/vector/geometry/rotation.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/rotation.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/oriented_resize.c
  ${PROJECT_SOURCE_DIR}/editors/vector/geometry/constraints.c
@@ -110,7 +104,6 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/text/text.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree/groups.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/document_tree/document_tree.c
- ${PROJECT_SOURCE_DIR}/editors/vector/geometry/bezier.c
  ${PROJECT_SOURCE_DIR}/editors/vector/polygon/polygon.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ellipse/ellipse.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ellipse/render.c
@@ -136,7 +129,7 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/game/editor.c
  ${PROJECT_SOURCE_DIR}/editors/game/inspector.c)
 target_include_directories(pengui_editor_support PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR})
-target_link_libraries(pengui_editor_support PUBLIC pengUI::sdl PRIVATE pengui_yaml_parser pengui_tess pengui_truetype)
+target_link_libraries(pengui_editor_support PUBLIC pengUI::sdl pengDraw::sdl PRIVATE pengui_yaml_parser pengui_truetype)
 if(WIN32)
  target_link_libraries(pengui_editor_support PRIVATE psapi)
 endif()

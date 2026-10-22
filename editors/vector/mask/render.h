@@ -6,11 +6,7 @@
 #include <SDL3/SDL.h>
 
 /** @brief Frame-local target reused for clipped objects; never stored in document/history. */
-typedef struct {
-    SDL_Renderer *renderer;
-    SDL_Texture *texture, *clipped;
-    int width, height;
-} VectorMaskRenderer;
+typedef PDrawMaskRenderer VectorMaskRenderer;
 
 /** @brief Draw content through mask triangles, retaining holes and original alpha.
  * Render failures hide content rather than exposing pixels outside the mask.

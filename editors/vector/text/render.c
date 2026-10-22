@@ -155,9 +155,7 @@ void vector_text_draw(VectorTextRenderer *cache, SDL_Renderer *r, const VectorDo
     SDL_FRect dest = {board.x + rect.x * zoom, board.y + rect.y * zoom, rect.w * zoom,
                       rect.h * zoom};
     if (f->texture) {
-        SDL_SetTextureColorMod(f->texture, fill >> 24, (fill >> 16) & 255, (fill >> 8) & 255);
-        SDL_SetTextureAlphaMod(f->texture, fill & 255);
-        SDL_RenderTextureRotated(r, f->texture, NULL, &dest, angle, NULL, SDL_FLIP_NONE);
+        pdraw_texture_draw(r, f->texture, NULL, &dest, angle, SDL_FLIP_NONE, fill);
     }
     if (selected) {
         SDL_FPoint corners[5];

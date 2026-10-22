@@ -50,7 +50,7 @@ ein optionaler Rahmen umrandet den Textkasten.
 5. `ui/inspector/text/text.yaml` wird nur bei ausgewählten Textfeldern in den Slot
    `text_properties` eingesetzt. `ui/inspector/text/text.c` übersetzt Formularaktionen
    in `vector_text_update`; reine Modelldateien kennen keine Widgets.
-6. `text/layout.c` berechnet Wortumbruch, Ausrichtung und Spalten mit einer
+6. `lib/pengdraw/src/paint/text_layout.c` berechnet Wortumbruch, Ausrichtung und Spalten mit einer
    austauschbaren Metrik-Funktion. Es gibt dort keine SDL-, Fontdatei- oder GPU-Abhängigkeit.
 7. `text/render.c` nutzt den App-Schriftservice und einen begrenzten Texture-Cache.
    Der Renderer behandelt Text an derselben Position in der Ebenenreihenfolge wie

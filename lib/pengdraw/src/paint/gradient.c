@@ -1,10 +1,10 @@
 /** @file @brief Validated gradient values and pure color sampling. */
-#include "state.h"
+#include "pengdraw/pengdraw.h"
 #include <math.h>
 #include <string.h>
 
-bool vector_gradient_valid(const VectorGradient *g) {
-    if (!g || g->kind > VECTOR_GRADIENT_REFLECTED || g->count > VECTOR_GRADIENT_STOPS ||
+bool pdraw_gradient_valid(const PDrawGradient *g) {
+    if (!g || g->kind > PDRAW_GRADIENT_REFLECTED || g->count > PDRAW_GRADIENT_STOPS ||
         (g->count && g->count < 2) || (g->kind && !g->count)) {
         return false;
     }
@@ -26,23 +26,23 @@ bool vector_gradient_valid(const VectorGradient *g) {
     return !g->count || (g->stops[0].position == 0 && g->stops[g->count - 1].position == 1);
 }
 
-VectorGradient vector_gradient_default(uint32_t fill) {
-    return (VectorGradient){.kind = VECTOR_GRADIENT_LINEAR,
-                            .count = 2,
-                            .x1 = 0,
-                            .y1 = .5f,
-                            .x2 = 1,
-                            .y2 = .5f,
-                            .stops = {{0, fill & 255 ? fill : 0xc58b5bff}, {1, 0xffffffff}}};
+PDrawGradient pdraw_gradient_default(uint32_t fill) {
+    return (PDrawGradient){.kind = PDRAW_GRADIENT_LINEAR,
+                           .count = 2,
+                           .x1 = 0,
+                           .y1 = .5f,
+                           .x2 = 1,
+                           .y2 = .5f,
+                           .stops = {{0, fill & 255 ? fill : 0xc58b5bff}, {1, 0xffffffff}}};
 }
 
-static uint32_t ramp(const VectorGradient *g, float t) {
+static uint32_t ramp(const PDrawGradient *g, float t) {
     t = fmaxf(0, fminf(1, t));
     unsigned end = 1;
     while (end + 1 < g->count && t > g->stops[end].position) {
         end++;
     }
-    VectorGradientStop a = g->stops[end - 1], b = g->stops[end];
+    PDrawGradientStop a = g->stops[end - 1], b = g->stops[end];
     float u = (t - a.position) / (b.position - a.position);
     float aa = a.color & 255, ba = b.color & 255;
     float alpha = aa * (1 - u) + ba * u;
@@ -57,18 +57,18 @@ static uint32_t ramp(const VectorGradient *g, float t) {
     return result;
 }
 
-uint32_t vector_gradient_sample(const VectorGradient *g, float x, float y, float w, float h) {
-    if (!g || g->count < 2 || g->count > VECTOR_GRADIENT_STOPS || w <= 0 || h <= 0) {
+uint32_t pdraw_gradient_sample(const PDrawGradient *g, float x, float y, float w, float h) {
+    if (!g || g->count < 2 || g->count > PDRAW_GRADIENT_STOPS || w <= 0 || h <= 0) {
         return 0;
     }
     float dx = (g->x2 - g->x1) * w, dy = (g->y2 - g->y1) * h;
     float px = x - g->x1 * w, py = y - g->y1 * h, length = dx * dx + dy * dy;
     float t = length > 0 ? (px * dx + py * dy) / length : 0;
-    if (g->kind == VECTOR_GRADIENT_RADIAL) {
+    if (g->kind == PDRAW_GRADIENT_RADIAL) {
         t = length > 0 ? hypotf(px, py) / sqrtf(length) : 0;
-    } else if (g->kind == VECTOR_GRADIENT_REFLECTED) {
+    } else if (g->kind == PDRAW_GRADIENT_REFLECTED) {
         t = fabsf(t);
-    } else if (g->kind == VECTOR_GRADIENT_CONICAL) {
+    } else if (g->kind == PDRAW_GRADIENT_CONICAL) {
         /* Evaluate angles in double precision so cardinal directions round alike
          * across libm implementations (especially the half-turn color midpoint). */
         t = (float)((atan2((double)py, (double)px) - atan2((double)dy, (double)dx)) /
@@ -78,8 +78,8 @@ uint32_t vector_gradient_sample(const VectorGradient *g, float x, float y, float
     return ramp(g, t);
 }
 
-int vector_gradient_add_stop(VectorGradient *g) {
-    if (!vector_gradient_valid(g) || g->count < 2 || g->count == VECTOR_GRADIENT_STOPS) {
+int pdraw_gradient_add_stop(PDrawGradient *g) {
+    if (!pdraw_gradient_valid(g) || g->count < 2 || g->count == PDRAW_GRADIENT_STOPS) {
         return -1;
     }
     unsigned at = 1;
@@ -92,17 +92,17 @@ int vector_gradient_add_stop(VectorGradient *g) {
     float p = (g->stops[at].position + g->stops[at - 1].position) / 2;
     uint32_t color = ramp(g, p);
     memmove(&g->stops[at + 1], &g->stops[at], (g->count - at) * sizeof *g->stops);
-    g->stops[at] = (VectorGradientStop){p, color};
+    g->stops[at] = (PDrawGradientStop){p, color};
     g->count++;
     return (int)at;
 }
 
-bool vector_gradient_remove_stop(VectorGradient *g, unsigned index) {
-    if (!vector_gradient_valid(g) || g->count <= 2 || index >= g->count) {
+bool pdraw_gradient_remove_stop(PDrawGradient *g, unsigned index) {
+    if (!pdraw_gradient_valid(g) || g->count <= 2 || index >= g->count) {
         return false;
     }
     memmove(&g->stops[index], &g->stops[index + 1], (g->count - index - 1) * sizeof *g->stops);
-    g->stops[--g->count] = (VectorGradientStop){0};
+    g->stops[--g->count] = (PDrawGradientStop){0};
     g->stops[0].position = 0;
     g->stops[g->count - 1].position = 1;
     return true;

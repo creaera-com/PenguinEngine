@@ -470,3 +470,6 @@ die Anzeige geleert.
 Statusleiste und Monitor-Tab zeigen RAM-/CPU-Verbrauch des Programms. Messung und
 Verlauf gehören zum Host und stehen anderen Editoren über einen YAML-Slot zur
 Verfügung: [Bedienung und Integration](MONITORING.md).
+
+[Aufbau und Verwendung von pengDraw](PENGDRAW.md) beschreibt den unabhängigen Zeichenkern,
+die Trennung vom Vektoreditor, CMake, Zeichen-Callbacks und Ressourcenbesitz.

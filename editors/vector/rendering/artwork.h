@@ -1,15 +1,13 @@
 /** @file @brief Bounded, reusable supersampling for vector artwork, independent of editor UI. */
 #ifndef PE_VECTOR_ARTWORK_RENDER_H
 #define PE_VECTOR_ARTWORK_RENDER_H
-#include "editors/vector/rectangle/render.h"
+#include "editors/vector/rendering/objects.h"
 
 /** @brief Renderer-local scratch resources; document/history data are only borrowed while drawing.
  */
 typedef struct {
-    SDL_Renderer *renderer;
-    SDL_Texture *target;
+    PDrawRenderer drawing;
     VectorDocument *scratch;
-    int width, height;
 } VectorArtworkRenderer;
 
 /** @brief Draw with 2x supersampling in bounded tiles. NULL cache uses temporary resources.

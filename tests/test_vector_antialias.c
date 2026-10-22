@@ -56,8 +56,8 @@ static int partial_pixels(SDL_Surface *s, bool alpha_channel) {
 
 static void test_rotated_edges_have_coverage_and_cache_is_reused_without_model_edits(void) {
     clear(255);
-    vector_rectangles_draw(document, &document->artboards[0], renderer,
-                           (SDL_FRect){0, 0, 1200, 240}, NULL, NULL);
+    vector_objects_draw(document, &document->artboards[0], renderer, (SDL_FRect){0, 0, 1200, 240},
+                        NULL, NULL);
     SDL_Surface *native = SDL_RenderReadPixels(renderer, NULL);
     TEST_ASSERT_NOT_NULL(native);
     int before = partial_pixels(native, false);
@@ -73,11 +73,11 @@ static void test_rotated_edges_have_coverage_and_cache_is_reused_without_model_e
     SDL_DestroySurface(smooth);
     TEST_ASSERT_EQUAL_MEMORY(&viewport, &document->viewport, sizeof viewport);
     TEST_ASSERT_EQUAL_INT(history, document->history.count);
-    TEST_ASSERT_TRUE(artwork.width <= 2048 && artwork.height <= 2048);
-    SDL_Texture *texture = artwork.target;
+    TEST_ASSERT_TRUE(artwork.drawing.width <= 2048 && artwork.drawing.height <= 2048);
+    SDL_Texture *texture = artwork.drawing.target;
     vector_artwork_draw(&artwork, document, &document->artboards[0], renderer,
                         (SDL_FRect){0, 0, 1200, 240}, NULL, NULL);
-    TEST_ASSERT_EQUAL_PTR(texture, artwork.target);
+    TEST_ASSERT_EQUAL_PTR(texture, artwork.drawing.target);
 }
 
 static void test_tile_boundary_and_renderer_state_are_preserved(void) {

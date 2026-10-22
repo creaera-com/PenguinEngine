@@ -14,8 +14,8 @@
 #include "editors/vector/persistence/document_file.h"
 #include "editors/vector/preview/render.h"
 #include "editors/vector/preview/tool.h"
-#include "editors/vector/rectangle/render.h"
 #include "editors/vector/rectangle/transform.h"
+#include "editors/vector/rendering/objects.h"
 #include "editors/vector/repeat/render.h"
 #include "editors/vector/repeat/repeat.h"
 #include "editors/vector/text/text.h"
@@ -129,8 +129,8 @@ static SDL_Surface *render_shapes(void) {
     SDL_SetRenderClipRect(renderer, NULL);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
-    vector_rectangles_draw(d, &d->artboards[0], renderer, (SDL_FRect){0, 0, 600, 400},
-                           editor->text_renderer, editor->image_renderer);
+    vector_objects_draw(d, &d->artboards[0], renderer, (SDL_FRect){0, 0, 600, 400},
+                        editor->text_renderer, editor->image_renderer);
     return SDL_RenderReadPixels(renderer, NULL);
 }
 
@@ -190,8 +190,8 @@ static void test_partial_clip_and_rotation_keep_correct_texture_coordinates(void
     SDL_RenderClear(renderer);
     SDL_Rect clip = {30, 35, 20, 15};
     SDL_SetRenderClipRect(renderer, &clip);
-    vector_rectangles_draw(d, &d->artboards[0], renderer, (SDL_FRect){0, 0, 600, 400},
-                           editor->text_renderer, editor->image_renderer);
+    vector_objects_draw(d, &d->artboards[0], renderer, (SDL_FRect){0, 0, 600, 400},
+                        editor->text_renderer, editor->image_renderer);
     SDL_Surface *pixels = SDL_RenderReadPixels(renderer, NULL);
     TEST_ASSERT_NOT_EQUAL(0xffffffff, pixel(pixels, 40, 42));
     TEST_ASSERT_EQUAL_HEX32(0xffffffff, pixel(pixels, 25, 42));

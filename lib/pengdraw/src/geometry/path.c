@@ -1,10 +1,10 @@
 /** @file @brief Value geometry, winding tests and connected components for polygonal paths. */
-#include "path.h"
+#include "pengdraw/pengdraw.h"
 #include <math.h>
 #include <string.h>
 
-bool vector_path_valid(const VectorPath *p) {
-    if (!p || p->count > VECTOR_PATH_POINTS || p->contours > VECTOR_PATH_CONTOURS ||
+bool pdraw_path_valid(const PDrawPath *p) {
+    if (!p || p->count > PDRAW_PATH_POINTS || p->contours > PDRAW_PATH_CONTOURS ||
         ((!p->count) != (!p->contours))) {
         return false;
     }
@@ -27,21 +27,21 @@ bool vector_path_valid(const VectorPath *p) {
     return true;
 }
 
-float vector_path_contour_area(const VectorPath *p, unsigned c) {
+float pdraw_path_contour_area(const PDrawPath *p, unsigned c) {
     unsigned first = c ? p->ends[c - 1] : 0, end = p->ends[c];
     double area = 0;
     for (unsigned i = first; i < end; i++) {
-        VectorPoint a = p->points[i], b = p->points[i + 1 < end ? i + 1 : first];
+        PDrawPoint a = p->points[i], b = p->points[i + 1 < end ? i + 1 : first];
         area += (double)a.x * b.y - (double)b.x * a.y;
     }
     return (float)(area / 2);
 }
 
-static int winding(const VectorPath *p, unsigned c, float x, float y) {
+static int winding(const PDrawPath *p, unsigned c, float x, float y) {
     unsigned first = c ? p->ends[c - 1] : 0, end = p->ends[c];
     int result = 0;
     for (unsigned i = first; i < end; i++) {
-        VectorPoint a = p->points[i], b = p->points[i + 1 < end ? i + 1 : first];
+        PDrawPoint a = p->points[i], b = p->points[i + 1 < end ? i + 1 : first];
         double side = ((double)b.x - a.x) * (y - a.y) - ((double)b.y - a.y) * (x - a.x);
         if (a.y <= y && b.y > y && side > 0) {
             result++;
@@ -53,7 +53,7 @@ static int winding(const VectorPath *p, unsigned c, float x, float y) {
     return result;
 }
 
-bool vector_path_contains(const VectorPath *p, float x, float y) {
+bool pdraw_path_contains(const PDrawPath *p, float x, float y) {
     int total = 0;
     for (unsigned c = 0; c < p->contours; c++) {
         total += winding(p, c, x, y);
@@ -61,9 +61,9 @@ bool vector_path_contains(const VectorPath *p, float x, float y) {
     return total != 0;
 }
 
-PUIRect vector_path_bounds(const VectorPath *p) {
+PDrawRect pdraw_path_bounds(const PDrawPath *p) {
     if (!p->count) {
-        return (PUIRect){0};
+        return (PDrawRect){0};
     }
     float x = p->points[0].x, y = p->points[0].y, right = x, bottom = y;
     for (unsigned i = 1; i < p->count; i++) {
@@ -72,21 +72,21 @@ PUIRect vector_path_bounds(const VectorPath *p) {
         right = fmaxf(right, p->points[i].x);
         bottom = fmaxf(bottom, p->points[i].y);
     }
-    return (PUIRect){x, y, right - x, bottom - y};
+    return (PDrawRect){x, y, right - x, bottom - y};
 }
 
-bool vector_path_intersects(const VectorPath *p, PUIRect box) {
+bool pdraw_path_intersects(const PDrawPath *p, PDrawRect box) {
     if (box.w <= 0 || box.h <= 0) {
         return false;
     }
-    if (vector_path_contains(p, box.x, box.y) || vector_path_contains(p, box.x + box.w, box.y) ||
-        vector_path_contains(p, box.x, box.y + box.h) ||
-        vector_path_contains(p, box.x + box.w, box.y + box.h)) {
+    if (pdraw_path_contains(p, box.x, box.y) || pdraw_path_contains(p, box.x + box.w, box.y) ||
+        pdraw_path_contains(p, box.x, box.y + box.h) ||
+        pdraw_path_contains(p, box.x + box.w, box.y + box.h)) {
         return true;
     }
     for (unsigned c = 0, first = 0; c < p->contours; first = p->ends[c++]) {
         for (unsigned i = first; i < p->ends[c]; i++) {
-            VectorPoint a = p->points[i], b = p->points[i + 1 < p->ends[c] ? i + 1 : first];
+            PDrawPoint a = p->points[i], b = p->points[i + 1 < p->ends[c] ? i + 1 : first];
             float low = 0, high = 1;
             float delta[2] = {b.x - a.x, b.y - a.y}, pos[2] = {a.x, a.y};
             float minimum[2] = {box.x, box.y}, maximum[2] = {box.x + box.w, box.y + box.h};
@@ -110,9 +110,9 @@ bool vector_path_intersects(const VectorPath *p, PUIRect box) {
     return false;
 }
 
-static bool append(VectorPath *out, const VectorPath *p, unsigned c) {
+static bool append(PDrawPath *out, const PDrawPath *p, unsigned c) {
     unsigned first = c ? p->ends[c - 1] : 0, count = p->ends[c] - first;
-    if (out->count + count > VECTOR_PATH_POINTS || out->contours >= VECTOR_PATH_CONTOURS) {
+    if (out->count + count > PDRAW_PATH_POINTS || out->contours >= PDRAW_PATH_CONTOURS) {
         return false;
     }
     memcpy(out->points + out->count, p->points + first, count * sizeof *p->points);
@@ -121,15 +121,15 @@ static bool append(VectorPath *out, const VectorPath *p, unsigned c) {
     return true;
 }
 
-int vector_path_components(const VectorPath *p, VectorPath *out, int capacity) {
-    int count = 0, owners[VECTOR_PATH_CONTOURS];
+int pdraw_path_components(const PDrawPath *p, PDrawPath *out, int capacity) {
+    int count = 0, owners[PDRAW_PATH_CONTOURS];
     for (unsigned c = 0; c < p->contours; c++) {
         owners[c] = -1;
-        if (vector_path_contour_area(p, c) > 0) {
+        if (pdraw_path_contour_area(p, c) > 0) {
             if (count >= capacity) {
                 return -1;
             }
-            out[count] = (VectorPath){0};
+            out[count] = (PDrawPath){0};
             if (!append(&out[count], p, c)) {
                 return -1;
             }
@@ -137,14 +137,14 @@ int vector_path_components(const VectorPath *p, VectorPath *out, int capacity) {
         }
     }
     for (unsigned c = 0; c < p->contours; c++) {
-        if (vector_path_contour_area(p, c) >= 0) {
+        if (pdraw_path_contour_area(p, c) >= 0) {
             continue;
         }
-        VectorPoint point = p->points[c ? p->ends[c - 1] : 0];
+        PDrawPoint point = p->points[c ? p->ends[c - 1] : 0];
         int owner = -1;
         float smallest = INFINITY;
         for (unsigned j = 0; j < p->contours; j++) {
-            float area = vector_path_contour_area(p, j);
+            float area = pdraw_path_contour_area(p, j);
             if (owners[j] >= 0 && area < smallest && winding(p, j, point.x, point.y)) {
                 smallest = area;
                 owner = owners[j];

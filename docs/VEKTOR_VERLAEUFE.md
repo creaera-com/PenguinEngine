@@ -70,7 +70,7 @@ Wiederholungswerkzeugs verändern dabei alle Stoppfarben.
   lädt ihn über den Slot `object_gradient` nur für geschlossene geometrische Formen.
 - `ui/inspector/appearance/fill/gradient.c`: Formularaktionen → validierter Formwert → bestehende
   atomare Shape-History. Die Auswahl des gerade bearbeiteten Stopps ist nur UI-Zustand.
-- `rectangle/render.c`: zeichnet die Verlaufsfüllung vor Rahmen und Auswahlkontur.
+- `rendering/objects.c`: zeichnet die Verlaufsfüllung vor Rahmen und Auswahlkontur.
   Derselbe Ablauf wird in Schatten-Silhouetten, Masken und Vorschau verwendet.
 
 Große Texturen werden auf maximal 2048 Pixel je Achse reduziert, ohne den Verlauf

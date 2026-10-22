@@ -8,8 +8,8 @@
 #include "editors/vector/object/group.h"
 #include "editors/vector/path/operations.h"
 #include "editors/vector/persistence/document_file.h"
-#include "editors/vector/rectangle/render.h"
 #include "editors/vector/rectangle/transform.h"
+#include "editors/vector/rendering/objects.h"
 #include "editors/vector/text/text.h"
 #include "editors/vector/ui/document_tree/groups.h"
 #include "editors/vector/workspace/selection.h"
@@ -205,9 +205,9 @@ static void paint(void) {
     vector_document_select(d, 0);
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_RenderClear(renderer);
-    vector_rectangles_draw(d, &d->artboards[0], renderer, (SDL_FRect){0, 0, 600, 400},
-                           ((VectorEditor *)host.instance)->text_renderer,
-                           ((VectorEditor *)host.instance)->image_renderer);
+    vector_objects_draw(d, &d->artboards[0], renderer, (SDL_FRect){0, 0, 600, 400},
+                        ((VectorEditor *)host.instance)->text_renderer,
+                        ((VectorEditor *)host.instance)->image_renderer);
 }
 
 static void test_render_clips_curves_strokes_and_alpha_without_painting_the_mask(void) {

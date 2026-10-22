@@ -2,8 +2,8 @@
 #include "render.h"
 #include "editor_host/editor.h"
 #include "editors/vector/document/selection.h"
-#include "editors/vector/rectangle/render.h"
 #include "editors/vector/rendering/artwork.h"
+#include "editors/vector/rendering/objects.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

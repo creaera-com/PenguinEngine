@@ -45,6 +45,35 @@ while pending:
         if target and target.is_relative_to(lib):
             pending.append(target)
 
+# pengDraw is a standalone library, including its optional SDL backend.
+draw = root / 'lib/pengdraw'
+for path in draw.rglob('*'):
+    if path.suffix not in ('.c', '.h'):
+        continue
+    for name in includes.findall(path.read_text()):
+        if name.startswith(('pengui/', 'apps/', 'app/', 'editors/', 'editor/', 'editor_host/', 'shell/')):
+            errors.append(f'{path.relative_to(root)}: pengDraw must not depend on UI or editors: {name}')
+        if path.parent.name in ('geometry', 'paint') and name.startswith('SDL'):
+            errors.append(f'{path.relative_to(root)}: pengDraw core must remain SDL-free')
+
+# The conditional public SDL section is excluded from the core traversal.
+draw_pending = [p for p in draw.rglob('*') if p.suffix in ('.c', '.h') and
+                (p.parent.name in ('geometry', 'paint') or p.name == 'pengdraw.h')]
+draw_seen = set()
+while draw_pending:
+    path = draw_pending.pop()
+    if path in draw_seen:
+        continue
+    draw_seen.add(path)
+    text = path.read_text().split('#if defined(PDRAW_WITH_SDL)', 1)[0]
+    for name in includes.findall(text):
+        if name.startswith(('SDL', 'pengui/', 'apps/', 'editors/')):
+            errors.append(f'{path.relative_to(root)}: pengDraw core reaches forbidden dependency {name}')
+        target = next((p.resolve() for p in (path.parent / name, draw / 'include' / name)
+                       if p.is_file()), None)
+        if target and target.is_relative_to(draw):
+            draw_pending.append(target)
+
 for path in (root / 'apps').rglob('*'):
     if path.suffix not in ('.c', '.h'):
         continue
@@ -120,4 +149,4 @@ for error in errors:
     print(error, file=sys.stderr)
 if errors:
     sys.exit(1)
-print('pengUI widget ownership and transitive core / SDL boundaries: OK')
+print('pengUI / pengDraw ownership and core / SDL boundaries: OK')
