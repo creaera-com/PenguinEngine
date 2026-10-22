@@ -10,6 +10,12 @@ option(PENGUI_BUILD_APP "Build the playground and editor-shell example applicati
 option(PENGUI_BUILD_SDL "Build the SDL3 renderer" ON)
 option(PENGUI_FETCH_SDL "Fetch SDL3 when not installed" ON)
 option(PENGUI_SANITIZERS "Enable ASan and UBSan" OFF)
+if(MSVC)
+ # Geometry operations use bounded shape snapshots. Match the usual 8 MiB
+ # desktop stack reserve; MSVC otherwise gives executables only 1 MiB.
+ # This reserves address space, without committing the full amount of RAM.
+ add_link_options(/STACK:8388608)
+endif()
 if(PENGUI_BUILD_APP AND NOT PENGUI_BUILD_SDL)
  message(FATAL_ERROR "The playground requires PENGUI_BUILD_SDL=ON")
 endif()

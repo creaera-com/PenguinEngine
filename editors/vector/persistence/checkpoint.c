@@ -129,65 +129,71 @@ bool vector_editor_checkpoint(const void *instance, const PUIView *view, FILE *f
 
 /* Replaying validates command order, limits and agreement with the saved current state.
  * It never modifies the candidate document or takes ownership of command payloads. */
-static bool valid_history(const VectorDocument *document) {
-    VectorDocument replay = {0};
+typedef struct {
+    VectorDocument replay;
+    VectorRectangle rectangles_before[VECTOR_MAX_RECTANGLES];
+    VectorArtboard artboards_before[VECTOR_MAX_ARTBOARDS];
+} HistoryValidation;
+
+static bool validate_history(const VectorDocument *document, HistoryValidation *workspace) {
+    VectorDocument *replay = &workspace->replay;
+    VectorRectangle *rectangles_before = workspace->rectangles_before;
+    VectorArtboard *before = workspace->artboards_before;
     for (int i = 0; i < document->history.count; i++) {
         VectorCommand command = document->history.commands[i];
-        VectorRectangle rectangles_before[VECTOR_MAX_RECTANGLES];
-        int rectangle_count = replay.rectangle_count;
-        memcpy(rectangles_before, replay.rectangles, rectangle_count * sizeof *rectangles_before);
-        VectorArtboard before[VECTOR_MAX_ARTBOARDS];
-        int count = replay.artboard_count;
-        memcpy(before, replay.artboards, count * sizeof *before);
-        if (!command.apply(&replay, command.data)) {
+        int rectangle_count = replay->rectangle_count;
+        memcpy(rectangles_before, replay->rectangles, rectangle_count * sizeof *rectangles_before);
+        int count = replay->artboard_count;
+        memcpy(before, replay->artboards, count * sizeof *before);
+        if (!command.apply(replay, command.data)) {
             return false;
         }
-        for (int j = 0; j < replay.artboard_count; j++) {
-            if (!replay.artboards[j].id || replay.artboards[j].id >= document->next_artboard_id) {
+        for (int j = 0; j < replay->artboard_count; j++) {
+            if (!replay->artboards[j].id || replay->artboards[j].id >= document->next_artboard_id) {
                 return false;
             }
             for (int k = 0; k < j; k++) {
-                if (replay.artboards[k].id == replay.artboards[j].id) {
+                if (replay->artboards[k].id == replay->artboards[j].id) {
                     return false;
                 }
             }
         }
-        for (int j = 0; j < replay.rectangle_count; j++) {
-            VectorRectangle *rectangle = &replay.rectangles[j];
+        for (int j = 0; j < replay->rectangle_count; j++) {
+            VectorRectangle *rectangle = &replay->rectangles[j];
             if (!rectangle->id || rectangle->id >= document->next_rectangle_id ||
-                !vector_artboard_find(&replay, rectangle->parent_id)) {
+                !vector_artboard_find(replay, rectangle->parent_id)) {
                 return false;
             }
             for (int k = 0; k < j; k++) {
-                if (replay.rectangles[k].id == rectangle->id) {
+                if (replay->rectangles[k].id == rectangle->id) {
                     return false;
                 }
             }
         }
-        if (!command.revert(&replay, command.data) || replay.rectangle_count != rectangle_count ||
-            memcmp(rectangles_before, replay.rectangles,
+        if (!command.revert(replay, command.data) || replay->rectangle_count != rectangle_count ||
+            memcmp(rectangles_before, replay->rectangles,
                    rectangle_count * sizeof *rectangles_before) ||
-            replay.artboard_count != count ||
-            memcmp(before, replay.artboards, count * sizeof *before) ||
-            !command.apply(&replay, command.data)) {
+            replay->artboard_count != count ||
+            memcmp(before, replay->artboards, count * sizeof *before) ||
+            !command.apply(replay, command.data)) {
             return false;
         }
     }
     for (int i = document->history.count; i > document->history.cursor; i--) {
         VectorCommand command = document->history.commands[i - 1];
-        if (!command.revert(&replay, command.data)) {
+        if (!command.revert(replay, command.data)) {
             return false;
         }
     }
-    if (replay.rectangle_count != document->rectangle_count ||
-        memcmp(replay.rectangles, document->rectangles,
-               replay.rectangle_count * sizeof *replay.rectangles) ||
-        replay.artboard_count != document->artboard_count ||
+    if (replay->rectangle_count != document->rectangle_count ||
+        memcmp(replay->rectangles, document->rectangles,
+               replay->rectangle_count * sizeof *replay->rectangles) ||
+        replay->artboard_count != document->artboard_count ||
         (document->active_artboard && !document->artboard_count)) {
         return false;
     }
-    for (int i = 0; i < replay.artboard_count; i++) {
-        const VectorArtboard *a = &replay.artboards[i], *b = &document->artboards[i];
+    for (int i = 0; i < replay->artboard_count; i++) {
+        const VectorArtboard *a = &replay->artboards[i], *b = &document->artboards[i];
         if (a->flags != b->flags || !memchr(b->name, 0, sizeof b->name) ||
             strcmp(a->name, b->name) || a->id != b->id || a->rect.x != b->rect.x ||
             a->rect.y != b->rect.y || a->rect.w != b->rect.w || a->rect.h != b->rect.h) {
@@ -215,6 +221,18 @@ static bool valid_history(const VectorDocument *document) {
         return false;
     }
     return true;
+}
+
+/* The replay plus geometry snapshots exceed the default Windows stack budget.
+ * One owned workspace also guarantees cleanup on every validation failure. */
+static bool valid_history(const VectorDocument *document) {
+    HistoryValidation *workspace = calloc(1, sizeof *workspace);
+    if (!workspace) {
+        return false;
+    }
+    bool valid = validate_history(document, workspace);
+    free(workspace);
+    return valid;
 }
 
 static bool read_document(VectorDocument *document, unsigned next_id, FILE *file) {

@@ -1147,3 +1147,15 @@ beenden eine laufende Animation am aktuell sichtbaren Stand.
 
 Die Animationswerte sind vorübergehender Viewport-Zustand. Dokumentdateien und
 Checkpoints speichern weiterhin nur die sichtbare Position und Zoomstufe.
+
+
+### Stackreserve unter Windows
+
+Die MSVC-Anwendungen und Tests reservieren 8 MiB Stack, vergleichbar mit der
+üblichen Linux-Konfiguration. Einige Geometrieoperationen halten begrenzte
+Objekt-Snapshots lokal; die MSVC-Vorgabe von 1 MiB reicht dafür nicht aus.
+Die Reserve belegt virtuellen Adressraum und wird nach Bedarf mit Speicher
+hinterlegt. Große Dokument-Sammlungen werden direkt an ihrem Speicherort
+initialisiert; die History-Prüfung verwendet einen freigegebenen Heap-Arbeitsbereich.
+Die Linker-Einstellung betrifft die ausführbaren Programme dieses Projekts,
+nicht die Schnittstelle oder Speicherverwaltung der pengUI-Bibliothek.

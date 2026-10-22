@@ -5,17 +5,21 @@
 #include <string.h>
 
 void vector_documents_init(VectorDocuments *documents) {
-    *documents = (VectorDocuments){.next_id = 1};
+    /* Initialize in place: an aggregate temporary is over 6 MB and can overflow
+     * the default Windows thread stack in unoptimized builds. */
+    memset(documents, 0, sizeof *documents);
+    documents->next_id = 1;
 }
 
 void vector_document_init(VectorDocument *document, unsigned id) {
-    *document = (VectorDocument){
-        .id = id,
-        .rulers_hidden = true,
-        .next_artboard_id = 1,
-        .next_rectangle_id = 1,
-        .grid = {.snap_tolerance = 5, .width = 16, .height = 16, .color = 0x80808080},
-        .viewport = {.x = 64, .y = 64, .zoom = 1}};
+    memset(document, 0, sizeof *document);
+    document->id = id;
+    document->rulers_hidden = true;
+    document->next_artboard_id = 1;
+    document->next_rectangle_id = 1;
+    document->grid =
+        (VectorGrid){.snap_tolerance = 5, .width = 16, .height = 16, .color = 0x80808080};
+    document->viewport = (VectorViewport){.x = 64, .y = 64, .zoom = 1};
     snprintf(document->title, sizeof document->title, "Dokument %u", id);
 }
 
@@ -42,7 +46,10 @@ void vector_documents_destroy(VectorDocuments *documents) {
     for (int i = 0; i < documents->count; i++) {
         vector_history_destroy(&documents->items[i].history);
     }
-    *documents = (VectorDocuments){.next_id = 1};
+    /* Initialize in place: an aggregate temporary is over 6 MB and can overflow
+     * the default Windows thread stack in unoptimized builds. */
+    memset(documents, 0, sizeof *documents);
+    documents->next_id = 1;
 }
 
 unsigned vector_documents_next_id(const VectorDocuments *documents) {
