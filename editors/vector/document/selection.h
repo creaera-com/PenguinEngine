@@ -1,4 +1,5 @@
-/** @file @brief Rectangle selection by stable IDs, without native input or UI dependencies. */
+/** @file
+ * @brief Rectangle selection by stable IDs, without native input or UI dependencies. */
 #ifndef PE_VECTOR_DOCUMENT_SELECTION_H
 #define PE_VECTOR_DOCUMENT_SELECTION_H
 #include "document.h"

@@ -1,4 +1,5 @@
-/** @file @brief Workspace marquee gesture and overlay. */
+/** @file
+ * @brief Workspace marquee gesture and overlay. */
 #ifndef PE_VECTOR_MARQUEE_H
 #define PE_VECTOR_MARQUEE_H
 #include "editors/vector/document/document.h"

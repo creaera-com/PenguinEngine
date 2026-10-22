@@ -1,4 +1,5 @@
-/** @file @brief Parametric ellipse inspector bindings. */
+/** @file
+ * @brief Parametric ellipse inspector bindings. */
 #ifndef PE_VECTOR_UI_ELLIPSE_H
 #define PE_VECTOR_UI_ELLIPSE_H
 #include "editors/vector/document/document.h"

@@ -1,4 +1,5 @@
-/** @file @brief Public entry point of the Scripts editor module. */
+/** @file
+ * @brief Public entry point of the Scripts editor module. */
 #ifndef PE_SCRIPTS_ADAPTER_H
 #define PE_SCRIPTS_ADAPTER_H
 #include "editor_host/editor.h"

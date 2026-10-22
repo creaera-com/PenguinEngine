@@ -1,4 +1,5 @@
-/** @file @brief Private, seekable session file removed automatically when closed. */
+/** @file
+ * @brief Private, seekable session file removed automatically when closed. */
 #ifndef PE_PLATFORM_TEMP_FILE_H
 #define PE_PLATFORM_TEMP_FILE_H
 #include <stdio.h>

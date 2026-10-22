@@ -1,4 +1,5 @@
-/** @file @brief Validate and create a single portable child directory. */
+/** @file
+ * @brief Validate and create a single portable child directory. */
 #ifndef PENGUENGINE_PROJECT_DIRECTORIES_H
 #define PENGUENGINE_PROJECT_DIRECTORIES_H
 #include "project.h"

@@ -1,4 +1,5 @@
-/** @file @brief Undoable shape value changes, independent of tools and UI. */
+/** @file
+ * @brief Undoable shape value changes, independent of tools and UI. */
 #ifndef PE_VECTOR_SHAPE_COMMANDS_H
 #define PE_VECTOR_SHAPE_COMMANDS_H
 #include "editors/vector/document/document.h"

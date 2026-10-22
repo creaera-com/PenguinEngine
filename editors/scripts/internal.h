@@ -1,4 +1,5 @@
-/** @file @brief Private Scripts editor lifecycle and panel assembly. */
+/** @file
+ * @brief Private Scripts editor lifecycle and panel assembly. */
 #ifndef PE_SCRIPTS_INTERNAL_H
 #define PE_SCRIPTS_INTERNAL_H
 #include "editor_host/editor.h"

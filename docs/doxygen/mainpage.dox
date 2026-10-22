@@ -1,0 +1,56 @@
+/**
+ * @mainpage PenguinEngine: pengUI, pengDraw und Editoren
+ *
+ * Dieses Handbuch beschreibt die aktuelle C17-Basis: die eigenständige
+ * UI-Bibliothek pengUI, den unabhängigen Zeichenkern pengDraw und die modulare
+ * Editor-App. Eine Spieleengine mit ECS ist auf diesem Entwicklungsbranch noch
+ * nicht enthalten.
+ *
+ * @section start Einstieg
+ * Das @subpage handbook bündelt die Markdown-Anleitungen in der Seitennavigation.
+ * Zuerst @ref README.md lesen, danach @ref docs/ARCHITEKTUR.md für die UI und
+ * @ref docs/PENGDRAW.md für den Zeichenkern. @ref docs/EDITOREN.md beschreibt
+ * Editorwechsel und die fachlichen Modulgrenzen.
+ *
+ * @section interfaces C-Schnittstellen
+ * Die öffentlichen Bibliotheks-APIs liegen in pengui.h und pengdraw.h.
+ * Die Dateinavigation enthält außerdem Header der Editor-App und ihrer Module.
+ * Deren interne Verträge sind keine stabile Schnittstelle für andere Programme.
+ *
+ * @section ownership Besitz und Lebensdauer
+ * Dokumente besitzen ihre fachlichen Daten und History. UI-Views und Renderer
+ * besitzen ihre Laufzeitzustände und Ressourcen. Geliehene Zeiger nach einem
+ * Editorwechsel, Layout- oder Dokumentersatz nicht weiterverwenden. API-Kommentare
+ * beschreiben Besitz, Freigabe und besondere Einschränkungen.
+ */
+
+/**
+ * @page handbook Handbuch
+ *
+ * @section handbook_architecture Einstieg und Architektur
+ * - @subpage README.md
+ * - @subpage docs/ARCHITEKTUR.md
+ * - @subpage docs/PENGDRAW.md
+ * - @subpage docs/EDITOREN.md
+ * - @subpage docs/VEKTOR_PROGRAMMFLUSS_UND_DATENMODELL.md
+ *
+ * @section handbook_projects Projekte und Dokumente
+ * - @subpage docs/PROJEKTE.md
+ * - @subpage docs/VEKTOR_DATEIFORMAT.md
+ * - @subpage docs/VEKTOR_EXPORT.md
+ *
+ * @section handbook_vector Vektoreditor
+ * - @subpage docs/VEKTOR_TEXT.md
+ * - @subpage docs/VEKTOR_BILDER.md
+ * - @subpage docs/VEKTOR_VERLAEUFE.md
+ * - @subpage docs/VEKTOR_EFFEKTE.md
+ * - @subpage docs/VEKTOR_SCHNITTMASKEN.md
+ * - @subpage docs/VEKTOR_INSTANZEN.md
+ * - @subpage docs/VEKTOR_WIEDERHOLUNG.md
+ * - @subpage docs/VEKTOR_VORSCHAU.md
+ * - @subpage docs/VEKTOR_FARBSCHEMA.md
+ *
+ * @section handbook_tools Entwicklung
+ * - @subpage docs/MONITORING.md
+ * - @subpage docs/DOKUMENTATION.md
+ */

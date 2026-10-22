@@ -1,4 +1,5 @@
-/** @file @brief YAML controls for per-document grid preferences. */
+/** @file
+ * @brief YAML controls for per-document grid preferences. */
 #ifndef PE_VECTOR_UI_GRID_H
 #define PE_VECTOR_UI_GRID_H
 #include "editors/vector/document/document.h"

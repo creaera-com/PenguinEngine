@@ -1,4 +1,5 @@
-/** @file @brief Disposable inspector scrub preview; never changes the live document/history. */
+/** @file
+ * @brief Disposable inspector scrub preview; never changes the live document/history. */
 #ifndef PE_VECTOR_NUMERIC_PREVIEW_H
 #define PE_VECTOR_NUMERIC_PREVIEW_H
 #include "editors/vector/document/document.h"

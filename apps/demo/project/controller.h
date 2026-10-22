@@ -1,4 +1,5 @@
-/** @file @brief Shell actions, async native dialogs, project identity and Explorer coordination. */
+/** @file
+ * @brief Shell actions, async native dialogs, project identity and Explorer coordination. */
 #ifndef PENGUENGINE_PROJECT_CONTROLLER_H
 #define PENGUENGINE_PROJECT_CONTROLLER_H
 #include "explorer.h"

@@ -1,4 +1,5 @@
-/** @file @brief Per-document drawing guides, independent of tools and document history. */
+/** @file
+ * @brief Per-document drawing guides, independent of tools and document history. */
 #ifndef PE_VECTOR_GRID_STATE_H
 #define PE_VECTOR_GRID_STATE_H
 #include <stdbool.h>

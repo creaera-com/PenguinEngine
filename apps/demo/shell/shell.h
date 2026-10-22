@@ -1,4 +1,5 @@
-/** @file @brief Persistent shell UI; owns its root layout, view and input context. */
+/** @file
+ * @brief Persistent shell UI; owns its root layout, view and input context. */
 #ifndef PE_SHELL_H
 #define PE_SHELL_H
 #include "pengui/pengui.h"

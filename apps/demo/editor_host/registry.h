@@ -1,4 +1,5 @@
-/** @file @brief Explicit editor registration; no runtime modules are retained here. */
+/** @file
+ * @brief Explicit editor registration; no runtime modules are retained here. */
 #ifndef PE_EDITOR_REGISTRY_H
 #define PE_EDITOR_REGISTRY_H
 #include "editor.h"

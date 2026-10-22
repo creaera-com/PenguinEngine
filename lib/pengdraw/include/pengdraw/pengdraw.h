@@ -1,4 +1,5 @@
-/** @file @brief Independent 2D drawing values, geometry and optional SDL3 backend. */
+/** @file
+ * @brief Independent 2D drawing values, geometry and optional SDL3 backend. */
 #ifndef PENGDRAW_H
 #define PENGDRAW_H
 #include <stdbool.h>

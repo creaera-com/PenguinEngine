@@ -1,4 +1,5 @@
-/** @file @brief Native UTF-8 typing, selection and clipboard for canvas text frames. */
+/** @file
+ * @brief Native UTF-8 typing, selection and clipboard for canvas text frames. */
 #ifndef PE_VECTOR_TEXT_TOOL_H
 #define PE_VECTOR_TEXT_TOOL_H
 #include "render.h"

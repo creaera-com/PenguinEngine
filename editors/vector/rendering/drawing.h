@@ -1,4 +1,5 @@
-/** @file @brief Translate editor shape values to pengDraw without exposing document identity. */
+/** @file
+ * @brief Translate editor shape values to pengDraw without exposing document identity. */
 #ifndef PE_VECTOR_DRAWING_H
 #define PE_VECTOR_DRAWING_H
 #include "editors/vector/object/shape.h"

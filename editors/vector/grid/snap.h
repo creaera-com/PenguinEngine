@@ -1,4 +1,5 @@
-/** @file @brief Reusable grid snapping, without document or native input dependencies. */
+/** @file
+ * @brief Reusable grid snapping, without document or native input dependencies. */
 #ifndef PE_VECTOR_GRID_SNAP_H
 #define PE_VECTOR_GRID_SNAP_H
 #include "pengui/pengui.h"

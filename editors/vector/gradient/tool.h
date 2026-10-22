@@ -1,4 +1,5 @@
-/** @file @brief Object selection and transient gradient endpoints on the canvas. */
+/** @file
+ * @brief Object selection and transient gradient endpoints on the canvas. */
 #ifndef PE_VECTOR_GRADIENT_TOOL_H
 #define PE_VECTOR_GRADIENT_TOOL_H
 #include "editors/vector/document/document.h"

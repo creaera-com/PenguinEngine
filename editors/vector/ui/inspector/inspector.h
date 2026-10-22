@@ -1,4 +1,5 @@
-/** @file @brief Inspector UI assembly; independent of the editor's private instance. */
+/** @file
+ * @brief Inspector UI assembly; independent of the editor's private instance. */
 #ifndef PE_VECTOR_INSPECTOR_H
 #define PE_VECTOR_INSPECTOR_H
 #include "artboard/artboard.h"

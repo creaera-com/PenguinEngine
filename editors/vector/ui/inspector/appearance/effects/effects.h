@@ -1,4 +1,5 @@
-/** @file @brief YAML effect panel and field-to-history translation for individual objects. */
+/** @file
+ * @brief YAML effect panel and field-to-history translation for individual objects. */
 #ifndef PE_VECTOR_UI_INSPECTOR_EFFECTS_H
 #define PE_VECTOR_UI_INSPECTOR_EFFECTS_H
 #include "editor_host/editor.h"

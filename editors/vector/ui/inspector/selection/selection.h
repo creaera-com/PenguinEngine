@@ -1,4 +1,5 @@
-/** @file @brief Multiple-selection inspector summary. */
+/** @file
+ * @brief Multiple-selection inspector summary. */
 #ifndef PE_VECTOR_SELECTION_INSPECTOR_H
 #define PE_VECTOR_SELECTION_INSPECTOR_H
 #include "editors/vector/document/document.h"

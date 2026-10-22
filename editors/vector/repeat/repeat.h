@@ -1,4 +1,5 @@
-/** @file @brief Derive virtual instances or materialize independent shapes via atomic history. */
+/** @file
+ * @brief Derive virtual instances or materialize independent shapes via atomic history. */
 #ifndef PE_VECTOR_REPEAT_H
 #define PE_VECTOR_REPEAT_H
 #include "editors/vector/document/document.h"

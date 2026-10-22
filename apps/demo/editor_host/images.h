@@ -1,4 +1,5 @@
-/** @file @brief Bounded app image codec services shared through the editor service contract. */
+/** @file
+ * @brief Bounded app image codec services shared through the editor service contract. */
 #ifndef PENGUENGINE_EDITOR_IMAGES_H
 #define PENGUENGINE_EDITOR_IMAGES_H
 #include <SDL3/SDL.h>

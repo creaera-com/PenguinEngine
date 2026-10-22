@@ -1,4 +1,5 @@
-/** @file @brief Persistent ellipse segment parameters, independent of UI and rendering. */
+/** @file
+ * @brief Persistent ellipse segment parameters, independent of UI and rendering. */
 #ifndef PE_VECTOR_ELLIPSE_STATE_H
 #define PE_VECTOR_ELLIPSE_STATE_H
 #include <stdbool.h>

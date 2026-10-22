@@ -1,4 +1,5 @@
-/** @file @brief Document-owned command history; callbacks must apply/revert atomically. */
+/** @file
+ * @brief Document-owned command history; callbacks must apply/revert atomically. */
 #ifndef PE_VECTOR_HISTORY_H
 #define PE_VECTOR_HISTORY_H
 #include <stdbool.h>

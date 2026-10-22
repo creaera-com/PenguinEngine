@@ -1,4 +1,5 @@
-/** @file @brief Pure geometry for centered and aspect-constrained drawing/resizing. */
+/** @file
+ * @brief Pure geometry for centered and aspect-constrained drawing/resizing. */
 #ifndef PE_VECTOR_GEOMETRY_CONSTRAINTS_H
 #define PE_VECTOR_GEOMETRY_CONSTRAINTS_H
 #include "pengui/pengui.h"

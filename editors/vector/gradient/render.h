@@ -1,4 +1,5 @@
-/** @file @brief Filled gradients tessellated through the object's actual contours and holes. */
+/** @file
+ * @brief Filled gradients tessellated through the object's actual contours and holes. */
 #ifndef PE_VECTOR_GRADIENT_RENDER_H
 #define PE_VECTOR_GRADIENT_RENDER_H
 #include "editors/vector/object/shape.h"

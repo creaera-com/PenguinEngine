@@ -1,4 +1,5 @@
-/** @file @brief Workspace selection, live transforms and shared handles for vector objects. */
+/** @file
+ * @brief Workspace selection, live transforms and shared handles for vector objects. */
 #ifndef PE_VECTOR_WORKSPACE_SELECTION_H
 #define PE_VECTOR_WORKSPACE_SELECTION_H
 #include "editors/vector/document/document.h"

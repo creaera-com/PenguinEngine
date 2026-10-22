@@ -1,4 +1,5 @@
-/** @file @brief YAML-to-domain bindings for path conversion and boolean area operations. */
+/** @file
+ * @brief YAML-to-domain bindings for path conversion and boolean area operations. */
 #ifndef PE_VECTOR_UI_PATH_ACTIONS_H
 #define PE_VECTOR_UI_PATH_ACTIONS_H
 #include "editors/vector/document/document.h"

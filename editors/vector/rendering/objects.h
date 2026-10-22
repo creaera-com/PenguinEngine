@@ -1,4 +1,5 @@
-/** @file @brief Editor scene composition: resolved objects, layers, tools and artboard clipping. */
+/** @file
+ * @brief Editor scene composition: resolved objects, layers, tools and artboard clipping. */
 #ifndef PE_VECTOR_OBJECT_RENDER_H
 #define PE_VECTOR_OBJECT_RENDER_H
 #include "editors/vector/document/document.h"

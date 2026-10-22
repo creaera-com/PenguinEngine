@@ -1,4 +1,5 @@
-/** @file @brief Persistent object groups as optional intermediate document-tree rows. */
+/** @file
+ * @brief Persistent object groups as optional intermediate document-tree rows. */
 #ifndef PE_VECTOR_UI_GROUP_TREE_H
 #define PE_VECTOR_UI_GROUP_TREE_H
 #include "editors/vector/document/document.h"

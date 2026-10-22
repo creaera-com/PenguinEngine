@@ -1,4 +1,5 @@
-/** @file @brief Group-resize gesture snapshots and live rectangle previews. */
+/** @file
+ * @brief Group-resize gesture snapshots and live rectangle previews. */
 #ifndef PE_VECTOR_GROUP_TRANSFORM_H
 #define PE_VECTOR_GROUP_TRANSFORM_H
 #include "editors/vector/document/document.h"

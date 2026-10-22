@@ -1,4 +1,5 @@
-/** @file @brief Common object inspector and field-to-model bindings. */
+/** @file
+ * @brief Common object inspector and field-to-model bindings. */
 #ifndef PE_VECTOR_OBJECT_INSPECTOR_H
 #define PE_VECTOR_OBJECT_INSPECTOR_H
 #include "../appearance/fill/gradient.h"

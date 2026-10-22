@@ -1,4 +1,5 @@
-/** @file @brief Plain transient artboard gesture state; no native input dependencies. */
+/** @file
+ * @brief Plain transient artboard gesture state; no native input dependencies. */
 #ifndef PE_VECTOR_ARTBOARD_TOOL_STATE_H
 #define PE_VECTOR_ARTBOARD_TOOL_STATE_H
 #include <stdbool.h>

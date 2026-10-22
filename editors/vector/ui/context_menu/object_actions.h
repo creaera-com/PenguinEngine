@@ -1,4 +1,5 @@
-/** @file @brief Context-menu and shortcut bindings for document object operations. */
+/** @file
+ * @brief Context-menu and shortcut bindings for document object operations. */
 #ifndef PE_VECTOR_OBJECT_ACTIONS_H
 #define PE_VECTOR_OBJECT_ACTIONS_H
 #include "editors/vector/object/clipboard.h"

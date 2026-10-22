@@ -1,4 +1,5 @@
-/** @file @brief Value-only procedural repetition stored on its source object. */
+/** @file
+ * @brief Value-only procedural repetition stored on its source object. */
 #ifndef PE_VECTOR_REPEAT_STATE_H
 #define PE_VECTOR_REPEAT_STATE_H
 #include <stdbool.h>

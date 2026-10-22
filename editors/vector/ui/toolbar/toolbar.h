@@ -1,4 +1,5 @@
-/** @file @brief Toolbar presentation derived from the active document's tool state. */
+/** @file
+ * @brief Toolbar presentation derived from the active document's tool state. */
 #ifndef PE_VECTOR_TOOLBAR_H
 #define PE_VECTOR_TOOLBAR_H
 #include "editors/vector/document/document.h"

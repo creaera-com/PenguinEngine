@@ -1,4 +1,5 @@
-/** @file @brief Common vector shape values: geometry, style, transform and hierarchy identity. */
+/** @file
+ * @brief Common vector shape values: geometry, style, transform and hierarchy identity. */
 #ifndef PE_VECTOR_OBJECT_SHAPE_H
 #define PE_VECTOR_OBJECT_SHAPE_H
 #include "editors/vector/artboard/artboard.h"

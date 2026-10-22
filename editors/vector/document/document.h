@@ -1,4 +1,5 @@
-/** @file @brief Document data, identity and ownership; independent of UI tabs and event handling.
+/** @file
+ * @brief Document data, identity and ownership; independent of UI tabs and event handling.
  */
 #ifndef PE_VECTOR_DOCUMENT_H
 #define PE_VECTOR_DOCUMENT_H

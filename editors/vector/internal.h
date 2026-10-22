@@ -1,4 +1,5 @@
-/** @file @brief Private Vector editor lifecycle and panel assembly. */
+/** @file
+ * @brief Private Vector editor lifecycle and panel assembly. */
 #ifndef PE_VECTOR_INTERNAL_H
 #define PE_VECTOR_INTERNAL_H
 #include "editor_host/editor.h"

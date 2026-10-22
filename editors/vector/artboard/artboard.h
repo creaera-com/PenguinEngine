@@ -1,4 +1,5 @@
-/** @file @brief Artboard data and undoable creation, geometry and property commands. */
+/** @file
+ * @brief Artboard data and undoable creation, geometry and property commands. */
 #ifndef PE_VECTOR_ARTBOARD_H
 #define PE_VECTOR_ARTBOARD_H
 #include "editors/vector/history/history.h"

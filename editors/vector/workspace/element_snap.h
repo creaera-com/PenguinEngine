@@ -1,4 +1,5 @@
-/** @file @brief Document-to-geometry binding and transient rendering of object snapping. */
+/** @file
+ * @brief Document-to-geometry binding and transient rendering of object snapping. */
 #ifndef PE_VECTOR_WORKSPACE_ELEMENT_SNAP_H
 #define PE_VECTOR_WORKSPACE_ELEMENT_SNAP_H
 #include "editors/vector/document/document.h"

@@ -1,4 +1,5 @@
-/** @file @brief Transient gradient handles; completed drags alone become document edits. */
+/** @file
+ * @brief Transient gradient handles; completed drags alone become document edits. */
 #ifndef PE_VECTOR_GRADIENT_TOOL_STATE_H
 #define PE_VECTOR_GRADIENT_TOOL_STATE_H
 #include "state.h"

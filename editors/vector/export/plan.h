@@ -1,4 +1,5 @@
-/** @file @brief Value-only raster export scopes and document-space bounds. */
+/** @file
+ * @brief Value-only raster export scopes and document-space bounds. */
 #ifndef PE_VECTOR_EXPORT_PLAN_H
 #define PE_VECTOR_EXPORT_PLAN_H
 #include "editors/vector/document/document.h"

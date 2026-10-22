@@ -1,4 +1,5 @@
-/** @file @brief Native counters for this process only; unsupported readings remain unavailable. */
+/** @file
+ * @brief Native counters for this process only; unsupported readings remain unavailable. */
 #ifndef PENGUENGINE_PROCESS_METRICS_H
 #define PENGUENGINE_PROCESS_METRICS_H
 #include "monitor/history.h"

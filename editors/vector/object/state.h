@@ -1,4 +1,5 @@
-/** @file @brief Common object flags for artboards and future layers, groups and shapes. */
+/** @file
+ * @brief Common object flags for artboards and future layers, groups and shapes. */
 #ifndef PE_VECTOR_OBJECT_STATE_H
 #define PE_VECTOR_OBJECT_STATE_H
 

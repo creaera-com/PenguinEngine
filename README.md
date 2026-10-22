@@ -433,3 +433,9 @@ PNG-/JPEG-Export: [Exportdialog, Bereiche und Architektur](docs/VEKTOR_EXPORT.md
 
 [Aufbau und Verwendung von pengDraw](docs/PENGDRAW.md) beschreibt den unabhängigen Zeichenkern,
 die Trennung vom Vektoreditor, CMake, Zeichen-Callbacks und Ressourcenbesitz.
+
+## API-Dokumentation mit Doxygen
+
+Mit installiertem Doxygen zuerst CMake konfigurieren, dann
+`cmake --build build --target api_docs` ausführen. Die HTML-Doku steht unter
+`build/docs/html/index.html`. [Anleitung und Konfiguration](docs/DOKUMENTATION.md).

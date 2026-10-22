@@ -1,4 +1,5 @@
-/** @file @brief Editor names for independent pengDraw text values and layout. */
+/** @file
+ * @brief Editor names for independent pengDraw text values and layout. */
 #pragma once
 #include "pengdraw/pengdraw.h"
 typedef PDrawText VectorText;

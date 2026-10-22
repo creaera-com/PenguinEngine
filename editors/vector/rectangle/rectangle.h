@@ -1,4 +1,5 @@
-/** @file @brief Rectangle children with artboard-local coordinates and undoable edits. */
+/** @file
+ * @brief Rectangle children with artboard-local coordinates and undoable edits. */
 #ifndef PE_VECTOR_RECTANGLE_H
 #define PE_VECTOR_RECTANGLE_H
 #include "editors/vector/artboard/artboard.h"

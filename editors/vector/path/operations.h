@@ -1,4 +1,5 @@
-/** @file @brief Undoable conversion and filled-area operations for selected vector shapes. */
+/** @file
+ * @brief Undoable conversion and filled-area operations for selected vector shapes. */
 #ifndef PE_VECTOR_PATH_OPERATIONS_H
 #define PE_VECTOR_PATH_OPERATIONS_H
 #include "editors/vector/document/document.h"

@@ -1,4 +1,5 @@
-/** @file @brief YAML bindings for repetition drafts; only Apply changes document history. */
+/** @file
+ * @brief YAML bindings for repetition drafts; only Apply changes document history. */
 #ifndef PE_VECTOR_UI_REPEAT_H
 #define PE_VECTOR_UI_REPEAT_H
 #include "editors/vector/document/document.h"

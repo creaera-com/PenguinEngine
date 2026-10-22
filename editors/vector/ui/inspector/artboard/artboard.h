@@ -1,4 +1,5 @@
-/** @file @brief Inspector-owned artboard form state and bindings. */
+/** @file
+ * @brief Inspector-owned artboard form state and bindings. */
 #ifndef PE_VECTOR_ARTBOARD_INSPECTOR_H
 #define PE_VECTOR_ARTBOARD_INSPECTOR_H
 #include "editors/vector/document/document.h"

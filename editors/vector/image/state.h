@@ -1,4 +1,5 @@
-/** @file @brief Image reference values, independent of decoded pixels and GPU resources. */
+/** @file
+ * @brief Image reference values, independent of decoded pixels and GPU resources. */
 #ifndef PE_VECTOR_IMAGE_STATE_H
 #define PE_VECTOR_IMAGE_STATE_H
 #include <stdbool.h>

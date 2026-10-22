@@ -1,4 +1,5 @@
-/** @file @brief Transient mouse gesture; only a completed drag creates a history command. */
+/** @file
+ * @brief Transient mouse gesture; only a completed drag creates a history command. */
 #ifndef PE_VECTOR_ARTBOARD_TOOL_H
 #define PE_VECTOR_ARTBOARD_TOOL_H
 #include "pengui/pengui.h"

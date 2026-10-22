@@ -1,4 +1,5 @@
-/** @file @brief Private Game editor lifecycle and panel assembly. */
+/** @file
+ * @brief Private Game editor lifecycle and panel assembly. */
 #ifndef PE_GAME_INTERNAL_H
 #define PE_GAME_INTERNAL_H
 #include "editor_host/editor.h"

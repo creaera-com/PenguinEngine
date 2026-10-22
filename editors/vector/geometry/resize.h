@@ -1,4 +1,5 @@
-/** @file @brief Object-independent rectangular resize handles and constrained geometry. */
+/** @file
+ * @brief Object-independent rectangular resize handles and constrained geometry. */
 #ifndef PE_VECTOR_RESIZE_H
 #define PE_VECTOR_RESIZE_H
 #include "pengui/pengui.h"

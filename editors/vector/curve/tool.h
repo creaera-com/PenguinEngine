@@ -1,4 +1,5 @@
-/** @file @brief Native pen and node tool lifecycle, separated from curve commands. */
+/** @file
+ * @brief Native pen and node tool lifecycle, separated from curve commands. */
 #ifndef PE_VECTOR_CURVE_TOOL_H
 #define PE_VECTOR_CURVE_TOOL_H
 #include "curve.h"

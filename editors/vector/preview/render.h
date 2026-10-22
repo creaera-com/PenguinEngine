@@ -1,4 +1,5 @@
-/** @file @brief Clean 1:1 content view and workspace region overlay. */
+/** @file
+ * @brief Clean 1:1 content view and workspace region overlay. */
 #ifndef PE_VECTOR_PREVIEW_RENDER_H
 #define PE_VECTOR_PREVIEW_RENDER_H
 #include "editors/vector/image/render.h"

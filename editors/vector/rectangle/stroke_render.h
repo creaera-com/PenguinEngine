@@ -1,4 +1,5 @@
-/** @file @brief Render a solid, aligned rectangular stroke around a screen-space rectangle. */
+/** @file
+ * @brief Render a solid, aligned rectangular stroke around a screen-space rectangle. */
 #ifndef PE_VECTOR_STROKE_RENDER_H
 #define PE_VECTOR_STROKE_RENDER_H
 #include "rectangle.h"

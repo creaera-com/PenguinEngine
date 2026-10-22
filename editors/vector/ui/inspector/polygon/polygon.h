@@ -1,4 +1,5 @@
-/** @file @brief Polygon inspector field bindings. */
+/** @file
+ * @brief Polygon inspector field bindings. */
 #ifndef PE_VECTOR_UI_POLYGON_H
 #define PE_VECTOR_UI_POLYGON_H
 #include "editors/vector/document/document.h"

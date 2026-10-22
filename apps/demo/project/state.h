@@ -1,4 +1,5 @@
-/** @file @brief Persistent last-project location, separate from temporary editor checkpoints. */
+/** @file
+ * @brief Persistent last-project location, separate from temporary editor checkpoints. */
 #ifndef PENGUENGINE_PROJECT_STATE_H
 #define PENGUENGINE_PROJECT_STATE_H
 #include "project.h"

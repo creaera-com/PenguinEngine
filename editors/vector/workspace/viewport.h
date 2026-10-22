@@ -1,4 +1,5 @@
-/** @file @brief Plain per-document viewport state; no renderer or event processing. */
+/** @file
+ * @brief Plain per-document viewport state; no renderer or event processing. */
 #ifndef PE_VECTOR_VIEWPORT_H
 #define PE_VECTOR_VIEWPORT_H
 #include "pengui/pengui.h"

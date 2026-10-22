@@ -1,4 +1,5 @@
-/** @file @brief Bounded alpha-silhouette compositing for individual object shadows. */
+/** @file
+ * @brief Bounded alpha-silhouette compositing for individual object shadows. */
 #ifndef PE_VECTOR_EFFECTS_RENDER_H
 #define PE_VECTOR_EFFECTS_RENDER_H
 #include "pengui/pengui.h"

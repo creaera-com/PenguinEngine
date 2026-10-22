@@ -1,4 +1,5 @@
-/** @file @brief Linked shape instances with independent placement and scale. */
+/** @file
+ * @brief Linked shape instances with independent placement and scale. */
 #ifndef VECTOR_INSTANCE_H
 #define VECTOR_INSTANCE_H
 #include "editors/vector/document/document.h"

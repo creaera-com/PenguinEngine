@@ -1,4 +1,5 @@
-/** @file @brief Owned text rendering cache and shared layout metrics for text interactions. */
+/** @file
+ * @brief Owned text rendering cache and shared layout metrics for text interactions. */
 #ifndef PE_VECTOR_TEXT_RENDER_H
 #define PE_VECTOR_TEXT_RENDER_H
 #include "editor_host/editor.h"

@@ -1,4 +1,5 @@
-/** @file @brief Shared rectangle/ellipse box tool; final geometry enters history only on release.
+/** @file
+ * @brief Shared rectangle/ellipse box tool; final geometry enters history only on release.
  */
 #ifndef PE_VECTOR_RECTANGLE_TOOL_H
 #define PE_VECTOR_RECTANGLE_TOOL_H

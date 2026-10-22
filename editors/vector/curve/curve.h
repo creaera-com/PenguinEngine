@@ -1,4 +1,5 @@
-/** @file @brief History-backed Bezier creation and node editing, independent of UI. */
+/** @file
+ * @brief History-backed Bezier creation and node editing, independent of UI. */
 #ifndef PE_VECTOR_CURVE_H
 #define PE_VECTOR_CURVE_H
 #include "editors/vector/document/document.h"

@@ -1,4 +1,5 @@
-/** @file @brief Pointer-free, per-document preview region and temporary selection gesture. */
+/** @file
+ * @brief Pointer-free, per-document preview region and temporary selection gesture. */
 #ifndef PE_VECTOR_PREVIEW_STATE_H
 #define PE_VECTOR_PREVIEW_STATE_H
 #include "pengui/pengui.h"

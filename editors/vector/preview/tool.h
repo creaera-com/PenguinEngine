@@ -1,4 +1,5 @@
-/** @file @brief Canvas-region selection and preview control bindings. */
+/** @file
+ * @brief Canvas-region selection and preview control bindings. */
 #ifndef PE_VECTOR_PREVIEW_TOOL_H
 #define PE_VECTOR_PREVIEW_TOOL_H
 #include "editors/vector/document/document.h"

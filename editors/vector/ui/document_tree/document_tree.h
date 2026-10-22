@@ -1,4 +1,5 @@
-/** @file @brief Document-to-tree binding; no tree widgets leak into the document model. */
+/** @file
+ * @brief Document-to-tree binding; no tree widgets leak into the document model. */
 #ifndef PE_VECTOR_DOCUMENT_TREE_H
 #define PE_VECTOR_DOCUMENT_TREE_H
 #include "editors/vector/document/document.h"

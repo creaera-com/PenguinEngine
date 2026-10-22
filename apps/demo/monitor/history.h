@@ -1,4 +1,5 @@
-/** @file @brief Bounded process-usage history and CPU rate calculation; no platform or UI APIs. */
+/** @file
+ * @brief Bounded process-usage history and CPU rate calculation; no platform or UI APIs. */
 #ifndef PENGUENGINE_MONITOR_HISTORY_H
 #define PENGUENGINE_MONITOR_HISTORY_H
 #include <stdbool.h>

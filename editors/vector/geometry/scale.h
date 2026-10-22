@@ -1,4 +1,5 @@
-/** @file @brief Object-independent mapping between rectangular selection bounds. */
+/** @file
+ * @brief Object-independent mapping between rectangular selection bounds. */
 #ifndef PE_VECTOR_GEOMETRY_SCALE_H
 #define PE_VECTOR_GEOMETRY_SCALE_H
 #include "pengui/pengui.h"

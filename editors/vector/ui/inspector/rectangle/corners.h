@@ -1,4 +1,5 @@
-/** @file @brief Rectangle corner inspector field bindings. */
+/** @file
+ * @brief Rectangle corner inspector field bindings. */
 #ifndef PE_VECTOR_UI_CORNERS_H
 #define PE_VECTOR_UI_CORNERS_H
 #include "editors/vector/document/document.h"

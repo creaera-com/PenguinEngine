@@ -1,4 +1,5 @@
-/** @file @brief Shared project file-tree binding; lazy directory scans run between frames. */
+/** @file
+ * @brief Shared project file-tree binding; lazy directory scans run between frames. */
 #ifndef PENGUENGINE_PROJECT_EXPLORER_H
 #define PENGUENGINE_PROJECT_EXPLORER_H
 #include "pengui/pengui.h"

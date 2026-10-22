@@ -1,4 +1,5 @@
-/** @file @brief Ellipse creation using four editable cubic segments and shared shape history. */
+/** @file
+ * @brief Ellipse creation using four editable cubic segments and shared shape history. */
 #ifndef PE_VECTOR_ELLIPSE_H
 #define PE_VECTOR_ELLIPSE_H
 #include "editors/vector/document/document.h"

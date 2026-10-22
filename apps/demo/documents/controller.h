@@ -1,4 +1,5 @@
-/** @file @brief App-wide Save As dialogs and file opening via editor contracts. */
+/** @file
+ * @brief App-wide Save As dialogs and file opening via editor contracts. */
 #ifndef PENGUENGINE_DOCUMENT_CONTROLLER_H
 #define PENGUENGINE_DOCUMENT_CONTROLLER_H
 #include "editor_host/host.h"

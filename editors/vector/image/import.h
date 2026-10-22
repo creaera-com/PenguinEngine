@@ -1,4 +1,5 @@
-/** @file @brief Import validated project copies through the common editor adapter. */
+/** @file
+ * @brief Import validated project copies through the common editor adapter. */
 #ifndef PE_VECTOR_IMAGE_IMPORT_H
 #define PE_VECTOR_IMAGE_IMPORT_H
 #include "editor_host/editor.h"

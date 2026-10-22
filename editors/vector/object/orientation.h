@@ -1,4 +1,5 @@
-/** @file @brief Mirrors and exact quarter-turns of shapes around their shared selection center. */
+/** @file
+ * @brief Mirrors and exact quarter-turns of shapes around their shared selection center. */
 #ifndef PE_VECTOR_OBJECT_ORIENTATION_H
 #define PE_VECTOR_OBJECT_ORIENTATION_H
 #include "editors/vector/document/document.h"

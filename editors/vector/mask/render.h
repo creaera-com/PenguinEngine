@@ -1,4 +1,5 @@
-/** @file @brief Reusable per-artboard texture compositor for arbitrary clipping paths. */
+/** @file
+ * @brief Reusable per-artboard texture compositor for arbitrary clipping paths. */
 #ifndef PE_VECTOR_MASK_RENDER_H
 #define PE_VECTOR_MASK_RENDER_H
 #include "editors/vector/mask/mask.h"

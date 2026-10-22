@@ -1,4 +1,5 @@
-/** @file @brief Sibling-only stacking order independent of UI, geometry and clipboard data. */
+/** @file
+ * @brief Sibling-only stacking order independent of UI, geometry and clipboard data. */
 #ifndef PE_VECTOR_OBJECT_ORDER_H
 #define PE_VECTOR_OBJECT_ORDER_H
 #include "editors/vector/document/selection.h"

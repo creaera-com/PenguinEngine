@@ -1,4 +1,5 @@
-/** @file @brief Inspector bindings for closed-area fill gradients and editable color stops. */
+/** @file
+ * @brief Inspector bindings for closed-area fill gradients and editable color stops. */
 #ifndef PE_VECTOR_UI_GRADIENT_H
 #define PE_VECTOR_UI_GRADIENT_H
 #include "editor_host/editor.h"

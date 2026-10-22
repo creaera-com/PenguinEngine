@@ -1,4 +1,5 @@
-/** @file @brief Clean, zoom-independent raster output using the existing artwork renderers. */
+/** @file
+ * @brief Clean, zoom-independent raster output using the existing artwork renderers. */
 #ifndef PE_VECTOR_EXPORT_RENDER_H
 #define PE_VECTOR_EXPORT_RENDER_H
 #include "editors/vector/image/render.h"

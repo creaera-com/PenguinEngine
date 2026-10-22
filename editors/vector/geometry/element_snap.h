@@ -1,4 +1,5 @@
-/** @file @brief Pure bounding-box alignment and equal-gap snapping in document coordinates. */
+/** @file
+ * @brief Pure bounding-box alignment and equal-gap snapping in document coordinates. */
 #ifndef PE_VECTOR_ELEMENT_SNAP_H
 #define PE_VECTOR_ELEMENT_SNAP_H
 #include "pengui/pengui.h"

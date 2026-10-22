@@ -33,3 +33,14 @@ endif()
 if(BUILD_TESTING)
  add_subdirectory(tests)
 endif()
+
+# Documentation is optional and never required by normal application builds.
+find_package(Doxygen 1.9.7 QUIET)
+if(DOXYGEN_FOUND)
+ configure_file(docs/doxygen/Doxyfile.in ${CMAKE_BINARY_DIR}/Doxyfile @ONLY)
+ add_custom_target(api_docs
+  COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_BINARY_DIR}/Doxyfile
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+  COMMENT "Generating PenguinEngine, pengUI and pengDraw documentation"
+  VERBATIM)
+endif()

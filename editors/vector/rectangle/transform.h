@@ -1,4 +1,5 @@
-/** @file @brief Atomic, undoable transforms of several rectangle children. */
+/** @file
+ * @brief Atomic, undoable transforms of several rectangle children. */
 #ifndef PE_VECTOR_RECTANGLE_TRANSFORM_H
 #define PE_VECTOR_RECTANGLE_TRANSFORM_H
 #include "rectangle.h"

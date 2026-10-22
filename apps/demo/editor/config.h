@@ -1,4 +1,5 @@
-/** @file @brief Application configuration, independent of widget YAML. */
+/** @file
+ * @brief Application configuration, independent of widget YAML. */
 #ifndef PE_EDITOR_CONFIG_H
 #define PE_EDITOR_CONFIG_H
 #include <stdbool.h>

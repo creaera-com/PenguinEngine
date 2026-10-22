@@ -1,4 +1,5 @@
-/** @file @brief Project identity and metadata; no editor or widget dependencies. */
+/** @file
+ * @brief Project identity and metadata; no editor or widget dependencies. */
 #ifndef PENGUENGINE_PROJECT_H
 #define PENGUENGINE_PROJECT_H
 #include <stdbool.h>

@@ -1,4 +1,5 @@
-/** @file @brief Public entry point of the Game editor module. */
+/** @file
+ * @brief Public entry point of the Game editor module. */
 #ifndef PE_GAME_ADAPTER_H
 #define PE_GAME_ADAPTER_H
 #include "editor_host/editor.h"

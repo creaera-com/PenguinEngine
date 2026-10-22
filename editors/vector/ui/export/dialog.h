@@ -1,4 +1,5 @@
-/** @file @brief YAML export form, safe native folder picker and deferred raster jobs. */
+/** @file
+ * @brief YAML export form, safe native folder picker and deferred raster jobs. */
 #ifndef PE_VECTOR_UI_EXPORT_DIALOG_H
 #define PE_VECTOR_UI_EXPORT_DIALOG_H
 #include "editor_host/editor.h"

@@ -1,4 +1,5 @@
-/** @file @brief Pure HSL harmony generation, independent of documents and UI. */
+/** @file
+ * @brief Pure HSL harmony generation, independent of documents and UI. */
 #ifndef VECTOR_PALETTE_H
 #define VECTOR_PALETTE_H
 #include "pengui/pengui.h"

@@ -1,4 +1,5 @@
-/** @file @brief UI binding between document IDs, canvas tabs and deferred creation. */
+/** @file
+ * @brief UI binding between document IDs, canvas tabs and deferred creation. */
 #ifndef PE_VECTOR_DOCUMENT_TABS_H
 #define PE_VECTOR_DOCUMENT_TABS_H
 #include "editors/vector/document/document.h"

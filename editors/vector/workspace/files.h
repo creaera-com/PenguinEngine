@@ -1,4 +1,5 @@
-/** @file @brief Document tabs and file identity; implements the common host file contract. */
+/** @file
+ * @brief Document tabs and file identity; implements the common host file contract. */
 #ifndef PENGUENGINE_VECTOR_WORKSPACE_FILES_H
 #define PENGUENGINE_VECTOR_WORKSPACE_FILES_H
 #include "editor_host/editor.h"

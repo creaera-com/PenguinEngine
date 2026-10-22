@@ -4,7 +4,7 @@ Diese Anleitung beschreibt den aktuellen Stand der eigenständigen pengUI-Biblio
 der Beispiel-App. Sie soll dir helfen, den Code zu lesen, eigene Oberflächen zu bauen und
 später weitere Widgets oder eine Engine darauf aufzusetzen.
 
-Die [README](../README.md) enthält Build-Anweisungen und weitere YAML-Beispiele.
+Die [README](../README.md#pengui) enthält Build-Anweisungen und weitere YAML-Beispiele.
 Die zusätzliche [Editor-Shell](EDITOREN.md) baut darauf mit generischen Slots und getrennten
 Modulen auf. Die folgende Startbeschreibung bezieht sich auf die Widget-Demo; der Einstieg
 der Editor-App steht in `apps/demo/editor/main.c`.

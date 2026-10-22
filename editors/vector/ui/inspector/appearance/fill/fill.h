@@ -1,4 +1,5 @@
-/** @file @brief Fill inspector field bindings. */
+/** @file
+ * @brief Fill inspector field bindings. */
 #ifndef PE_VECTOR_UI_FILL_H
 #define PE_VECTOR_UI_FILL_H
 #include "editors/vector/document/document.h"

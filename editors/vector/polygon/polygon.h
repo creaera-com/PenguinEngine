@@ -1,4 +1,5 @@
-/** @file @brief Parametric regular polygons retain their corner count until path conversion. */
+/** @file
+ * @brief Parametric regular polygons retain their corner count until path conversion. */
 #ifndef PE_VECTOR_POLYGON_H
 #define PE_VECTOR_POLYGON_H
 #include "editors/vector/document/document.h"

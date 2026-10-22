@@ -1,4 +1,5 @@
-/** @file @brief Render-only expansion using current live source geometry and styles. */
+/** @file
+ * @brief Render-only expansion using current live source geometry and styles. */
 #ifndef PE_VECTOR_REPEAT_RENDER_H
 #define PE_VECTOR_REPEAT_RENDER_H
 #include "editors/vector/document/document.h"

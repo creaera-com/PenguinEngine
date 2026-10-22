@@ -1,4 +1,5 @@
-/** @file @brief Compact artboard-local pixel rulers with zoom-adaptive subdivisions. */
+/** @file
+ * @brief Compact artboard-local pixel rulers with zoom-adaptive subdivisions. */
 #ifndef PE_VECTOR_RULER_H
 #define PE_VECTOR_RULER_H
 #include "pengui/pengui.h"

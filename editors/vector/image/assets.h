@@ -1,4 +1,5 @@
-/** @file @brief Copy and resolve project-owned image files without editor UI dependencies. */
+/** @file
+ * @brief Copy and resolve project-owned image files without editor UI dependencies. */
 #ifndef PE_VECTOR_IMAGE_ASSETS_H
 #define PE_VECTOR_IMAGE_ASSETS_H
 #include "state.h"

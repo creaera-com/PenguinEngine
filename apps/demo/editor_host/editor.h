@@ -1,4 +1,5 @@
-/** @file @brief Sole contract between editor modules and the editor host. */
+/** @file
+ * @brief Sole contract between editor modules and the editor host. */
 #ifndef PE_EDITOR_H
 #define PE_EDITOR_H
 #include "fonts.h"

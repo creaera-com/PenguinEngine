@@ -1,4 +1,5 @@
-/** @file @brief Smooth ellipse fills and solid inside/center/outside contour bands. */
+/** @file
+ * @brief Smooth ellipse fills and solid inside/center/outside contour bands. */
 #ifndef PE_VECTOR_ELLIPSE_RENDER_H
 #define PE_VECTOR_ELLIPSE_RENDER_H
 #include "ellipse.h"

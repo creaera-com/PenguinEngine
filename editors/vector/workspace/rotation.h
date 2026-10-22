@@ -1,4 +1,5 @@
-/** @file @brief Center rotation ring and atomic single/group rotation gestures. */
+/** @file
+ * @brief Center rotation ring and atomic single/group rotation gestures. */
 #ifndef PE_VECTOR_WORKSPACE_ROTATION_H
 #define PE_VECTOR_WORKSPACE_ROTATION_H
 #include "editors/vector/document/document.h"

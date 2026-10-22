@@ -1,4 +1,5 @@
-/** @file @brief Workspace-only presentation values, independent of artwork and history. */
+/** @file
+ * @brief Workspace-only presentation values, independent of artwork and history. */
 #ifndef PE_VECTOR_WORKSPACE_STYLE_H
 #define PE_VECTOR_WORKSPACE_STYLE_H
 #include <stdbool.h>

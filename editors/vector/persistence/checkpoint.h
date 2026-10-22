@@ -1,4 +1,5 @@
-/** @file @brief Versioned, session-local persistence of Vector documents and command data. */
+/** @file
+ * @brief Versioned, session-local persistence of Vector documents and command data. */
 #ifndef PE_VECTOR_CHECKPOINT_H
 #define PE_VECTOR_CHECKPOINT_H
 #include "editor_host/editor.h"

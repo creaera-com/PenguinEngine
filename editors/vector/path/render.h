@@ -1,4 +1,5 @@
-/** @file @brief Shape path rendering inside the caller's artboard clip. */
+/** @file
+ * @brief Shape path rendering inside the caller's artboard clip. */
 #ifndef PE_VECTOR_PATH_RENDER_H
 #define PE_VECTOR_PATH_RENDER_H
 #include "editors/vector/object/shape.h"

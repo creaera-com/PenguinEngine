@@ -1,4 +1,5 @@
-/** @file @brief Selection alignment in document coordinates, independent of UI and grid snapping.
+/** @file
+ * @brief Selection alignment in document coordinates, independent of UI and grid snapping.
  */
 #ifndef PE_VECTOR_OBJECT_ALIGNMENT_H
 #define PE_VECTOR_OBJECT_ALIGNMENT_H

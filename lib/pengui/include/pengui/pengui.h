@@ -459,7 +459,8 @@ PUISplit pui_split_rects(PUIRect area, PUIAxis axis, float second_size, float mi
  */
 PUIRect pui_image_fit(PUIRect bounds, float width, float height, float padding);
 
-/** @file @brief SDL-free, validated YAML widget descriptions. */
+/** @file
+ * @brief SDL-free, validated YAML widget descriptions. */
 // Includes composed editor layouts and generated color-picker input fields.
 #define PUI_LAYOUT_NODES 512
 #define PUI_LAYOUT_DEPTH 24
@@ -474,9 +475,9 @@ typedef struct {
 PUIHSLColor pui_color_to_hsl(uint32_t rgba);
 /** @brief Convert HSL to 0xRRGGBBAA; finite values are clamped, hue wraps at 360 degrees. */
 uint32_t pui_color_from_hsl(PUIHSLColor hsla);
-/** @brief Parse #RGB, #RGBA, #RRGGBB or #RRGGBBAA; failure leaves the output unchanged. */
+/** @brief Parse `#RGB`, `#RGBA`, `#RRGGBB` or `#RRGGBBAA`; failure leaves the output unchanged. */
 bool pui_color_parse_hex(const char *text, uint32_t *rgba);
-/** @brief Write canonical #RRGGBBAA including terminator into a ten-byte buffer. */
+/** @brief Write canonical `#RRGGBBAA` including terminator into a ten-byte buffer. */
 void pui_color_format_hex(uint32_t rgba, char text[10]);
 
 typedef enum {
@@ -788,7 +789,7 @@ typedef enum {
         0x10000 ///< Internal range for named Tabler icons; resolve names instead of storing values.
 } PUIIcon;
 
-/** @brief Resolve built-in names or bundled tabler:<name> icons; ICON_NONE if unknown. */
+/** @brief Resolve built-in names or bundled `tabler:<name>` icons; ICON_NONE if unknown. */
 PUIIcon pui_icon_from_name(const char *name);
 
 /**
@@ -906,7 +907,8 @@ void pui_draw_image_button(SDL_Renderer *renderer, SDL_FRect rect, SDL_Texture *
                            const char *label, float padding, bool active, bool enabled, bool hover,
                            bool pressed, bool focused);
 
-/** @file @brief SDL presentation of generic YAML widgets. */
+/** @file
+ * @brief SDL presentation of generic YAML widgets. */
 /** @brief Application callback. Both strings are borrowed for the duration of the call. */
 typedef void (*PUIAction)(void *context, const char *action, const char *widget);
 /** @brief Opaque view owns widget state and cached textures, borrows its layout and renderer. */
@@ -1052,7 +1054,8 @@ SDL_Texture *pui_image_load(SDL_Renderer *renderer, const char *path);
 /** @brief Load a bounded PNG from borrowed memory; returned texture belongs to its renderer. */
 SDL_Texture *pui_image_load_memory(SDL_Renderer *renderer, const void *data, size_t length);
 
-/** @file @brief Optional borderless SDL window controls, independent of application actions. */
+/** @file
+ * @brief Optional borderless SDL window controls, independent of application actions. */
 
 /** @brief Stable callback context. Must outlive the attached window or be detached first. */
 typedef struct {

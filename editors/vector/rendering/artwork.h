@@ -1,4 +1,5 @@
-/** @file @brief Bounded, reusable supersampling for vector artwork, independent of editor UI. */
+/** @file
+ * @brief Bounded, reusable supersampling for vector artwork, independent of editor UI. */
 #ifndef PE_VECTOR_ARTWORK_RENDER_H
 #define PE_VECTOR_ARTWORK_RENDER_H
 #include "editors/vector/rendering/objects.h"

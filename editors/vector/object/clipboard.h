@@ -1,4 +1,5 @@
-/** @file @brief Owned object copies and atomic structural edits, independent of UI and SDL. */
+/** @file
+ * @brief Owned object copies and atomic structural edits, independent of UI and SDL. */
 #ifndef PE_VECTOR_CLIPBOARD_H
 #define PE_VECTOR_CLIPBOARD_H
 #include "editors/vector/document/selection.h"

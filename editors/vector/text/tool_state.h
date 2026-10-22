@@ -1,4 +1,5 @@
-/** @file @brief Transient text editing cursor; no font or window resources. */
+/** @file
+ * @brief Transient text editing cursor; no font or window resources. */
 #ifndef PE_VECTOR_TEXT_TOOL_STATE_H
 #define PE_VECTOR_TEXT_TOOL_STATE_H
 #include "pengui/pengui.h"

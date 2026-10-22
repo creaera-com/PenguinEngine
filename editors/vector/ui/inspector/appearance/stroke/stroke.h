@@ -1,4 +1,5 @@
-/** @file @brief Stroke inspector field bindings. */
+/** @file
+ * @brief Stroke inspector field bindings. */
 #ifndef PE_VECTOR_UI_STROKE_H
 #define PE_VECTOR_UI_STROKE_H
 #include "editors/vector/document/document.h"

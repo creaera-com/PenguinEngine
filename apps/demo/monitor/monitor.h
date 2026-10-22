@@ -1,4 +1,5 @@
-/** @file @brief Shared host-owned process monitor, independent of any concrete editor. */
+/** @file
+ * @brief Shared host-owned process monitor, independent of any concrete editor. */
 #ifndef PENGUENGINE_PROCESS_MONITOR_H
 #define PENGUENGINE_PROCESS_MONITOR_H
 #include "editor_host/editor.h"

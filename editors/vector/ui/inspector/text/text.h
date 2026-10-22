@@ -1,4 +1,5 @@
-/** @file @brief Optional typography form and searchable installed-font selection. */
+/** @file
+ * @brief Optional typography form and searchable installed-font selection. */
 #ifndef PE_VECTOR_TEXT_INSPECTOR_H
 #define PE_VECTOR_TEXT_INSPECTOR_H
 #include "editors/vector/text/render.h"

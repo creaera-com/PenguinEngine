@@ -1,4 +1,5 @@
-/** @file @brief Non-destructive clipping groups and geometry-aware picking, without UI state. */
+/** @file
+ * @brief Non-destructive clipping groups and geometry-aware picking, without UI state. */
 #ifndef PE_VECTOR_MASK_H
 #define PE_VECTOR_MASK_H
 #include "editors/vector/document/document.h"

@@ -1,4 +1,5 @@
-/** @file @brief Editor names for independent pengDraw effect values. */
+/** @file
+ * @brief Editor names for independent pengDraw effect values. */
 #ifndef PE_VECTOR_EFFECTS_SHADOW_H
 #define PE_VECTOR_EFFECTS_SHADOW_H
 #include "pengdraw/pengdraw.h"

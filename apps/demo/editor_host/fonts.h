@@ -1,4 +1,5 @@
-/** @file @brief Installed TrueType/OpenType faces and rasterization; owned by the app. */
+/** @file
+ * @brief Installed TrueType/OpenType faces and rasterization; owned by the app. */
 #ifndef PENGUI_APP_FONTS_H
 #define PENGUI_APP_FONTS_H
 #include <SDL3/SDL.h>

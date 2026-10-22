@@ -1,4 +1,5 @@
-/** @file @brief Zoom-aware, artboard-local drawing guides. */
+/** @file
+ * @brief Zoom-aware, artboard-local drawing guides. */
 #ifndef PE_VECTOR_GRID_RENDER_H
 #define PE_VECTOR_GRID_RENDER_H
 #include "pengui/pengui.h"

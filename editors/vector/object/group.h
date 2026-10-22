@@ -1,4 +1,5 @@
-/** @file @brief Persistent single-level groups of shapes within an artboard. */
+/** @file
+ * @brief Persistent single-level groups of shapes within an artboard. */
 #ifndef PE_VECTOR_OBJECT_GROUP_H
 #define PE_VECTOR_OBJECT_GROUP_H
 #include "editors/vector/document/document.h"

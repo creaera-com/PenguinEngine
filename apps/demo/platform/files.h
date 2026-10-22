@@ -1,4 +1,5 @@
-/** @file @brief Portable exclusive file creation with UTF-8 filenames. */
+/** @file
+ * @brief Portable exclusive file creation with UTF-8 filenames. */
 #ifndef PENGUENGINE_PLATFORM_FILES_H
 #define PENGUENGINE_PLATFORM_FILES_H
 #include <stdbool.h>

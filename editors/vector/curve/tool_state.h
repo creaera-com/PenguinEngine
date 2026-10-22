@@ -1,4 +1,5 @@
-/** @file @brief Temporary pen/node interaction; excluded from document checkpoints. */
+/** @file
+ * @brief Temporary pen/node interaction; excluded from document checkpoints. */
 #ifndef PE_VECTOR_CURVE_TOOL_STATE_H
 #define PE_VECTOR_CURVE_TOOL_STATE_H
 #include "editors/vector/object/shape.h"

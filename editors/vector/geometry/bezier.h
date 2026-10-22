@@ -1,4 +1,5 @@
-/** @file @brief Editor compatibility names for independent pengDraw geometry. */
+/** @file
+ * @brief Editor compatibility names for independent pengDraw geometry. */
 #pragma once
 #include "path.h"
 #include "pengdraw/pengdraw.h"

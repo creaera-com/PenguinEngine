@@ -1,4 +1,5 @@
-/** @file @brief Session-local color scheme designer and interactive hue wheel. */
+/** @file
+ * @brief Session-local color scheme designer and interactive hue wheel. */
 #ifndef VECTOR_UI_PALETTE_H
 #define VECTOR_UI_PALETTE_H
 #include "editors/vector/palette/palette.h"

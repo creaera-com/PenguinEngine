@@ -1,4 +1,5 @@
-/** @file @brief Queued editor switching; all mutations are committed between frames. */
+/** @file
+ * @brief Queued editor switching; all mutations are committed between frames. */
 #ifndef PE_EDITOR_HOST_H
 #define PE_EDITOR_HOST_H
 #include "editor.h"

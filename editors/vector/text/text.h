@@ -1,4 +1,5 @@
-/** @file @brief History-backed text frame creation and paragraph updates. */
+/** @file
+ * @brief History-backed text frame creation and paragraph updates. */
 #ifndef PE_VECTOR_TEXT_H
 #define PE_VECTOR_TEXT_H
 #include "editors/vector/document/document.h"

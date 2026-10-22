@@ -1,4 +1,5 @@
-/** @file @brief Vector canvas rendering and viewport interaction. */
+/** @file
+ * @brief Vector canvas rendering and viewport interaction. */
 #ifndef PE_VECTOR_CANVAS_H
 #define PE_VECTOR_CANVAS_H
 #include "editors/vector/image/render.h"

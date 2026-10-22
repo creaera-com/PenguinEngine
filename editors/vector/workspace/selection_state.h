@@ -1,4 +1,5 @@
-/** @file @brief Plain transient selection gesture state for vector objects. */
+/** @file
+ * @brief Plain transient selection gesture state for vector objects. */
 #ifndef PE_VECTOR_SELECTION_STATE_H
 #define PE_VECTOR_SELECTION_STATE_H
 #include "pengui/pengui.h"

@@ -1,4 +1,5 @@
-/** @file @brief Editor-owned bounded image texture cache, separate from document values. */
+/** @file
+ * @brief Editor-owned bounded image texture cache, separate from document values. */
 #ifndef PE_VECTOR_IMAGE_RENDER_H
 #define PE_VECTOR_IMAGE_RENDER_H
 #include "editors/vector/object/shape.h"

@@ -1,4 +1,5 @@
-/** @file @brief Curve contour drawing and temporary anchor/control-handle overlays. */
+/** @file
+ * @brief Curve contour drawing and temporary anchor/control-handle overlays. */
 #ifndef PE_VECTOR_CURVE_RENDER_H
 #define PE_VECTOR_CURVE_RENDER_H
 #include "curve.h"

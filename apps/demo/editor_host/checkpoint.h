@@ -1,4 +1,5 @@
-/** @file @brief Session-owned temporary files; editor payloads remain opaque to the host. */
+/** @file
+ * @brief Session-owned temporary files; editor payloads remain opaque to the host. */
 #ifndef PE_EDITOR_HOST_CHECKPOINT_H
 #define PE_EDITOR_HOST_CHECKPOINT_H
 #include "editor.h"

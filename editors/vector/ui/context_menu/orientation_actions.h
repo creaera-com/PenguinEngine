@@ -1,4 +1,5 @@
-/** @file @brief YAML bindings for shape reflection and quarter-turn operations. */
+/** @file
+ * @brief YAML bindings for shape reflection and quarter-turn operations. */
 #ifndef PE_VECTOR_UI_ORIENTATION_ACTIONS_H
 #define PE_VECTOR_UI_ORIENTATION_ACTIONS_H
 #include "editors/vector/document/document.h"

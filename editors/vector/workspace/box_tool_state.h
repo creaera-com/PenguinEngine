@@ -1,4 +1,5 @@
-/** @file @brief Transient rectangle/ellipse/polygon box-creation state in parent-local pixels. */
+/** @file
+ * @brief Transient rectangle/ellipse/polygon box-creation state in parent-local pixels. */
 #ifndef PE_VECTOR_RECTANGLE_TOOL_STATE_H
 #define PE_VECTOR_RECTANGLE_TOOL_STATE_H
 #include <stdbool.h>
