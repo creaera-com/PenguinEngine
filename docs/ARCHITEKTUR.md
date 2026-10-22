@@ -1257,3 +1257,21 @@ Nach dem Schließen sind die Dialogfelder sofort inaktiv; das Ausblenden ist rei
 visuell. Die temporäre Render-Textur wird nach dem Fade freigegeben. Falls der
 Renderer keine passende Render-Textur bereitstellen kann, bleibt der Dialog ohne
 Animation voll bedienbar.
+
+### Zahlenwerte mit der Maus verändern
+
+Inputs mit `input_type: integer` oder `input_type: decimal` unterstützen einen
+Ziehmodus: linke Maustaste eine Sekunde ruhig halten, dann horizontal ziehen.
+Das Feld wird heller und der Cursor zeigt die horizontale Ziehrichtung an.
+Je 6 Bildschirm-Pixel wird der Startwert um 1 erhöht beziehungsweise verringert;
+Dezimalstellen des Startwerts bleiben erhalten. Die Änderung wird beim Loslassen
+einmal über die normale Input-Action übernommen. Escape oder Fokusverlust brechen
+ab und stellen den vorherigen Text wieder her.
+
+Kurze Klicks, Doppelklicks und unmittelbar begonnene Textauswahl bleiben erhalten.
+String-Felder haben keinen Ziehmodus. Die UI-Bibliothek verändert nur den Feldwert;
+die registrierte Action bleibt für Bereichsprüfung und Dokument-History zuständig.
+
+```yaml
+- {type: input, id: width, input_type: decimal, text: "100", action: object.width}
+```

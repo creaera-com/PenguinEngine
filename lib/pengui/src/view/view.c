@@ -62,6 +62,7 @@ PUIView *pui_view_new(const PUILayout *layout, SDL_Renderer *renderer) {
 
 void pui_view_free(PUIView *view) {
     if (view) {
+        pui_numeric_drag_cancel(view);
         pui_view_free_cursors(view);
         if (view->window && view->focused >= 0) {
             SDL_StopTextInput(view->window);

@@ -6,11 +6,11 @@
 
 static void draw_text_input(SDL_Renderer *r, SDL_FRect rect, const char *text, PUITextEdit *edit,
                             bool focused, bool enabled, bool cursor_visible, float radius,
-                            Uint32 border) {
+                            Uint32 border, Uint32 background) {
     radius = fmaxf(0, fminf(radius, fminf(rect.w, rect.h) * .5f));
     pui_rounded_panel(r, rect, border, radius, false);
     SDL_FRect fill = {rect.x + 1, rect.y + 1, fmaxf(0, rect.w - 2), fmaxf(0, rect.h - 2)};
-    pui_rounded_panel(r, fill, PUI_CANVAS, fmaxf(0, radius - 1), false);
+    pui_rounded_panel(r, fill, background, fmaxf(0, radius - 1), false);
     SDL_Rect previous;
     bool clipped = SDL_RenderClipEnabled(r);
     SDL_GetRenderClipRect(r, &previous);
@@ -52,7 +52,8 @@ void pui_draw_text_input(SDL_Renderer *r, SDL_FRect rect, const char *text, PUIT
                     focused ? 0 : pui_theme.button_radius,
                     invalid   ? 0xc97565ffu
                     : focused ? PUI_ACCENT
-                              : PUI_BORDER);
+                              : PUI_BORDER,
+                    PUI_CANVAS);
 }
 
 /* Column positions are converted by the core into valid UTF-8 byte boundaries. */
@@ -82,6 +83,8 @@ void pui_widget_text_input_draw(PUIView *v, PUIContext *pui, int i, PUIRect area
                                 void *context) {
     const PUINode *n = &v->layout->nodes[i];
     Widget *s = &v->state[i];
+    pui_numeric_drag_update(v, pui, i);
+    bool scrubbing = v->numeric_drag.active && v->numeric_drag.index == i;
     bool selecting = v->selecting && v->focused == i && pui->active == n->id && !pui->blocked;
     if (selecting) {
         pui->active_seen = true;
@@ -104,7 +107,8 @@ void pui_widget_text_input_draw(PUIView *v, PUIContext *pui, int i, PUIRect area
                                                           : PUI_BORDER,
                                          v->frame_ms, duration);
     draw_text_input(v->renderer, pui_frect(area), s->text, &s->edit, focused, !pui->blocked,
-                    SDL_GetTicks() % 1000 < 500, radius, border);
+                    !scrubbing && SDL_GetTicks() % 1000 < 500, radius, border,
+                    scrubbing ? PUI_HOVER : PUI_CANVAS);
     if (v->submit == i) {
         if (n->input_type == PUI_INPUT_STRING) {
             s->input_invalid = !pui_text_input_valid(n->input_type, s->text, true);
@@ -124,6 +128,11 @@ void pui_widget_text_input_draw(PUIView *v, PUIContext *pui, int i, PUIRect area
 }
 
 void pui_view_blur(PUIView *view, PUIContext *pui) {
+    bool scrubbing = view->numeric_drag.active;
+    pui_numeric_drag_cancel(view);
+    if (scrubbing) {
+        pui_cancel(pui);
+    }
     if (view->focused >= 0) {
         if (view->selecting && pui->active == view->layout->nodes[view->focused].id) {
             pui->active = 0;

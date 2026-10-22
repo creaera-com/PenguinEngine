@@ -47,6 +47,16 @@ struct PUIView {
     int focused, submit;
     int selection_clicks;
     size_t selection_start, selection_end;
+
+    struct {
+        int index;
+        bool pending, active;
+        Uint64 started;
+        float x, y;
+        double value;
+        char original[256];
+    } numeric_drag; ///< Transient long-press state; never retained across layout replacement.
+
     bool selecting; ///< Mouse selection belongs to the focused text field until release.
     int popups[PUI_LAYOUT_DEPTH], popup_count;
     PUIRect popup_rects[PUI_LAYOUT_DEPTH], bounds;
@@ -130,6 +140,10 @@ float pui_view_node_height(const PUIView *view, int index);
 void pui_widget_text_input_pointer(PUIView *view, PUIContext *pui, SDL_Window *window,
                                    const SDL_Event *event);
 bool pui_widget_text_input_drag(PUIView *view, PUIContext *pui, const SDL_Event *event);
+void pui_numeric_drag_cancel(PUIView *view);
+void pui_numeric_drag_begin(PUIView *view, const SDL_Event *event);
+void pui_numeric_drag_update(PUIView *view, PUIContext *input, int index);
+bool pui_numeric_drag_event(PUIView *view, PUIContext *input, const SDL_Event *event);
 bool pui_widget_text_input_event(PUIView *view, PUIContext *pui, const SDL_Event *event);
 bool pui_widget_tree_scroll(PUIView *view, int index, const SDL_Event *event);
 bool pui_widget_tabs_scroll(PUIView *view, int index, const SDL_Event *event);

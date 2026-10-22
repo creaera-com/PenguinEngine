@@ -3,6 +3,9 @@
 
 bool pui_view_event(PUIView *view, PUIContext *pui, SDL_Window *window, const SDL_Event *event) {
     view->window = window;
+    if (pui_numeric_drag_event(view, pui, event)) {
+        return true;
+    }
     if (!pui_view_modal_active(view) && pui_widget_radial_event(view, pui, event)) {
         return true;
     }
@@ -38,6 +41,9 @@ bool pui_view_event(PUIView *view, PUIContext *pui, SDL_Window *window, const SD
                     event->type == SDL_EVENT_MOUSE_BUTTON_DOWN);
         if (event->type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
             pui_widget_text_input_pointer(view, pui, window, event);
+            if (view->selecting) {
+                pui_numeric_drag_begin(view, event);
+            }
         } else if (pui_widget_text_input_drag(view, pui, event)) {
             return true;
         }

@@ -1147,8 +1147,102 @@ static void test_runtime_tree_filter_keeps_ancestors_and_restores_collapsed_stat
     pui_layout_free(l);
 }
 
+static void numeric_pointer(PUIView *v, PUIContext *input, SDL_EventType type, float x) {
+    SDL_Event e = {.type = type};
+    if (type == SDL_EVENT_MOUSE_MOTION) {
+        e.motion.x = x;
+        e.motion.y = 12;
+    } else {
+        e.button.button = SDL_BUTTON_LEFT;
+        e.button.clicks = 1;
+        e.button.x = x;
+        e.button.y = 12;
+    }
+    pui_view_event(v, input, window, &e);
+    pui_view_draw(v, input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+}
+
+static void test_numeric_long_press_scrubs_in_units_and_commits_only_on_release(void) {
+    const char *yaml = "schema: pengui/v1\nroot: {type: input, id: number, input_type: decimal, "
+                       "text: '10.5', action: changed}";
+    char error[256];
+    PUILayout *l = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL_MESSAGE(l, error);
+    PUIView *v = pui_view_new(l, renderer);
+    TEST_ASSERT_NOT_NULL(v);
+    PUIContext input;
+    pui_init(&input);
+    typed_commits = 0;
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_DOWN, 40);
+    SDL_Delay(1050);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    numeric_pointer(v, &input, SDL_EVENT_MOUSE_MOTION, 58);
+    TEST_ASSERT_EQUAL_STRING("13.5", pui_view_text(v, "number"));
+    TEST_ASSERT_EQUAL_INT(0, typed_commits);
+    numeric_pointer(v, &input, SDL_EVENT_MOUSE_MOTION, 28);
+    TEST_ASSERT_EQUAL_STRING("8.5", pui_view_text(v, "number"));
+    numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_UP, 28);
+    TEST_ASSERT_EQUAL_INT(1, typed_commits);
+    TEST_ASSERT_EQUAL_UINT(pui_id("number"), input.focus);
+    numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_DOWN, 40);
+    SDL_Delay(1050);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    numeric_pointer(v, &input, SDL_EVENT_MOUSE_MOTION, 64);
+    SDL_Event escape = {.type = SDL_EVENT_KEY_DOWN};
+    escape.key.key = SDLK_ESCAPE;
+    TEST_ASSERT_TRUE(pui_view_event(v, &input, window, &escape));
+    TEST_ASSERT_EQUAL_STRING("8.5", pui_view_text(v, "number"));
+    TEST_ASSERT_EQUAL_INT(1, typed_commits);
+    numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_UP, 64);
+    numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_DOWN, 40);
+    SDL_Delay(1050);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    numeric_pointer(v, &input, SDL_EVENT_MOUSE_MOTION, 70);
+    SDL_Event lost = {.type = SDL_EVENT_WINDOW_FOCUS_LOST};
+    pui_view_event(v, &input, window, &lost);
+    TEST_ASSERT_EQUAL_STRING("8.5", pui_view_text(v, "number"));
+    TEST_ASSERT_EQUAL_INT(1, typed_commits);
+    TEST_ASSERT_EQUAL_UINT(0, input.active);
+    pui_view_free(v);
+    pui_layout_free(l);
+}
+
+static void test_numeric_mouse_selection_prevents_long_press_activation(void) {
+    const char *yaml = "schema: pengui/v1\nroot: {type: input, id: number, input_type: integer, "
+                       "text: '12345', action: changed}";
+    char error[256];
+    PUILayout *l = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL(l);
+    PUIView *v = pui_view_new(l, renderer);
+    TEST_ASSERT_NOT_NULL(v);
+    PUIContext input;
+    pui_init(&input);
+    typed_commits = 0;
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_DOWN, 10);
+    numeric_pointer(v, &input, SDL_EVENT_MOUSE_MOTION, 60);
+    SDL_Delay(1050);
+    pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
+    numeric_pointer(v, &input, SDL_EVENT_MOUSE_MOTION, 80);
+    numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_UP, 80);
+    TEST_ASSERT_EQUAL_STRING("12345", pui_view_text(v, "number"));
+    TEST_ASSERT_EQUAL_INT(0, typed_commits);
+    SDL_Event copy = {.type = SDL_EVENT_KEY_DOWN};
+    copy.key.key = SDLK_C;
+    copy.key.mod = SDL_KMOD_CTRL;
+    pui_view_event(v, &input, window, &copy);
+    char *text = SDL_GetClipboardText();
+    TEST_ASSERT_EQUAL_STRING("12345", text);
+    SDL_free(text);
+    pui_view_free(v);
+    pui_layout_free(l);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_numeric_long_press_scrubs_in_units_and_commits_only_on_release);
+    RUN_TEST(test_numeric_mouse_selection_prevents_long_press_activation);
     RUN_TEST(test_runtime_tree_filter_keeps_ancestors_and_restores_collapsed_state);
     RUN_TEST(test_number_expression_commits_once_and_keeps_relative_base);
     RUN_TEST(test_typed_fields_filter_native_events_clipboard_setters_and_submission);

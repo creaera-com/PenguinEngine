@@ -132,6 +132,7 @@ static bool apply_layout(PUIView *view, PUIContext *context, PUILayout *layout, 
     next->owned_layout = layout;
     next->canvas_renderer = view->canvas_renderer;
     next->canvas_context = view->canvas_context;
+    pui_numeric_drag_cancel(view);
     retain_state(view, next, slot);
     for (int i = 0; i < next->layout->count; i++) {
         if (next->layout->nodes[i].type == PUI_NODE_COLOR_PICKER &&
