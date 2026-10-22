@@ -161,6 +161,23 @@ root:
           id: vector_utility_tabs
           children:
             - type: tab
+              id: vector_preview_tab
+              text: Vorschau
+              padding: 0
+              children:
+                - type: panel
+                  padding: 8
+                  gap: 8
+                  children:
+                    - type: row
+                      padding: 0
+                      height: 28
+                      gap: 4
+                      children:
+                        - {type: toggle, id: vector_preview_select, text: Bereich waehlen, icon: tabler:scan, action: vector.preview.select}
+                        - {type: button, icon: tabler:x, action: vector.preview.clear, width: 28}
+                    - {type: canvas, id: vector_preview_canvas}
+            - type: tab
               id: vector_clone_tab
               text: Klonen
               padding: 0
@@ -226,20 +243,3 @@ root:
                       children:
                         - {type: label, text: Toleranz, width: 80}
                         - {type: input, id: vector_grid_tolerance, text: "5", action: vector.grid.tolerance}
-            - type: tab
-              id: vector_preview_tab
-              text: Vorschau
-              padding: 0
-              children:
-                - type: panel
-                  padding: 8
-                  gap: 8
-                  children:
-                    - type: row
-                      padding: 0
-                      height: 28
-                      gap: 4
-                      children:
-                        - {type: toggle, id: vector_preview_select, text: Bereich waehlen, icon: tabler:scan, action: vector.preview.select}
-                        - {type: button, icon: tabler:x, action: vector.preview.clear, width: 28}
-                    - {type: canvas, id: vector_preview_canvas}
