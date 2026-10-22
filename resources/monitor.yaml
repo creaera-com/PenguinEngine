@@ -1,0 +1,9 @@
+schema: pengui/v1
+root:
+  type: panel
+  padding: 8
+  gap: 8
+  children:
+    - {type: label, text: "60 s | CPU: 100 % = 1 Kern", height: 24}
+    - {type: canvas, id: process_monitor_cpu}
+    - {type: canvas, id: process_monitor_memory}

@@ -68,11 +68,11 @@ root:
             - {type: toggle, id: vector_preview_toolbar, icon: tabler:scan, action: vector.preview.select, width: 30}
             - {type: separator}
             - {type: button, id: vector_center_artboard, icon: tabler:focus-2, action: vector.artboard.center, width: 30}
+            - {type: button, id: vector_import_image, icon: tabler:photo-plus, action: editor.import_image, width: 30}
+            - {type: slot, id: vector_export_toolbar, width: 30}
             - {type: button, id: vector_zoom_out, icon: tabler:minus, action: vector.zoom.out, width: 28}
             - {type: button, id: vector_zoom_reset, text: "0", action: vector.zoom.reset, width: 28}
             - {type: button, id: vector_zoom_in, icon: tabler:plus, action: vector.zoom.in, width: 28}
-            - {type: button, id: vector_import_image, icon: tabler:photo-plus, action: editor.import_image, width: 30}
-            - {type: slot, id: vector_export_toolbar, width: 30}
             - {type: spacer}
             - type: radial_menu
               id: vector_object_menu
@@ -253,3 +253,9 @@ root:
                       children:
                         - {type: label, text: Toleranz, width: 80}
                         - {type: input, id: vector_grid_tolerance, text: "5", action: vector.grid.tolerance}
+            - type: tab
+              id: vector_monitor_tab
+              text: Monitor
+              padding: 0
+              children:
+                - {type: slot, id: process_monitor_content}

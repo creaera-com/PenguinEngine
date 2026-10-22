@@ -1,0 +1,77 @@
+/** @file @brief Live process graphs with a fixed 60-second time axis and independent value scales.
+ */
+#include "monitor.h"
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+
+static bool available(const ProcessUsage *s, bool cpu) {
+    return cpu ? s->cpu_available : s->memory_available;
+}
+
+static double value(const ProcessUsage *s, bool cpu) {
+    return cpu ? s->cpu_percent : s->memory_mib;
+}
+
+bool process_monitor_draw(const ProcessMonitor *m, SDL_Renderer *r, PUIRect a, const char *widget) {
+    bool cpu = !strcmp(widget, "process_monitor_cpu");
+    if (!cpu && strcmp(widget, "process_monitor_memory")) {
+        return false;
+    }
+    if (a.w < 80 || a.h < 70) {
+        return true;
+    }
+    const ProcessUsage *latest = m->count ? process_monitor_sample(m, m->count - 1) : NULL;
+    char text[96];
+    if (latest && available(latest, cpu)) {
+        snprintf(text, sizeof text, cpu ? "CPU %.1f %%" : "RAM %.1f MiB", value(latest, cpu));
+    } else {
+        snprintf(text, sizeof text, "%s: %s", cpu ? "CPU" : "RAM",
+                 !latest || (cpu && m->count < 2) ? "Messung ausstehend" : "Nicht verfuegbar");
+    }
+    pui_text(r, a.x + 5, a.y + 5, text, PUI_TEXT);
+    PUIRect plot = {a.x + 48, a.y + 30, a.w - 56, a.h - 52};
+    double maximum = cpu ? 100 : 64;
+    for (unsigned i = 0; i < m->count; i++) {
+        const ProcessUsage *s = process_monitor_sample(m, i);
+        if (available(s, cpu) && latest && latest->time - s->time <= 60) {
+            maximum = fmax(maximum, value(s, cpu));
+        }
+    }
+    double step = cpu ? 100 : 32;
+    maximum = ceil(maximum / step) * step;
+    SDL_BlendMode blend;
+    SDL_GetRenderDrawBlendMode(r, &blend);
+    SDL_SetRenderDrawBlendMode(r, SDL_BLENDMODE_BLEND);
+    for (int i = 0; i < 3; i++) {
+        float y = plot.y + plot.h * i / 2;
+        pui_render_color(r, PUI_BORDER);
+        SDL_RenderLine(r, plot.x, y, plot.x + plot.w, y);
+        snprintf(text, sizeof text, "%.0f", maximum * (1 - i / 2.));
+        pui_text_scaled(r, a.x + 3, y - 5, text, PUI_DISABLED, .75f);
+    }
+    pui_text_scaled(r, plot.x, plot.y + plot.h + 8, "-60 s", PUI_DISABLED, .75f);
+    pui_text_scaled(r, plot.x + plot.w / 2 - 16, plot.y + plot.h + 8, "-30 s", PUI_DISABLED, .75f);
+    pui_text_scaled(r, plot.x + plot.w - 16, plot.y + plot.h + 8, "0 s", PUI_DISABLED, .75f);
+    bool previous = false;
+    SDL_FPoint last = {0};
+    for (unsigned i = 0; i < m->count && latest; i++) {
+        const ProcessUsage *s = process_monitor_sample(m, i);
+        double age = latest->time - s->time;
+        if (!available(s, cpu) || age > 60) {
+            previous = false;
+            continue;
+        }
+        SDL_FPoint point = {plot.x + plot.w * (float)(1 - age / 60),
+                            plot.y + plot.h * (float)(1 - value(s, cpu) / maximum)};
+        pui_render_color(r, cpu ? PUI_HIGHLIGHT : 0x78b395ff);
+        if (previous) {
+            SDL_RenderLine(r, last.x, last.y, point.x, point.y);
+        }
+        SDL_RenderPoint(r, point.x, point.y);
+        last = point;
+        previous = true;
+    }
+    SDL_SetRenderDrawBlendMode(r, blend);
+    return true;
+}

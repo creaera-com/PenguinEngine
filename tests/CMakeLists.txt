@@ -301,3 +301,13 @@ if(PENGUI_BUILD_APP)
  add_test(NAME pengui_vector_instances COMMAND pengui_vector_instance_tests)
  set_tests_properties(pengui_vector_instances PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy")
 endif()
+
+add_executable(pengui_process_monitor_tests test_process_monitor.c
+ ${PROJECT_SOURCE_DIR}/apps/demo/monitor/history.c
+ ${PROJECT_SOURCE_DIR}/apps/demo/platform/process_metrics.c)
+target_include_directories(pengui_process_monitor_tests PRIVATE ${PROJECT_SOURCE_DIR}/apps/demo)
+target_link_libraries(pengui_process_monitor_tests PRIVATE pengUI::core unity)
+if(WIN32)
+ target_link_libraries(pengui_process_monitor_tests PRIVATE psapi)
+endif()
+add_test(NAME pengui_process_monitor COMMAND pengui_process_monitor_tests)

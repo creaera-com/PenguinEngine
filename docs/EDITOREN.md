@@ -464,3 +464,9 @@ Mausrad-Schritt. **0** setzt auf 100 % zurück. Die Übergänge bleiben animiert
 behalten den Punkt in der Mitte der Zeichenfläche bei. Die Statusleiste zeigt
 den tatsächlichen Zoom des aktiven Dokuments in Prozent; beim Editorwechsel wird
 die Anzeige geleert.
+
+## Gemeinsamer Prozess-Monitor
+
+Statusleiste und Monitor-Tab zeigen RAM-/CPU-Verbrauch des Programms. Messung und
+Verlauf gehören zum Host und stehen anderen Editoren über einen YAML-Slot zur
+Verfügung: [Bedienung und Integration](MONITORING.md).

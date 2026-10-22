@@ -3,6 +3,7 @@
 #include "editors/vector/artboard/tool.h"
 #include "editors/vector/internal.h"
 #include "editors/vector/workspace/ruler.h"
+#include "monitor/monitor.h"
 #include "shell/shell.h"
 #include "unity.h"
 #include <math.h>
@@ -719,8 +720,72 @@ static void test_inspector_owns_layouts_and_cleans_up_partial_initialization(voi
     activate("vector");
 }
 
+static int monitor_canvases;
+
+static void draw_monitor(void *context, SDL_Renderer *r, PUIRect area, const char *widget) {
+    TEST_ASSERT_TRUE(process_monitor_draw(context, r, area, widget));
+    monitor_canvases++;
+}
+
+static void test_monitor_yaml_can_be_reused_without_concrete_editor_code(void) {
+    const char *yaml = "schema: pengui/v1\nroot: {type: panel, children: [{type: slot, id: "
+                       "process_monitor_content}]}";
+    char error[256];
+    PUILayout *base = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+    TEST_ASSERT_NOT_NULL(base);
+    bool requested = false;
+    PUILayout *layout =
+        process_monitor_layout(&host.services, base, &requested, error, sizeof error);
+    TEST_ASSERT_TRUE(requested);
+    TEST_ASSERT_NOT_NULL_MESSAGE(layout, error);
+    PUIView *view = pui_view_new(layout, renderer);
+    TEST_ASSERT_NOT_NULL(view);
+    ProcessMonitor monitor = {0};
+    process_monitor_record(&monitor,
+                           (ProcessCounters){.cpu_seconds = 1,
+                                             .cpu_available = true,
+                                             .resident_bytes = 67108864,
+                                             .memory_available = true},
+                           1);
+    process_monitor_record(&monitor,
+                           (ProcessCounters){.cpu_seconds = 1.25,
+                                             .cpu_available = true,
+                                             .resident_bytes = 71303168,
+                                             .memory_available = true},
+                           1.5);
+    PUIContext input;
+    pui_init(&input);
+    monitor_canvases = 0;
+    pui_view_set_canvas_renderer(view, draw_monitor, &monitor);
+    pui_view_draw(view, &input, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+    TEST_ASSERT_EQUAL_INT(2, monitor_canvases);
+    TEST_ASSERT_EQUAL_UINT(2, monitor.count);
+    pui_view_free(view);
+    pui_layout_free(layout);
+    pui_layout_free(base);
+}
+
+static void test_process_monitor_panel_and_history_are_shared_across_editors(void) {
+    activate("vector");
+    TEST_ASSERT_GREATER_THAN_UINT(0, host.monitor.count);
+    double first = process_monitor_sample(&host.monitor, 0)->time;
+    TEST_ASSERT_NOT_NULL(strstr(pui_view_text(shell.view, "process_status"), "RAM "));
+    TEST_ASSERT_EQUAL_INT(4, pui_view_tab_count(shell.view, "vector_utility_tabs"));
+    TEST_ASSERT_EQUAL_STRING("vector_monitor_tab",
+                             pui_view_tab_at(shell.view, "vector_utility_tabs", 3));
+    unsigned count = host.monitor.count;
+    activate("scripts");
+    activate("game");
+    activate("vector");
+    TEST_ASSERT_TRUE(host.monitor.count >= count);
+    TEST_ASSERT_TRUE(first == process_monitor_sample(&host.monitor, 0)->time);
+    TEST_ASSERT_NOT_NULL(strstr(pui_view_text(shell.view, "process_status"), "CPU "));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_monitor_yaml_can_be_reused_without_concrete_editor_code);
+    RUN_TEST(test_process_monitor_panel_and_history_are_shared_across_editors);
     RUN_TEST(test_inspector_owns_layouts_and_cleans_up_partial_initialization);
     RUN_TEST(test_smooth_zoom_anchor_accumulation_fractional_steps_and_limits);
     RUN_TEST(test_ruler_pointer_marks_follow_zoomed_board_and_preserve_clip);

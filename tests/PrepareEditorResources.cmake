@@ -1,6 +1,6 @@
 # Interaction fixtures use 1280x800 and stable pane widths, independent of user preferences.
 # Keep the complete current UI (IDs, controls and theme); normalize only the five outer widths.
-foreach(resource shell.yaml application.yaml project-explorer.yaml fonts icons editors)
+foreach(resource monitor.yaml shell.yaml application.yaml project-explorer.yaml fonts icons editors)
  file(COPY "${SOURCE_ROOT}/${resource}" DESTINATION "${DESTINATION}")
 endforeach()
 # Generated config fixtures live in the build root, also for multi-config generators.

@@ -1,11 +1,15 @@
 /** @file @brief Transactional lifetime management independent of concrete editor modules. */
 #include "host.h"
 #include "checkpoint.h"
+#include "monitor/monitor.h"
 #include "registry.h"
 #include <stdio.h>
 
 static void draw_canvas(void *context, SDL_Renderer *renderer, PUIRect area, const char *widget) {
     EditorHost *host = context;
+    if (process_monitor_draw(&host->monitor, renderer, area, widget)) {
+        return;
+    }
     if (host->active && host->active->canvas) {
         host->active->canvas(host->instance, renderer, area, widget);
     }
@@ -30,6 +34,7 @@ bool editor_host_request(EditorHost *host, const char *id, bool force) {
 
 bool editor_host_commit(EditorHost *host, PUIView *shell, PUIContext *input, char *error,
                         size_t capacity) {
+    process_monitor_tick(&host->monitor, shell, (double)SDL_GetTicksNS() / 1000000000.);
     const EditorDefinition *next = host->pending;
     if (!next) {
         return !host->active || !host->active->commit_ui ||
@@ -65,7 +70,14 @@ bool editor_host_commit(EditorHost *host, PUIView *shell, PUIContext *input, cha
         }
         return false;
     }
-    if (!pui_view_replace_slot(shell, input, "editor_area", layout, error, capacity)) {
+    bool monitor_requested;
+    PUILayout *monitored =
+        process_monitor_layout(&host->services, layout, &monitor_requested, error, capacity);
+    bool mounted = (!monitor_requested || monitored) &&
+                   pui_view_replace_slot(shell, input, "editor_area",
+                                         monitored ? monitored : layout, error, capacity);
+    pui_layout_free(monitored);
+    if (!mounted) {
         next->destroy(candidate);
         editor_checkpoint_destroy(staged);
         return false;

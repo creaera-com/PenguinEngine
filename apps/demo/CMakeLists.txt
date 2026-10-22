@@ -15,6 +15,10 @@ add_dependencies(pengui_playground pengui_playground_resources)
 # Editor shell is a separate example app; pengUI itself has no editor dependency.
 include(${PROJECT_SOURCE_DIR}/cmake/TextFonts.cmake)
 add_library(pengui_editor_support STATIC
+ monitor/history.c
+ monitor/monitor.c
+ monitor/render.c
+ platform/process_metrics.c
  platform/fonts.c
  platform/image_decode.c
  platform/image_encode.c
@@ -132,6 +136,9 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/game/inspector.c)
 target_include_directories(pengui_editor_support PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR})
 target_link_libraries(pengui_editor_support PUBLIC pengUI::sdl PRIVATE pengui_yaml_parser pengui_tess pengui_truetype)
+if(WIN32)
+ target_link_libraries(pengui_editor_support PRIVATE psapi)
+endif()
 add_executable(pengui_editor editor/main.c editor/application.c)
 target_link_libraries(pengui_editor PRIVATE pengui_editor_support)
 set_target_properties(pengui_editor PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
@@ -144,6 +151,7 @@ add_custom_target(pengui_editor_resources
  COMMAND ${CMAKE_COMMAND} -E copy_directory "${PROJECT_SOURCE_DIR}/resources/ui/fonts" "$<TARGET_FILE_DIR:pengui_editor>/fonts"
  COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:pengui_editor>"
  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/resources/application.yaml" "$<TARGET_FILE_DIR:pengui_editor>/application.yaml"
+ COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/resources/monitor.yaml" "$<TARGET_FILE_DIR:pengui_editor>/monitor.yaml"
  COMMAND ${CMAKE_COMMAND} -E copy_if_different "${PROJECT_SOURCE_DIR}/resources/shell.yaml" "$<TARGET_FILE_DIR:pengui_editor>/shell.yaml"
  COMMAND ${CMAKE_COMMAND} -E copy_directory "${PROJECT_SOURCE_DIR}/resources/icons" "$<TARGET_FILE_DIR:pengui_editor>/icons"
  COMMAND ${CMAKE_COMMAND} -E copy_directory "${PROJECT_SOURCE_DIR}/editors/vector/ui" "$<TARGET_FILE_DIR:pengui_editor>/editors/vector/ui"

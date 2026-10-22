@@ -2,10 +2,12 @@
 #ifndef PE_EDITOR_HOST_H
 #define PE_EDITOR_HOST_H
 #include "editor.h"
+#include "monitor/history.h"
 
 /** @brief Owns the single active editor; definitions contain no inactive runtime resources. */
 typedef struct {
     EditorServices services;
+    ProcessMonitor monitor; ///< Session-wide observations survive unloading individual editors.
     const EditorDefinition *active, *pending;
     void *instance;
     struct EditorCheckpoint

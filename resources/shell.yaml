@@ -66,4 +66,5 @@ root:
           height: 24
           children:
             - {type: label, id: status, text: "Ready", height: 24}
+            - {type: label, id: process_status, text: "", width: 300, height: 24}
             - {type: label, id: viewport_status, text: "", width: 120, height: 24}
