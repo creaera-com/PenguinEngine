@@ -94,6 +94,7 @@ void pui_view_draw(PUIView *view, PUIContext *pui, PUIRect area, PUIAction actio
     PUIContext inert = pui_view_inert_context(pui);
     pui_view_draw_node(view, modal ? &inert : pui, view->layout->root, area, action, context);
     pui_view_popup_draw(view, pui, action, context);
+    pui_modal_draw_closing(view);
     if (view->focused >= 0 && (!view->visible[view->focused] || !view->enabled[view->focused])) {
         pui_view_blur(view, pui);
     }

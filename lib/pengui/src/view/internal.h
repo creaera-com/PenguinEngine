@@ -29,6 +29,9 @@ typedef struct {
     PUITabs tabs;
     PUIScroll scroll;
     SDL_Texture *image;
+    SDL_Texture *modal_layer; ///< Temporary dialog snapshot, released after its fade-out.
+    PUIColorTransition modal_opacity;
+    double modal_drawn_ms; ///< Avoid compositing an X-closed modal twice in one frame.
 } Widget;
 
 struct PUIView {
@@ -85,6 +88,8 @@ void pui_view_popup_open(PUIView *view, PUIContext *pui, int index);
 void pui_view_popup_close(PUIView *view, PUIContext *pui);
 bool pui_view_popup_prepare(PUIView *view, PUIContext *pui);
 void pui_view_popup_draw(PUIView *view, PUIContext *pui, PUIAction action, void *context);
+/** @brief Paint cached closing modals without reactivating their widgets. */
+void pui_modal_draw_closing(PUIView *view);
 /** @brief Center a modal in its configured widget, clamped to the visible view. */
 PUIRect pui_modal_rect(const PUIView *view, int index);
 /** @brief Draw modal chrome/content; false when its close button dismissed it. */

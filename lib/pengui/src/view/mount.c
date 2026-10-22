@@ -45,6 +45,8 @@ static void retain_state(PUIView *old, PUIView *next, const char *slot) {
             }
             pui_widget_tree_clear(&next->state[i]);
             next->state[i] = old->state[j];
+            next->state[i].modal_layer = NULL;
+            next->state[i].modal_opacity = (PUIColorTransition){0};
             old->state[j].tree = NULL;
             old->state[j].image = NULL;
             next->state[i].group = initial.group;

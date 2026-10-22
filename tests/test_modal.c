@@ -57,6 +57,8 @@ static void click_widget(const char *id) {
 }
 
 void setUp(void) {
+    PUITheme theme = pui_dark_theme();
+    pui_set_theme(&theme);
     TEST_ASSERT_TRUE(SDL_Init(SDL_INIT_VIDEO));
     window = SDL_CreateWindow("modal", 400, 300, SDL_WINDOW_HIDDEN);
     renderer = SDL_CreateRenderer(window, NULL);
@@ -160,8 +162,75 @@ static void test_validation_and_tab_reference_prefix(void) {
     pui_layout_free(tabs);
 }
 
+static Uint8 shade(int x, int y) {
+    SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
+    TEST_ASSERT_NOT_NULL(surface);
+    Uint8 r, g, b, a;
+    TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, x, y, &r, &g, &b, &a));
+    SDL_DestroySurface(surface);
+    return r;
+}
+
+static void test_modal_and_backdrop_fade_without_delaying_input_release(void) {
+    PUITheme theme = pui_dark_theme();
+    theme.button_transition_ms = 200;
+    pui_set_theme(&theme);
+    frame();
+    Uint8 background = shade(10, 150);
+    TEST_ASSERT_TRUE(pui_view_open_modal(view, &input, "dialog"));
+    frame();
+    TEST_ASSERT_EQUAL_UINT8(background, shade(10, 150));
+    SDL_Delay(100);
+    frame();
+    Uint8 middle = shade(10, 150);
+    SDL_Delay(150);
+    frame();
+    Uint8 open = shade(10, 150);
+    TEST_ASSERT_TRUE(background > middle && middle > open);
+    /* The dialog itself also fades: its title-region pixel differs from the canvas. */
+    Uint8 dialog = shade(180, 65);
+    TEST_ASSERT_TRUE(dialog > open);
+    TEST_ASSERT_TRUE(key(SDLK_ESCAPE));
+    TEST_ASSERT_FALSE(pui_view_modal_active(view));
+    frame();
+    SDL_Delay(100);
+    frame();
+    Uint8 closing = shade(10, 150);
+    TEST_ASSERT_TRUE(closing > open && closing < background);
+    SDL_Delay(150);
+    frame();
+    TEST_ASSERT_EQUAL_UINT8(background, shade(10, 150));
+    TEST_ASSERT_TRUE(pui_view_hit(view, "behind", 10, 40));
+}
+
+static void test_zero_duration_switches_immediately_and_preserves_render_target(void) {
+    for (int i = 0; i < layout->count; i++) {
+        if (layout->nodes[i].modal) {
+            layout->nodes[i].transition_ms = 0;
+        }
+    }
+    SDL_Texture *target =
+        SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 400, 300);
+    TEST_ASSERT_NOT_NULL(target);
+    TEST_ASSERT_TRUE(SDL_SetRenderTarget(renderer, target));
+    frame();
+    Uint8 background = shade(10, 150);
+    TEST_ASSERT_TRUE(pui_view_open_modal(view, &input, "dialog"));
+    frame();
+    TEST_ASSERT_EQUAL_PTR(target, SDL_GetRenderTarget(renderer));
+    TEST_ASSERT_LESS_THAN_UINT8(background, shade(10, 150));
+    TEST_ASSERT_TRUE(key(SDLK_ESCAPE));
+    frame();
+    TEST_ASSERT_EQUAL_UINT8(background, shade(10, 150));
+    TEST_ASSERT_EQUAL_PTR(target, SDL_GetRenderTarget(renderer));
+    SDL_SetRenderTarget(renderer, NULL);
+    SDL_DestroyTexture(target);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_zero_duration_switches_immediately_and_preserves_render_target);
+    RUN_TEST(test_modal_and_backdrop_fade_without_delaying_input_release);
     RUN_TEST(test_modal_resizes_and_keeps_form_inside_view);
     RUN_TEST(test_modal_centers_in_target_and_blocks_background_until_escape);
     RUN_TEST(test_nested_dropdown_and_focus_loss_preserve_modal);

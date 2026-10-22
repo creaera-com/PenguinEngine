@@ -71,6 +71,7 @@ void pui_view_free(PUIView *view) {
                 view->state[i].color.drag >= 0) {
                 SDL_CaptureMouse(false);
             }
+            SDL_DestroyTexture(view->state[i].modal_layer);
             pui_widget_tree_clear(&view->state[i]);
             if (view->state[i].image) {
                 SDL_DestroyTexture(view->state[i].image);

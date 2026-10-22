@@ -111,9 +111,11 @@ void pui_view_popup_draw(PUIView *view, PUIContext *pui, PUIAction action, void 
         } else {
             pui_view_draw_node(view, input, n->child, rect, action, context);
         }
-        pui_render_color(view->renderer, PUI_BORDER);
-        SDL_FRect border = pui_frect(rect);
-        SDL_RenderRect(view->renderer, &border);
+        if (!n->modal) {
+            pui_render_color(view->renderer, PUI_BORDER);
+            SDL_FRect border = pui_frect(rect);
+            SDL_RenderRect(view->renderer, &border);
+        }
         pui_clip_pop(input);
         pui_apply_clip(view->renderer, input);
     }

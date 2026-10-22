@@ -1249,3 +1249,11 @@ Nach dem ersten Zeichnen kann C einen sichtbaren Auslöser auch mit
 `pui_view_modal_active(view)` meldet den modalen Zustand;
 `pui_view_close_popups(view, input)` schließt alle Overlay-Ebenen.
 Die eigentlichen Aktionen werden weiterhin über den normalen Action-Callback gebunden.
+
+Modals und ihre Abdunklung blenden gemeinsam ein und aus. Die Dauer übernimmt
+`theme.button_transition_ms` (standardmäßig 120 ms); `transition_ms` direkt am
+`popup_button` überschreibt sie, `transition_ms: 0` schaltet die Animation aus.
+Nach dem Schließen sind die Dialogfelder sofort inaktiv; das Ausblenden ist rein
+visuell. Die temporäre Render-Textur wird nach dem Fade freigegeben. Falls der
+Renderer keine passende Render-Textur bereitstellen kann, bleibt der Dialog ohne
+Animation voll bedienbar.
