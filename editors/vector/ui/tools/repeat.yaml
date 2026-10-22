@@ -1,10 +1,8 @@
 schema: pengui/v1
 root:
-  type: section
-  id: section_tools_repeat
-  text: Klonen / Wiederholen
-  open: false
-  padding: 4
+  type: panel
+  id: vector_clone_content
+  padding: 0
   gap: 4
   children:
     - {type: label, id: repeat_source, text: Ein Objekt auswaehlen, height: 24}

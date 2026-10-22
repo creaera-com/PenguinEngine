@@ -1,9 +1,9 @@
 # Klonen / Wiederholen
 
-Im rechten **Tools**-Tab den Abschnitt **Klonen / Wiederholen** öffnen und ein einzelnes,
+Den rechten unteren **Klonen**-Tab öffnen und ein einzelnes,
 freies Objekt auswählen. Der Name des Ausgangsobjekts erscheint im Formular.
-Das Tools-Panel lässt sich mit dem Mausrad oder seiner Scrollbar vertikal scrollen;
-Vorschau und Raster bleiben unabhängig zuklappbar.
+Das Klonen-Panel lässt sich mit dem Mausrad oder seiner Scrollbar vertikal scrollen;
+Vorschau und Raster sind über ihre eigenen Tabs erreichbar.
 
 1. Modus **Verknüpft** oder **Unabhängige Kopien** wählen.
 2. Spalten, Zeilen und den Abstand X/Y in Dokumentpixeln einstellen.
@@ -95,7 +95,7 @@ Checkpoint heißt **PVCKPT29**. Bereits gespeicherte ältere Dokumente bleiben l
 - `repeat/render.*`: übernimmt Live-Geometrie/Farbvorschauen und übergibt kurzlebige
   Zellenwerte an die bestehenden Shape-Renderer. Kein zusätzliches Dokumentmodell.
 - `ui/tools/repeat.*`: Formularentwurf und Übersetzung von YAML-Aktionen ins Modell.
-- `ui/tools/repeat.yaml`: separat geladener, deklarativer Abschnitt im Tools-Panel.
+- `ui/tools/repeat.yaml`: separat geladenes Formular im Klonen-Tab.
 - `object/shape.c`: Trefferprüfung virtueller Zellen ohne neue Entity-IDs.
 - `persistence/document_file.c`: explizite, plattformunabhängige Wiederholungsfelder.
 

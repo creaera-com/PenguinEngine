@@ -155,63 +155,70 @@ root:
           id: vector_utility_tabs
           children:
             - type: tab
-              id: vector_tools_tab
-              text: Tools
+              id: vector_clone_tab
+              text: Klonen
               padding: 0
               children:
                 - type: panel
-                  id: vector_tools_panel
+                  id: vector_clone_panel
                   scroll: true
-                  padding: 4
+                  padding: 8
                   gap: 8
                   children:
                     - {type: slot, id: repeat_content}
-                    - type: section
-                      id: section_tools_grid_settings
-                      text: Raster
+            - type: tab
+              id: vector_grid_tab
+              text: Raster
+              padding: 0
+              children:
+                - type: panel
+                  id: vector_grid_panel
+                  scroll: true
+                  padding: 8
+                  gap: 8
+                  children:
+                    - type: dropdown
+                      id: vector_grid_type
+                      action: vector.grid.type
+                      value: standard
+                      height: 28
                       children:
-                        - type: dropdown
-                          id: vector_grid_type
-                          action: vector.grid.type
-                          value: standard
-                          height: 28
+                        - {type: option, text: Orthogonal, value: standard}
+                        - {type: option, text: Isometrisch, value: isometric}
+                        - {type: option, text: Hexagonal, value: hexagonal}
+                    - type: row
+                      padding: 0
+                      height: 28
+                      gap: 8
+                      children:
+                        - {type: label, text: Breite, width: 80}
+                        - {type: input, id: vector_grid_width, text: "16", action: vector.grid.width}
+                    - type: row
+                      padding: 0
+                      height: 28
+                      gap: 8
+                      children:
+                        - {type: label, text: Hoehe, width: 80}
+                        - {type: input, id: vector_grid_height, text: "16", action: vector.grid.height}
+                    - type: popup_button
+                      text: Rasterfarbe
+                      icon: tabler:palette
+                      placement: below
+                      height: 28
+                      popup_width: 260
+                      popup_height: 304
+                      children:
+                        - type: panel
+                          padding: 12
                           children:
-                            - {type: option, text: Orthogonal, value: standard}
-                            - {type: option, text: Isometrisch, value: isometric}
-                            - {type: option, text: Hexagonal, value: hexagonal}
-                        - type: row
-                          padding: 0
-                          height: 28
-                          gap: 8
-                          children:
-                            - {type: label, text: Breite, width: 80}
-                            - {type: input, id: vector_grid_width, text: "16", action: vector.grid.width}
-                        - type: row
-                          padding: 0
-                          height: 28
-                          gap: 8
-                          children:
-                            - {type: label, text: Hoehe, width: 80}
-                            - {type: input, id: vector_grid_height, text: "16", action: vector.grid.height}
-                        - type: popup_button
-                          text: Rasterfarbe
-                          icon: tabler:palette
-                          placement: below
-                          height: 28
-                          popup_width: 260
-                          popup_height: 304
-                          children:
-                            - type: panel
-                              padding: 12
-                              children:
-                                - {type: color_picker, id: vector_grid_color, value: "#80808080", action: vector.grid.color}
-                        - type: row
-                          padding: 0
-                          height: 28
-                          gap: 8
-                          children:
-                            - {type: label, text: Toleranz, width: 80}
-                            - {type: input, id: vector_grid_tolerance, text: "5", action: vector.grid.tolerance}
+                            - {type: color_picker, id: vector_grid_color, value: "#80808080", action: vector.grid.color}
+                    - type: row
+                      padding: 0
+                      height: 28
+                      gap: 8
+                      children:
+                        - {type: label, text: Toleranz, width: 80}
+                        - {type: input, id: vector_grid_tolerance, text: "5", action: vector.grid.tolerance}
             - type: tab
               id: vector_preview_tab
               text: Vorschau

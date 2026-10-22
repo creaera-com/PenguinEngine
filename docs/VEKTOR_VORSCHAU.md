@@ -1,6 +1,6 @@
 # 1:1-Vorschau
 
-Die **Vorschau** steht in einem eigenen Tab neben **Tools** im unteren Bereich der rechten Spalte.
+Die **Vorschau** steht in einem eigenen Tab neben **Klonen** und **Raster** im unteren Bereich der rechten Spalte.
 Mit **Bereich wählen** oder dem Scan-Icon in der Zeichen-Toolbar das Werkzeug aktivieren,
 dann mit der linken Maustaste einen Bereich innerhalb eines Artboards aufziehen.
 Der Bereich ist auf dieses Artboard begrenzt und wird auf der Zeichenfläche gestrichelt
@@ -28,7 +28,7 @@ und Farbänderungsvorschauen werden übernommen.
 - Wird das Artboard verkleinert, wird der Bereich für die Anzeige begrenzt. Nach Undo
   ist der ursprüngliche Ausschnitt wieder verfügbar. Gelöschte/ausgeblendete Artboards
   liefern keine Vorschau; ihre Region bleibt für ein mögliches Undo vorgemerkt.
-- Die Vorschau nutzt die verfügbare Tab-Fläche; das Raster bleibt im Tools-Tab einklappbar. Die Höhe des unteren Panels bleibt
+- Die Vorschau nutzt die verfügbare Tab-Fläche; das Raster besitzt ebenfalls einen eigenen Tab. Die Höhe des unteren Panels bleibt
   über den vorhandenen horizontalen Greifer veränderbar.
 
 ## Aufteilung
