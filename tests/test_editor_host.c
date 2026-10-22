@@ -678,7 +678,7 @@ static void test_inspector_owns_layouts_and_cleans_up_partial_initialization(voi
     VectorInspector inspector = {0};
     char error[256], path[2048];
     char temporary[256];
-    snprintf(temporary, sizeof temporary, "/tmp/pengui-inspector-%llu/",
+    snprintf(temporary, sizeof temporary, "pengui-inspector-%llu/",
              (unsigned long long)SDL_GetTicksNS());
     TEST_ASSERT_TRUE(SDL_CreateDirectory(temporary));
     const char *folders[] = {"editors", "editors/vector", "editors/vector/ui",

@@ -32,8 +32,7 @@ void pui_widget_section_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, P
     pui_icon(v->renderer, s->open ? ICON_DOWN : ICON_RIGHT, header.x + 9, header.y + 6, 16,
              foreground);
     pui_text(v->renderer, header.x + 31, header.y + 6, n->text, foreground);
-    pui_panel(v->renderer, (SDL_FRect){header.x, header.y + header.h - 1, header.w, 1},
-              PUI_HOVER);
+    pui_panel(v->renderer, (SDL_FRect){header.x, header.y + header.h - 1, header.w, 1}, PUI_HOVER);
     area.y += 30;
     area.h -= 30;
     area.x += n->padding;

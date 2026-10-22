@@ -69,7 +69,10 @@ uint32_t vector_gradient_sample(const VectorGradient *g, float x, float y, float
     } else if (g->kind == VECTOR_GRADIENT_REFLECTED) {
         t = fabsf(t);
     } else if (g->kind == VECTOR_GRADIENT_CONICAL) {
-        t = (atan2f(py, px) - atan2f(dy, dx)) / 6.283185307f;
+        /* Evaluate angles in double precision so cardinal directions round alike
+         * across libm implementations (especially the half-turn color midpoint). */
+        t = (float)((atan2((double)py, (double)px) - atan2((double)dy, (double)dx)) /
+                    6.2831853071795864769);
         t -= floorf(t);
     }
     return ramp(g, t);

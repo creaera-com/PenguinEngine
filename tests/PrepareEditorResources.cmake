@@ -1,7 +1,11 @@
 # Interaction fixtures use 1280x800 and stable pane widths, independent of user preferences.
 # Keep the complete current UI (IDs, controls and theme); normalize only the five outer widths.
-foreach(resource shell.yaml application.yaml project-explorer.yaml test-editor-config.yaml test-invalid-editor-config.yaml fonts icons editors)
+foreach(resource shell.yaml application.yaml project-explorer.yaml fonts icons editors)
  file(COPY "${SOURCE_ROOT}/${resource}" DESTINATION "${DESTINATION}")
+endforeach()
+# Generated config fixtures live in the build root, also for multi-config generators.
+foreach(resource test-editor-config.yaml test-invalid-editor-config.yaml)
+ file(COPY "${CONFIG_ROOT}/${resource}" DESTINATION "${DESTINATION}")
 endforeach()
 set(layout_path "${DESTINATION}/editors/vector/ui/editor.yaml")
 file(READ "${layout_path}" layout)

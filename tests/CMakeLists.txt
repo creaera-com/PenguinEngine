@@ -1,6 +1,7 @@
 if(PENGUI_BUILD_APP)
  add_custom_target(pengui_test_editor_resources
-  COMMAND ${CMAKE_COMMAND} "-DSOURCE_ROOT=${PROJECT_BINARY_DIR}"
+  COMMAND ${CMAKE_COMMAND} "-DSOURCE_ROOT=$<TARGET_FILE_DIR:pengui_editor>"
+  "-DCONFIG_ROOT=${PROJECT_BINARY_DIR}"
   "-DDESTINATION=${PROJECT_BINARY_DIR}/test-editor-resources"
   -P "${CMAKE_CURRENT_SOURCE_DIR}/PrepareEditorResources.cmake"
   DEPENDS pengui_editor_resources VERBATIM)
@@ -160,6 +161,7 @@ if(PENGUI_BUILD_APP)
  set_tests_properties(pengui_vector_ellipses PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy")
 endif()
 
+if(PENGUI_BUILD_APP)
  add_executable(pengui_vector_polygon_tests test_vector_polygons.c)
  target_link_libraries(pengui_vector_polygon_tests PRIVATE pengui_editor_support unity)
  target_compile_definitions(pengui_vector_polygon_tests PRIVATE PENGUI_EDITOR_RESOURCES="${PROJECT_BINARY_DIR}/test-editor-resources")
@@ -173,6 +175,7 @@ endif()
  add_dependencies(pengui_vector_text_tests pengui_test_editor_resources)
  add_test(NAME pengui_vector_text COMMAND pengui_vector_text_tests)
  set_tests_properties(pengui_vector_text PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy")
+endif()
 
 if(PENGUI_BUILD_APP)
  add_executable(pengui_project_tests test_projects.c)
