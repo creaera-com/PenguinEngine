@@ -3,7 +3,7 @@
 
 bool pui_view_event(PUIView *view, PUIContext *pui, SDL_Window *window, const SDL_Event *event) {
     view->window = window;
-    if (pui_widget_radial_event(view, pui, event)) {
+    if (!pui_view_modal_active(view) && pui_widget_radial_event(view, pui, event)) {
         return true;
     }
     bool color_consumed = pui_widget_color_picker_event(view, pui, event);
@@ -15,7 +15,8 @@ bool pui_view_event(PUIView *view, PUIContext *pui, SDL_Window *window, const SD
     }
     if (event->type == SDL_EVENT_WINDOW_FOCUS_LOST) {
         view->pointer_inside = false;
-        while (view->popup_count) {
+        while (view->popup_count &&
+               !view->layout->nodes[view->popups[view->popup_count - 1]].modal) {
             pui_view_popup_close(view, pui);
         }
         pui_cancel(pui);
@@ -64,5 +65,5 @@ bool pui_view_event(PUIView *view, PUIContext *pui, SDL_Window *window, const SD
                (event->key.key == SDLK_RETURN || event->key.key == SDLK_SPACE)) {
         pui_activate(pui);
     }
-    return false;
+    return pui_view_modal_active(view);
 }

@@ -1208,3 +1208,44 @@ Die Referenz wird beim Einfügen in Dokument-Tabs automatisch mit deren ID präf
           value: "#7393AFFF"
           action: object.fill
 ```
+
+### Wiederverwendbare Modals
+
+Ein `popup_button` mit `modal: true` öffnet seinen YAML-Inhalt als zentrierten
+Dialog. Das Modal nutzt denselben Overlay- und Fokusmechanismus wie Popups;
+Dropdowns und Farbwähler können darin weitere Overlays öffnen.
+
+```yaml
+- type: popup_button
+  id: settings_dialog
+  text: Einstellungen
+  modal: true
+  modal_title: Einstellungen
+  modal_target: workspace
+  popup_width: 460
+  popup_height: 400
+  children:
+    - type: panel
+      padding: 16
+      scroll: true
+      children:
+        - {type: input, id: title, text: Beispiel}
+        - {type: button, text: Anwenden, action: settings.apply}
+```
+
+`modal_target` ist optional und bezeichnet ein Widget, über dem das Modal zentriert
+wird. Ohne sichtbares Ziel verwendet es den gesamten View. Die Größe wird an den
+View angepasst; `scroll: true` am Inhalt hält lange Formulare erreichbar.
+Beim Einfügen in Dokument-Tabs werden Ziel-IDs wie andere interne Referenzen präfixiert.
+
+Die Umgebung wird abgedunkelt und akzeptiert weder Mausaktionen noch Tastaturbefehle.
+Ein Klick außerhalb schließt das Modal nicht. **X** oder **Escape** schließen die
+oberste Ebene und geben den Fokus an ihren Auslöser zurück. Escape schließt zuerst
+gegebenenfalls ein verschachteltes Dropdown. Ein nativer Ordnerdialog oder ein
+Fenster-Fokuswechsel lässt das Modal offen und beendet nur aktuelle Eingabegesten.
+
+Nach dem ersten Zeichnen kann C einen sichtbaren Auslöser auch mit
+`pui_view_open_modal(view, input, "settings_dialog")` öffnen.
+`pui_view_modal_active(view)` meldet den modalen Zustand;
+`pui_view_close_popups(view, input)` schließt alle Overlay-Ebenen.
+Die eigentlichen Aktionen werden weiterhin über den normalen Action-Callback gebunden.

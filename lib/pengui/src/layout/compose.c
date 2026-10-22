@@ -59,6 +59,14 @@ static int copy_node(Composition *c, const PUILayout *source, int index, int dep
         }
         snprintf(n->color_input, sizeof n->color_input, "%s", reference);
     }
+    if (c->tab_id && source == c->content && *n->modal_target) {
+        char reference[sizeof n->modal_target];
+        if (snprintf(reference, sizeof reference, "%s.%s", c->tab_id, n->modal_target) >=
+            (int)sizeof reference) {
+            return fail(c, "prefixed modal target ID exceeds capacity");
+        }
+        snprintf(n->modal_target, sizeof n->modal_target, "%s", reference);
+    }
     if (*n->image) {
         const char *image = source->nodes[index].image;
         bool absolute = image[0] == '/' || image[0] == '\\' || (image[0] && image[1] == ':');

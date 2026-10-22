@@ -262,6 +262,9 @@ static void test_renderer_state_and_live_previews_are_not_exported(void) {
 
 static void test_yaml_export_snapshots_current_document_and_rejects_huge_artboards(void) {
     VectorDocument *d = document();
+    TEST_ASSERT_TRUE(pui_view_open_modal(shell.view, &shell.input, "vector_export_dialog"));
+    commit();
+    TEST_ASSERT_TRUE(pui_view_modal_active(shell.view));
     TEST_ASSERT_TRUE(pui_view_set_text(shell.view, "vector_export_directory", folder));
     TEST_ASSERT_TRUE(pui_view_set_text(shell.view, "vector_export_name", "UI.png"));
     int cursor = d->history.cursor;

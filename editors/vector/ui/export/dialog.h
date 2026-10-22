@@ -17,7 +17,7 @@ typedef struct {
     int quality;
 } VectorExportUI;
 
-/** @brief Compose a module-owned YAML popup into the toolbar; consumes base layout. */
+/** @brief Compose a module-owned YAML modal trigger into the toolbar; consumes base layout. */
 PUILayout *vector_export_ui_layout(const EditorServices *services, PUILayout *base, char *error,
                                    size_t capacity);
 /** @brief Release pending value snapshot and owner reference; late dialog callbacks remain safe. */

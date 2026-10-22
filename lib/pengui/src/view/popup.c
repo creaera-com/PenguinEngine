@@ -56,7 +56,8 @@ bool pui_view_popup_prepare(PUIView *view, PUIContext *pui) {
     }
     int top = view->popup_count - 1;
     /* Dismiss on press, consuming the whole click so controls behind cannot fire. */
-    if (pui->pressed && !pui_contains(view->popup_rects[top], pui->press_x, pui->press_y)) {
+    if (pui->pressed && !view->layout->nodes[view->popups[top]].modal &&
+        !pui_contains(view->popup_rects[top], pui->press_x, pui->press_y)) {
         pui_view_popup_close(view, pui);
     }
     return true;
@@ -64,6 +65,9 @@ bool pui_view_popup_prepare(PUIView *view, PUIContext *pui) {
 
 static PUIRect overlay_rect(PUIView *view, int index) {
     const PUINode *n = &view->layout->nodes[index];
+    if (n->modal) {
+        return pui_modal_rect(view, index);
+    }
     float width = n->popup_width > 0             ? n->popup_width
                   : n->type == PUI_NODE_DROPDOWN ? view->rect[index].w
                                                  : 260;
@@ -96,7 +100,13 @@ void pui_view_popup_draw(PUIView *view, PUIContext *pui, PUIAction action, void 
         pui_clip_push(input, view->bounds);
         pui_apply_clip(view->renderer, input);
         const PUINode *n = &view->layout->nodes[index];
-        if (n->type == PUI_NODE_DROPDOWN) {
+        if (n->modal) {
+            if (!pui_modal_draw(view, input, index, rect, action, context)) {
+                pui_clip_pop(input);
+                pui_apply_clip(view->renderer, input);
+                break;
+            }
+        } else if (n->type == PUI_NODE_DROPDOWN) {
             pui_widget_dropdown_list(view, input, index, rect, action, context);
         } else {
             pui_view_draw_node(view, input, n->child, rect, action, context);

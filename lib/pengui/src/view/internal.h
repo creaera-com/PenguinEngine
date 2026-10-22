@@ -85,6 +85,11 @@ void pui_view_popup_open(PUIView *view, PUIContext *pui, int index);
 void pui_view_popup_close(PUIView *view, PUIContext *pui);
 bool pui_view_popup_prepare(PUIView *view, PUIContext *pui);
 void pui_view_popup_draw(PUIView *view, PUIContext *pui, PUIAction action, void *context);
+/** @brief Center a modal in its configured widget, clamped to the visible view. */
+PUIRect pui_modal_rect(const PUIView *view, int index);
+/** @brief Draw modal chrome/content; false when its close button dismissed it. */
+bool pui_modal_draw(PUIView *view, PUIContext *input, int index, PUIRect rect, PUIAction action,
+                    void *context);
 bool pui_view_popup_event(PUIView *view, PUIContext *pui, const SDL_Event *event);
 PUIContext pui_view_inert_context(const PUIContext *pui);
 void pui_view_request_cursor(PUIView *view, SDL_SystemCursor cursor, int priority);

@@ -127,7 +127,7 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
             "padding|enabled|open|checked|draggable|scroll|axis|children|value|popup_width|popup_"
             "height|"
             "placement|preview_action|close_action|filter_input|color_input|mode|input_type|radius|"
-            "transition_ms|")) {
+            "transition_ms|modal|modal_target|modal_title|")) {
         return -1;
     }
     int index = r->layout->count++;
@@ -191,6 +191,16 @@ static int node(Reader *r, yaml_node_t *yaml, int depth) {
             fail(r, placement, "placement must be below or right");
         }
         out->placement = !strcmp(value, "right") ? PUI_POPUP_RIGHT : PUI_POPUP_BELOW;
+    }
+    out->modal = boolean(r, yaml, "modal", false);
+    string(r, yaml, "modal_target", out->modal_target, sizeof out->modal_target);
+    string(r, yaml, "modal_title", out->modal_title, sizeof out->modal_title);
+    if ((out->modal || *out->modal_target || *out->modal_title) &&
+        out->type != PUI_NODE_POPUP_BUTTON) {
+        fail(r, yaml, "modal properties require a popup_button");
+    }
+    if (!out->modal && (*out->modal_target || *out->modal_title)) {
+        fail(r, yaml, "modal_target and modal_title require modal: true");
     }
     string(r, yaml, "color_input", out->color_input, sizeof out->color_input);
     if (*out->color_input && out->type != PUI_NODE_POPUP_BUTTON) {

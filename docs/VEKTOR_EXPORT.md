@@ -77,3 +77,9 @@ verfügbar ist. Ein großer Stapel kann deshalb die Bedienung vorübergehend blo
 Die History, Dateinamen der `.pengvec`-Dokumente und der Gespeichert-Zustand bleiben
 unverändert. Für das eigene Dokumentformat und die Checkpoint-Signatur ist keine
 Änderung erforderlich.
+
+Der Export-Button öffnet ein wiederverwendbares pengUI-Modal über den Dokument-Tabs.
+Die übrige Oberfläche ist währenddessen gesperrt. X oder Escape schließen den Dialog;
+ein Klick außerhalb lässt ihn offen. Der native Zielordnerdialog schließt das Modal nicht.
+Die Konfiguration liegt in `editors/vector/ui/export/dialog.yaml`; allgemeine
+Modal-Eigenschaften und die C-API stehen in [pengUI-Architektur](ARCHITEKTUR.md).

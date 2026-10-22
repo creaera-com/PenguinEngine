@@ -30,7 +30,7 @@ if(PENGUI_BUILD_SDL)
   src/rendering/image.c src/rendering/primitives.c
   src/widgets/color_picker_sdl.c src/widgets/button_sdl.c src/widgets/toggle_sdl.c src/widgets/checkbox_sdl.c
   src/widgets/radial_menu_sdl.c
-  src/widgets/dropdown_sdl.c src/widgets/popup_button_sdl.c src/widgets/button_group_sdl.c src/widgets/text_input_sdl.c src/widgets/basic_sdl.c
+  src/widgets/dropdown_sdl.c src/widgets/popup_button_sdl.c src/widgets/modal_sdl.c src/widgets/button_group_sdl.c src/widgets/text_input_sdl.c src/widgets/basic_sdl.c
   src/widgets/tabs_sdl.c src/widgets/tree_sdl.c src/widgets/scrollbar_sdl.c src/widgets/splitter_sdl.c
   src/layout/layout_sdl.c src/view/view.c src/view/mount.c src/view/cursor.c src/view/popup.c src/view/events.c src/view/draw.c src/window.c)
  target_include_directories(pengUI_sdl PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

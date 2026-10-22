@@ -549,6 +549,9 @@ typedef struct {
         scrollable; ///< Panel content can scroll vertically with wheel and scrollbar (YAML scroll).
     bool draggable; ///< Empty space in this widget may move a borderless window.
     PUIAxis axis;
+    bool modal;            ///< Popup button opens a centered blocking dialog with a title bar.
+    char modal_target[64]; ///< Optional widget ID used to center the dialog; empty uses the view.
+    char modal_title[128]; ///< Dialog heading, independent of the trigger button label.
     char color_input[64];  ///< Color picker ID displayed as a live popup-button swatch.
     char filter_input[64]; ///< Runtime tree filter bound to an input ID; empty disables filtering.
     char close_action[64]; ///< Tab close request; tabs containers supply the default for children.
@@ -951,6 +954,10 @@ bool pui_view_set_tree_items(PUIView *view, const char *tree, const PUITreeItem 
 bool pui_view_select_tree_item(PUIView *view, const char *tree, const char *item);
 /** @brief Close all open popups between frames, committing focus through normal widget rules. */
 void pui_view_close_popups(PUIView *view, PUIContext *context);
+/** @brief Open a visible, enabled modal popup button by ID; returns false for invalid targets. */
+bool pui_view_open_modal(PUIView *view, PUIContext *context, const char *id);
+/** @brief Whether a blocking modal exists, including underneath a nested popup. */
+bool pui_view_modal_active(const PUIView *view);
 /** @brief Borrow the selected runtime row ID; NULL when no row is selected. */
 const char *pui_view_selected_tree_item(const PUIView *view, const char *tree);
 /** @brief Runtime row count; -1 for a missing tree or a tree using YAML children. */

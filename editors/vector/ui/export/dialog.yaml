@@ -4,15 +4,17 @@ root:
   id: vector_export_dialog
   icon: tabler:file-export
   width: 30
-  placement: below
-  popup_width: 400
-  popup_height: 390
+  modal: true
+  modal_target: vector_document_tabs
+  modal_title: Bild exportieren
+  popup_width: 460
+  popup_height: 438
   children:
     - type: panel
-      padding: 12
+      padding: 16
+      scroll: true
       gap: 5
       children:
-        - {type: label, text: Bild exportieren, height: 24}
         - type: dropdown
           id: vector_export_scope
           value: artboard
