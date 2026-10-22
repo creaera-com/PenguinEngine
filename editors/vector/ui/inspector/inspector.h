@@ -4,9 +4,11 @@
 #include "artboard/artboard.h"
 #include "editor_host/editor.h"
 #include "editors/vector/document/document.h"
+#include "numeric_preview.h"
 #include "object/object.h"
 
-typedef struct {
+typedef struct VectorInspector {
+    VectorNumericPreview numeric;
     PUILayout *multi_layout;
     bool multi_mounted;
     VectorObjectInspector object;
@@ -31,6 +33,12 @@ void vector_inspector_cancel_color(VectorInspector *inspector, VectorDocuments *
 /** @brief Translate committed input values into undoable model changes. */
 bool vector_inspector_action(VectorInspector *inspector, VectorDocuments *documents, PUIView *view,
                              const char *action);
+/** @brief Refresh the temporary numeric preview after synchronizing the real inspector. */
+void vector_inspector_preview_sync(VectorInspector *inspector, VectorDocument *source,
+                                   PUIView *view);
+/** @brief Borrow the drawing-only preview, or source when no numeric gesture is active. */
+VectorDocument *vector_inspector_preview_document(VectorInspector *inspector,
+                                                  VectorDocument *source);
 /** @brief Load the inspector description; caller owns the returned layout. */
 PUILayout *vector_inspector_load(const EditorServices *services, char *error, size_t capacity);
 #endif

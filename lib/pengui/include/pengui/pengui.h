@@ -984,6 +984,11 @@ bool pui_view_add_tab(PUIView *view, PUIContext *context, const char *tabs, cons
 const char *pui_view_selected_tab(const PUIView *view, const char *tabs);
 /** @brief Select an existing enabled tab by widget ID and scroll its caption into view. */
 bool pui_view_select_tab(PUIView *view, const char *tabs, const char *tab);
+/** @brief Borrow the active numeric scrub widget/action for a read-only application preview.
+ * Read its current value with pui_view_text. True also during a pending release commit;
+ * false after cancellation, layout replacement or action delivery. No preview actions are emitted.
+ */
+bool pui_view_numeric_preview(const PUIView *view, const char **widget, const char **action);
 /** @brief Number of tabs; zero for an invalid tabs ID or NULL view. */
 /** @brief Remove a tab and its content between frames; preserve other widgets and visual order. */
 bool pui_view_remove_tab(PUIView *view, PUIContext *context, const char *tabs, const char *tab_id,

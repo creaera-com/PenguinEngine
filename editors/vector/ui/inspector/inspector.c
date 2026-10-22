@@ -58,3 +58,13 @@ bool vector_inspector_sync(VectorInspector *inspector, VectorDocument *document,
     return vector_artboard_inspector_sync(&inspector->artboard, document, view, input, error,
                                           capacity);
 }
+
+void vector_inspector_preview_sync(VectorInspector *inspector, VectorDocument *source,
+                                   PUIView *view) {
+    vector_numeric_preview_sync(&inspector->numeric, inspector, source, view);
+}
+
+VectorDocument *vector_inspector_preview_document(VectorInspector *inspector,
+                                                  VectorDocument *source) {
+    return vector_numeric_preview_document(&inspector->numeric, source);
+}

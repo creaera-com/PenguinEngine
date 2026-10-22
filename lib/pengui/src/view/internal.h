@@ -50,7 +50,7 @@ struct PUIView {
 
     struct {
         int index;
-        bool pending, active;
+        bool pending, active, committing;
         Uint64 started;
         float x, y;
         double value;

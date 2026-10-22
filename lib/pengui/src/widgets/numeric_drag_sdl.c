@@ -12,7 +12,7 @@ void pui_numeric_drag_cancel(PUIView *v) {
         pui_text_edit_init(&s->edit, s->text, false);
         SDL_CaptureMouse(false);
     }
-    v->numeric_drag.pending = v->numeric_drag.active = false;
+    v->numeric_drag.pending = v->numeric_drag.active = v->numeric_drag.committing = false;
 }
 
 void pui_numeric_drag_begin(PUIView *v, const SDL_Event *e) {
@@ -119,6 +119,7 @@ bool pui_numeric_drag_event(PUIView *v, PUIContext *pui, const SDL_Event *e) {
             int i = v->numeric_drag.index;
             if (strcmp(v->state[i].text, v->numeric_drag.original)) {
                 v->submit = i;
+                v->numeric_drag.committing = true;
             }
             SDL_CaptureMouse(false);
             pui_pointer(pui, e->button.x, e->button.y, false);
@@ -128,4 +129,21 @@ bool pui_numeric_drag_event(PUIView *v, PUIContext *pui, const SDL_Event *e) {
     }
     return active && (e->type == SDL_EVENT_KEY_DOWN || e->type == SDL_EVENT_TEXT_INPUT ||
                       e->type == SDL_EVENT_MOUSE_WHEEL);
+}
+
+bool pui_view_numeric_preview(const PUIView *view, const char **widget, const char **action) {
+    if (!view || (!view->numeric_drag.active && !view->numeric_drag.committing)) {
+        return false;
+    }
+    int i = view->numeric_drag.index;
+    if (!view->visible[i] || !view->enabled[i]) {
+        return false;
+    }
+    if (widget) {
+        *widget = view->layout->nodes[i].name;
+    }
+    if (action) {
+        *action = view->layout->nodes[i].action;
+    }
+    return true;
 }

@@ -86,6 +86,7 @@ failed:
 }
 
 void vector_inspector_destroy(VectorInspector *inspector) {
+    vector_numeric_preview_destroy(&inspector->numeric);
     pui_layout_free(inspector->multi_layout);
     pui_layout_free(inspector->artboard.layout);
     pui_layout_free(inspector->object.layout);

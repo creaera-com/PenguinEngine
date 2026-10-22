@@ -124,6 +124,9 @@ void pui_widget_text_input_draw(PUIView *v, PUIContext *pui, int i, PUIRect area
             action(context, n->action, n->name);
         }
         v->submit = -1;
+        if (v->numeric_drag.index == i) {
+            v->numeric_drag.committing = false;
+        }
     }
 }
 

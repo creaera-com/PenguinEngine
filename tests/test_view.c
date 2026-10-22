@@ -1205,11 +1205,16 @@ static void test_numeric_long_press_scrubs_in_units_and_commits_only_on_release(
     pui_view_draw(v, &input, (PUIRect){0, 0, 300, 100}, typed_commit, v);
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_MOTION, 58);
     TEST_ASSERT_EQUAL_STRING("13.5", pui_view_text(v, "number"));
+    const char *widget, *binding;
+    TEST_ASSERT_TRUE(pui_view_numeric_preview(v, &widget, &binding));
+    TEST_ASSERT_EQUAL_STRING("number", widget);
+    TEST_ASSERT_EQUAL_STRING("changed", binding);
     TEST_ASSERT_EQUAL_INT(0, typed_commits);
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_MOTION, 28);
     TEST_ASSERT_EQUAL_STRING("8.5", pui_view_text(v, "number"));
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_UP, 28);
     TEST_ASSERT_EQUAL_INT(1, typed_commits);
+    TEST_ASSERT_FALSE(pui_view_numeric_preview(v, NULL, NULL));
     TEST_ASSERT_EQUAL_UINT(pui_id("number"), input.focus);
     numeric_pointer(v, &input, SDL_EVENT_MOUSE_BUTTON_DOWN, 40);
     SDL_Delay(550);

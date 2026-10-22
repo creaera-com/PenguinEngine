@@ -232,9 +232,11 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
         return;
     }
     if (!strcmp(widget, "vector_preview_canvas")) {
-        vector_preview_draw(vector_documents_find(&editor->documents, editor->active_document_id),
-                            renderer, area, editor->text_renderer, editor->image_renderer,
-                            &editor->artwork);
+        vector_preview_draw(
+            vector_inspector_preview_document(
+                &editor->inspector,
+                vector_documents_find(&editor->documents, editor->active_document_id)),
+            renderer, area, editor->text_renderer, editor->image_renderer, &editor->artwork);
         return;
     }
     for (int i = 0; i < editor->documents.count; i++) {
@@ -244,8 +246,9 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
         if (!strcmp(id, widget)) {
             editor->active_document_id = document->id;
             vector_workspace_cancel_inactive(&editor->documents, document);
-            vector_canvas_draw(document, renderer, area, editor->text_renderer,
-                               editor->image_renderer, &editor->workspace_style, &editor->artwork);
+            vector_canvas_draw(vector_inspector_preview_document(&editor->inspector, document),
+                               renderer, area, editor->text_renderer, editor->image_renderer,
+                               &editor->workspace_style, &editor->artwork);
             return;
         }
     }
@@ -299,5 +302,6 @@ bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, c
     }
     vector_object_actions_commit(&editor->object_actions, active, view);
     vector_document_tabs_sync(&editor->documents, view);
+    vector_inspector_preview_sync(&editor->inspector, active, view);
     return true;
 }

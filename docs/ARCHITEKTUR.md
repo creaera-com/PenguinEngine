@@ -1272,6 +1272,21 @@ Kurze Klicks, Doppelklicks und unmittelbar begonnene Textauswahl bleiben erhalte
 String-Felder haben keinen Ziehmodus. Die UI-Bibliothek verändert nur den Feldwert;
 die registrierte Action bleibt für Bereichsprüfung und Dokument-History zuständig.
 
+Anwendungen können mit `pui_view_numeric_preview(view, &widget, &action)` eine
+laufende Ziehgeste abfragen und den aktuellen Wert mit `pui_view_text` lesen.
+Die Abfrage bleibt bis zur Zustellung der normalen Release-Action wahr, damit
+kein Bild mit dem alten Wert zwischen Vorschau und Commit erscheint. Nach Escape,
+Fokusverlust oder Layoutwechsel ist sie falsch. Die UI sendet während der Geste
+keine zusätzlichen Commit-Actions.
+
+Der Vektoreditor verwendet diese Abfrage für eine Live-Vorschau numerischer
+Inspector-Felder. `ui/inspector/numeric_preview.c` prüft den Wert mit den bestehenden
+fachlichen Befehlen auf einer isolierten Dokumentkopie. Nur Zeichenfläche und
+Vorschau-Tab lesen diese Kopie; echtes Dokument, History und gespeicherter Stand
+bleiben unverändert. Beim Loslassen läuft die normale Action genau einmal auf
+dem echten Dokument. Abbruch verwirft die Kopie. Der temporäre Arbeitsbereich
+wird nur während der Geste angelegt und danach bzw. beim Editorwechsel freigegeben.
+
 ```yaml
 - {type: input, id: width, input_type: decimal, text: "100", action: object.width}
 ```

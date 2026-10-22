@@ -95,6 +95,7 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/appearance/stroke/stroke.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/artboard/artboard.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/inspector.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/numeric_preview.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/lifecycle.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/object/object.c
  ${PROJECT_SOURCE_DIR}/editors/vector/ui/inspector/ellipse/ellipse.c
