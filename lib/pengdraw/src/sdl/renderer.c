@@ -1,3 +1,4 @@
+#include "resources.h"
 /** @file @brief Bounded supersampling with caller-owned replayable drawing commands. */
 #include "pengdraw/pengdraw.h"
 #include <math.h>
@@ -21,6 +22,7 @@ typedef struct {
 typedef struct {
     CachedTile entries[CACHE_TILES];
     uint64_t clock;
+    uint64_t hits, misses, repaints, evictions;
 } TileCache;
 
 typedef struct {
@@ -87,7 +89,8 @@ static bool prepare(PDrawRenderer *c, SDL_Renderer *r, int w, int h) {
     SDL_DestroyTexture(c->target);
     c->width = w;
     c->height = h;
-    c->target = SDL_CreateTexture(r, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h);
+    c->target = pdraw_create_texture(r, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h,
+                                     PDRAW_TEXTURE_ARTWORK);
     if (!c->target || !SDL_SetTextureScaleMode(c->target, SDL_SCALEMODE_LINEAR) ||
         !SDL_SetTextureBlendMode(c->target, SDL_BLENDMODE_BLEND_PREMULTIPLIED)) {
         SDL_DestroyTexture(c->target);
@@ -193,6 +196,11 @@ static CachedTile *cached_tile(TileCache *cache, SDL_Renderer *r, SDL_Rect crop,
             /* Content revisions replace this tile in place. Keeping each drag
              * frame as another cached image wastes textures and churns GPU allocations. */
             *repaint = entry->revision != revision;
+            if (*repaint) {
+                cache->repaints++;
+            } else {
+                cache->hits++;
+            }
             entry->revision = revision;
             entry->used = ++cache->clock;
             return entry;
@@ -203,9 +211,13 @@ static CachedTile *cached_tile(TileCache *cache, SDL_Renderer *r, SDL_Rect crop,
         }
     }
     *repaint = true;
+    cache->misses++;
     size_t needed = (size_t)crop.w * crop.h * SAMPLES * SAMPLES * 4;
     /* Evict least-recently-used tiles until both the slot and byte budgets fit. */
     while (bytes - tile_bytes(oldest) + needed > CACHE_BYTES) {
+        if (oldest->drawing.target) {
+            cache->evictions++;
+        }
         bytes -= tile_bytes(oldest);
         pdraw_renderer_destroy(&oldest->drawing);
         *oldest = (CachedTile){0};
@@ -219,6 +231,9 @@ static CachedTile *cached_tile(TileCache *cache, SDL_Renderer *r, SDL_Rect crop,
         if (!oldest) {
             oldest = &cache->entries[0];
         }
+    }
+    if (oldest->drawing.target) {
+        cache->evictions++;
     }
     pdraw_renderer_destroy(&oldest->drawing);
     *oldest = (CachedTile){.crop = crop,
@@ -283,4 +298,28 @@ void pdraw_render_cached(PDrawRenderer *cache, SDL_Renderer *r, SDL_FRect bounds
         }
     }
     restore(r, &previous);
+}
+
+PDrawCacheStats pdraw_renderer_cache_stats(const PDrawRenderer *cache) {
+    PDrawCacheStats stats = {0};
+    if (!cache) {
+        return stats;
+    }
+    if (cache->target) {
+        stats.scratch_bytes = (uint64_t)cache->width * cache->height * 4;
+    }
+    const TileCache *tiles = cache->tiles;
+    if (tiles) {
+        stats.hits = tiles->hits;
+        stats.misses = tiles->misses;
+        stats.repaints = tiles->repaints;
+        stats.evictions = tiles->evictions;
+        for (int i = 0; i < CACHE_TILES; i++) {
+            if (tiles->entries[i].drawing.target) {
+                stats.tiles++;
+                stats.tile_bytes += tile_bytes(&tiles->entries[i]);
+            }
+        }
+    }
+    return stats;
 }

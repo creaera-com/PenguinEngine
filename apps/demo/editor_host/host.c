@@ -40,13 +40,12 @@ void editor_host_log_action(EditorHost *host, PUIView *view, const char *name, c
 
 static void draw_canvas(void *context, SDL_Renderer *renderer, PUIRect area, const char *widget) {
     EditorHost *host = context;
-    process_monitor_graphics(&host->monitor, renderer);
-    if (process_monitor_draw(&host->monitor, renderer, area, widget)) {
-        return;
-    }
-    if (host->active && host->active->canvas) {
+    if (!process_monitor_draw(&host->monitor, renderer, area, widget) && host->active &&
+        host->active->canvas) {
         host->active->canvas(host->instance, renderer, area, widget);
     }
+    /* Capture after painting so newly created/released resources are visible this frame. */
+    process_monitor_graphics(&host->monitor, renderer);
 }
 
 bool editor_host_event(EditorHost *host, PUIView *view, const SDL_Event *event) {

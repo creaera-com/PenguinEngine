@@ -23,6 +23,7 @@ bool process_monitor_recording_action(MonitorLog *log, const ProcessMonitor *mon
     if (pui_view_checked(view, "process_monitor_log")) {
         monitor_log_start(log, monitor, editor, context, now);
     } else {
+        monitor_log_observe(log, monitor, editor, context, now);
         monitor_log_stop(log, monitor, "user.stop", now);
     }
     process_monitor_recording_sync(log, view);

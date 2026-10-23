@@ -1,3 +1,4 @@
+#include "resources.h"
 /** @file @brief Render existing content once, then sample it only inside the mask's triangles. */
 #include "pengdraw/pengdraw.h"
 
@@ -27,10 +28,10 @@ void pdraw_mask_render(PDrawMaskRenderer *c, const PDrawShape *mask, PDrawRect r
         if (!SDL_GetCurrentRenderOutputSize(r, &c->width, &c->height)) {
             return;
         }
-        c->texture = SDL_CreateTexture(r, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-                                       c->width, c->height);
-        c->clipped = SDL_CreateTexture(r, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
-                                       c->width, c->height);
+        c->texture = pdraw_create_texture(r, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
+                                          c->width, c->height, PDRAW_TEXTURE_MASK);
+        c->clipped = pdraw_create_texture(r, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET,
+                                          c->width, c->height, PDRAW_TEXTURE_MASK);
         if (!c->texture || !c->clipped ||
             !SDL_SetTextureBlendMode(c->texture, SDL_BLENDMODE_NONE) ||
             !SDL_SetTextureBlendMode(c->clipped, SDL_BLENDMODE_BLEND_PREMULTIPLIED)) {

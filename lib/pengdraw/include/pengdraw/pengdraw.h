@@ -265,7 +265,23 @@ typedef struct {
     uint64_t shadow_draws, shadow_failures;
     uint64_t gradient_draws, gradient_failures;
     size_t texture_bytes;
+    unsigned shadow_width, shadow_height, shadow_targets;
 } PDrawGPUStats;
+
+/** @brief Logical pengDraw-owned texture handles; excludes UI/images/fonts and driver internals.
+ * Byte counts are width * height * pixel size, not physical VRAM or process RAM.
+ * Releases mean SDL texture destruction, not completion of deferred driver work.
+ * Counts are renderer-lifetime totals, including CPU fallback texture allocations. */
+typedef struct {
+    bool available, complete; ///< False complete means accounting metadata allocation failed.
+    uint64_t textures_created, textures_released, texture_failures, live_textures;
+    uint64_t live_bytes, peak_bytes;
+    uint64_t artwork_bytes, shadow_bytes, mask_bytes, gradient_bytes, auxiliary_bytes;
+    uint64_t shadow_fallback_attempts, gradient_fallback_attempts;
+} PDrawResourceStats;
+
+/** @brief Read existing counters without creating textures, GPU waits or readback; NULL is safe. */
+PDrawResourceStats pdraw_renderer_resource_stats(SDL_Renderer *renderer);
 
 /** @brief Query GPU effect counters without GPU synchronization or pixel downloads. */
 PDrawGPUStats pdraw_renderer_gpu_stats(SDL_Renderer *renderer);
@@ -298,6 +314,16 @@ void pdraw_render(PDrawRenderer *, SDL_Renderer *, SDL_FRect bounds, PDrawPaint,
  */
 void pdraw_render_cached(PDrawRenderer *, SDL_Renderer *, SDL_FRect bounds, uint64_t revision,
                          PDrawPaint, void *context);
+
+/** @brief Current caller-owned artwork cache, reset when the cache is destroyed. */
+typedef struct {
+    uint64_t hits, misses, repaints, evictions;
+    uint64_t tile_bytes, scratch_bytes;
+    unsigned tiles;
+} PDrawCacheStats;
+
+/** @brief Read a scratch/tile cache without creating resources; NULL returns zeros. */
+PDrawCacheStats pdraw_renderer_cache_stats(const PDrawRenderer *cache);
 /** @brief Free scratch textures, safe repeatedly. */
 void pdraw_renderer_destroy(PDrawRenderer *);
 

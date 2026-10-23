@@ -150,3 +150,20 @@ PDRAW_REQUIRE_GPU=1 ctest --test-dir build -R '^pengdraw_gpu$' --output-on-failu
 Die Linux-Tests können auf einem Vulkan-Softwaregerät laufen. Metal und Direct3D
 benötigen zur tatsächlichen Ausführungsprüfung einen passenden Rechner; vorhandene
 Shaderdateien allein sind kein Nachweis einer dort getesteten Ausgabe.
+
+## Ressourcen-Diagnose
+
+`pdraw_renderer_resource_stats(renderer)` liefert rendererweite Lebenszeit-Zähler
+für pengDraw-eigene Texturen, deren Freigaben, aktuelle und maximale logische
+Pixelgröße sowie CPU-Fallback-Versuche. Die Registrierung hängt an SDL-Properties;
+auch eine direkte SDL-Texturfreigabe entfernt den registrierten Bestand.
+`pdraw_renderer_cache_stats(cache)` liefert dagegen den aktuellen Kachel-/Scratch-
+Bestand und Cache-Treffer, Neuzeichnungen und Verdrängungen. Die GPU-Effektstatistik
+enthält zusätzlich Anzahl und Kapazität der Schatten-Zwischentexturen.
+
+Die App übernimmt diese Werte über Monitor und Editor-Adapter in jede Zeile der
+Projekt-Aufzeichnung. Umfang, Felder und Messgrenzen stehen in
+[Prozess-Monitor](MONITORING.md#render-ressourcen-im-performance-log).
+Insbesondere ist eine SDL-Handle-Freigabe kein Nachweis, dass der Treiber bereits
+sämtliche Kopien physisch freigegeben hat. Es findet keine GPU-Synchronisierung
+für die Messung statt.

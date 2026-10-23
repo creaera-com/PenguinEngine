@@ -1,3 +1,4 @@
+#include "../sdl/resources.h"
 /** @file @brief GPU alpha dilation, separable blur and tint without CPU pixel readback. */
 #include "internal.h"
 
@@ -55,8 +56,8 @@ static bool prepare(PDrawGPU *gpu, SDL_Renderer *r, int w, int h) {
     gpu->width = gpu->height = 0;
     gpu->stats.texture_bytes = 0;
     for (int i = 0; i < 3; i++) {
-        gpu->textures[i] =
-            SDL_CreateTexture(r, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h);
+        gpu->textures[i] = pdraw_create_texture(
+            r, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h, PDRAW_TEXTURE_SHADOW);
         if (gpu->textures[i]) {
             gpu->stats.texture_bytes += (size_t)w * h * 4;
         }

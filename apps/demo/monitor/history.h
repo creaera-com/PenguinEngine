@@ -27,7 +27,14 @@ typedef struct {
 typedef struct {
     char device[128], backend[64], driver[128];
     uint64_t effect_bytes;
-    bool effects_available;
+    bool effects_available, observed, resources_available, resources_complete;
+    double observed_at;
+    uint64_t textures_created, textures_released, texture_failures, live_textures;
+    uint64_t live_bytes, peak_bytes;
+    uint64_t artwork_bytes, shadow_bytes, mask_bytes, gradient_bytes, auxiliary_bytes;
+    uint64_t shadow_fallback_attempts, gradient_fallback_attempts;
+    uint64_t gpu_shadow_draws, gpu_shadow_failures, gpu_gradient_draws, gpu_gradient_failures;
+    unsigned shadow_width, shadow_height, shadow_targets;
 } MonitorGraphics;
 
 /** @brief Fixed-size ring: memory and work remain bounded regardless of application lifetime. */

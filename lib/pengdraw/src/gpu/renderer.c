@@ -1,3 +1,4 @@
+#include "../sdl/resources.h"
 /** @file @brief GPU renderer selection, shader loading and explicit resource lifetime. */
 #include "internal.h"
 #include "shaders/gradient_bytes.inc"
@@ -74,7 +75,8 @@ static bool initialize(SDL_Renderer *r) {
         SDL_GPURenderStateCreateInfo state = {.fragment_shader = gpu->gradient_shader};
         gpu->gradient_state = SDL_CreateGPURenderState(r, &state);
     }
-    gpu->white = SDL_CreateTexture(r, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, 1, 1);
+    gpu->white = pdraw_create_texture(r, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, 1, 1,
+                                      PDRAW_TEXTURE_AUXILIARY);
     Uint32 white = 0xffffffff;
     bool ready = gpu->state && gpu->gradient_state && gpu->white &&
                  SDL_UpdateTexture(gpu->white, NULL, &white, 4) &&
@@ -120,7 +122,15 @@ bool pdraw_renderer_gpu_effects(SDL_Renderer *renderer) {
 
 PDrawGPUStats pdraw_renderer_gpu_stats(SDL_Renderer *r) {
     PDrawGPU *gpu = pdraw_gpu_context(r);
-    return gpu ? gpu->stats : (PDrawGPUStats){0};
+    PDrawGPUStats stats = gpu ? gpu->stats : (PDrawGPUStats){0};
+    if (gpu) {
+        stats.shadow_width = (unsigned)gpu->width;
+        stats.shadow_height = (unsigned)gpu->height;
+        for (int i = 0; i < 3; i++) {
+            stats.shadow_targets += gpu->textures[i] != NULL;
+        }
+    }
+    return stats;
 }
 
 void pdraw_destroy_renderer(SDL_Renderer *r) {

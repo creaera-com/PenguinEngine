@@ -33,7 +33,7 @@ if(NOT MSVC)
 endif()
 if(PENGDRAW_BUILD_SDL)
  add_library(pengDraw_sdl STATIC src/sdl/path.c src/sdl/ellipse.c src/sdl/curve.c
-  src/sdl/stroke.c src/sdl/gradient.c src/sdl/shape.c src/sdl/texture.c src/sdl/renderer.c src/sdl/mask.c src/sdl/shadow.c src/gpu/renderer.c src/gpu/shadow.c src/gpu/gradient.c)
+  src/sdl/stroke.c src/sdl/gradient.c src/sdl/shape.c src/sdl/texture.c src/sdl/renderer.c src/sdl/resources.c src/sdl/mask.c src/sdl/shadow.c src/gpu/renderer.c src/gpu/shadow.c src/gpu/gradient.c)
  add_library(pengDraw::sdl ALIAS pengDraw_sdl)
  target_link_libraries(pengDraw_sdl PUBLIC pengDraw SDL3::SDL3)
  target_compile_definitions(pengDraw_sdl PUBLIC PDRAW_WITH_SDL=1)

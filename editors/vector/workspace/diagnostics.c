@@ -5,7 +5,15 @@
 
 EditorDiagnostics vector_workspace_diagnostics(const void *instance, const PUIView *view) {
     const VectorEditor *editor = instance;
-    EditorDiagnostics result = {0};
+    PDrawCacheStats cache = pdraw_renderer_cache_stats(&editor->artwork.drawing);
+    EditorDiagnostics result = {.artwork_cache_available = true,
+                                .cache_tile_bytes = cache.tile_bytes,
+                                .cache_scratch_bytes = cache.scratch_bytes,
+                                .cache_hits = cache.hits,
+                                .cache_misses = cache.misses,
+                                .cache_repaints = cache.repaints,
+                                .cache_evictions = cache.evictions,
+                                .cache_tiles = cache.tiles};
     /* Tab lookup only reads the collection; find via the active ID to retain const ownership. */
     const VectorDocument *d = NULL;
     for (int i = 0; i < editor->documents.count; i++) {

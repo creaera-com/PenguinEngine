@@ -185,6 +185,36 @@ static void test_pan_logs_boundaries_coordinates_and_discrete_view_changes(void)
     SDL_free(text);
 }
 
+static void test_resource_counters_are_serialized_exactly_with_explicit_availability(void) {
+    start();
+    monitor.graphics = (MonitorGraphics){.resources_available = true,
+                                         .resources_complete = true,
+                                         .effects_available = true,
+                                         .textures_created = UINT64_C(9007199254740993),
+                                         .textures_released = 10,
+                                         .live_textures = 4,
+                                         .live_bytes = 1048576,
+                                         .gpu_shadow_draws = 50,
+                                         .shadow_fallback_attempts = 2,
+                                         .shadow_width = 256,
+                                         .shadow_height = 128,
+                                         .shadow_targets = 3};
+    EditorDiagnostics d = context();
+    d.artwork_cache_available = true;
+    d.cache_tile_bytes = 1048576;
+    d.cache_repaints = 20;
+    monitor_log_action(&log_state, &monitor, "vector", d, "test", "", 2);
+    char *text = read_log();
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"render_resources\":{\"available\":false"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"textures_created\":null"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"textures_created\":9007199254740993"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"gpu_shadow_draws\":50"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"shadow_fallback_attempts\":2"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"tile_bytes\":1048576"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"repaints\":20"));
+    SDL_free(text);
+}
+
 static void test_switching_project_stops_and_restart_preserves_old_file(void) {
     start();
     char previous[4096];
@@ -294,9 +324,14 @@ static void test_host_toggle_and_real_clone_move_are_logged_through_adapter(void
     TEST_ASSERT_TRUE(editor_host_commit(&host, shell.view, &shell.input, error, sizeof error));
     TEST_ASSERT_NOT_NULL(host.log.stream);
     TEST_ASSERT_TRUE(pui_view_checked(shell.view, "process_monitor_log"));
+    pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 1280, 800}, NULL, NULL);
+    TEST_ASSERT_TRUE(editor_host_commit(&host, shell.view, &shell.input, error, sizeof error));
+    TEST_ASSERT_GREATER_THAN_UINT64(0, host.log.previous.cache_tile_bytes);
+    vector_artwork_renderer_destroy(&((VectorEditor *)host.instance)->artwork);
     pui_view_set_checked(shell.view, "process_monitor_log", false);
     TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "monitor.log", "process_monitor_log"));
     TEST_ASSERT_NULL(host.log.stream);
+    TEST_ASSERT_EQUAL_UINT64(0, host.log.previous.cache_tile_bytes);
     char *text = SDL_LoadFile(host.log.path, NULL);
     TEST_ASSERT_NOT_NULL(text);
     TEST_ASSERT_NOT_NULL(strstr(text, "selection.move"));
@@ -320,6 +355,7 @@ int main(void) {
     RUN_TEST(test_samples_and_gesture_boundaries_do_not_log_every_motion);
     RUN_TEST(test_selection_identity_and_clearing_are_logged_without_motion_spam);
     RUN_TEST(test_pan_logs_boundaries_coordinates_and_discrete_view_changes);
+    RUN_TEST(test_resource_counters_are_serialized_exactly_with_explicit_availability);
     RUN_TEST(test_switching_project_stops_and_restart_preserves_old_file);
     RUN_TEST(test_write_failure_closes_recording_instead_of_growing_memory);
     RUN_TEST(test_host_toggle_and_real_clone_move_are_logged_through_adapter);

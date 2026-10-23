@@ -167,8 +167,43 @@ static void test_gpu_shadow_targets_keep_capacity_for_smaller_objects(void) {
     TEST_ASSERT_EQUAL_UINT64(0, pdraw_renderer_gpu_stats(renderer).shadow_failures);
 }
 
+static void test_gpu_resource_accounting_reuses_and_releases_shadow_targets(void) {
+    PDrawResourceStats initial = pdraw_renderer_resource_stats(renderer);
+    TEST_ASSERT_TRUE(initial.available);
+    TEST_ASSERT_TRUE(initial.complete);
+    TEST_ASSERT_EQUAL_UINT64(1, initial.textures_created); /* Shared white gradient texel. */
+    TEST_ASSERT_EQUAL_UINT64(4, initial.auxiliary_bytes);
+    PDrawShadow shadow = pdraw_shadow_default();
+    shadow.enabled = true;
+    for (int i = 0; i < 20; i++) {
+        shadow.offset_x = (float)i;
+        TEST_ASSERT_TRUE(
+            pdraw_shadow_draw(renderer, &shadow, 1, (PDrawRect){20, 30, 40, 30}, silhouette, NULL));
+    }
+    PDrawResourceStats resources = pdraw_renderer_resource_stats(renderer);
+    PDrawGPUStats effects = pdraw_renderer_gpu_stats(renderer);
+    TEST_ASSERT_EQUAL_UINT64(4, resources.textures_created);
+    TEST_ASSERT_EQUAL_UINT64(4, resources.live_textures);
+    TEST_ASSERT_EQUAL_UINT64(0, resources.textures_released);
+    TEST_ASSERT_EQUAL_UINT64(0, resources.shadow_fallback_attempts);
+    TEST_ASSERT_EQUAL_UINT64(0, resources.texture_failures);
+    TEST_ASSERT_EQUAL_UINT(3, effects.shadow_targets);
+    TEST_ASSERT_EQUAL_UINT64((uint64_t)effects.shadow_width * effects.shadow_height * 4 * 3,
+                             resources.shadow_bytes);
+    TEST_ASSERT_EQUAL_UINT64(effects.texture_bytes, resources.shadow_bytes);
+    SDL_FRect bigger = {0, 0, 120, 100};
+    TEST_ASSERT_TRUE(
+        pdraw_shadow_draw(renderer, &shadow, 1, (PDrawRect){0, 0, 120, 100}, silhouette, &bigger));
+    resources = pdraw_renderer_resource_stats(renderer);
+    TEST_ASSERT_EQUAL_UINT64(7, resources.textures_created);
+    TEST_ASSERT_EQUAL_UINT64(3, resources.textures_released);
+    TEST_ASSERT_EQUAL_UINT64(4, resources.live_textures);
+    TEST_ASSERT_EQUAL_UINT64(resources.shadow_bytes + 4, resources.live_bytes);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_gpu_resource_accounting_reuses_and_releases_shadow_targets);
     RUN_TEST(test_gpu_shadow_targets_keep_capacity_for_smaller_objects);
     RUN_TEST(test_gpu_gradients_match_value_sampler_for_all_types_and_alpha);
     RUN_TEST(test_gpu_shadow_silhouette_blur_spread_and_state);

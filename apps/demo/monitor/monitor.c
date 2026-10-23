@@ -32,7 +32,33 @@ void process_monitor_graphics(ProcessMonitor *m, SDL_Renderer *r) {
         clean_text(g.driver, sizeof g.driver, driver);
     }
     g.effects_available = pdraw_renderer_gpu_effects(r);
-    g.effect_bytes = pdraw_renderer_gpu_stats(r).texture_bytes;
+    PDrawGPUStats effects = pdraw_renderer_gpu_stats(r);
+    g.effect_bytes = effects.texture_bytes;
+    g.gpu_shadow_draws = effects.shadow_draws;
+    g.gpu_shadow_failures = effects.shadow_failures;
+    g.gpu_gradient_draws = effects.gradient_draws;
+    g.gpu_gradient_failures = effects.gradient_failures;
+    g.shadow_width = effects.shadow_width;
+    g.shadow_height = effects.shadow_height;
+    g.shadow_targets = effects.shadow_targets;
+    PDrawResourceStats resources = pdraw_renderer_resource_stats(r);
+    g.resources_available = resources.available;
+    g.resources_complete = resources.complete;
+    g.textures_created = resources.textures_created;
+    g.textures_released = resources.textures_released;
+    g.texture_failures = resources.texture_failures;
+    g.live_textures = resources.live_textures;
+    g.live_bytes = resources.live_bytes;
+    g.peak_bytes = resources.peak_bytes;
+    g.artwork_bytes = resources.artwork_bytes;
+    g.shadow_bytes = resources.shadow_bytes;
+    g.mask_bytes = resources.mask_bytes;
+    g.gradient_bytes = resources.gradient_bytes;
+    g.auxiliary_bytes = resources.auxiliary_bytes;
+    g.shadow_fallback_attempts = resources.shadow_fallback_attempts;
+    g.gradient_fallback_attempts = resources.gradient_fallback_attempts;
+    g.observed = r != NULL;
+    g.observed_at = (double)SDL_GetTicksNS() / 1000000000.;
     m->graphics = g;
 }
 

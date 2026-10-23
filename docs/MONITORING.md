@@ -152,3 +152,46 @@ Es wird nicht jede Mausbewegung geschrieben. Innerhalb einer unveränderten Gest
 bleibt es bei den periodischen Samples. Die Dateiausgabe und Messabfragen verursachen
 einen kleinen zusätzlichen Aufwand; auf langsamen Laufwerken kann insbesondere das
 Leeren des Dateipuffers messbar werden. Die Aufzeichnung startet standardmäßig ausgeschaltet.
+
+### Render-Ressourcen im Performance-Log
+
+Jede Zeile enthält zusätzlich zwei Diagnoseblöcke. Sie sind rein lesend; die
+Abfrage wartet nicht auf die GPU und liest keine Pixel zurück.
+
+`render_resources` gehört zum SDL-Renderer und zählt seine gesamte Laufzeit:
+
+| Feld | Bedeutung |
+| --- | --- |
+| `available`, `complete` | Zähler vorhanden und vollständig; bei fehlenden Daten stehen Zahlen auf `null`. `complete: false` bedeutet, dass Diagnose-Metadaten nicht vollständig angelegt werden konnten. |
+| `age_s` | Alter des letzten Ressourcen-Snapshots; er wird nach dem Canvas-Zeichnen aktualisiert. |
+| `textures_created`, `textures_released` | Erfolgreich erfasste pengDraw-Textur-Erzeugungen und SDL-Texturfreigaben. |
+| `texture_failures` | Fehlgeschlagene Textur-Erzeugungen. |
+| `live_textures`, `live_bytes`, `peak_bytes` | Aktueller Bestand, dessen rechnerische Pixeldaten und bisheriger Höchststand in Bytes. |
+| `artwork_bytes`, `shadow_bytes`, `mask_bytes`, `gradient_bytes`, `auxiliary_bytes` | Aktuelle Pixeldaten nach Zweck; zusammen ergeben sie `live_bytes`. |
+| `gpu_shadow_draws`, `gpu_gradient_draws` | Erfolgreiche GPU-Effektaufrufe, bei nicht vorhandenem Effektpfad `null`. |
+| `gpu_shadow_failures`, `gpu_gradient_failures` | Fehlgeschlagene GPU-Effektaufrufe. |
+| `shadow_fallback_attempts`, `gradient_fallback_attempts` | Begonnene CPU-Ersatzpfade; auch beim Software-Renderer. Das ist kein Erfolgszähler. |
+| `shadow_width`, `shadow_height`, `shadow_targets` | Vorhandene GPU-Schattenpuffer: Kapazität in Pixeln und Anzahl. |
+
+`artwork_cache` gehört zur **aktiven Editorinstanz** und wird beim Entladen
+zurückgesetzt. Der Vektoreditor meldet `tile_bytes`, `scratch_bytes`, `tiles`,
+`hits`, `misses`, `repaints` und `evictions`. `repaints` zählt die Neuzeichnung
+bestehender Kacheln; `evictions` nur tatsächlich entfernte Kacheltexturen.
+Andere Editoren ohne diese Anbindung melden `available: false` und `null`-Werte.
+Die Cache-Bytes sind bereits in `render_resources.artwork_bytes` enthalten,
+sie dürfen nicht noch einmal zum Gesamtwert addiert werden.
+
+**Messgrenze:** Gezählt werden ausschließlich von pengDraw angelegte
+SDL-Textur-Handles. UI-Bilder, importierte Bilder, Schrifttexturen, die Swapchain,
+Treiberpools und interne beziehungsweise noch verwendete GPU-Kopien sind nicht
+enthalten. Die Größe ist `Breite × Höhe × Bytes pro Pixel`, ohne Alignment oder
+Treiber-Overhead. Diese Zahlen sind weder Prozess-RAM noch eine vollständige
+VRAM-Messung. `textures_released` bedeutet, dass SDL den Textur-Handle freigegeben
+hat; der Treiber kann zugehörige GPU-Ressourcen noch länger behalten.
+
+Normalerweise gilt `textures_created - textures_released == live_textures`.
+Wachsen diese Bestände und Bytes beim RAM-Anstieg mit, lässt sich der betreffende
+pengDraw-Bereich eingrenzen. Bleiben sie konstant, ist der zusätzliche Verbrauch
+mit diesen Texturen nicht erklärt; daraus allein folgt noch kein Treiberfehler.
+Die Diagnose legt keine eigenen Texturen an und hält nur einen kleinen Zählerblock
+pro Renderer sowie einen Eintrag pro aktuell erfasster Textur im RAM.

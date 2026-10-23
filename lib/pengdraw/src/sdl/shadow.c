@@ -1,3 +1,4 @@
+#include "resources.h"
 /** @file @brief Rasterize object alpha, dilate, soften, tint and composite behind its content. */
 #include "../gpu/internal.h"
 #include "pengdraw/pengdraw.h"
@@ -81,10 +82,11 @@ bool pdraw_shadow_draw(SDL_Renderer *r, const PDrawShadow *s, float zoom, PDrawR
     if (pdraw_gpu_shadow(r, s, &region, paint, context)) {
         return true;
     }
+    pdraw_record_fallback(r, true);
     /* Paint in original pixel coordinates; SDL renderer scale applies the sampling reduction. */
     SDL_Texture *previous = SDL_GetRenderTarget(r);
-    SDL_Texture *target =
-        SDL_CreateTexture(r, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h);
+    SDL_Texture *target = pdraw_create_texture(
+        r, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, w, h, PDRAW_TEXTURE_SHADOW);
     SDL_Surface *surface = NULL, *rgba = NULL;
     unsigned char *alpha = NULL, *tmp = NULL;
     int *queue = NULL;
@@ -144,7 +146,7 @@ bool pdraw_shadow_draw(SDL_Renderer *r, const PDrawShadow *s, float zoom, PDrawR
                     (unsigned char)(alpha[(size_t)y * w + x] * (s->color & 255) / 255);
             }
         }
-        SDL_Texture *shadow = SDL_CreateTextureFromSurface(r, rgba);
+        SDL_Texture *shadow = pdraw_create_texture_from_surface(r, rgba, PDRAW_TEXTURE_SHADOW);
         if (shadow) {
             SDL_SetTextureBlendMode(shadow, SDL_BLENDMODE_BLEND);
             SDL_SetTextureScaleMode(shadow, SDL_SCALEMODE_LINEAR);

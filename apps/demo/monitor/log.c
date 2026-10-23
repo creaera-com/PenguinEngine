@@ -1,6 +1,7 @@
 /** @file @brief Bounded JSONL streaming with explicit missing metrics and no input contents. */
 #include "log.h"
 #include "platform/process_metrics.h"
+#include <inttypes.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -57,6 +58,54 @@ static bool selection(MonitorLog *log, const EditorDiagnostics *d) {
     return ok && put(log, "]");
 }
 
+static bool integer(MonitorLog *log, const char *key, uint64_t value, bool available) {
+    char text[32];
+    snprintf(text, sizeof text, "%" PRIu64, value);
+    return put(log, ",") && quoted(log, key) && put(log, ":") &&
+           put(log, available ? text : "null");
+}
+
+static bool resources(MonitorLog *log, const MonitorGraphics *g, double now) {
+    bool available = g->resources_available;
+    return put(log, ",\"render_resources\":{\"available\":") &&
+           put(log, available ? "true" : "false") && put(log, ",\"complete\":") &&
+           put(log, g->resources_complete ? "true" : "false") &&
+           number(log, "age_s", now - g->observed_at, g->observed) &&
+           integer(log, "textures_created", g->textures_created, available) &&
+           integer(log, "textures_released", g->textures_released, available) &&
+           integer(log, "texture_failures", g->texture_failures, available) &&
+           integer(log, "live_textures", g->live_textures, available) &&
+           integer(log, "live_bytes", g->live_bytes, available) &&
+           integer(log, "peak_bytes", g->peak_bytes, available) &&
+           integer(log, "artwork_bytes", g->artwork_bytes, available) &&
+           integer(log, "shadow_bytes", g->shadow_bytes, available) &&
+           integer(log, "mask_bytes", g->mask_bytes, available) &&
+           integer(log, "gradient_bytes", g->gradient_bytes, available) &&
+           integer(log, "auxiliary_bytes", g->auxiliary_bytes, available) &&
+           integer(log, "shadow_fallback_attempts", g->shadow_fallback_attempts, available) &&
+           integer(log, "gradient_fallback_attempts", g->gradient_fallback_attempts, available) &&
+           integer(log, "gpu_shadow_draws", g->gpu_shadow_draws, g->effects_available) &&
+           integer(log, "gpu_shadow_failures", g->gpu_shadow_failures, g->effects_available) &&
+           integer(log, "gpu_gradient_draws", g->gpu_gradient_draws, g->effects_available) &&
+           integer(log, "gpu_gradient_failures", g->gpu_gradient_failures, g->effects_available) &&
+           integer(log, "shadow_width", g->shadow_width, g->effects_available) &&
+           integer(log, "shadow_height", g->shadow_height, g->effects_available) &&
+           integer(log, "shadow_targets", g->shadow_targets, g->effects_available) && put(log, "}");
+}
+
+static bool artwork_cache(MonitorLog *log, const EditorDiagnostics *d) {
+    bool available = d->artwork_cache_available;
+    return put(log, ",\"artwork_cache\":{\"available\":") &&
+           put(log, available ? "true" : "false") &&
+           integer(log, "tile_bytes", d->cache_tile_bytes, available) &&
+           integer(log, "scratch_bytes", d->cache_scratch_bytes, available) &&
+           integer(log, "tiles", d->cache_tiles, available) &&
+           integer(log, "hits", d->cache_hits, available) &&
+           integer(log, "misses", d->cache_misses, available) &&
+           integer(log, "repaints", d->cache_repaints, available) &&
+           integer(log, "evictions", d->cache_evictions, available) && put(log, "}");
+}
+
 static void utc(char *text, size_t capacity, bool filename) {
     SDL_Time time;
     SDL_DateTime date;
@@ -102,13 +151,18 @@ static void row(MonitorLog *log, const ProcessMonitor *m, const char *editor, Ed
                sample && sample->cpu_available) &&
         number(log, "metrics_age_s", sample ? now - sample->time : 0, sample != NULL) &&
         number(log, "gpu_effect_mib", m->graphics.effect_bytes / 1048576.,
-               m->graphics.effects_available);
+               m->graphics.effects_available) &&
+        resources(log, &m->graphics, now) && artwork_cache(log, &d);
     if (!strcmp(event, "session.start")) {
         ok = ok && field(log, "platform", SDL_GetPlatform()) &&
              field(log, "gpu_device", m->graphics.device) &&
              field(log, "renderer", m->graphics.backend) &&
              field(log, "gpu_driver", m->graphics.driver) &&
-             field(log, "gpu_memory_scope", "pengDraw shadow effect texture capacity only");
+             field(log, "gpu_memory_scope", "pengDraw shadow effect texture capacity only") &&
+             field(log, "render_resource_scope",
+                   "pengDraw-owned logical texture handles; excludes UI, images, fonts, swapchain, "
+                   "driver copies and deferred GPU releases") &&
+             field(log, "cache_counter_scope", "active editor instance; resets on unload");
     }
     if (!ok || !put(log, "}\n") || !SDL_FlushIO(log->stream)) {
         failed(log);
