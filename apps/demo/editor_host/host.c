@@ -7,6 +7,7 @@
 
 static void draw_canvas(void *context, SDL_Renderer *renderer, PUIRect area, const char *widget) {
     EditorHost *host = context;
+    process_monitor_graphics(&host->monitor, renderer);
     if (process_monitor_draw(&host->monitor, renderer, area, widget)) {
         return;
     }

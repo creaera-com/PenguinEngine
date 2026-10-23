@@ -11,18 +11,29 @@
 typedef struct {
     double cpu_seconds;
     uint64_t resident_bytes;
+    uint64_t gpu_effect_bytes; ///< Known pengDraw effect texture capacity, not total VRAM.
+    bool gpu_memory_available;
     bool cpu_available, memory_available;
 } ProcessCounters;
 
 /** @brief One observation; CPU 100 percent means one fully occupied core across all threads. */
 typedef struct {
-    double time, cpu_percent, memory_mib;
+    double time, cpu_percent, memory_mib, gpu_memory_mib;
+    bool gpu_memory_available;
     bool cpu_available, memory_available;
 } ProcessUsage;
+
+/** @brief Last observed renderer metadata and known allocations; values only, no GPU handles. */
+typedef struct {
+    char device[128], backend[64], driver[128];
+    uint64_t effect_bytes;
+    bool effects_available;
+} MonitorGraphics;
 
 /** @brief Fixed-size ring: memory and work remain bounded regardless of application lifetime. */
 typedef struct {
     ProcessUsage samples[PROCESS_MONITOR_CAPACITY];
+    MonitorGraphics graphics;
     unsigned head, count;
     double previous_time, previous_cpu;
     bool cpu_baseline;

@@ -757,12 +757,24 @@ static void test_monitor_yaml_can_be_reused_without_concrete_editor_code(void) {
     pui_init(&input);
     monitor_canvases = 0;
     pui_view_set_canvas_renderer(view, draw_monitor, &monitor);
-    pui_view_draw(view, &input, (PUIRect){0, 0, 400, 300}, NULL, NULL);
-    TEST_ASSERT_EQUAL_INT(2, monitor_canvases);
+    pui_view_draw(view, &input, (PUIRect){0, 0, 400, 800}, NULL, NULL);
+    TEST_ASSERT_EQUAL_INT(3, monitor_canvases);
     TEST_ASSERT_EQUAL_UINT(2, monitor.count);
     pui_view_free(view);
     pui_layout_free(layout);
     pui_layout_free(base);
+}
+
+static void test_monitor_reports_renderer_without_inventing_gpu_counters(void) {
+    ProcessMonitor monitor = {0};
+    process_monitor_graphics(&monitor, renderer);
+    TEST_ASSERT_EQUAL_STRING(SDL_GetRendererName(renderer), monitor.graphics.backend);
+    TEST_ASSERT_FALSE(monitor.graphics.effects_available);
+    TEST_ASSERT_EQUAL_UINT64(0, monitor.graphics.effect_bytes);
+    TEST_ASSERT_EQUAL_STRING("Geraet nicht gemeldet", monitor.graphics.device);
+    process_monitor_tick(&monitor, shell.view, 1);
+    TEST_ASSERT_FALSE(process_monitor_sample(&monitor, 0)->gpu_memory_available);
+    TEST_ASSERT_NOT_NULL(strstr(pui_view_text(shell.view, "process_status"), "GPU-FX --"));
 }
 
 static void test_process_monitor_panel_and_history_are_shared_across_editors(void) {
@@ -784,6 +796,7 @@ static void test_process_monitor_panel_and_history_are_shared_across_editors(voi
 
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_monitor_reports_renderer_without_inventing_gpu_counters);
     RUN_TEST(test_monitor_yaml_can_be_reused_without_concrete_editor_code);
     RUN_TEST(test_process_monitor_panel_and_history_are_shared_across_editors);
     RUN_TEST(test_inspector_owns_layouts_and_cleans_up_partial_initialization);

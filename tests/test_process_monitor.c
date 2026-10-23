@@ -71,8 +71,28 @@ static void test_native_backend_reads_this_process(void) {
 #endif
 }
 
+static void test_known_gpu_texture_capacity_is_independent_from_process_ram(void) {
+    ProcessMonitor monitor = {0};
+    ProcessCounters counters = {.gpu_memory_available = true,
+                                .gpu_effect_bytes = UINT64_C(32) * 1048576};
+    TEST_ASSERT_TRUE(process_monitor_record(&monitor, counters, 1));
+    const ProcessUsage *sample = process_monitor_sample(&monitor, 0);
+    TEST_ASSERT_TRUE(sample->gpu_memory_available);
+    TEST_ASSERT_EQUAL_FLOAT(32, sample->gpu_memory_mib);
+    TEST_ASSERT_FALSE(sample->memory_available);
+    counters.gpu_effect_bytes = 0;
+    TEST_ASSERT_TRUE(process_monitor_record(&monitor, counters, 2));
+    TEST_ASSERT_TRUE(process_monitor_sample(&monitor, 1)->gpu_memory_available);
+    TEST_ASSERT_EQUAL_FLOAT(0, process_monitor_sample(&monitor, 1)->gpu_memory_mib);
+    counters.gpu_memory_available = false;
+    TEST_ASSERT_TRUE(process_monitor_record(&monitor, counters, 3));
+    TEST_ASSERT_FALSE(process_monitor_sample(&monitor, 2)->gpu_memory_available);
+    TEST_ASSERT_EQUAL_FLOAT(32, process_monitor_sample(&monitor, 0)->gpu_memory_mib);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_known_gpu_texture_capacity_is_independent_from_process_ram);
     RUN_TEST(test_cpu_delta_uses_elapsed_time_and_preserves_multicore_usage);
     RUN_TEST(test_unavailable_and_reset_counters_do_not_invent_rates);
     RUN_TEST(test_history_rolls_over_in_chronological_order);

@@ -8,6 +8,8 @@ bool process_monitor_record(ProcessMonitor *m, ProcessCounters c, double now) {
         return false;
     }
     ProcessUsage sample = {.time = now,
+                           .gpu_memory_available = c.gpu_memory_available,
+                           .gpu_memory_mib = c.gpu_effect_bytes / 1048576.0,
                            .memory_available = c.memory_available,
                            .memory_mib = c.resident_bytes / 1048576.0};
     bool cpu = c.cpu_available && isfinite(c.cpu_seconds) && c.cpu_seconds >= 0;

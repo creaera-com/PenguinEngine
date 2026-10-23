@@ -1,25 +1,77 @@
 /** @file @brief Low-frequency sampling and optional YAML panel assembly for all editors. */
 #include "monitor.h"
+#include "pengdraw/pengdraw.h"
 #include "platform/process_metrics.h"
 #include <stdio.h>
 #include <string.h>
+
+static void clean_text(char *destination, size_t capacity, const char *source) {
+    snprintf(destination, capacity, "%s", source ? source : "Nicht verfuegbar");
+    for (char *p = destination; *p; p++) {
+        if ((unsigned char)*p < 32 || *p == 127) {
+            *p = ' ';
+        }
+    }
+}
+
+void process_monitor_graphics(ProcessMonitor *m, SDL_Renderer *r) {
+    MonitorGraphics g = {0};
+    clean_text(g.device, sizeof g.device, "Geraet nicht gemeldet");
+    clean_text(g.backend, sizeof g.backend, r ? SDL_GetRendererName(r) : NULL);
+    clean_text(g.driver, sizeof g.driver, NULL);
+    SDL_GPUDevice *device = r ? SDL_GetPointerProperty(SDL_GetRendererProperties(r),
+                                                       SDL_PROP_RENDERER_GPU_DEVICE_POINTER, NULL)
+                              : NULL;
+    if (device) {
+        SDL_PropertiesID props = SDL_GetGPUDeviceProperties(device);
+        clean_text(g.device, sizeof g.device,
+                   SDL_GetStringProperty(props, SDL_PROP_GPU_DEVICE_NAME_STRING, "Unbekannt"));
+        char driver[256];
+        snprintf(driver, sizeof driver, "%s / %s", SDL_GetGPUDeviceDriver(device),
+                 SDL_GetStringProperty(props, SDL_PROP_GPU_DEVICE_DRIVER_NAME_STRING, "Unbekannt"));
+        clean_text(g.driver, sizeof g.driver, driver);
+    }
+    g.effects_available = pdraw_renderer_gpu_effects(r);
+    g.effect_bytes = pdraw_renderer_gpu_stats(r).texture_bytes;
+    m->graphics = g;
+}
+
+static void graphics_labels(const ProcessMonitor *m, PUIView *view) {
+    char text[128];
+    snprintf(text, sizeof text, "GPU: %.120s", m->graphics.device);
+    pui_view_set_text(view, "process_monitor_gpu_device", text);
+    snprintf(text, sizeof text, "Renderer: %.112s", m->graphics.backend);
+    pui_view_set_text(view, "process_monitor_gpu_backend", text);
+    snprintf(text, sizeof text, "Treiber: %.116s", m->graphics.driver);
+    pui_view_set_text(view, "process_monitor_gpu_driver", text);
+    pui_view_set_text(view, "process_monitor_gpu_pipeline",
+                      m->graphics.effects_available ? "Schatten / Verlaeufe: GPU"
+                                                    : "Effekte: CPU-Kompatibilitaet");
+}
 
 void process_monitor_tick(ProcessMonitor *m, PUIView *view, double now) {
     if (m->count && now - m->previous_time < PROCESS_MONITOR_INTERVAL) {
         return;
     }
-    if (!process_monitor_record(m, process_metrics_read(), now)) {
+    graphics_labels(m, view);
+    ProcessCounters counters = process_metrics_read();
+    counters.gpu_effect_bytes = m->graphics.effect_bytes;
+    counters.gpu_memory_available = m->graphics.effects_available;
+    if (!process_monitor_record(m, counters, now)) {
         return;
     }
     const ProcessUsage *current = m->count ? process_monitor_sample(m, m->count - 1) : NULL;
-    char ram[40] = "--", cpu[40] = "--", status[100];
+    char ram[40] = "--", cpu[40] = "--", gpu[40] = "--", status[160];
     if (current && current->memory_available) {
         snprintf(ram, sizeof ram, "%.1f MiB", current->memory_mib);
     }
     if (current && current->cpu_available) {
         snprintf(cpu, sizeof cpu, "%.1f %%", current->cpu_percent);
     }
-    snprintf(status, sizeof status, "RAM %s | CPU %s", ram, cpu);
+    if (current && current->gpu_memory_available) {
+        snprintf(gpu, sizeof gpu, "%.1f MiB", current->gpu_memory_mib);
+    }
+    snprintf(status, sizeof status, "RAM %s | CPU %s | GPU-FX %s", ram, cpu, gpu);
     pui_view_set_text(view, "process_status", status);
 }
 
