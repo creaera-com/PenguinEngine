@@ -225,6 +225,28 @@ static void test_yaml_actions_and_rejected_inputs_restore_presented_values(void)
     TEST_ASSERT_EQUAL_FLOAT(12, d->rectangles[0].shadow.blur);
 }
 
+static void test_shadow_numeric_edit_before_enabling_keeps_visible_defaults(void) {
+    VectorDocument *d = document();
+    TEST_ASSERT_TRUE(pui_view_set_text(shell.view, "shadow_x", "20.5"));
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.shadow.x", "shadow_x"));
+    commit();
+    TEST_ASSERT_FALSE(d->rectangles[0].shadow.enabled);
+    TEST_ASSERT_EQUAL_FLOAT(20.5f, d->rectangles[0].shadow.offset_x);
+    TEST_ASSERT_TRUE(pui_view_set_checked(shell.view, "shadow_enabled", true));
+    TEST_ASSERT_TRUE(
+        editor_host_action(&host, shell.view, "vector.shadow.enabled", "shadow_enabled"));
+    commit();
+    TEST_ASSERT_TRUE(d->rectangles[0].shadow.enabled);
+    TEST_ASSERT_NOT_EQUAL(0, d->rectangles[0].shadow.color & 255u);
+    SDL_Surface *pixels = render_objects();
+    TEST_ASSERT_LESS_THAN(255, red(pixels, 75, 70));
+    SDL_DestroySurface(pixels);
+    TEST_ASSERT_TRUE(vector_history_undo(&d->history, d));
+    TEST_ASSERT_FALSE(d->rectangles[0].shadow.enabled);
+    TEST_ASSERT_TRUE(vector_history_undo(&d->history, d));
+    TEST_ASSERT_EQUAL_UINT32(0, d->rectangles[0].shadow.color);
+}
+
 static void test_offscreen_source_still_casts_visible_shadow_and_zoom_scales_it(void) {
     TEST_ASSERT_TRUE(
         vector_rectangle_update(document(), 1, "Outside", (PUIRect){-100, 30, 40, 30}));
@@ -305,6 +327,7 @@ static void test_clipping_masks_clip_shadows_and_preview_uses_the_same_rendering
 
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_shadow_numeric_edit_before_enabling_keeps_visible_defaults);
     RUN_TEST(test_clipping_masks_clip_shadows_and_preview_uses_the_same_rendering);
     RUN_TEST(test_offscreen_source_still_casts_visible_shadow_and_zoom_scales_it);
     RUN_TEST(test_version_four_files_load_without_effects);

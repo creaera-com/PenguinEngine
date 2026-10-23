@@ -43,12 +43,18 @@ bool vector_effects_action(VectorDocument *d, unsigned id, PUIView *view, const 
     VectorShadow *s = &value.shadow;
     const char *field = action + strlen(prefix);
     bool valid = true;
-    if (!strcmp(field, "enabled")) {
-        bool enabled = pui_view_checked(view, "shadow_enabled");
-        if (enabled && !s->color && !s->blur && !s->offset_x && !s->offset_y && !s->spread) {
-            *s = vector_shadow_default();
-        }
+    /* Initialize a pristine effect before editing numbers as well as enabling it.
+     * Otherwise a first offset/blur edit leaves its default color transparent,
+     * and later enabling cannot recognize the effect as unconfigured anymore.
+     * Explicit color edits, including transparent colors, remain untouched. */
+    if (strcmp(field, "color") && !s->color && !s->blur && !s->offset_x && !s->offset_y &&
+        !s->spread) {
+        bool enabled = s->enabled;
+        *s = vector_shadow_default();
         s->enabled = enabled;
+    }
+    if (!strcmp(field, "enabled")) {
+        s->enabled = pui_view_checked(view, "shadow_enabled");
     } else if (!strcmp(field, "color")) {
         valid = pui_view_color(view, "shadow_color", &s->color);
     } else if (!strcmp(field, "x")) {
