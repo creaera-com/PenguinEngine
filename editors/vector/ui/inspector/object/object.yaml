@@ -3,7 +3,7 @@ root:
   type: panel
   scroll: true
   padding: 0
-  gap: 8
+  gap: 12
   children:
     - {type: label, id: rectangle_kind, text: Rechteck, height: 24}
     - {type: slot, id: polygon_properties}
@@ -13,29 +13,29 @@ root:
       text: Einstellungen
       children:
       - type: row
-        padding: 0
+        padding: 5
         gap: 8
-        height: 28
+        height: 38
         children:
           - {type: label, text: Name, width: 64}
           - {type: input, id: rectangle_name, action: vector.rectangle.name}
       - type: row
-        padding: 0
+        padding: 5
         gap: 8
-        height: 28
+        height: 38
         children:
           - {type: label, text: Breite, width: 64}
           - {type: input, id: rectangle_width, input_type: decimal, action: vector.rectangle.width}
           - {type: label, text: Hoehe, width: 64}
           - {type: input, id: rectangle_height, input_type: decimal, action: vector.rectangle.height}
       - type: row
-        padding: 0
+        padding: 5
         gap: 8
-        height: 28
+        height: 38
         children:
           - {type: label, text: Winkel, width: 64}
           - {type: input, id: rectangle_angle, input_type: decimal, action: vector.rectangle.angle}
-          - {type: label, text: Grad, width: 40}
+          - {type: label, text: Farbe, width: 64}
           - {type: slot, id: object_fill}
     - {type: slot, id: rectangle_corner_properties}
     - {type: slot, id: object_gradient}

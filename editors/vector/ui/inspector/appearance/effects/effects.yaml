@@ -6,31 +6,21 @@ root:
   children:
     - {type: checkbox, id: shadow_enabled, text: Schlagschatten, action: vector.shadow.enabled, height: 28}
     - type: row
-      padding: 0
-      height: 28
+      padding: 5
+      height: 38
       gap: 8
       children:
         - {type: label, text: Versatz X, width: 112}
-        - {type: input, id: shadow_x, action: vector.shadow.x}
-    - type: row
-      padding: 0
-      height: 28
-      gap: 8
-      children:
+        - {type: input, id: shadow_x, action: vector.shadow.x }
         - {type: label, text: Versatz Y, width: 112}
         - {type: input, id: shadow_y, action: vector.shadow.y}
     - type: row
-      padding: 0
-      height: 28
+      padding: 5
+      height: 38
       gap: 8
       children:
         - {type: label, text: Weichheit, width: 112}
         - {type: input, id: shadow_blur, action: vector.shadow.blur}
-    - type: row
-      padding: 0
-      height: 28
-      gap: 8
-      children:
         - {type: label, text: Ausbreitung, width: 112}
         - {type: input, id: shadow_spread, action: vector.shadow.spread}
     - type: popup_button

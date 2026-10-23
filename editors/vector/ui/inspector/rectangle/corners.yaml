@@ -5,10 +5,11 @@ root:
   text: Ecken
   children:
     - type: row
-      padding: 0
+      padding: 5
       gap: 8
-      height: 28
+      height: 38
       children:
         - {type: label, text: Radius, width: 64}
         - {type: input, id: rectangle_radius, input_type: decimal, action: vector.rectangle.radius}
-        - {type: label, text: px, width: 24}
+        - {type: label, text: "", width: 64}
+        - {type: spacer}
