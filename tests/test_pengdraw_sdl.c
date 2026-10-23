@@ -5,6 +5,7 @@ static SDL_Window *window;
 static SDL_Renderer *renderer;
 static PDrawRenderer cache;
 static int calls;
+static SDL_Texture *paint_target;
 
 void setUp(void) {
     TEST_ASSERT_TRUE(SDL_Init(SDL_INIT_VIDEO));
@@ -37,6 +38,7 @@ static uint32_t pixel(int x, int y) {
 static void paint(void *context, SDL_Renderer *r, float x, float y, float scale) {
     const PDrawShape *shape = context;
     calls++;
+    paint_target = SDL_GetRenderTarget(r);
     pdraw_shape_draw(r, shape, (PDrawRect){20, 20, 80, 60}, 0, (SDL_FRect){x, y, 0, 0}, scale,
                      0x336699ff);
 }
@@ -153,6 +155,27 @@ static void test_cached_tiles_evict_old_revisions(void) {
     TEST_ASSERT_EQUAL_INT(41, calls);
 }
 
+static void test_content_changes_repaint_the_same_texture(void) {
+    PDrawShape shape = {0};
+    SDL_FRect bounds = {0, 0, 160, 120};
+    pdraw_render_cached(&cache, renderer, bounds, 0, paint, &shape);
+    SDL_Texture *first = paint_target;
+    TEST_ASSERT_NOT_NULL(first);
+    for (uint64_t revision = 1; revision <= 200; revision++) {
+        shape.ellipse = (revision % 2) != 0;
+        pdraw_render_cached(&cache, renderer, bounds, revision, paint, &shape);
+        TEST_ASSERT_EQUAL_PTR(first, paint_target);
+    }
+    TEST_ASSERT_EQUAL_INT(201, calls);
+    TEST_ASSERT_EQUAL_HEX32(0x336699ff, pixel(25, 25));
+    shape.ellipse = true;
+    SDL_RenderClear(renderer);
+    pdraw_render_cached(&cache, renderer, bounds, 201, paint, &shape);
+    TEST_ASSERT_EQUAL_HEX32(0x000000ff, pixel(25, 25));
+    TEST_ASSERT_EQUAL_HEX32(0x336699ff, pixel(60, 50));
+    TEST_ASSERT_EQUAL_PTR(first, paint_target);
+}
+
 static void test_cached_tiles_enforce_byte_budget_before_slot_limit(void) {
     PDrawShape shape = {0};
     SDL_Texture *target =
@@ -160,14 +183,18 @@ static void test_cached_tiles_enforce_byte_budget_before_slot_limit(void) {
     TEST_ASSERT_NOT_NULL(target);
     SDL_SetRenderTarget(renderer, target);
     SDL_FRect bounds = {0, 0, 1024, 1024};
-    /* Each supersampled tile is 16 MiB: five cannot fit in the 64 MiB budget,
-     * even though the cache has sixteen slots. */
+    /* Five different view bounds each need one supersampled 16 MiB tile: five cannot fit in the 64
+     * MiB budget, even though the cache has sixteen slots. */
     for (uint64_t revision = 1; revision <= 5; revision++) {
+        bounds.x = -(float)revision;
+        bounds.w = 1024 + (float)revision;
         pdraw_render_cached(&cache, renderer, bounds, revision, paint, &shape);
     }
     TEST_ASSERT_EQUAL_INT(5, calls);
     pdraw_render_cached(&cache, renderer, bounds, 5, paint, &shape);
     TEST_ASSERT_EQUAL_INT(5, calls);
+    bounds.x = -1;
+    bounds.w = 1025;
     pdraw_render_cached(&cache, renderer, bounds, 1, paint, &shape);
     TEST_ASSERT_EQUAL_INT(6, calls);
     pdraw_renderer_destroy(&cache);
@@ -177,6 +204,7 @@ static void test_cached_tiles_enforce_byte_budget_before_slot_limit(void) {
 
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_content_changes_repaint_the_same_texture);
     RUN_TEST(test_cached_tiles_enforce_byte_budget_before_slot_limit);
     RUN_TEST(test_cached_tiles_reuse_and_invalidate_content);
     RUN_TEST(test_cached_tiles_include_clip_target_and_restore_state);

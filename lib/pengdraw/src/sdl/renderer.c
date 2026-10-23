@@ -182,15 +182,18 @@ static size_t tile_bytes(const CachedTile *entry) {
 }
 
 static CachedTile *cached_tile(TileCache *cache, SDL_Renderer *r, SDL_Rect crop, SDL_FRect bounds,
-                               SDL_Texture *destination, uint64_t revision) {
+                               SDL_Texture *destination, uint64_t revision, bool *repaint) {
     size_t bytes = 0;
     CachedTile *oldest = &cache->entries[0];
     for (int i = 0; i < CACHE_TILES; i++) {
         CachedTile *entry = &cache->entries[i];
         if (entry->drawing.target && entry->drawing.renderer == r &&
-            entry->destination == destination && entry->revision == revision &&
-            !memcmp(&entry->crop, &crop, sizeof crop) &&
+            entry->destination == destination && !memcmp(&entry->crop, &crop, sizeof crop) &&
             !memcmp(&entry->bounds, &bounds, sizeof bounds)) {
+            /* Content revisions replace this tile in place. Keeping each drag
+             * frame as another cached image wastes textures and churns GPU allocations. */
+            *repaint = entry->revision != revision;
+            entry->revision = revision;
             entry->used = ++cache->clock;
             return entry;
         }
@@ -199,6 +202,7 @@ static CachedTile *cached_tile(TileCache *cache, SDL_Renderer *r, SDL_Rect crop,
             oldest = entry;
         }
     }
+    *repaint = true;
     size_t needed = (size_t)crop.w * crop.h * SAMPLES * SAMPLES * 4;
     /* Evict least-recently-used tiles until both the slot and byte budgets fit. */
     while (bytes - tile_bytes(oldest) + needed > CACHE_BYTES) {
@@ -266,9 +270,10 @@ void pdraw_render_cached(PDrawRenderer *cache, SDL_Renderer *r, SDL_FRect bounds
             if (crop.h > TILE) {
                 crop.h = TILE;
             }
+            bool repaint;
             CachedTile *entry =
-                cached_tile(cache->tiles, r, crop, bounds, previous.target, revision);
-            if (!entry->drawing.target) {
+                cached_tile(cache->tiles, r, crop, bounds, previous.target, revision, &repaint);
+            if (repaint || !entry->drawing.target) {
                 pdraw_render(&entry->drawing, r, (SDL_FRect){x, y, crop.w, crop.h}, paint, context);
             } else {
                 SDL_FRect source = {0, 0, crop.w * SAMPLES, crop.h * SAMPLES};

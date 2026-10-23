@@ -101,6 +101,18 @@ aktiver Vulkan-Pfad allein belegt daher keine Beschleunigung durch echte Hardwar
 Für Performancebeurteilungen GPU-Gerät/Treiber, Szene, Auflösung und FPS mit erfassen.
 Große Schatten, viele Objekte oder Treiberprobleme können auch GPU-Zeit beanspruchen.
 
+## Texturcache beim Bearbeiten
+
+Der Artwork-Kachelcache behält bis zu 16 Kacheln beziehungsweise 64 MiB an
+Textur-Pixeldaten. Ändert sich nur der Inhalt desselben Ausschnitts, wird die
+vorhandene Textur neu gezeichnet. Alte Zwischenstände einer Verschiebegeste werden
+nicht als weitere Kacheln aufbewahrt. Unveränderte Inhalte bleiben ohne erneutes
+Zeichnen nutzbar; andere Ausschnitte unterliegen weiterhin dem LRU-Speicherlimit.
+
+Das Limit beschreibt die eigenen Textur-Pixeldaten, nicht den gesamten Prozess-RAM:
+Treiberressourcen, Undo-Daten, Bilder, Schrift- und Effektressourcen kommen hinzu.
+Ein Software-GPU-Treiber kann seine Texturen ebenfalls im Prozess-RAM halten.
+
 ## Build, Shader und Tests
 
 CMake benötigt SDL mindestens 3.4 und lädt ohne passende Installation die mit
