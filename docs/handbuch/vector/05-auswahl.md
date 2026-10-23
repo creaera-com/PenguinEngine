@@ -1,4 +1,4 @@
-# 05 – Auswahl und Transformation
+# 05 – Auswahl und Transformation {#vector_manual_05}
 
 Aktiviere den Zeiger in der Vector-Toolbar. Klicke ein Objekt an, um es auszuwählen.
 Shift+Klick ergänzt beziehungsweise entfernt ein Objekt aus der Auswahl. Ziehe von

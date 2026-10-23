@@ -1,4 +1,4 @@
-# 15 – PNG- und JPEG-Export
+# 15 – PNG- und JPEG-Export {#vector_manual_15}
 
 Der Exportbutton am rechten Ende der Vector-Toolbar öffnet ein Modal über der
 abgedunkelten Zeichenfläche. Export erzeugt ein gerastertes Bild; speichere die

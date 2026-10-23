@@ -1,4 +1,4 @@
-# 06 – Rechtecke, Ellipsen und Polygone
+# 06 – Rechtecke, Ellipsen und Polygone {#vector_manual_06}
 
 Aktiviere das entsprechende Formsymbol und ziehe die gewünschte Form innerhalb
 eines Artboards auf. Beim Rechteck bleibt das Werkzeug für weitere Rechtecke aktiv;

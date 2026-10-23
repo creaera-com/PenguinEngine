@@ -1,4 +1,4 @@
-# Vector Tool – Benutzerhandbuch
+# Handbuch Vector {#vector_manual}
 
 Dieses Handbuch beschreibt die Bedienung des Vector Tools im Branch
 `framework/pengui`. Es führt durch den aktuellen Funktionsumfang und bietet
@@ -12,25 +12,25 @@ Layoutänderungen die Anleitung nicht unbrauchbar machen.
 
 ## Kapitel
 
-- @subpage docs/handbuch/vector/01-einstieg.md ([Markdown](01-einstieg.md))
-- @subpage docs/handbuch/vector/02-oberflaeche.md ([Markdown](02-oberflaeche.md))
-- @subpage docs/handbuch/vector/03-dokumente.md ([Markdown](03-dokumente.md))
-- @subpage docs/handbuch/vector/04-artboards.md ([Markdown](04-artboards.md))
-- @subpage docs/handbuch/vector/05-auswahl.md ([Markdown](05-auswahl.md))
-- @subpage docs/handbuch/vector/06-formen.md ([Markdown](06-formen.md))
-- @subpage docs/handbuch/vector/07-pfade.md ([Markdown](07-pfade.md))
-- @subpage docs/handbuch/vector/08-gestaltung.md ([Markdown](08-gestaltung.md))
-- @subpage docs/handbuch/vector/09-text-bilder.md ([Markdown](09-text-bilder.md))
-- @subpage docs/handbuch/vector/10-ebenen.md ([Markdown](10-ebenen.md))
-- @subpage docs/handbuch/vector/11-bearbeiten.md ([Markdown](11-bearbeiten.md))
-- @subpage docs/handbuch/vector/12-flaechen-masken.md ([Markdown](12-flaechen-masken.md))
-- @subpage docs/handbuch/vector/13-klonen.md ([Markdown](13-klonen.md))
-- @subpage docs/handbuch/vector/14-praezision.md ([Markdown](14-praezision.md))
-- @subpage docs/handbuch/vector/15-export.md ([Markdown](15-export.md))
-- @subpage docs/handbuch/vector/16-referenz.md ([Markdown](16-referenz.md))
+- @subpage vector_manual_01 ([Markdown](01-einstieg.md))
+- @subpage vector_manual_02 ([Markdown](02-oberflaeche.md))
+- @subpage vector_manual_03 ([Markdown](03-dokumente.md))
+- @subpage vector_manual_04 ([Markdown](04-artboards.md))
+- @subpage vector_manual_05 ([Markdown](05-auswahl.md))
+- @subpage vector_manual_06 ([Markdown](06-formen.md))
+- @subpage vector_manual_07 ([Markdown](07-pfade.md))
+- @subpage vector_manual_08 ([Markdown](08-gestaltung.md))
+- @subpage vector_manual_09 ([Markdown](09-text-bilder.md))
+- @subpage vector_manual_10 ([Markdown](10-ebenen.md))
+- @subpage vector_manual_11 ([Markdown](11-bearbeiten.md))
+- @subpage vector_manual_12 ([Markdown](12-flaechen-masken.md))
+- @subpage vector_manual_13 ([Markdown](13-klonen.md))
+- @subpage vector_manual_14 ([Markdown](14-praezision.md))
+- @subpage vector_manual_15 ([Markdown](15-export.md))
+- @subpage vector_manual_16 ([Markdown](16-referenz.md))
 
 ## Eigene Testdurchläufe
 
-- @subpage docs/handbuch/vector/testcheckliste.md ([Markdown](testcheckliste.md))
+- @subpage vector_manual_tests ([Markdown](testcheckliste.md))
 
 Jedes Kapitel erklärt die Bedienung vor den Übungen. Die Kennungen wie `VEC-DOK-01` verbinden Anleitung und Testprotokoll. Wiederhole Speichern/Öffnen auch mit deinen eigenen, komplexeren Zeichnungen; kleine Übungen belegen keine vollständige Fehlerfreiheit.

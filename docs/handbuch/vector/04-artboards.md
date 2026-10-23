@@ -1,4 +1,4 @@
-# 04 – Zeichenfläche, Artboards und Vorschau
+# 04 – Zeichenfläche, Artboards und Vorschau {#vector_manual_04}
 
 Ein Artboard begrenzt einen Zeichen- und Exportbereich. Sein Name steht links über
 der Fläche sowie im Document-Tree. Objektkoordinaten gehören zum jeweiligen

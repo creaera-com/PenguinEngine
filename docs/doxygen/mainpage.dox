@@ -60,5 +60,5 @@
  * @page user_manual Benutzerhandbuch
  *
  * Schrittweise Bedienungsanleitung mit Übungen und manueller Testcheckliste:
- * - @subpage docs/handbuch/vector/index.md
+ * - @subpage vector_manual
  */

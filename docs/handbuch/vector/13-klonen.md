@@ -1,4 +1,4 @@
-# 13 – Wiederholungen und verknüpfte Instanzen
+# 13 – Wiederholungen und verknüpfte Instanzen {#vector_manual_13}
 
 Es gibt zwei verwandte Werkzeuge: ein regelmäßiges Wiederholungsraster im Tab
 **Klonen** und frei platzierbare verknüpfte Instanzen im Kontextmenü.
