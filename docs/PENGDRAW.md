@@ -155,3 +155,7 @@ Gesamtgrenze für alle Effekte oder Texturen.
 Die vorhandenen Editor-, Vorschau-, Export-, Text-, Masken- und Bildtests prüfen
 zusätzlich die Adapter. `tools/check_architecture.py` verbietet Abhängigkeiten
 von pengDraw auf UI- oder Editor-Code.
+
+## GPU-Ausgabe
+
+Die Desktop-Apps bevorzugen seit SDL 3.4 den GPU-Renderer mit eigenen Schatten- und Verlaufs-Shadern. Rendererwahl, Lebensdauer, CPU-Restaufgaben und Tests beschreibt [GPU-Rendering](GPU_RENDERING.md).

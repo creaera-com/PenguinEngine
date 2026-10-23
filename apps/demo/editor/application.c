@@ -1,3 +1,4 @@
+#include "pengdraw/pengdraw.h"
 /** @file @brief App bootstrap and loop; depends only on shell and editor-host interfaces. */
 #include "application.h"
 #include "config.h"
@@ -111,7 +112,7 @@ static bool start(EditorApp *app, char *error, size_t capacity) {
     }
     app->window =
         SDL_CreateWindow("pengUI Editor", 1280, 800, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN);
-    app->renderer = app->window ? SDL_CreateRenderer(app->window, NULL) : NULL;
+    app->renderer = app->window ? pdraw_create_renderer(app->window) : NULL;
     if (!app->renderer) {
         snprintf(error, capacity, "%s", SDL_GetError());
         return false;
@@ -217,7 +218,7 @@ cleanup:
     pui_window_detach(&app.chrome);
     editor_shell_destroy(&app.shell);
     editor_host_destroy(&app.host);
-    SDL_DestroyRenderer(app.renderer);
+    pdraw_destroy_renderer(app.renderer);
     SDL_DestroyWindow(app.window);
     SDL_Quit();
     return result;

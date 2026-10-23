@@ -1,3 +1,4 @@
+#include "../gpu/internal.h"
 #include "pengdraw/pengdraw.h"
 /** @file @brief Bound gradient rasterization to the visible contour and map it through triangles.
  */
@@ -100,6 +101,15 @@ bool pdraw_gradient_draw(SDL_Renderer *r, const PDrawShape *s, PDrawRect rect, f
     }
     if (right <= left || bottom <= top) {
         return true;
+    }
+    PDrawRect crop = {left, top, right - left, bottom - top};
+    SDL_Texture *gpu_texture =
+        pdraw_gpu_gradient_begin(r, &s->gradient, rect, angle, board, zoom, crop);
+    if (gpu_texture) {
+        Paint paint = {r, gpu_texture, board, crop, zoom, true};
+        bool ok = pdraw_path_triangles(&path, triangle, &paint) && paint.ok;
+        pdraw_gpu_gradient_end(r, ok);
+        return ok;
     }
     float scale = fminf(1, 2048.f / fmaxf((right - left) * sx, (bottom - top) * sy));
     int w = (int)ceilf((right - left) * sx * scale), h = (int)ceilf((bottom - top) * sy * scale);

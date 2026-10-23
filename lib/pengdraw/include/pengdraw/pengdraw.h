@@ -250,6 +250,28 @@ void pdraw_shape_draw(SDL_Renderer *renderer, const PDrawShape *shape, PDrawRect
 bool pdraw_texture_draw(SDL_Renderer *, SDL_Texture *, const SDL_FRect *, const SDL_FRect *,
                         double angle, SDL_FlipMode, uint32_t tint);
 
+/** @brief Create a renderer preferring SDL GPU (Vulkan/Metal/D3D12), with effect shaders.
+ * Honors SDL_RENDER_DRIVER; explicit gpu is strict, other values select the requested backend.
+ * Without an explicit driver, unavailable GPU support falls back with a log warning.
+ * NULL window creates an offscreen GPU renderer; bind a target before drawing.
+ * Pair with pdraw_destroy_renderer(), after freeing caller-owned textures/caches.
+ */
+SDL_Renderer *pdraw_create_renderer(SDL_Window *window);
+/** @brief Whether this renderer has the GPU effect pipeline (not just accelerated drawing). */
+bool pdraw_renderer_gpu_effects(SDL_Renderer *renderer);
+
+/** @brief Renderer-local effect diagnostics; CPU fallback renderers return zero counters. */
+typedef struct {
+    uint64_t shadow_draws, shadow_failures;
+    uint64_t gradient_draws, gradient_failures;
+    size_t texture_bytes;
+} PDrawGPUStats;
+
+/** @brief Query GPU effect counters without GPU synchronization or pixel downloads. */
+PDrawGPUStats pdraw_renderer_gpu_stats(SDL_Renderer *renderer);
+/** @brief Release renderer-owned effect resources, then destroy SDL renderer; NULL is safe. */
+void pdraw_destroy_renderer(SDL_Renderer *renderer);
+
 /** @brief Scratch texture ownership for bounded 2x supersampling; zero-initialize, destroy before
  * renderer. */
 typedef struct {

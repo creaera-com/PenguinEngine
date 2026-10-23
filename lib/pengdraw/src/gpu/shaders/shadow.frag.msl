@@ -1,0 +1,20 @@
+#include <metal_stdlib>
+using namespace metal;
+struct Input { float4 color [[user(locn0)]]; float2 uv [[user(locn1)]]; };
+struct Parameters { float4 sampling; float4 tint; };
+float alpha_at(texture2d<float> image, sampler image_sampler, float2 uv) {
+    if (any(uv < 0.0) || any(uv >= 1.0)) return 0.0;
+    return image.sample(image_sampler, uv).a;
+}
+fragment float4 main0(Input input [[stage_in]], constant Parameters &p [[buffer(0)]],
+                      texture2d<float> image [[texture(0)]], sampler image_sampler [[sampler(0)]]) {
+    if (p.sampling.w > 1.5) return float4(p.tint.rgb, alpha_at(image,image_sampler,input.uv)*p.tint.a);
+    int radius = int(p.sampling.z);
+    float alpha = 0.0;
+    for (int i=-radius; i<=radius; ++i) {
+        float value = alpha_at(image,image_sampler,input.uv+float(i)*p.sampling.xy);
+        alpha = p.sampling.w > 0.5 ? max(alpha,value) : alpha+value;
+    }
+    if (p.sampling.w < 0.5) alpha /= float(2*radius+1);
+    return float4(0.0,0.0,0.0,alpha);
+}

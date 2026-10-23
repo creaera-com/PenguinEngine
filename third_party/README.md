@@ -5,7 +5,7 @@
 - Unity: C tests; license in unity/LICENSE.txt.
 - JetBrains Mono 2.304: source font and SIL OFL in resources/ui/fonts.
 - stb_truetype 1.26: text rasterization; fetched and SHA-256 verified by cmake/TextFonts.cmake; MIT/public-domain license in the header.
-- SDL3 3.2.10: found or fetched by CMake; not vendored here.
+- SDL3 >= 3.4 (fetch pin 3.4.18): found or fetched by CMake; not vendored here.
 
 The previous engine-only dependencies are excluded from this branch.
 

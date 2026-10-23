@@ -1,4 +1,5 @@
 #include "application.h"
+#include "pengdraw/pengdraw.h"
 #include "pengui/pengui.h"
 #include <stdio.h>
 #include <string.h>
@@ -117,7 +118,7 @@ int playground_run(int argc, char **argv) {
         snprintf(app.path, sizeof app.path, "%splayground.yaml", SDL_GetBasePath());
     }
     app.window = SDL_CreateWindow("pengUI", 1280, 800, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN);
-    app.renderer = app.window ? SDL_CreateRenderer(app.window, NULL) : NULL;
+    app.renderer = app.window ? pdraw_create_renderer(app.window) : NULL;
     if (!app.renderer || !load_layout(&app)) {
         goto cleanup;
     }
@@ -154,7 +155,7 @@ cleanup:
     pui_window_detach(&app.chrome);
     pui_view_free(app.view);
     pui_layout_free(app.layout);
-    SDL_DestroyRenderer(app.renderer);
+    pdraw_destroy_renderer(app.renderer);
     SDL_DestroyWindow(app.window);
     SDL_Quit();
     return result;

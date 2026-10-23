@@ -32,6 +32,7 @@
  * - @subpage README.md
  * - @subpage docs/ARCHITEKTUR.md
  * - @subpage docs/PENGDRAW.md
+ * - @subpage docs/GPU_RENDERING.md
  * - @subpage docs/EDITOREN.md
  * - @subpage docs/VEKTOR_PROGRAMMFLUSS_UND_DATENMODELL.md
  *

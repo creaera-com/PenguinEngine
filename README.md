@@ -443,3 +443,7 @@ Mit installiertem Doxygen zuerst CMake konfigurieren, dann
 ## Benutzerhandbuch
 
 Das [Vector-Tool-Benutzerhandbuch](docs/handbuch/vector/index.md) beschreibt die Bedienung mit Übungen. Die [manuelle Testcheckliste](docs/handbuch/vector/testcheckliste.md) dient der eigenen Abnahme. In Doxygen stehen beide unter **Benutzerhandbuch → Vector Tool**.
+
+## GPU-Rendering
+
+Die Apps bevorzugen SDLs GPU-Renderer (SDL ≥ 3.4; CMake-Fallback 3.4.18). Schatten und Farbverläufe verwenden eigene Shader für Vulkan, Metal beziehungsweise Direct3D 12. Rendererwahl, Kompatibilität und Diagnose stehen in [GPU-Rendering](docs/GPU_RENDERING.md).

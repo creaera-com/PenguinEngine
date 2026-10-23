@@ -1,4 +1,5 @@
 /** @file @brief Rasterize object alpha, dilate, soften, tint and composite behind its content. */
+#include "../gpu/internal.h"
 #include "pengdraw/pengdraw.h"
 #include <math.h>
 #include <stdlib.h>
@@ -75,6 +76,10 @@ bool pdraw_shadow_draw(SDL_Renderer *r, const PDrawShadow *s, float zoom, PDrawR
     int w = (int)ceilf((right - left) * scale), h = (int)ceilf((bottom - top) * scale);
     if (w < 1 || h < 1 || w > 4096 || h > 4096) {
         return false;
+    }
+    PDrawShadowRegion region = {w, h, radius, spread, left, top, scale, ox, oy};
+    if (pdraw_gpu_shadow(r, s, &region, paint, context)) {
+        return true;
     }
     /* Paint in original pixel coordinates; SDL renderer scale applies the sampling reduction. */
     SDL_Texture *previous = SDL_GetRenderTarget(r);
