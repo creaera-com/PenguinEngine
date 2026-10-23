@@ -44,6 +44,7 @@ void tearDown(void) {
 
 static EditorDiagnostics context(void) {
     EditorDiagnostics d = {.document = 1, .objects = 1, .instances = 1024, .selected = 1};
+    d.selected_ids[0] = 7;
     snprintf(d.operation, sizeof d.operation, "idle");
     return d;
 }
@@ -134,6 +135,56 @@ static void test_samples_and_gesture_boundaries_do_not_log_every_motion(void) {
     SDL_free(text);
 }
 
+static void test_selection_identity_and_clearing_are_logged_without_motion_spam(void) {
+    start();
+    EditorDiagnostics d = context();
+    d.selected_ids[0] = 8; /* Same count, different object. */
+    monitor_log_observe(&log_state, &monitor, "vector", d, 1.1);
+    for (int i = 0; i < 1000; i++) {
+        monitor_log_observe(&log_state, &monitor, "vector", d, 1.2);
+    }
+    d.selected = 0;
+    d.selected_ids[0] = 0;
+    monitor_log_observe(&log_state, &monitor, "vector", d, 1.3);
+    d.active_artboard = 2;
+    monitor_log_observe(&log_state, &monitor, "vector", d, 1.4);
+    char *text = read_log();
+    TEST_ASSERT_EQUAL_INT(4, occurrences(text, "\n"));
+    TEST_ASSERT_EQUAL_INT(3, occurrences(text, "\"selection.changed\""));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"selected_ids\":[8]"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"selected_ids\":[]"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"active_artboard\":2.000000"));
+    SDL_free(text);
+}
+
+static void test_pan_logs_boundaries_coordinates_and_discrete_view_changes(void) {
+    start();
+    EditorDiagnostics d = context();
+    d.viewport_available = true;
+    d.zoom = 1;
+    d.interacting = true;
+    snprintf(d.operation, sizeof d.operation, "viewport.pan");
+    monitor_log_observe(&log_state, &monitor, "vector", d, 1.1);
+    for (int i = 0; i < 1000; i++) {
+        d.viewport_x = i;
+        d.viewport_y = -i;
+        monitor_log_observe(&log_state, &monitor, "vector", d, 1.2);
+    }
+    d.interacting = false;
+    snprintf(d.operation, sizeof d.operation, "idle");
+    monitor_log_observe(&log_state, &monitor, "vector", d, 1.3);
+    d.viewport_x = 20;
+    monitor_log_observe(&log_state, &monitor, "vector", d, 1.4);
+    char *text = read_log();
+    TEST_ASSERT_EQUAL_INT(4, occurrences(text, "\n"));
+    TEST_ASSERT_EQUAL_INT(1, occurrences(text, "\"interaction.begin\""));
+    TEST_ASSERT_EQUAL_INT(1, occurrences(text, "\"interaction.end\""));
+    TEST_ASSERT_EQUAL_INT(1, occurrences(text, "\"viewport.changed\""));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"viewport_x\":999.000000"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"viewport_y\":-999.000000"));
+    SDL_free(text);
+}
+
 static void test_switching_project_stops_and_restart_preserves_old_file(void) {
     start();
     char previous[4096];
@@ -210,6 +261,32 @@ static void test_host_toggle_and_real_clone_move_are_logged_through_adapter(void
     event.button.x = d->viewport.bounds.x + d->viewport.x + 100;
     event.button.y = d->viewport.bounds.y + d->viewport.y + 80;
     TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &event));
+    /* A tree selection is recorded even though it creates no undo entry. */
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.artboard.select",
+                                        "vector_document_1.artboard_1"));
+    TEST_ASSERT_TRUE(editor_host_commit(&host, shell.view, &shell.input, error, sizeof error));
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.rectangle.select",
+                                        "vector_document_1.rectangle_1"));
+    TEST_ASSERT_TRUE(editor_host_commit(&host, shell.view, &shell.input, error, sizeof error));
+    pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 1280, 800}, NULL, NULL);
+    float before_x = d->viewport.x, before_y = d->viewport.y;
+    float pan_x = d->viewport.bounds.x + 100, pan_y = d->viewport.bounds.y + 100;
+    event.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
+    event.button.button = SDL_BUTTON_MIDDLE;
+    event.button.x = pan_x;
+    event.button.y = pan_y;
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &event));
+    event.type = SDL_EVENT_MOUSE_MOTION;
+    event.motion.x = pan_x + 30;
+    event.motion.y = pan_y + 20;
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &event));
+    event.type = SDL_EVENT_MOUSE_BUTTON_UP;
+    event.button.button = SDL_BUTTON_MIDDLE;
+    event.button.x = pan_x + 30;
+    event.button.y = pan_y + 20;
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &event));
+    TEST_ASSERT_EQUAL_FLOAT(before_x + 30, d->viewport.x);
+    TEST_ASSERT_EQUAL_FLOAT(before_y + 20, d->viewport.y);
     TEST_ASSERT_TRUE(editor_host_request(&host, "scripts", false));
     TEST_ASSERT_TRUE(editor_host_commit(&host, shell.view, &shell.input, error, sizeof error));
     TEST_ASSERT_NOT_NULL(host.log.stream);
@@ -223,6 +300,9 @@ static void test_host_toggle_and_real_clone_move_are_logged_through_adapter(void
     char *text = SDL_LoadFile(host.log.path, NULL);
     TEST_ASSERT_NOT_NULL(text);
     TEST_ASSERT_NOT_NULL(strstr(text, "selection.move"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "selection.changed"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "viewport.pan"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"selected_ids\":[1]"));
     TEST_ASSERT_NOT_NULL(strstr(text, "interaction.begin"));
     TEST_ASSERT_NOT_NULL(strstr(text, "interaction.end"));
     TEST_ASSERT_NOT_NULL(strstr(text, "\"instances\":20.000000"));
@@ -238,6 +318,8 @@ int main(void) {
     RUN_TEST(test_requires_project_and_does_not_create_files_while_disabled);
     RUN_TEST(test_json_rows_escape_actions_and_report_unknown_metrics_as_null);
     RUN_TEST(test_samples_and_gesture_boundaries_do_not_log_every_motion);
+    RUN_TEST(test_selection_identity_and_clearing_are_logged_without_motion_spam);
+    RUN_TEST(test_pan_logs_boundaries_coordinates_and_discrete_view_changes);
     RUN_TEST(test_switching_project_stops_and_restart_preserves_old_file);
     RUN_TEST(test_write_failure_closes_recording_instead_of_growing_memory);
     RUN_TEST(test_host_toggle_and_real_clone_move_are_logged_through_adapter);

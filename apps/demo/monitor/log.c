@@ -44,6 +44,19 @@ static bool number(MonitorLog *log, const char *key, double value, bool availabl
            put(log, available && isfinite(value) ? text : "null");
 }
 
+static bool selection(MonitorLog *log, const EditorDiagnostics *d) {
+    bool ok = put(log, ",\"selected_ids\":[");
+    unsigned count = d->selected < EDITOR_DIAGNOSTIC_SELECTION_CAPACITY
+                         ? d->selected
+                         : EDITOR_DIAGNOSTIC_SELECTION_CAPACITY;
+    for (unsigned i = 0; ok && i < count; i++) {
+        char id[32];
+        snprintf(id, sizeof id, "%s%u", i ? "," : "", d->selected_ids[i]);
+        ok = put(log, id);
+    }
+    return ok && put(log, "]");
+}
+
 static void utc(char *text, size_t capacity, bool filename) {
     SDL_Time time;
     SDL_DateTime date;
@@ -78,6 +91,11 @@ static void row(MonitorLog *log, const ProcessMonitor *m, const char *editor, Ed
         field(log, "widget", widget) && field(log, "operation", d.operation) &&
         number(log, "document", d.document, true) && number(log, "objects", d.objects, true) &&
         number(log, "instances", d.instances, true) && number(log, "selected", d.selected, true) &&
+        selection(log, &d) && number(log, "active_artboard", d.active_artboard, true) &&
+        number(log, "active_object", d.active_object, true) &&
+        number(log, "viewport_x", d.viewport_x, d.viewport_available) &&
+        number(log, "viewport_y", d.viewport_y, d.viewport_available) &&
+        number(log, "zoom", d.zoom, d.viewport_available) &&
         number(log, "history_cursor", d.history_cursor, true) &&
         number(log, "ram_mib", current.resident_bytes / 1048576., current.memory_available) &&
         number(log, "cpu_percent", sample ? sample->cpu_percent : 0,
@@ -181,8 +199,10 @@ void monitor_log_observe(MonitorLog *log, const ProcessMonitor *m, const char *e
     if (!log->stream) {
         return;
     }
+    bool same_context =
+        log->observed && !strcmp(log->editor, editor) && log->previous.document == d.document;
     const char *event = NULL;
-    if (!log->observed || strcmp(log->editor, editor) || log->previous.document != d.document) {
+    if (!same_context) {
         event = "context.changed";
     } else if (strcmp(log->previous.operation, d.operation) ||
                log->previous.interacting != d.interacting) {
@@ -193,6 +213,18 @@ void monitor_log_observe(MonitorLog *log, const ProcessMonitor *m, const char *e
     }
     if (event) {
         row(log, m, editor, d, event, log->previous.operation, "", now);
+    }
+    if (same_context &&
+        (log->previous.selected != d.selected || log->previous.active_object != d.active_object ||
+         log->previous.active_artboard != d.active_artboard ||
+         memcmp(log->previous.selected_ids, d.selected_ids, sizeof d.selected_ids))) {
+        row(log, m, editor, d, "selection.changed", "selection.change", "", now);
+    }
+    if (same_context && d.viewport_available && log->previous.viewport_available &&
+        !d.interacting && !log->previous.interacting &&
+        (log->previous.viewport_x != d.viewport_x || log->previous.viewport_y != d.viewport_y ||
+         log->previous.zoom != d.zoom)) {
+        row(log, m, editor, d, "viewport.changed", "viewport.change", "", now);
     }
     snprintf(log->editor, sizeof log->editor, "%s", editor);
     log->previous = d;

@@ -107,6 +107,14 @@ für sich ein JSON-Objekt. Enthalten sind:
 
 - UTC-Zeit und monotone Sekunden seit Aufzeichnungsbeginn.
 - Ereignistyp, Editor, Dokument-ID, UI-Aktionsname und Widget-ID.
+- Auswahl: `selected_ids` (bis zu 64 Objekt-IDs), `active_object` und `active_artboard`.
+  `selection.changed` erfasst Auswählen, Abwählen und Wechsel zwischen Objekten,
+  auch bei unveränderter Anzahl. Das funktioniert in Zeichenfläche und Ebenen-Tree.
+- Ansicht: `viewport_x`/`viewport_y` als Versatz in Bildschirmpixeln und `zoom` als Faktor
+  (1 = 100 %); bei Editoren ohne diese Diagnosewerte steht dort `null`.
+  Beim Verschieben der Zeichenfläche steht `viewport.pan` in den Start-/Endeinträgen
+  und in den periodischen Samples. Ein direkter Ansichtswechsel ohne laufende Geste
+  wird zusätzlich als `viewport.changed` erfasst.
 - Aktuelle Interaktion, etwa `selection.move`, `selection.resize`, `selection.rotate`,
   `viewport.pan`, `viewport.zoom` oder `inspector.scrub`.
 - Anzahl tatsächlicher Formobjekte, dargestellbarer Instanzen inklusive Originalen,
