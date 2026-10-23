@@ -28,6 +28,30 @@ void vector_artwork_renderer_destroy(VectorArtworkRenderer *c) {
     *c = (VectorArtworkRenderer){0};
 }
 
+/* Hash only values that affect artwork, not history pointers or viewport timers.
+ * Resolved shapes include live transform/curve/gradient/numeric previews. */
+static uint64_t artwork_revision(const VectorDocument *d, const VectorArtboard *board,
+                                 SDL_FRect bounds) {
+    uint64_t hash = UINT64_C(14695981039346656037);
+    const void *values[] = {d->rectangles,     board,         &bounds,
+                            &d->viewport.zoom, &d->selection, &d->active_rectangle,
+                            &d->fill_preview};
+    size_t sizes[] = {d->rectangle_count * sizeof *d->rectangles,
+                      sizeof *board,
+                      sizeof bounds,
+                      sizeof d->viewport.zoom,
+                      sizeof d->selection,
+                      sizeof d->active_rectangle,
+                      sizeof d->fill_preview};
+    for (unsigned i = 0; i < sizeof sizes / sizeof *sizes; i++) {
+        const unsigned char *bytes = values[i];
+        for (size_t n = 0; n < sizes[i]; n++) {
+            hash = (hash ^ bytes[n]) * UINT64_C(1099511628211);
+        }
+    }
+    return hash;
+}
+
 void vector_artwork_draw(VectorArtworkRenderer *cache, VectorDocument *document,
                          const VectorArtboard *board, SDL_Renderer *r, SDL_FRect bounds,
                          VectorTextRenderer *text, VectorImageRenderer *images) {
@@ -52,7 +76,13 @@ void vector_artwork_draw(VectorArtworkRenderer *cache, VectorDocument *document,
     c->scratch->curve_tool = (VectorCurveTool){0};
     c->scratch->gradient_tool = (VectorGradientTool){0};
     Artwork a = {c->scratch, board, bounds, text, images, document->viewport.zoom};
-    pdraw_render(&c->drawing, r, bounds, paint, &a);
+    if (document->text_tool.editing_id || document->rectangle_tool.dragging) {
+        /* Text cursors and unfinished creation gestures are transient output. */
+        pdraw_render(&c->drawing, r, bounds, paint, &a);
+    } else {
+        pdraw_render_cached(&c->drawing, r, bounds, artwork_revision(c->scratch, board, bounds),
+                            paint, &a);
+    }
     if (!cache) {
         vector_artwork_renderer_destroy(&temporary);
     }

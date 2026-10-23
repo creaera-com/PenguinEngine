@@ -42,7 +42,7 @@ static void commit(void) {
     char error[256];
     TEST_ASSERT_TRUE_MESSAGE(
         editor_host_commit(&host, shell.view, &shell.input, error, sizeof error), error);
-    pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 1280, 800}, action, &host);
+    pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 1800, 800}, action, &host);
 }
 
 static void activate(const char *id) {
@@ -56,7 +56,7 @@ static VectorDocument *document(void) {
 
 void setUp(void) {
     TEST_ASSERT_TRUE(SDL_Init(SDL_INIT_VIDEO));
-    window = SDL_CreateWindow("element snapping", 1280, 800, SDL_WINDOW_HIDDEN);
+    window = SDL_CreateWindow("element snapping", 1800, 800, SDL_WINDOW_HIDDEN);
     renderer = SDL_CreateRenderer(window, NULL);
     TEST_ASSERT_NOT_NULL(renderer);
     char path[1600], error[256];

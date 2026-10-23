@@ -129,10 +129,26 @@ Geometrie bleibt bewusst begrenzt: 128 Pfadpunkte, 32 Konturen, 32 Bézierknoten
 Geometrieoperationen werden über Rückgabewerte gemeldet. Abgeleitete Kurven können
 zum Einhalten der Konturgrenze gröber approximiert werden.
 
-Der Supersampling-Cache besitzt höchstens eine 2048×2048-RGBA-Textur (16 MiB).
+`pdraw_render` verwendet eine wiederverwendbare 2048×2048-RGBA-Arbeitstextur
+(bis 16 MiB). `pdraw_render_cached` ergänzt einen LRU-Cache für fertig gezeichnete
+Kacheln: höchstens 16 Einträge mit zusammen 64 MiB Texturdaten. Diese Grenze gilt
+pro `PDrawRenderer`; Vorschau und Canvas können eigene Renderer besitzen.
+Der Aufrufer liefert eine Inhaltsrevision, die bei jeder sichtbaren Änderung
+wechseln muss. Bounds, Clipping, Renderziel und Renderer werden zusätzlich geprüft.
+Unveränderte Kacheln werden als Textur ausgegeben, ohne Geometrie, Schattenfilter
+oder GPU-Readback erneut auszuführen. Neue/ungültige Kacheln werden weiterhin
+synchron gezeichnet. Änderungen und Kamerabewegungen sind deshalb teurer als eine
+ruhende Ansicht. Bei fehlendem Speicher wird unmittelbar gezeichnet.
+
+Der Vector-Adapter bildet die Revision aus aufgelösten Formen, Artboard, Ansicht,
+Auswahl und Farbvorschau. Für Texteingabe und laufende Formerstellung verwendet er
+den unmittelbaren Pfad, damit Cursor und vorläufige Formen aktuell bleiben.
+Nach Editorwechsel beziehungsweise beim Freigeben werden auch die Kacheln zerstört.
+Der Cache gehört nicht zu Dokument, History oder Projektdatei.
+
 Er stellt Renderziel, Viewport, Clipping, Skalierung, Farbe und Blendmodus wieder
 her. Bei nicht unterstützten Zieltexturen wird nativ gezeichnet. Masken und
-Schatten besitzen ihre eigenen temporären Ressourcen; die 16-MiB-Grenze ist keine
+Schatten besitzen ihre eigenen temporären Ressourcen; die genannten Cache-Grenzen sind keine
 Gesamtgrenze für alle Effekte oder Texturen.
 
 `pengdraw_core` und `pengdraw_sdl` testen die Library direkt ohne Editor-/UI-Link.

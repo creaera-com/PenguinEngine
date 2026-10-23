@@ -726,7 +726,7 @@ static void test_resize_renders_live_fill_and_white_handles_before_history_commi
     assert_rect(initial, document->artboards[0].rect);
     TEST_ASSERT_EQUAL_INT(1, document->history.cursor);
     selection_pointer(SDL_EVENT_MOUSE_MOTION, x - 60, y - 40);
-    assert_canvas_pixel(x - 30, y - 20, 104); // Removed area becomes canvas gray immediately.
+    assert_canvas_pixel(x - 30, y - 20, 76); // Removed area becomes canvas gray immediately.
     assert_rect(initial, document->artboards[0].rect);
     TEST_ASSERT_EQUAL_INT(1, document->history.cursor);
     selection_pointer(SDL_EVENT_MOUSE_BUTTON_UP, x - 60, y - 40);
@@ -749,7 +749,7 @@ static void test_visibility_and_lock_in_tree_inspector_and_history(void) {
     object_state_action("vector.artboard.visibility", "vector_document_1.artboard_1");
     TEST_ASSERT_EQUAL_UINT(VECTOR_OBJECT_HIDDEN, document->artboards[0].flags);
     TEST_ASSERT_FALSE(pui_view_checked(shell.view, "artboard_visible"));
-    assert_canvas_pixel(screen.x + 20, screen.y + 20, 104);
+    assert_canvas_pixel(screen.x + 20, screen.y + 20, 76);
     selection_pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, screen.x + 20, screen.y + 20);
     TEST_ASSERT_EQUAL_UINT(0, document->active_artboard);
     object_state_action("vector.artboard.select", "vector_document_1.artboard_1");

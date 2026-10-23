@@ -158,8 +158,31 @@ static void test_live_grid_snap_uses_screen_zoom_instead_of_sampling_zoom(void) 
     SDL_DestroySurface(s);
 }
 
+static void test_cached_artwork_invalidates_on_edits_and_undo(void) {
+    for (int pass = 0; pass < 3; pass++) {
+        if (pass == 1) {
+            TEST_ASSERT_TRUE(vector_rectangle_set_fill(document, 1, 0xff0000ff));
+        } else if (pass == 2) {
+            TEST_ASSERT_TRUE(vector_history_undo(&document->history, document));
+        }
+        for (int frame = 0; frame < 2; frame++) {
+            clear(0);
+            vector_artwork_draw(&artwork, document, &document->artboards[0], renderer,
+                                (SDL_FRect){0, 0, 1200, 240}, NULL, NULL);
+            SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
+            TEST_ASSERT_NOT_NULL(surface);
+            Uint8 r, g, b, a;
+            TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 100, 80, &r, &g, &b, &a));
+            TEST_ASSERT_EQUAL_UINT8(255, r);
+            TEST_ASSERT_EQUAL_UINT8(pass == 1 ? 0 : 255, g);
+            SDL_DestroySurface(surface);
+        }
+    }
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_cached_artwork_invalidates_on_edits_and_undo);
     RUN_TEST(test_live_grid_snap_uses_screen_zoom_instead_of_sampling_zoom);
     RUN_TEST(test_rotated_edges_have_coverage_and_cache_is_reused_without_model_edits);
     RUN_TEST(test_tile_boundary_and_renderer_state_are_preserved);

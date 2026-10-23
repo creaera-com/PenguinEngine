@@ -88,8 +88,99 @@ static void test_borrowed_texture_modulation_is_restored(void) {
     SDL_DestroyTexture(texture);
 }
 
+static void test_cached_tiles_reuse_and_invalidate_content(void) {
+    PDrawShape shape = {0};
+    SDL_FRect bounds = {0, 0, 160, 120};
+    pdraw_render_cached(&cache, renderer, bounds, 1, paint, &shape);
+    TEST_ASSERT_EQUAL_INT(1, calls);
+    TEST_ASSERT_EQUAL_HEX32(0x336699ff, pixel(25, 25));
+    SDL_RenderClear(renderer);
+    pdraw_render_cached(&cache, renderer, bounds, 1, paint, &shape);
+    TEST_ASSERT_EQUAL_INT(1, calls);
+    TEST_ASSERT_EQUAL_HEX32(0x336699ff, pixel(25, 25));
+    shape.ellipse = true;
+    SDL_RenderClear(renderer);
+    pdraw_render_cached(&cache, renderer, bounds, 2, paint, &shape);
+    TEST_ASSERT_EQUAL_INT(2, calls);
+    TEST_ASSERT_EQUAL_HEX32(0x000000ff, pixel(25, 25));
+    TEST_ASSERT_EQUAL_HEX32(0x336699ff, pixel(60, 50));
+}
+
+static void test_cached_tiles_include_clip_target_and_restore_state(void) {
+    PDrawShape shape = {0};
+    SDL_FRect bounds = {0, 0, 160, 120};
+    pdraw_render_cached(&cache, renderer, bounds, 1, paint, &shape);
+    SDL_Rect clip = {30, 0, 130, 120};
+    SDL_SetRenderClipRect(renderer, &clip);
+    SDL_SetRenderDrawColor(renderer, 7, 8, 9, 10);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_ADD);
+    pdraw_render_cached(&cache, renderer, bounds, 1, paint, &shape);
+    TEST_ASSERT_EQUAL_INT(2, calls);
+    pdraw_render_cached(&cache, renderer, bounds, 1, paint, &shape);
+    TEST_ASSERT_EQUAL_INT(2, calls);
+    SDL_Rect restored;
+    SDL_GetRenderClipRect(renderer, &restored);
+    TEST_ASSERT_EQUAL_MEMORY(&clip, &restored, sizeof clip);
+    Uint8 r, g, b, a;
+    SDL_GetRenderDrawColor(renderer, &r, &g, &b, &a);
+    TEST_ASSERT_EQUAL_UINT8(7, r);
+    TEST_ASSERT_EQUAL_UINT8(10, a);
+    SDL_BlendMode blend;
+    SDL_GetRenderDrawBlendMode(renderer, &blend);
+    TEST_ASSERT_EQUAL_INT(SDL_BLENDMODE_ADD, blend);
+    SDL_Texture *target =
+        SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 160, 120);
+    TEST_ASSERT_NOT_NULL(target);
+    SDL_SetRenderTarget(renderer, target);
+    pdraw_render_cached(&cache, renderer, bounds, 1, paint, &shape);
+    TEST_ASSERT_EQUAL_INT(3, calls);
+    TEST_ASSERT_EQUAL_PTR(target, SDL_GetRenderTarget(renderer));
+    SDL_SetRenderTarget(renderer, NULL);
+    pdraw_renderer_destroy(&cache);
+    SDL_DestroyTexture(target);
+}
+
+static void test_cached_tiles_evict_old_revisions(void) {
+    PDrawShape shape = {0};
+    SDL_FRect bounds = {0, 0, 160, 120};
+    for (uint64_t revision = 0; revision < 40; revision++) {
+        pdraw_render_cached(&cache, renderer, bounds, revision, paint, &shape);
+    }
+    TEST_ASSERT_EQUAL_INT(40, calls);
+    pdraw_render_cached(&cache, renderer, bounds, 39, paint, &shape);
+    TEST_ASSERT_EQUAL_INT(40, calls);
+    pdraw_render_cached(&cache, renderer, bounds, 0, paint, &shape);
+    TEST_ASSERT_EQUAL_INT(41, calls);
+}
+
+static void test_cached_tiles_enforce_byte_budget_before_slot_limit(void) {
+    PDrawShape shape = {0};
+    SDL_Texture *target =
+        SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 1024, 1024);
+    TEST_ASSERT_NOT_NULL(target);
+    SDL_SetRenderTarget(renderer, target);
+    SDL_FRect bounds = {0, 0, 1024, 1024};
+    /* Each supersampled tile is 16 MiB: five cannot fit in the 64 MiB budget,
+     * even though the cache has sixteen slots. */
+    for (uint64_t revision = 1; revision <= 5; revision++) {
+        pdraw_render_cached(&cache, renderer, bounds, revision, paint, &shape);
+    }
+    TEST_ASSERT_EQUAL_INT(5, calls);
+    pdraw_render_cached(&cache, renderer, bounds, 5, paint, &shape);
+    TEST_ASSERT_EQUAL_INT(5, calls);
+    pdraw_render_cached(&cache, renderer, bounds, 1, paint, &shape);
+    TEST_ASSERT_EQUAL_INT(6, calls);
+    pdraw_renderer_destroy(&cache);
+    SDL_SetRenderTarget(renderer, NULL);
+    SDL_DestroyTexture(target);
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_cached_tiles_enforce_byte_budget_before_slot_limit);
+    RUN_TEST(test_cached_tiles_reuse_and_invalidate_content);
+    RUN_TEST(test_cached_tiles_include_clip_target_and_restore_state);
+    RUN_TEST(test_cached_tiles_evict_old_revisions);
     RUN_TEST(test_standalone_supersampling_and_clipping);
     RUN_TEST(test_borrowed_texture_modulation_is_restored);
     return UNITY_END();

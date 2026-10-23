@@ -175,6 +175,7 @@ int editor_application_run(int argc, char **argv) {
     result = 0;
     int frames = 0;
     while (app.running) {
+        Uint64 frame_start = SDL_GetTicksNS();
         events(&app);
         int width, height;
         SDL_GetWindowSize(app.window, &width, &height);
@@ -202,7 +203,13 @@ int editor_application_run(int argc, char **argv) {
                                      error, sizeof error)) {
             pui_view_set_text(app.shell.view, "status", error);
         }
-        SDL_Delay(1);
+        /* Keep the editor at at most 60 frames/s. Faster cached rendering must
+         * reduce CPU use rather than simply produce more frames in the idle UI. */
+        Uint64 elapsed = SDL_GetTicksNS() - frame_start;
+        Uint64 frame_budget = SDL_NS_PER_SECOND / 60;
+        if (elapsed < frame_budget) {
+            SDL_DelayPrecise(frame_budget - elapsed);
+        }
     }
 cleanup:
     document_controller_destroy(&app.documents);

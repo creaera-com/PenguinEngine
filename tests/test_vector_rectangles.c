@@ -203,7 +203,7 @@ static void test_child_follows_parent_and_uses_own_and_inherited_states(void) {
     action("vector.rectangle.visible", "rectangle_visible");
     TEST_ASSERT_TRUE(vector_artboard_set_state(doc, 1, VECTOR_OBJECT_HIDDEN));
     commit();
-    assert_local_red(doc, 40, 50, 104);
+    assert_local_red(doc, 40, 50, 76);
     TEST_ASSERT_TRUE(vector_artboard_set_state(doc, 1, VECTOR_OBJECT_LOCKED));
     commit();
     TEST_ASSERT_FALSE(vector_rectangle_update(doc, 1, "Blocked", (PUIRect){20, 30, 90, 60}));

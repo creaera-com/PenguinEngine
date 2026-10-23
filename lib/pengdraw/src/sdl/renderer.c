@@ -1,8 +1,27 @@
 /** @file @brief Bounded supersampling with caller-owned replayable drawing commands. */
 #include "pengdraw/pengdraw.h"
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
 enum { TILE = 1024, SAMPLES = 2 };
+
+enum { CACHE_TILES = 16 };
+
+#define CACHE_BYTES (64u * 1024u * 1024u)
+
+typedef struct {
+    PDrawRenderer drawing;
+    SDL_Rect crop;
+    SDL_FRect bounds;
+    SDL_Texture *destination;
+    uint64_t revision, used;
+} CachedTile;
+
+typedef struct {
+    CachedTile entries[CACHE_TILES];
+    uint64_t clock;
+} TileCache;
 
 typedef struct {
     SDL_Texture *target;
@@ -37,6 +56,13 @@ static void restore(SDL_Renderer *r, const RenderState *s) {
 void pdraw_renderer_destroy(PDrawRenderer *c) {
     if (!c) {
         return;
+    }
+    if (c->tiles) {
+        TileCache *tiles = c->tiles;
+        for (int i = 0; i < CACHE_TILES; i++) {
+            pdraw_renderer_destroy(&tiles->entries[i].drawing);
+        }
+        free(tiles);
     }
     SDL_DestroyTexture(c->target);
     *c = (PDrawRenderer){0};
@@ -149,4 +175,107 @@ void pdraw_render(PDrawRenderer *cache, SDL_Renderer *r, SDL_FRect bounds, PDraw
     if (!cache) {
         pdraw_renderer_destroy(&temporary);
     }
+}
+
+static size_t tile_bytes(const CachedTile *entry) {
+    return (size_t)entry->drawing.width * entry->drawing.height * 4;
+}
+
+static CachedTile *cached_tile(TileCache *cache, SDL_Renderer *r, SDL_Rect crop, SDL_FRect bounds,
+                               SDL_Texture *destination, uint64_t revision) {
+    size_t bytes = 0;
+    CachedTile *oldest = &cache->entries[0];
+    for (int i = 0; i < CACHE_TILES; i++) {
+        CachedTile *entry = &cache->entries[i];
+        if (entry->drawing.target && entry->drawing.renderer == r &&
+            entry->destination == destination && entry->revision == revision &&
+            !memcmp(&entry->crop, &crop, sizeof crop) &&
+            !memcmp(&entry->bounds, &bounds, sizeof bounds)) {
+            entry->used = ++cache->clock;
+            return entry;
+        }
+        bytes += tile_bytes(entry);
+        if (entry->used < oldest->used) {
+            oldest = entry;
+        }
+    }
+    size_t needed = (size_t)crop.w * crop.h * SAMPLES * SAMPLES * 4;
+    /* Evict least-recently-used tiles until both the slot and byte budgets fit. */
+    while (bytes - tile_bytes(oldest) + needed > CACHE_BYTES) {
+        bytes -= tile_bytes(oldest);
+        pdraw_renderer_destroy(&oldest->drawing);
+        *oldest = (CachedTile){0};
+        oldest = NULL;
+        for (int i = 0; i < CACHE_TILES; i++) {
+            CachedTile *entry = &cache->entries[i];
+            if (entry->drawing.target && (!oldest || entry->used < oldest->used)) {
+                oldest = entry;
+            }
+        }
+        if (!oldest) {
+            oldest = &cache->entries[0];
+        }
+    }
+    pdraw_renderer_destroy(&oldest->drawing);
+    *oldest = (CachedTile){.crop = crop,
+                           .bounds = bounds,
+                           .destination = destination,
+                           .revision = revision,
+                           .used = ++cache->clock};
+    return oldest;
+}
+
+void pdraw_render_cached(PDrawRenderer *cache, SDL_Renderer *r, SDL_FRect bounds, uint64_t revision,
+                         PDrawPaint paint, void *context) {
+    if (!cache || !r || !paint) {
+        pdraw_render(cache, r, bounds, paint, context);
+        return;
+    }
+    if (cache->renderer && cache->renderer != r) {
+        pdraw_renderer_destroy(cache);
+    }
+    cache->renderer = r;
+    if (!cache->tiles) {
+        cache->tiles = calloc(1, sizeof(TileCache));
+    }
+    RenderState previous = capture(r);
+    int width, height;
+    if (!cache->tiles || previous.sx != 1 || previous.sy != 1 || previous.viewport_set ||
+        !SDL_GetCurrentRenderOutputSize(r, &width, &height)) {
+        pdraw_render(cache, r, bounds, paint, context);
+        return;
+    }
+    float left = fmaxf(0, bounds.x), top = fmaxf(0, bounds.y);
+    float right = fminf(width, bounds.x + bounds.w), bottom = fminf(height, bounds.y + bounds.h);
+    if (previous.clipped) {
+        left = fmaxf(left, previous.clip.x);
+        top = fmaxf(top, previous.clip.y);
+        right = fminf(right, previous.clip.x + previous.clip.w);
+        bottom = fminf(bottom, previous.clip.y + previous.clip.h);
+    }
+    if (right <= left || bottom <= top) {
+        return;
+    }
+    int end_x = (int)ceilf(right), end_y = (int)ceilf(bottom);
+    for (int y = (int)floorf(top); y < end_y; y += TILE) {
+        for (int x = (int)floorf(left); x < end_x; x += TILE) {
+            SDL_Rect crop = {x, y, end_x - x, end_y - y};
+            if (crop.w > TILE) {
+                crop.w = TILE;
+            }
+            if (crop.h > TILE) {
+                crop.h = TILE;
+            }
+            CachedTile *entry =
+                cached_tile(cache->tiles, r, crop, bounds, previous.target, revision);
+            if (!entry->drawing.target) {
+                pdraw_render(&entry->drawing, r, (SDL_FRect){x, y, crop.w, crop.h}, paint, context);
+            } else {
+                SDL_FRect source = {0, 0, crop.w * SAMPLES, crop.h * SAMPLES};
+                SDL_FRect destination = {x, y, crop.w, crop.h};
+                SDL_RenderTexture(r, entry->drawing.target, &source, &destination);
+            }
+        }
+    }
+    restore(r, &previous);
 }

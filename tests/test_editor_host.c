@@ -408,8 +408,8 @@ static void test_canvas_is_clipped_and_zoom_keeps_point_under_pointer(void) {
     TEST_ASSERT_NOT_NULL(surface);
     Uint8 r, g, b, a;
     TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, 400, 300, &r, &g, &b, &a));
-    TEST_ASSERT_EQUAL_UINT8(104, r);
-    TEST_ASSERT_EQUAL_UINT8(104, g);
+    TEST_ASSERT_EQUAL_UINT8(76, r);
+    TEST_ASSERT_EQUAL_UINT8(76, g);
     SDL_DestroySurface(surface);
     VectorViewport *viewport = &document->viewport;
     float point = (400 - viewport->bounds.x - viewport->x) / viewport->zoom;
@@ -566,7 +566,7 @@ static void test_ruler_pointer_marks_follow_zoomed_board_and_preserve_clip(void)
     SDL_Rect clip = {20, 20, 700, 500};
     SDL_SetRenderClipRect(renderer, &clip);
     for (int zoom = 1; zoom <= 2; zoom++) {
-        SDL_SetRenderDrawColor(renderer, 104, 104, 104, 255);
+        SDL_SetRenderDrawColor(renderer, 76, 76, 76, 255);
         SDL_RenderClear(renderer);
         SDL_FRect board = {150, 120, 100 * zoom, 80 * zoom};
         float x = board.x + 23 * zoom, y = board.y + 31 * zoom;
@@ -589,7 +589,7 @@ static void test_ruler_pointer_marks_follow_zoomed_board_and_preserve_clip(void)
         TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, (int)x + 1, 112, &r, &g, &b, &a));
         TEST_ASSERT_NOT_EQUAL(255, r);
         SDL_DestroySurface(surface);
-        SDL_SetRenderDrawColor(renderer, 104, 104, 104, 255);
+        SDL_SetRenderDrawColor(renderer, 76, 76, 76, 255);
         SDL_RenderClear(renderer);
         vector_ruler_draw(renderer, board, (float)zoom);
         vector_ruler_draw_pointer(renderer, board, board.x - 1, y);

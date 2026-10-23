@@ -256,6 +256,7 @@ typedef struct {
     SDL_Renderer *renderer;
     SDL_Texture *target;
     int width, height;
+    void *tiles; ///< Owned bounded replay cache; private to the SDL backend.
 } PDrawRenderer;
 
 /** @brief Replayable painting callback: origin and scale describe each supersampling tile.
@@ -267,6 +268,13 @@ typedef void (*PDrawPaint)(void *context, SDL_Renderer *, float origin_x, float 
  * NULL cache uses temporary resources; fallback supports renderers without target textures.
  */
 void pdraw_render(PDrawRenderer *, SDL_Renderer *, SDL_FRect bounds, PDrawPaint, void *context);
+/** @brief Reuse rendered tiles for a caller-supplied content revision (up to 64 MiB, 16 tiles).
+ * Revision must change whenever callback output changes, including selection/animation.
+ * Bounds, clipping, render target and renderer are also part of the cache identity.
+ * NULL cache draws immediately. Destroy before the SDL renderer; no document data is owned.
+ */
+void pdraw_render_cached(PDrawRenderer *, SDL_Renderer *, SDL_FRect bounds, uint64_t revision,
+                         PDrawPaint, void *context);
 /** @brief Free scratch textures, safe repeatedly. */
 void pdraw_renderer_destroy(PDrawRenderer *);
 
