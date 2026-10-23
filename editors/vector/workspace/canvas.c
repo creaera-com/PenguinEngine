@@ -83,7 +83,7 @@ void vector_canvas_draw(VectorDocument *document, SDL_Renderer *renderer, PUIRec
     SDL_GetMouseState(&pointer_x, &pointer_y);
     bool pointer_on_canvas = SDL_GetMouseFocus() == SDL_GetRenderWindow(renderer) &&
                              pui_contains(area, pointer_x, pointer_y);
-    SDL_SetRenderDrawColor(renderer, 104, 104, 104, 255);
+    SDL_SetRenderDrawColor(renderer, 88, 88, 88, 255);
     SDL_FRect background = {area.x, area.y, area.w, area.h};
     SDL_RenderFillRect(renderer, &background);
     for (int i = 0; i < document->artboard_count; i++) {

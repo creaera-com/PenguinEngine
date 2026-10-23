@@ -11,18 +11,18 @@ root:
       gap: 8
       children:
         - {type: label, text: Versatz X, width: 112}
-        - {type: input, id: shadow_x, action: vector.shadow.x }
+        - {type: input, id: shadow_x, input_type: decimal, action: vector.shadow.x }
         - {type: label, text: Versatz Y, width: 112}
-        - {type: input, id: shadow_y, action: vector.shadow.y}
+        - {type: input, id: shadow_y, input_type: decimal, action: vector.shadow.y}
     - type: row
       padding: 5
       height: 38
       gap: 8
       children:
         - {type: label, text: Weichheit, width: 112}
-        - {type: input, id: shadow_blur, action: vector.shadow.blur}
+        - {type: input, id: shadow_blur, input_type: decimal, action: vector.shadow.blur}
         - {type: label, text: Ausbreitung, width: 112}
-        - {type: input, id: shadow_spread, action: vector.shadow.spread}
+        - {type: input, id: shadow_spread, input_type: decimal, action: vector.shadow.spread}
     - type: popup_button
       id: shadow_color_button
       color_input: shadow_color
