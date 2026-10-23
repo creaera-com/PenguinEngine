@@ -81,3 +81,66 @@ Das YAML-Panel scrollt, damit Metadaten und drei Diagramme auch in einem kleinen
 Monitorbereich erreichbar sind. Der Host beobachtet den gemeinsamen Renderer beim
 Canvas-Zeichnen und speichert nur Werte, keine geliehenen GPU-Zeiger. Geräteangaben,
 Verlauf und Darstellung bleiben damit unabhängig vom ausgewählten Editor.
+
+
+## Performance und Aktionen im Projekt aufzeichnen
+
+1. Ein Projekt öffnen oder neu anlegen.
+2. Im Tab **Monitor** den Toggle **Performance loggen** einschalten.
+3. Den problematischen Ablauf durchführen, etwa Klone anlegen und verschieben.
+4. Den Toggle wieder ausschalten. Im Projektordner liegt die Datei
+   `performance-YYYYMMDD-HHMMSS-NNN.jsonl`; Datum und Uhrzeit sind UTC.
+   Der Dateiname steht während der Aufzeichnung im Monitor. Der Explorer wird
+   beim Umschalten aktualisiert. Die Datei kann anschließend zur Analyse geteilt werden.
+
+Jeder Start erzeugt eine neue Datei und überschreibt keine bestehende Aufzeichnung.
+Ohne geöffnetes Projekt wird der Start mit einer Meldung abgewiesen. Ein
+Projektwechsel beendet die Aufzeichnung im bisherigen Projekt; im neuen Projekt
+muss sie ausdrücklich wieder eingeschaltet werden. Editorwechsel lassen sie
+weiterlaufen. Beim Beenden der Anwendung wird die Datei geschlossen. Schreibfehler
+beenden die Aufzeichnung, setzen den Toggle zurück und erscheinen im Monitor.
+
+### Inhalt und Messgrenzen
+
+Das Format ist **JSON Lines**, Schema `penguengine/performance/v1`: jede Zeile ist
+für sich ein JSON-Objekt. Enthalten sind:
+
+- UTC-Zeit und monotone Sekunden seit Aufzeichnungsbeginn.
+- Ereignistyp, Editor, Dokument-ID, UI-Aktionsname und Widget-ID.
+- Aktuelle Interaktion, etwa `selection.move`, `selection.resize`, `selection.rotate`,
+  `viewport.pan`, `viewport.zoom` oder `inspector.scrub`.
+- Anzahl tatsächlicher Formobjekte, dargestellbarer Instanzen inklusive Originalen,
+  ausgewählter Objekte und Position des Undo-Cursors. Diese optionalen Kontextwerte
+  liefert aktuell der Vektoreditor über seinen Adapter; sie zählen auch ausgeblendete
+  beziehungsweise außerhalb des Viewports liegende Objekte.
+- Frisch abgefragter Prozess-RAM in MiB, CPU-Prozent des letzten Monitorintervalls,
+  dessen Alter in Sekunden und die bekannte GPU-Effekttexturkapazität in MiB.
+- Im Starteintrag zusätzlich Plattform, GPU-Gerät, Renderer, Treiber und der begrenzte
+  Umfang der GPU-Speichermessung. Nicht verfügbare Messwerte sind `null`, nicht Null.
+
+`sample`-Zeilen folgen den 500-ms-Messungen, auch wenn der Monitor-Tab nicht sichtbar
+ist. `action` protokolliert UI-Aktionsanforderungen; das ist kein Erfolgsnachweis für
+Dateidialoge oder Befehle. Erkannte Tastenkürzel werden ohne eingegebenen Text erfasst.
+`interaction.begin` und `interaction.end` markieren Gesten. `document.changed`
+kennzeichnet Änderungen am Undo-Stand oder an den Objekt-/Instanzzahlen;
+`context.changed` einen Dokument- oder Editorwechsel. Abbruch und Undo können deshalb
+an Operation und Undo-Cursor nachvollzogen werden. Eine Kopieraktion verändert den
+Undo-Cursor dagegen nicht. Start und Ende heißen `session.start` und `session.stop`.
+
+CPU 100 % entspricht weiterhin einem ausgelasteten Kern. `metrics_age_s` beschreibt
+das Alter des letzten Monitorintervalls; RAM wird für jede Zeile erneut gelesen.
+GPU-Effekttexturen sind weiterhin **kein gesamter VRAM-Verbrauch** und keine
+GPU-Auslastung. Der Log enthält keine Feldwerte, eingegebenen Texte oder Dokumentinhalte.
+
+### Architektur und Aufwand
+
+`monitor/log.c` streamt und leert seinen Dateipuffer nach jeder Zeile. Es hält nur
+Dateihandle, Pfade und den letzten Kontext im RAM. `monitor/recording.c` bindet den
+YAML-Toggle an. Der Host sammelt Aktionen und vergleicht die optionalen
+`EditorDiagnostics` seiner Adapter. Der Vektoreditor übersetzt seine Werte in
+`workspace/diagnostics.c`; der Host greift dafür nicht in sein Modell ein.
+
+Es wird nicht jede Mausbewegung geschrieben. Innerhalb einer unveränderten Geste
+bleibt es bei den periodischen Samples. Die Dateiausgabe und Messabfragen verursachen
+einen kleinen zusätzlichen Aufwand; auf langsamen Laufwerken kann insbesondere das
+Leeren des Dateipuffers messbar werden. Die Aufzeichnung startet standardmäßig ausgeschaltet.

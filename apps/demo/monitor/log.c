@@ -1,0 +1,204 @@
+/** @file @brief Bounded JSONL streaming with explicit missing metrics and no input contents. */
+#include "log.h"
+#include "platform/process_metrics.h"
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+
+static bool put(MonitorLog *log, const char *text) {
+    size_t size = strlen(text);
+    return SDL_WriteIO(log->stream, text, size) == size;
+}
+
+static bool quoted(MonitorLog *log, const char *text) {
+    bool ok = put(log, "\"");
+    for (const unsigned char *p = (const unsigned char *)(text ? text : ""); ok && *p; p++) {
+        char escaped[8];
+        if (*p == '"' || *p == '\\') {
+            snprintf(escaped, sizeof escaped, "\\%c", *p);
+        } else if (*p < 32) {
+            snprintf(escaped, sizeof escaped, "\\u%04x", *p);
+        } else {
+            escaped[0] = (char)*p;
+            escaped[1] = 0;
+        }
+        ok = put(log, escaped);
+    }
+    return ok && put(log, "\"");
+}
+
+static bool field(MonitorLog *log, const char *key, const char *value) {
+    return put(log, ",") && quoted(log, key) && put(log, ":") && quoted(log, value);
+}
+
+static bool number(MonitorLog *log, const char *key, double value, bool available) {
+    char text[64];
+    snprintf(text, sizeof text, "%.6f", value);
+    /* Keep JSON valid even if a caller has selected a decimal-comma locale. */
+    for (char *p = text; *p; p++) {
+        if (*p == ',') {
+            *p = '.';
+        }
+    }
+    return put(log, ",") && quoted(log, key) && put(log, ":") &&
+           put(log, available && isfinite(value) ? text : "null");
+}
+
+static void utc(char *text, size_t capacity, bool filename) {
+    SDL_Time time;
+    SDL_DateTime date;
+    if (!SDL_GetCurrentTime(&time) || !SDL_TimeToDateTime(time, &date, false)) {
+        snprintf(text, capacity, "unknown-time");
+        return;
+    }
+    snprintf(text, capacity,
+             filename ? "%04d%02d%02d-%02d%02d%02d" : "%04d-%02d-%02dT%02d:%02d:%02dZ", date.year,
+             date.month, date.day, date.hour, date.minute, date.second);
+}
+
+static void failed(MonitorLog *log) {
+    snprintf(log->error, sizeof log->error, "Log-Schreibfehler: %.220s", SDL_GetError());
+    SDL_CloseIO(log->stream);
+    log->stream = NULL;
+}
+
+static void row(MonitorLog *log, const ProcessMonitor *m, const char *editor, EditorDiagnostics d,
+                const char *event, const char *action, const char *widget, double now) {
+    if (!log->stream) {
+        return;
+    }
+    char timestamp[40];
+    utc(timestamp, sizeof timestamp, false);
+    const ProcessUsage *sample = m->count ? process_monitor_sample(m, m->count - 1) : NULL;
+    ProcessCounters current = process_metrics_read();
+    bool ok =
+        put(log, "{\"schema\":\"penguengine/performance/v1\"") && field(log, "utc", timestamp) &&
+        number(log, "elapsed_s", now - log->started, true) && field(log, "event", event) &&
+        field(log, "editor", editor) && field(log, "action", action) &&
+        field(log, "widget", widget) && field(log, "operation", d.operation) &&
+        number(log, "document", d.document, true) && number(log, "objects", d.objects, true) &&
+        number(log, "instances", d.instances, true) && number(log, "selected", d.selected, true) &&
+        number(log, "history_cursor", d.history_cursor, true) &&
+        number(log, "ram_mib", current.resident_bytes / 1048576., current.memory_available) &&
+        number(log, "cpu_percent", sample ? sample->cpu_percent : 0,
+               sample && sample->cpu_available) &&
+        number(log, "metrics_age_s", sample ? now - sample->time : 0, sample != NULL) &&
+        number(log, "gpu_effect_mib", m->graphics.effect_bytes / 1048576.,
+               m->graphics.effects_available);
+    if (!strcmp(event, "session.start")) {
+        ok = ok && field(log, "platform", SDL_GetPlatform()) &&
+             field(log, "gpu_device", m->graphics.device) &&
+             field(log, "renderer", m->graphics.backend) &&
+             field(log, "gpu_driver", m->graphics.driver) &&
+             field(log, "gpu_memory_scope", "pengDraw shadow effect texture capacity only");
+    }
+    if (!ok || !put(log, "}\n") || !SDL_FlushIO(log->stream)) {
+        failed(log);
+    }
+}
+
+void monitor_log_stop(MonitorLog *log, const ProcessMonitor *m, const char *reason, double now) {
+    if (!log->stream) {
+        return;
+    }
+    row(log, m, log->editor, log->previous, "session.stop", reason, "", now);
+    if (log->stream) {
+        bool ok = SDL_CloseIO(log->stream);
+        log->stream = NULL;
+        if (!ok) {
+            snprintf(log->error, sizeof log->error, "Log konnte nicht geschlossen werden");
+        }
+    }
+}
+
+void monitor_log_project(MonitorLog *log, const char *root, const ProcessMonitor *m, double now) {
+    root = root ? root : "";
+    if (!strcmp(log->project, root)) {
+        return;
+    }
+    monitor_log_stop(log, m, "project.changed", now);
+    if (strlen(root) >= sizeof log->project) {
+        log->project[0] = 0;
+        snprintf(log->error, sizeof log->error, "Projektpfad ist zu lang");
+        return;
+    }
+    snprintf(log->project, sizeof log->project, "%s", root);
+}
+
+bool monitor_log_start(MonitorLog *log, const ProcessMonitor *m, const char *editor,
+                       EditorDiagnostics d, double now) {
+    if (log->stream) {
+        return true;
+    }
+    log->error[0] = 0;
+    SDL_PathInfo info;
+    if (!*log->project || !SDL_GetPathInfo(log->project, &info) ||
+        info.type != SDL_PATHTYPE_DIRECTORY) {
+        snprintf(log->error, sizeof log->error, "Bitte zuerst ein Projekt oeffnen");
+        return false;
+    }
+    char timestamp[32];
+    utc(timestamp, sizeof timestamp, true);
+    /* x prevents overwriting an existing session, including simultaneous processes. */
+    for (unsigned i = 0; i < 1000; i++) {
+        if (snprintf(log->path, sizeof log->path, "%s/performance-%s-%03u.jsonl", log->project,
+                     timestamp, i) >= (int)sizeof log->path) {
+            snprintf(log->error, sizeof log->error, "Log-Pfad ist zu lang");
+            return false;
+        }
+        if (SDL_GetPathInfo(log->path, &info)) {
+            continue;
+        }
+        log->stream = SDL_IOFromFile(log->path, "wx");
+        if (log->stream) {
+            break;
+        }
+        if (!SDL_GetPathInfo(log->path, &info)) {
+            break;
+        }
+    }
+    if (!log->stream) {
+        snprintf(log->error, sizeof log->error, "Log kann nicht angelegt werden: %.210s",
+                 SDL_GetError());
+        return false;
+    }
+    log->started = now;
+    log->last_sample = m->count ? m->previous_time : -1;
+    log->previous = d;
+    log->observed = true;
+    snprintf(log->editor, sizeof log->editor, "%s", editor ? editor : "");
+    row(log, m, log->editor, d, "session.start", "", "", now);
+    return log->stream != NULL;
+}
+
+void monitor_log_action(MonitorLog *log, const ProcessMonitor *m, const char *editor,
+                        EditorDiagnostics d, const char *action, const char *widget, double now) {
+    row(log, m, editor, d, "action", action, widget, now);
+}
+
+void monitor_log_observe(MonitorLog *log, const ProcessMonitor *m, const char *editor,
+                         EditorDiagnostics d, double now) {
+    if (!log->stream) {
+        return;
+    }
+    const char *event = NULL;
+    if (!log->observed || strcmp(log->editor, editor) || log->previous.document != d.document) {
+        event = "context.changed";
+    } else if (strcmp(log->previous.operation, d.operation) ||
+               log->previous.interacting != d.interacting) {
+        event = d.interacting ? "interaction.begin" : "interaction.end";
+    } else if (log->previous.history_cursor != d.history_cursor ||
+               log->previous.objects != d.objects || log->previous.instances != d.instances) {
+        event = "document.changed";
+    }
+    if (event) {
+        row(log, m, editor, d, event, log->previous.operation, "", now);
+    }
+    snprintf(log->editor, sizeof log->editor, "%s", editor);
+    log->previous = d;
+    log->observed = true;
+    if (m->count && m->previous_time != log->last_sample) {
+        row(log, m, editor, d, "sample", "", "", now);
+        log->last_sample = m->previous_time;
+    }
+}

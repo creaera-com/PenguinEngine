@@ -4,6 +4,7 @@
 #define PENGUENGINE_PROCESS_MONITOR_H
 #include "editor_host/editor.h"
 #include "history.h"
+#include "log.h"
 /** @brief Observe the shared renderer and effect texture capacity; never reads GPU pixels.
  * Only value copies are retained. Call while drawing, before the next monitor tick.
  */
@@ -18,4 +19,9 @@ PUILayout *process_monitor_layout(const EditorServices *services, const PUILayou
  * the editor. */
 bool process_monitor_draw(const ProcessMonitor *monitor, SDL_Renderer *renderer, PUIRect area,
                           const char *widget);
+/** @brief Reflect recording state/errors in optional YAML controls after UI composition. */
+void process_monitor_recording_sync(const MonitorLog *log, PUIView *view);
+/** @brief Handle the monitor.log toggle; requires the host's current project and context. */
+bool process_monitor_recording_action(MonitorLog *log, const ProcessMonitor *monitor, PUIView *view,
+                                      const char *editor, EditorDiagnostics context, double now);
 #endif

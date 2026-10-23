@@ -5,6 +5,8 @@ root:
   padding: 8
   gap: 8
   children:
+    - {type: toggle, id: process_monitor_log, text: "Performance loggen", action: monitor.log, height: 30}
+    - {type: label, id: process_monitor_log_status, text: "Kein Projekt geoeffnet", height: 24}
     - {type: label, id: process_monitor_gpu_device, text: "GPU: Ermittlung ausstehend", height: 24}
     - {type: label, id: process_monitor_gpu_backend, text: "Renderer: --", height: 24}
     - {type: label, id: process_monitor_gpu_driver, text: "Treiber: --", height: 24}

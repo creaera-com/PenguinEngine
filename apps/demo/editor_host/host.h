@@ -4,10 +4,12 @@
 #define PE_EDITOR_HOST_H
 #include "editor.h"
 #include "monitor/history.h"
+#include "monitor/log.h"
 
 /** @brief Owns the single active editor; definitions contain no inactive runtime resources. */
 typedef struct {
     EditorServices services;
+    MonitorLog log;         ///< Opt-in project recording survives editor switches.
     ProcessMonitor monitor; ///< Session-wide observations survive unloading individual editors.
     const EditorDefinition *active, *pending;
     void *instance;
@@ -27,6 +29,10 @@ bool editor_host_commit(EditorHost *host, PUIView *shell, PUIContext *input, cha
 /** @brief Forward an editor action through its adapter; false when unhandled. */
 bool editor_host_action(EditorHost *host, PUIView *view, const char *name, const char *widget);
 bool editor_host_event(EditorHost *host, PUIView *view, const SDL_Event *event);
+/** @brief Update active project identity; changing it stops any running recording. */
+void editor_host_project(EditorHost *host, const char *root);
+/** @brief Record an app/UI action without field values or document contents. */
+void editor_host_log_action(EditorHost *host, PUIView *view, const char *name, const char *widget);
 /** @brief Release the active instance; unmount its UI before continuing to draw the shell. */
 void editor_host_destroy(EditorHost *host);
 #endif

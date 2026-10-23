@@ -4,6 +4,7 @@
 #include "editors/vector/workspace/files.h"
 #include "image/import.h"
 #include "internal.h"
+#include "workspace/diagnostics.h"
 
 const EditorDefinition *vector_editor_definition(void) {
     static const EditorDefinition definition = {.id = "vector",
@@ -22,6 +23,7 @@ const EditorDefinition *vector_editor_definition(void) {
                                                 .commit_ui = vector_editor_commit_ui,
                                                 .canvas = vector_editor_canvas,
                                                 .event = vector_editor_event,
+                                                .diagnostics = vector_workspace_diagnostics,
                                                 .checkpoint = vector_editor_checkpoint,
                                                 .restore = vector_editor_restore};
     return &definition;

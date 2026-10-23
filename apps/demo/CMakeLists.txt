@@ -15,6 +15,8 @@ add_dependencies(pengui_playground pengui_playground_resources)
 # Editor shell is a separate example app; pengUI itself has no editor dependency.
 include(${PROJECT_SOURCE_DIR}/cmake/TextFonts.cmake)
 add_library(pengui_editor_support STATIC
+ monitor/log.c
+ monitor/recording.c
  monitor/history.c
  monitor/monitor.c
  monitor/render.c
@@ -74,6 +76,7 @@ add_library(pengui_editor_support STATIC
  ${PROJECT_SOURCE_DIR}/editors/vector/artboard/tool.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/marquee.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/selection.c
+ ${PROJECT_SOURCE_DIR}/editors/vector/workspace/diagnostics.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/rotation.c
  ${PROJECT_SOURCE_DIR}/editors/vector/workspace/oriented_resize.c
  ${PROJECT_SOURCE_DIR}/editors/vector/geometry/constraints.c

@@ -44,6 +44,13 @@ static bool arguments(EditorApp *app, int argc, char **argv) {
 
 static void action(void *context, const char *name, const char *widget) {
     EditorApp *app = context;
+    editor_host_project(&app->host, app->projects.project.root);
+    editor_host_log_action(&app->host, app->shell.view, name, widget);
+    if (!strcmp(name, "monitor.log")) {
+        editor_host_action(&app->host, app->shell.view, name, widget);
+        project_explorer_action(&app->projects.explorer, app->shell.view, "project.refresh", "");
+        return;
+    }
     if (document_controller_action(&app->documents, &app->host, &app->projects, app->window,
                                    app->shell.view, name, widget)) {
         return;
@@ -72,11 +79,16 @@ static void events(EditorApp *app) {
             continue;
         }
         if (project_controller_event(&app->projects, app->shell.view, &event)) {
+            editor_host_project(&app->host, app->projects.project.root);
+            editor_host_log_action(&app->host, app->shell.view, "project.dialog.complete", "");
             continue;
         }
         bool consumed = pui_view_event(app->shell.view, &app->shell.input, app->window, &event);
         if (!consumed && event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat &&
             event.key.key == SDLK_S && (event.key.mod & (SDL_KMOD_CTRL | SDL_KMOD_GUI))) {
+            editor_host_log_action(
+                &app->host, app->shell.view,
+                (event.key.mod & SDL_KMOD_SHIFT) ? "editor.save_as" : "editor.save", "");
             consumed = document_controller_action(
                 &app->documents, &app->host, &app->projects, app->window, app->shell.view,
                 (event.key.mod & SDL_KMOD_SHIFT) ? "editor.save_as" : "editor.save", "");
@@ -88,6 +100,7 @@ static void events(EditorApp *app) {
             app->running = false;
         } else if (!consumed && event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat &&
                    event.key.key == SDLK_F6 && app->host.active) {
+            editor_host_log_action(&app->host, app->shell.view, "shell.reload", "");
             editor_host_request(&app->host, app->host.active->id, true);
         }
     }
@@ -177,6 +190,7 @@ int editor_application_run(int argc, char **argv) {
     int frames = 0;
     while (app.running) {
         Uint64 frame_start = SDL_GetTicksNS();
+        editor_host_project(&app.host, app.projects.project.root);
         events(&app);
         int width, height;
         SDL_GetWindowSize(app.window, &width, &height);

@@ -2,6 +2,7 @@
  * @brief Sole contract between editor modules and the editor host. */
 #ifndef PE_EDITOR_H
 #define PE_EDITOR_H
+#include "diagnostics.h"
 #include "fonts.h"
 #include "images.h"
 #include "pengui/pengui.h"
@@ -51,6 +52,8 @@ typedef struct {
     PUICanvasRenderer canvas;
     /** @brief Optional editor input after the UI has processed an event. */
     bool (*event)(void *editor, PUIView *view, const SDL_Event *event);
+    /** @brief Optional read-only performance-log context; no ownership or mutation. */
+    EditorDiagnostics (*diagnostics)(const void *editor, const PUIView *view);
     /** @brief Optional paired callbacks: snapshot to a session file and restore a fresh candidate.
      * No pointers, SDL resources or transient gestures may be stored. Restore runs before mount.
      */
