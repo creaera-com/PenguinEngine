@@ -105,7 +105,10 @@ Große Schatten, viele Objekte oder Treiberprobleme können auch GPU-Zeit beansp
 
 CMake benötigt SDL mindestens 3.4 und lädt ohne passende Installation die mit
 SHA-256 gepinnte Version **3.4.18**. Nach einem Versionswechsel vorhandene
-SDL-Pfadüberschreibungen im CMake-Profil prüfen. Shader liegen unter
+SDL-Pfadüberschreibungen im CMake-Profil prüfen. Die unbenötigte optionale
+XTEST-Erweiterung ist beim mitgebauten SDL deaktiviert, auch in vorhandenen CMake-Caches.
+Andere X11-/Wayland-Entwicklungspakete werden für das jeweilige Desktop-Backend weiterhin benötigt.
+Shader liegen unter
 `lib/pengdraw/src/gpu/shaders/`: GLSL für Vulkan, HLSL für Direct3D 12 und MSL für
 Metal. Die eingebetteten `.inc`-Dateien werden beim normalen Build direkt verwendet.
 Es ist kein Shadercompiler beim Anwender und keine zusätzliche Runtime-Library nötig.

@@ -26,6 +26,9 @@ if(PENGUI_BUILD_SDL)
   set(SDL_STATIC ON CACHE BOOL "" FORCE)
   set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
   set(SDL_TESTS OFF CACHE BOOL "" FORCE)
+  # XTEST is only needed for SDL's synthetic X11 input support. The apps do not
+  # use it; disable it also in existing caches after the SDL 3.4 upgrade.
+  set(SDL_X11_XTEST OFF CACHE BOOL "Unused synthetic X11 input support" FORCE)
   FetchContent_Declare(SDL3 URL https://github.com/libsdl-org/SDL/releases/download/release-3.4.18/SDL3-3.4.18.tar.gz
    URL_HASH SHA256=9c75cf16330322c217dedd2e0609f1124f1b54b8633e763467b4684d0f4334a3)
   FetchContent_MakeAvailable(SDL3)
