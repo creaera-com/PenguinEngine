@@ -725,6 +725,7 @@ static void test_selection_cursors_follow_handles_rotation_and_capture(void) {
     PUIRect bounds;
     TEST_ASSERT_TRUE(vector_selection_bounds(doc, &bounds));
     hover_cursor(bounds.x + bounds.w / 2 + 8, bounds.y + bounds.h / 2, SDL_SYSTEM_CURSOR_CROSSHAIR);
+    TEST_ASSERT_TRUE(pui_view_rotation_cursor(shell.view));
     SDL_Event event = {.type = SDL_EVENT_MOUSE_BUTTON_DOWN};
     event.button.button = SDL_BUTTON_LEFT;
     event.button.x = shell.input.x;
@@ -732,8 +733,11 @@ static void test_selection_cursors_follow_handles_rotation_and_capture(void) {
     TEST_ASSERT_TRUE(vector_selection_event(doc, shell.view, &event));
     TEST_ASSERT_TRUE(doc->selection_tool.rotating);
     hover_cursor(10, 10, SDL_SYSTEM_CURSOR_CROSSHAIR);
+    TEST_ASSERT_TRUE(pui_view_rotation_cursor(shell.view));
     vector_selection_cancel(doc);
     hover_cursor(10, 10, SDL_SYSTEM_CURSOR_DEFAULT);
+    TEST_ASSERT_FALSE(pui_view_rotation_cursor(shell.view));
+    TEST_ASSERT_FALSE(pui_view_rotation_cursor(NULL));
     grip = vector_selection_handle_rect(doc, 3, 10);
     event.button.x = grip.x + 5;
     event.button.y = grip.y + 5;

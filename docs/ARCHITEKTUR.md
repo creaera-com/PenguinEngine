@@ -489,7 +489,9 @@ Menüs liefert die Funktion `NULL`. `pui_view_request_cursor()` fordert einen Ma
 für diesen Frame an: Priorität 1 für Hover, 2 für einen laufenden Drag. Höhere Prioritäten
 sind für interne Controls reserviert. Auswahlgreifer im Vektoreditor nutzen dieselbe
 Verwaltung; gedrehte Objekte berücksichtigen ihre Bildschirmachsen. Der Drehgriff
-verwendet ein Fadenkreuz, das Verschieben einen Bewegungscursor.
+verwendet einen geschwungenen Pfeil (`pui_view_request_rotation_cursor`), das Verschieben
+einen Bewegungscursor. Der Drehcursor wird einmal pro View erzeugt und mit ihr freigegeben;
+ohne native Cursor-Unterstützung dient ein Fadenkreuz als Rückfall.
 
 Systemcursor werden bei Bedarf erzeugt und von der View wieder freigegeben. Bei einem
 Backend ohne Unterstützung bleibt der Standardcursor erhalten. `pui_view_cursor()` gibt

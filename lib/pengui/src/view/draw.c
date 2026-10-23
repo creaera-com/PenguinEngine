@@ -89,6 +89,7 @@ void pui_view_draw(PUIView *view, PUIContext *pui, PUIRect area, PUIAction actio
     view->frame_ms = (double)SDL_GetTicksNS() / 1000000.;
     view->cursor = SDL_SYSTEM_CURSOR_DEFAULT;
     view->cursor_priority = 0;
+    view->rotation_cursor_requested = false;
     memset(view->visible, 0, sizeof view->visible);
     view->bounds = area;
     bool modal =

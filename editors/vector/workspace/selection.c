@@ -255,11 +255,14 @@ void vector_selection_cursor(VectorDocument *document, PUIView *view) {
     }
     VectorSelectionTool *tool = &document->selection_tool;
     if (tool->dragging && !tool->marquee) {
-        pui_view_request_cursor(view,
-                                tool->rotating       ? SDL_SYSTEM_CURSOR_CROSSHAIR
-                                : tool->resize_edges ? resize_cursor(document, tool->resize_edges)
-                                                     : SDL_SYSTEM_CURSOR_MOVE,
-                                2);
+        if (tool->rotating) {
+            pui_view_request_rotation_cursor(view, 2);
+        } else {
+            pui_view_request_cursor(view,
+                                    tool->resize_edges ? resize_cursor(document, tool->resize_edges)
+                                                       : SDL_SYSTEM_CURSOR_MOVE,
+                                    2);
+        }
         return;
     }
     if (!pui_hovered(input, document->viewport.bounds)) {
@@ -269,7 +272,7 @@ void vector_selection_cursor(VectorDocument *document, PUIView *view) {
     if (edges) {
         pui_view_request_cursor(view, resize_cursor(document, edges), 1);
     } else if (document->active_rectangle && vector_rotation_hit(bounds, input->x, input->y)) {
-        pui_view_request_cursor(view, SDL_SYSTEM_CURSOR_CROSSHAIR, 1);
+        pui_view_request_rotation_cursor(view, 1);
     }
 }
 

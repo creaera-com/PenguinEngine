@@ -70,6 +70,8 @@ struct PUIView {
     float radial_x, radial_y;
     SDL_SystemCursor cursor;
     int cursor_priority;
+    bool rotation_cursor_requested, rotation_cursor_attempted;
+    SDL_Cursor *rotation_cursor; ///< Lazily created curved arrow, owned by this view.
     bool pointer_inside;
     double frame_ms;
     SDL_Cursor *cursors[SDL_SYSTEM_CURSOR_COUNT];

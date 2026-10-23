@@ -1010,7 +1010,12 @@ const PUIContext *pui_view_canvas_input(const PUIView *view);
  * uses the last request; invalid cursors are ignored. Native cursor resources belong to the view
  * and are reused until it is destroyed. */
 void pui_view_request_cursor(PUIView *view, SDL_SystemCursor cursor, int priority);
-/** @brief Requested cursor from the last frame; default for NULL views.
+/** @brief Request a curved rotation arrow; same frame/priority rules as system cursor requests.
+ * The view creates and owns the native cursor. Unsupported backends use a crosshair fallback. */
+void pui_view_request_rotation_cursor(PUIView *view, int priority);
+/** @brief Whether the last frame requested the curved rotation arrow (including fallback). */
+bool pui_view_rotation_cursor(const PUIView *view);
+/** @brief Requested system cursor from the last frame; default for NULL views.
  * Applied automatically after drawing, with default-cursor fallback if unsupported by SDL.
  * Splitter drags keep their resize cursor until release, including outside the grip.
  */
