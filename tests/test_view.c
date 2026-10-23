@@ -1270,8 +1270,46 @@ static void test_numeric_mouse_selection_prevents_long_press_activation(void) {
     pui_layout_free(l);
 }
 
+/* Empty optional content must not push fields down, widen rows or inflate
+ * section/scroll heights. Compare hit targets with the same layout without slots. */
+static void test_empty_slots_do_not_reserve_space_or_gaps(void) {
+    const char *containers[] = {"column", "row", "panel, scroll: true", "section, open: true"};
+    char error[256], yaml[1600];
+    for (unsigned c = 0; c < sizeof containers / sizeof *containers; c++) {
+        PUILayout *layouts[2];
+        PUIView *views[2];
+        for (int slots = 0; slots < 2; slots++) {
+            snprintf(yaml, sizeof yaml,
+                     "schema: pengui/v1\nroot: {type: column, padding: 0, children: ["
+                     "{type: %s, padding: 0, gap: 8, children: ["
+                     "{type: label, text: Before, width: 40, height: 30}, %s"
+                     "{type: input, id: field, width: 80, height: 30}]}, "
+                     "{type: input, id: after, height: 30}]}",
+                     containers[c], slots ? "{type: slot, id: optional}, " : "");
+            layouts[slots] = pui_layout_parse(yaml, strlen(yaml), error, sizeof error);
+            TEST_ASSERT_NOT_NULL_MESSAGE(layouts[slots], error);
+            views[slots] = pui_view_new(layouts[slots], renderer);
+            TEST_ASSERT_NOT_NULL(views[slots]);
+            pui_view_draw(views[slots], &pui, (PUIRect){0, 0, 400, 300}, NULL, NULL);
+        }
+        for (int y = 0; y < 300; y += 3) {
+            for (int x = 0; x < 400; x += 3) {
+                TEST_ASSERT_EQUAL(pui_view_hit(views[0], "field", x, y),
+                                  pui_view_hit(views[1], "field", x, y));
+                TEST_ASSERT_EQUAL(pui_view_hit(views[0], "after", x, y),
+                                  pui_view_hit(views[1], "after", x, y));
+            }
+        }
+        for (int i = 0; i < 2; i++) {
+            pui_view_free(views[i]);
+            pui_layout_free(layouts[i]);
+        }
+    }
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_empty_slots_do_not_reserve_space_or_gaps);
     RUN_TEST(test_numeric_long_press_scrubs_in_units_and_commits_only_on_release);
     RUN_TEST(test_numeric_mouse_selection_prevents_long_press_activation);
     RUN_TEST(test_runtime_tree_filter_keeps_ancestors_and_restores_collapsed_state);

@@ -3,8 +3,21 @@
 #include <math.h>
 #include <string.h>
 
+/* Optional slots without mounted content do not participate in layout. A slot
+ * can itself contain another slot, so follow the chain before reserving space. */
+static bool empty_slot(const PUIView *v, int i) {
+    const PUINode *n = &v->layout->nodes[i];
+    if (n->type != PUI_NODE_SLOT) {
+        return false;
+    }
+    return n->child < 0 || empty_slot(v, n->child);
+}
+
 float pui_view_node_height(const PUIView *v, int i) {
     const PUINode *n = &v->layout->nodes[i];
+    if (empty_slot(v, i)) {
+        return 0;
+    }
     if (n->height > 0) {
         return n->height;
     }
@@ -42,6 +55,9 @@ float pui_view_node_height(const PUIView *v, int i) {
         if (v->state[i].open) {
             height += n->padding * 2;
             for (int k = n->child; k >= 0; k = v->layout->nodes[k].next) {
+                if (empty_slot(v, k)) {
+                    continue;
+                }
                 height += fmaxf(30, pui_view_node_height(v, k)) + n->gap;
             }
         }
@@ -57,7 +73,7 @@ void pui_view_draw_children(PUIView *v, PUIContext *pui, int i, PUIRect area, bo
     int count = 0, flexible = 0;
     for (int k = n->child; k >= 0; k = v->layout->nodes[k].next) {
         const PUINode *child = &v->layout->nodes[k];
-        if (child->type == PUI_NODE_RADIAL_MENU) {
+        if (child->type == PUI_NODE_RADIAL_MENU || empty_slot(v, k)) {
             continue;
         }
         float size = row ? child->width : pui_view_node_height(v, k);
@@ -78,7 +94,7 @@ void pui_view_draw_children(PUIView *v, PUIContext *pui, int i, PUIRect area, bo
     float offset = 0;
     for (int k = n->child; k >= 0; k = v->layout->nodes[k].next) {
         const PUINode *child = &v->layout->nodes[k];
-        if (child->type == PUI_NODE_RADIAL_MENU) {
+        if (child->type == PUI_NODE_RADIAL_MENU || empty_slot(v, k)) {
             continue;
         }
         float size = row ? child->width : pui_view_node_height(v, k);
@@ -123,6 +139,9 @@ void pui_view_draw_container(PUIView *v, PUIContext *pui, int i, PUIRect area, P
         scroll->content = 0;
         int count = 0;
         for (int k = n->child; k >= 0; k = v->layout->nodes[k].next) {
+            if (empty_slot(v, k)) {
+                continue;
+            }
             scroll->content += pui_view_node_height(v, k);
             count++;
         }
