@@ -12,6 +12,7 @@
 #include "preview/tool.h"
 #include "workspace/box_tool.h"
 #include "workspace/canvas.h"
+#include "workspace/selection.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -249,6 +250,7 @@ void vector_editor_canvas(void *instance, SDL_Renderer *renderer, PUIRect area,
             vector_canvas_draw(vector_inspector_preview_document(&editor->inspector, document),
                                renderer, area, editor->text_renderer, editor->image_renderer,
                                &editor->workspace_style, &editor->artwork);
+            vector_selection_cursor(document, editor->view);
             return;
         }
     }
@@ -280,6 +282,7 @@ bool vector_editor_event(void *instance, PUIView *view, const SDL_Event *event) 
 bool vector_editor_commit_ui(void *instance, PUIView *view, PUIContext *input, char *error,
                              size_t capacity) {
     VectorEditor *editor = instance;
+    editor->view = view;
     if (!vector_document_tabs_commit(&editor->document_tabs, &editor->documents, view, input, error,
                                      capacity)) {
         return false;

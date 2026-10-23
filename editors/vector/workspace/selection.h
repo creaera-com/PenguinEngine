@@ -19,6 +19,8 @@ PUIRect vector_selection_handle_rect(VectorDocument *document, int index, float 
 bool vector_selection_bounds(VectorDocument *document, PUIRect *bounds);
 /** @brief Draw shared white resize handles above document content. */
 void vector_selection_draw_handles(VectorDocument *document, SDL_Renderer *renderer);
+/** @brief Request resize/rotation cursors from a canvas callback, including captured drags. */
+void vector_selection_cursor(VectorDocument *document, PUIView *view);
 /** @brief Cancel the preview and release mouse capture. */
 void vector_selection_cancel(VectorDocument *document);
 /** @brief Selection-mode gestures: Shift toggles rectangles, free-area drag selects a frame.

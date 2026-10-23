@@ -2,10 +2,17 @@
 #include "internal.h"
 
 void pui_view_request_cursor(PUIView *view, SDL_SystemCursor cursor, int priority) {
-    if (priority >= view->cursor_priority) {
+    if (view && cursor >= SDL_SYSTEM_CURSOR_DEFAULT && cursor < SDL_SYSTEM_CURSOR_COUNT &&
+        priority >= 1 && priority >= view->cursor_priority) {
         view->cursor = cursor;
         view->cursor_priority = priority;
     }
+}
+
+const PUIContext *pui_view_canvas_input(const PUIView *view) {
+    return view && !view->popup_count && !view->radial_open && view->radial_pending < 0
+               ? view->canvas_input
+               : NULL;
 }
 
 SDL_SystemCursor pui_view_cursor(const PUIView *view) {
@@ -13,7 +20,7 @@ SDL_SystemCursor pui_view_cursor(const PUIView *view) {
 }
 
 void pui_view_apply_cursor(PUIView *view, const PUIContext *pui) {
-    if (!view->pointer_inside && !pui->active) {
+    if (!view->pointer_inside && !pui->active && view->cursor_priority < 2) {
         view->cursor = SDL_SYSTEM_CURSOR_DEFAULT;
     }
     SDL_Window *mouse_window = SDL_GetMouseFocus();

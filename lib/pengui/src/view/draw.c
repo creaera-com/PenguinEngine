@@ -26,7 +26,9 @@ void pui_view_draw_node(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAct
     case PUI_NODE_CANVAS:
         pui_panel(v->renderer, pui_frect(area), PUI_SURFACE);
         if (v->canvas_renderer) {
+            v->canvas_input = pui;
             v->canvas_renderer(v->canvas_context, v->renderer, area, n->name);
+            v->canvas_input = NULL;
         }
         break;
     case PUI_NODE_SLOT:

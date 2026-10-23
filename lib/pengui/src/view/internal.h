@@ -41,6 +41,7 @@ struct PUIView {
     SDL_Window *window;
     PUICanvasRenderer canvas_renderer;
     void *canvas_context;
+    const PUIContext *canvas_input; ///< Borrowed only during the canvas draw callback.
     Widget state[PUI_LAYOUT_NODES];
     PUIRect rect[PUI_LAYOUT_NODES], hit[PUI_LAYOUT_NODES];
     bool visible[PUI_LAYOUT_NODES], enabled[PUI_LAYOUT_NODES];
@@ -107,7 +108,6 @@ bool pui_modal_draw(PUIView *view, PUIContext *input, int index, PUIRect rect, P
                     void *context);
 bool pui_view_popup_event(PUIView *view, PUIContext *pui, const SDL_Event *event);
 PUIContext pui_view_inert_context(const PUIContext *pui);
-void pui_view_request_cursor(PUIView *view, SDL_SystemCursor cursor, int priority);
 void pui_view_apply_cursor(PUIView *view, const PUIContext *pui);
 void pui_view_free_cursors(PUIView *view);
 void pui_view_blur(PUIView *view, PUIContext *pui);

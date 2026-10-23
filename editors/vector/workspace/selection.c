@@ -218,6 +218,61 @@ static unsigned handle_hit(VectorDocument *document, float x, float y) {
     return 0;
 }
 
+/* Quantize the actual screen-space resize axis to the four native double arrows.
+ * A rotated single object uses local axes; a multiple selection uses its world bounds. */
+static SDL_SystemCursor resize_cursor(VectorDocument *document, unsigned edges) {
+    float angle = 0;
+    if (document->active_rectangle && document->selection.count <= 1) {
+        VectorRectangle *rectangle = vector_rectangle_find(document, document->active_rectangle);
+        angle = vector_rectangle_display_angle(document, rectangle);
+    }
+    bool horizontal = (edges & (VECTOR_RESIZE_LEFT | VECTOR_RESIZE_RIGHT)) != 0;
+    bool vertical = (edges & (VECTOR_RESIZE_TOP | VECTOR_RESIZE_BOTTOM)) != 0;
+    if (horizontal && vertical) {
+        bool same = ((edges & VECTOR_RESIZE_LEFT) && (edges & VECTOR_RESIZE_TOP)) ||
+                    ((edges & VECTOR_RESIZE_RIGHT) && (edges & VECTOR_RESIZE_BOTTOM));
+        angle += same ? 45 : 135;
+    } else if (vertical) {
+        angle += 90;
+    }
+    int direction = ((int)floorf(angle / 45 + .5f) % 4 + 4) % 4;
+    const SDL_SystemCursor cursors[] = {SDL_SYSTEM_CURSOR_EW_RESIZE, SDL_SYSTEM_CURSOR_NWSE_RESIZE,
+                                        SDL_SYSTEM_CURSOR_NS_RESIZE, SDL_SYSTEM_CURSOR_NESW_RESIZE};
+    return cursors[direction];
+}
+
+void vector_selection_cursor(VectorDocument *document, PUIView *view) {
+    const PUIContext *input = pui_view_canvas_input(view);
+    if (!input || input->blocked || document->artboard_tool.enabled ||
+        document->rectangle_tool.enabled || document->gradient_tool.enabled ||
+        document->curve_tool.pen || document->curve_tool.nodes || document->preview.armed ||
+        document->viewport.panning) {
+        return;
+    }
+    PUIRect bounds;
+    if (!vector_selection_bounds(document, &bounds)) {
+        return;
+    }
+    VectorSelectionTool *tool = &document->selection_tool;
+    if (tool->dragging && !tool->marquee) {
+        pui_view_request_cursor(view,
+                                tool->rotating       ? SDL_SYSTEM_CURSOR_CROSSHAIR
+                                : tool->resize_edges ? resize_cursor(document, tool->resize_edges)
+                                                     : SDL_SYSTEM_CURSOR_MOVE,
+                                2);
+        return;
+    }
+    if (!pui_hovered(input, document->viewport.bounds)) {
+        return;
+    }
+    unsigned edges = handle_hit(document, input->x, input->y);
+    if (edges) {
+        pui_view_request_cursor(view, resize_cursor(document, edges), 1);
+    } else if (document->active_rectangle && vector_rotation_hit(bounds, input->x, input->y)) {
+        pui_view_request_cursor(view, SDL_SYSTEM_CURSOR_CROSSHAIR, 1);
+    }
+}
+
 void vector_selection_draw_handles(VectorDocument *document, SDL_Renderer *renderer) {
     if (document->artboard_tool.enabled || document->rectangle_tool.enabled) {
         return;

@@ -18,6 +18,7 @@
 
 typedef struct {
     PUILayout *layout;
+    PUIView *view; ///< Borrowed shell view, refreshed during UI commit.
     VectorWorkspaceStyle workspace_style;
     VectorArtworkRenderer artwork;
     PUIFonts *fonts;

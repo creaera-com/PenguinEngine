@@ -1002,6 +1002,14 @@ int pui_view_tab_count(const PUIView *view, const char *tabs);
 /** @brief Borrow the tab ID at its displayed zero-based position; NULL if out of range. */
 const char *pui_view_tab_at(const PUIView *view, const char *tabs, int index);
 
+/** @brief Borrow the clipped, read-only input during an interactive canvas draw callback; otherwise
+ * NULL. Check blocked before interacting; hover testing respects the current clip stack. */
+const PUIContext *pui_view_canvas_input(const PUIView *view);
+/** @brief Request a cursor during drawing: priority 1 for hover, 2 for a captured drag.
+ * Higher priorities are reserved for built-in controls. Requests last one frame. Equal priority
+ * uses the last request; invalid cursors are ignored. Native cursor resources belong to the view
+ * and are reused until it is destroyed. */
+void pui_view_request_cursor(PUIView *view, SDL_SystemCursor cursor, int priority);
 /** @brief Requested cursor from the last frame; default for NULL views.
  * Applied automatically after drawing, with default-cursor fallback if unsupported by SDL.
  * Splitter drags keep their resize cursor until release, including outside the grip.

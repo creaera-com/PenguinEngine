@@ -483,6 +483,14 @@ Textfelder den Textcursor, Split-Greifer einen horizontalen oder vertikalen Grö
 Ein laufender Split-Drag hat dabei Vorrang vor normalem Hover. So bleibt der Ziehcursor auch
 über einem Textfeld erhalten, bis die Interaktion endet.
 
+Eigene Canvas-Inhalte können im Zeichen-Callback über `pui_view_canvas_input()` den
+aktuellen, geclippten Eingabekontext lesen. Außerhalb des Callbacks und bei geöffneten
+Menüs liefert die Funktion `NULL`. `pui_view_request_cursor()` fordert einen Mauszeiger
+für diesen Frame an: Priorität 1 für Hover, 2 für einen laufenden Drag. Höhere Prioritäten
+sind für interne Controls reserviert. Auswahlgreifer im Vektoreditor nutzen dieselbe
+Verwaltung; gedrehte Objekte berücksichtigen ihre Bildschirmachsen. Der Drehgriff
+verwendet ein Fadenkreuz, das Verschieben einen Bewegungscursor.
+
 Systemcursor werden bei Bedarf erzeugt und von der View wieder freigegeben. Bei einem
 Backend ohne Unterstützung bleibt der Standardcursor erhalten. `pui_view_cursor()` gibt
 den angeforderten Typ zurück, auch wenn das Backend ihn nicht darstellen kann.

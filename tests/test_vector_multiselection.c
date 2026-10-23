@@ -697,8 +697,85 @@ static void test_group_history_accepts_before_and_after_angles_over_180(void) {
     TEST_ASSERT_EQUAL_FLOAT(360, doc->rectangles[0].angle);
 }
 
+static void hover_cursor(float x, float y, SDL_SystemCursor expected) {
+    pui_pointer(&shell.input, x, y, false);
+    frame();
+    TEST_ASSERT_EQUAL_INT(expected, pui_view_cursor(shell.view));
+}
+
+static void test_selection_cursors_follow_handles_rotation_and_capture(void) {
+    VectorDocument *doc = document();
+    vector_document_select(doc, doc->rectangles[0].id);
+    commit();
+    const SDL_SystemCursor expected[8] = {
+        SDL_SYSTEM_CURSOR_NWSE_RESIZE, SDL_SYSTEM_CURSOR_NS_RESIZE,   SDL_SYSTEM_CURSOR_NESW_RESIZE,
+        SDL_SYSTEM_CURSOR_EW_RESIZE,   SDL_SYSTEM_CURSOR_NWSE_RESIZE, SDL_SYSTEM_CURSOR_NS_RESIZE,
+        SDL_SYSTEM_CURSOR_NESW_RESIZE, SDL_SYSTEM_CURSOR_EW_RESIZE};
+    for (int i = 0; i < 8; i++) {
+        PUIRect grip = vector_selection_handle_rect(doc, i, 10);
+        hover_cursor(grip.x + 5, grip.y + 5, expected[i]);
+    }
+    doc->rectangles[0].angle = 90;
+    PUIRect grip = vector_selection_handle_rect(doc, 3, 10);
+    hover_cursor(grip.x + 5, grip.y + 5, SDL_SYSTEM_CURSOR_NS_RESIZE);
+    doc->rectangles[0].angle = -45;
+    grip = vector_selection_handle_rect(doc, 3, 10);
+    hover_cursor(grip.x + 5, grip.y + 5, SDL_SYSTEM_CURSOR_NESW_RESIZE);
+    doc->rectangles[0].angle = 0;
+    PUIRect bounds;
+    TEST_ASSERT_TRUE(vector_selection_bounds(doc, &bounds));
+    hover_cursor(bounds.x + bounds.w / 2 + 8, bounds.y + bounds.h / 2, SDL_SYSTEM_CURSOR_CROSSHAIR);
+    SDL_Event event = {.type = SDL_EVENT_MOUSE_BUTTON_DOWN};
+    event.button.button = SDL_BUTTON_LEFT;
+    event.button.x = shell.input.x;
+    event.button.y = shell.input.y;
+    TEST_ASSERT_TRUE(vector_selection_event(doc, shell.view, &event));
+    TEST_ASSERT_TRUE(doc->selection_tool.rotating);
+    hover_cursor(10, 10, SDL_SYSTEM_CURSOR_CROSSHAIR);
+    vector_selection_cancel(doc);
+    hover_cursor(10, 10, SDL_SYSTEM_CURSOR_DEFAULT);
+    grip = vector_selection_handle_rect(doc, 3, 10);
+    event.button.x = grip.x + 5;
+    event.button.y = grip.y + 5;
+    TEST_ASSERT_TRUE(vector_selection_event(doc, shell.view, &event));
+    hover_cursor(10, 10, SDL_SYSTEM_CURSOR_EW_RESIZE);
+    event.type = SDL_EVENT_WINDOW_MOUSE_LEAVE;
+    pui_view_event(shell.view, &shell.input, window, &event);
+    frame();
+    TEST_ASSERT_EQUAL_INT(SDL_SYSTEM_CURSOR_EW_RESIZE, pui_view_cursor(shell.view));
+    vector_selection_cancel(doc);
+    frame();
+    TEST_ASSERT_EQUAL_INT(SDL_SYSTEM_CURSOR_DEFAULT, pui_view_cursor(shell.view));
+}
+
+static void test_selection_cursors_support_groups_artboards_and_tool_guards(void) {
+    VectorDocument *doc = document();
+    vector_document_select(doc, doc->rectangles[0].id);
+    vector_document_toggle(doc, doc->rectangles[1].id);
+    commit();
+    PUIRect grip = vector_selection_handle_rect(doc, 5, 10);
+    hover_cursor(grip.x + 5, grip.y + 5, SDL_SYSTEM_CURSOR_NS_RESIZE);
+    doc->rectangle_tool.enabled = true;
+    hover_cursor(grip.x + 5, grip.y + 5, SDL_SYSTEM_CURSOR_DEFAULT);
+    doc->rectangle_tool.enabled = false;
+    doc->curve_tool.pen = true;
+    hover_cursor(grip.x + 5, grip.y + 5, SDL_SYSTEM_CURSOR_DEFAULT);
+    doc->curve_tool.pen = false;
+    vector_document_select(doc, 0);
+    doc->active_artboard = 1;
+    commit();
+    grip = vector_selection_handle_rect(doc, 0, 10);
+    hover_cursor(grip.x + 5, grip.y + 5, SDL_SYSTEM_CURSOR_NWSE_RESIZE);
+    doc->artboards[0].flags |= VECTOR_OBJECT_LOCKED;
+    hover_cursor(grip.x + 5, grip.y + 5, SDL_SYSTEM_CURSOR_DEFAULT);
+    TEST_ASSERT_NULL(pui_view_canvas_input(shell.view));
+    TEST_ASSERT_NULL(pui_view_canvas_input(NULL));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_selection_cursors_follow_handles_rotation_and_capture);
+    RUN_TEST(test_selection_cursors_support_groups_artboards_and_tool_guards);
     RUN_TEST(test_signed_turn_display_crosses_180_and_accepts_full_turns);
     RUN_TEST(test_group_history_accepts_before_and_after_angles_over_180);
     RUN_TEST(test_fractional_move_snap_for_rotated_rectangles_and_groups);
