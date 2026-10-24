@@ -15,6 +15,41 @@ static void clean_text(char *destination, size_t capacity, const char *source) {
     }
 }
 
+static void vulkan_row(SDL_PropertiesID props, const char *group, unsigned index,
+                       const char *const *fields, uint64_t *values) {
+    for (unsigned i = 0; i < MONITOR_VULKAN_DETAIL_COUNT; i++) {
+        char key[128];
+        snprintf(key, sizeof key, "penguengine.vulkan.%s.%u.%s", group, index, fields[i]);
+        values[i] = (uint64_t)SDL_GetNumberProperty(props, key, 0);
+    }
+}
+
+static void vulkan_snapshot(MonitorGraphics *g, SDL_PropertiesID props) {
+    SDL_LockProperties(props);
+    g->vulkan_available = SDL_GetBooleanProperty(props, "penguengine.vulkan.available", false);
+    if (g->vulkan_available) {
+        for (unsigned i = 0; i < MONITOR_VULKAN_COUNTER_COUNT; i++) {
+            char key[128];
+            snprintf(key, sizeof key, "penguengine.vulkan.%s", monitor_vulkan_fields[i]);
+            g->vulkan_counters[i] = (uint64_t)SDL_GetNumberProperty(props, key, 0);
+        }
+        g->vulkan_version = (unsigned)SDL_GetNumberProperty(props, "penguengine.vulkan.version", 1);
+        if (g->vulkan_version >= 2) {
+            Sint64 count = SDL_GetNumberProperty(props, "penguengine.vulkan.memory_type_count", 0);
+            g->vulkan_memory_type_count =
+                count > 0 && count <= MONITOR_VULKAN_MEMORY_TYPES ? (unsigned)count : 0;
+            for (unsigned i = 0; i < MONITOR_VULKAN_CLASS_COUNT; i++) {
+                vulkan_row(props, "class", i, monitor_vulkan_class_fields, g->vulkan_classes[i]);
+            }
+            for (unsigned i = 0; i < g->vulkan_memory_type_count; i++) {
+                vulkan_row(props, "memory_type", i, monitor_vulkan_type_fields,
+                           g->vulkan_memory_types[i]);
+            }
+        }
+    }
+    SDL_UnlockProperties(props);
+}
+
 void process_monitor_graphics(ProcessMonitor *m, SDL_Renderer *r) {
     MonitorGraphics g = {0};
     clean_text(g.device, sizeof g.device, "Geraet nicht gemeldet");
@@ -25,14 +60,7 @@ void process_monitor_graphics(ProcessMonitor *m, SDL_Renderer *r) {
                               : NULL;
     if (device) {
         SDL_PropertiesID props = SDL_GetGPUDeviceProperties(device);
-        SDL_LockProperties(props);
-        g.vulkan_available = SDL_GetBooleanProperty(props, "penguengine.vulkan.available", false);
-        for (unsigned i = 0; g.vulkan_available && i < 16; i++) {
-            char key[128];
-            snprintf(key, sizeof key, "penguengine.vulkan.%s", monitor_vulkan_fields[i]);
-            g.vulkan_counters[i] = (uint64_t)SDL_GetNumberProperty(props, key, 0);
-        }
-        SDL_UnlockProperties(props);
+        vulkan_snapshot(&g, props);
         clean_text(g.device, sizeof g.device,
                    SDL_GetStringProperty(props, SDL_PROP_GPU_DEVICE_NAME_STRING, "Unbekannt"));
         char driver[256];

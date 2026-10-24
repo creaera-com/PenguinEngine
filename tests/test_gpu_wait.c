@@ -56,6 +56,19 @@ static void test_wait_is_opt_in_and_only_active_after_success(void) {
         TEST_ASSERT_TRUE_MESSAGE(instrumented, "Instrumented Vulkan backend required");
     }
     if (instrumented) {
+        TEST_ASSERT_EQUAL_UINT(SDL_GetNumberProperty(SDL_GetGPUDeviceProperties(device),
+                                                     "penguengine.vulkan.version", 1),
+                               monitor.graphics.vulkan_version);
+        if (monitor.graphics.vulkan_version >= 2) {
+            TEST_ASSERT_GREATER_THAN_UINT(0, monitor.graphics.vulkan_memory_type_count);
+            uint64_t allocations = 0, bytes = 0;
+            for (unsigned i = 0; i < monitor.graphics.vulkan_memory_type_count; i++) {
+                allocations += monitor.graphics.vulkan_memory_types[i][2];
+                bytes += monitor.graphics.vulkan_memory_types[i][4];
+            }
+            TEST_ASSERT_EQUAL_UINT64(monitor.graphics.vulkan_counters[9], allocations);
+            TEST_ASSERT_EQUAL_UINT64(monitor.graphics.vulkan_counters[11], bytes);
+        }
         TEST_ASSERT_GREATER_THAN_UINT64(0, monitor.graphics.vulkan_counters[6]);
         TEST_ASSERT_GREATER_THAN_UINT64(0, monitor.graphics.vulkan_counters[9]);
         TEST_ASSERT_GREATER_THAN_UINT64(0, monitor.graphics.vulkan_counters[11]);

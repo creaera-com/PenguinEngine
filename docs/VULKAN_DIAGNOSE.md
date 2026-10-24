@@ -77,3 +77,47 @@ Interessant ist, ob neue Descriptor-Pools zeitgleich mit dem RSS-Anstieg entsteh
 und ob Cache-/Command-Buffer-Wiederverwendung danach ein Plateau erreicht.
 
 Das kann einen Zusammenhang eingrenzen, beweist allein aber keinen Treiberfehler.
+
+## Erweiterte Aufschlüsselung (Diagnoseversion 2)
+
+Nach Aktualisieren des Branches CMake neu laden und neu bauen. Die bisherige Option
+`PENGUI_VULKAN_DIAGNOSTICS=ON` bleibt bestehen. Im Log muss `vulkan.version` den Wert
+`2` haben. Ältere instrumentierte Bibliotheken bleiben lesbar; neue Detailbereiche
+werden dort als `null` ausgegeben.
+
+`allocation_origins` enthält vier Klassen: `gpu_buffer` (z. B. Vertex-/Indexdaten),
+`uniform_buffer` (Shaderparameter), `transfer_buffer` (Datentransfer) und `image`
+(native Bilder einschließlich interner Renderziele). Pro Klasse werden erfasst:
+
+- `allocations`, `frees`, `allocated_bytes`, `freed_bytes`: native Speicherblöcke,
+  zugeordnet zu der Ressource, die ihre Anlage ausgelöst hat. Das ist **keine
+  exklusive Besitzzuordnung**: SDL kann später andere Ressourcen im selben Block
+  unterbringen. Die Zuordnung bleibt bis zur Freigabe des Blocks erhalten.
+- `dedicated_allocations`: Anlagen, für die SDL einen eigenen Speicherblock anfordert.
+- `bindings`: erfolgreiche Speicherbindungen, einschließlich Unterbelegungen eines
+  vorhandenen Blocks. Wiederverwendung muss also keine neue native Anlage erzeugen.
+- `resource_bytes`: kumulierte angeforderte Ressourcengröße bei diesen Bindungen.
+  Bei Buffern ist das ihre logische Größe; bei Bildern verwendet SDL bereits die
+  Vulkan-Speicheranforderung. Dies sind weder aktive Bytes noch reine Bildpixel.
+- `requirement_bytes`: kumulierte Vulkan-Speicheranforderungen derselben Bindungen,
+  vor zusätzlicher Blockrundung durch SDL. So können kleine logische Buffer mit
+  großen Vulkan-Anforderungen und zusätzliche Reserven auseinandergehalten werden.
+
+`memory_types` enthält alle vom Gerät gemeldeten Speichertypen mit `index`,
+`heap_index` und Vulkan-`flags` sowie Anlagen/Freigaben, angeforderten Bytezahlen,
+`maps` und `implicit_unmaps`. Die wichtigsten Flag-Bits sind:
+
+| Bit | Bedeutung |
+| --- | --- |
+| 1 | Device-local: GPU-lokaler Speicher |
+| 2 | Host-visible: für CPU-Zugriff abbildbar |
+| 4 | Host-coherent: kohärenter CPU/GPU-Zugriff |
+| 8 | Host-cached: CPU-seitig gecacht |
+
+Flags können kombiniert sein: GPU-lokal und CPU-zugänglich schließen sich nicht aus.
+Die Bytes verschiedener Speichertypen sind API-Anforderungen, keine RSS- oder
+VRAM-Messung. Die Summe der Anlagen/Freigaben und Bytezahlen über die Klassen bzw.
+Speichertypen entspricht den vorhandenen Gesamtsummen, sobald die jeweilige native
+Operation vollständig verbucht wurde. Kurzzeitige Abweichungen sind möglich, wenn
+parallel eine Operation erfasst wird. Es wird kein unbegrenztes Einzelereignis-Log
+und keine neue Liste pro GPU-Objekt im Monitor gehalten.

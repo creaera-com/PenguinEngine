@@ -43,6 +43,10 @@ if(PENGUI_BUILD_SDL)
    # Never modify an installed SDL or a user-provided source override.
    set(_pui_sdl_copy "${CMAKE_BINARY_DIR}/sdl-vulkan-diagnostics")
    file(COPY "${sdl3_SOURCE_DIR}/" DESTINATION "${_pui_sdl_copy}")
+   # file(COPY) can retain a newer, previously patched destination. Always reset
+   # this file from pristine source before applying the current instrumentation.
+   configure_file("${sdl3_SOURCE_DIR}/src/gpu/vulkan/SDL_gpu_vulkan.c"
+    "${_pui_sdl_copy}/src/gpu/vulkan/SDL_gpu_vulkan.c" COPYONLY)
    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${PROJECT_SOURCE_DIR}/tools/sdl/instrument_vulkan.py")
    execute_process(COMMAND "${Python3_EXECUTABLE}"

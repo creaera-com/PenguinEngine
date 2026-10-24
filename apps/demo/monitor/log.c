@@ -67,13 +67,45 @@ static bool integer(MonitorLog *log, const char *key, uint64_t value, bool avail
            put(log, available ? text : "null");
 }
 
+static bool vulkan_row(MonitorLog *log, const char *const *fields, const uint64_t *values) {
+    bool ok = true;
+    for (unsigned i = 0; ok && i < MONITOR_VULKAN_DETAIL_COUNT; i++) {
+        ok = integer(log, fields[i], values[i], true);
+    }
+    return ok;
+}
+
+static bool vulkan_details(MonitorLog *log, const MonitorGraphics *g) {
+    bool available = g->vulkan_available && g->vulkan_version >= 2;
+    bool ok = put(log, ",\"allocation_origins\":");
+    if (!available) {
+        return ok && put(log, "null,\"memory_types\":null");
+    }
+    ok = ok && put(log, "[");
+    for (unsigned i = 0; ok && i < MONITOR_VULKAN_CLASS_COUNT; i++) {
+        ok = (!i || put(log, ",")) && put(log, "{\"class\":") &&
+             quoted(log, monitor_vulkan_classes[i]) &&
+             vulkan_row(log, monitor_vulkan_class_fields, g->vulkan_classes[i]) && put(log, "}");
+    }
+    ok = ok && put(log, "],\"memory_types\":[");
+    for (unsigned i = 0; ok && i < g->vulkan_memory_type_count && i < MONITOR_VULKAN_MEMORY_TYPES;
+         i++) {
+        ok = (!i || put(log, ",")) && put(log, "{\"valid\":true") &&
+             integer(log, "index", i, true) &&
+             vulkan_row(log, monitor_vulkan_type_fields, g->vulkan_memory_types[i]) &&
+             put(log, "}");
+    }
+    return ok && put(log, "]");
+}
+
 static bool vulkan_resources(MonitorLog *log, const MonitorGraphics *g) {
     bool ok =
         put(log, ",\"vulkan\":{\"available\":") && put(log, g->vulkan_available ? "true" : "false");
-    for (unsigned i = 0; ok && i < 16; i++) {
+    for (unsigned i = 0; ok && i < MONITOR_VULKAN_COUNTER_COUNT; i++) {
         ok = integer(log, monitor_vulkan_fields[i], g->vulkan_counters[i], g->vulkan_available);
     }
-    return ok && put(log, "}");
+    return ok && integer(log, "version", g->vulkan_version, g->vulkan_available) &&
+           vulkan_details(log, g) && put(log, "}");
 }
 
 static bool resources(MonitorLog *log, const MonitorGraphics *g, double now) {

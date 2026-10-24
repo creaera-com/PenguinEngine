@@ -191,6 +191,10 @@ static void test_pan_logs_boundaries_coordinates_and_discrete_view_changes(void)
 static void test_resource_counters_are_serialized_exactly_with_explicit_availability(void) {
     start();
     monitor.graphics = (MonitorGraphics){.vulkan_available = true,
+                                         .vulkan_version = 2,
+                                         .vulkan_memory_type_count = 2,
+                                         .vulkan_classes = {{0}, {2, 1, 9007199254740993ULL, 32}},
+                                         .vulkan_memory_types = {{3, 0, 2, 1, 1024, 32, 2, 1}},
                                          .vulkan_counters = {9007199254740993ULL, 4, 128},
                                          .resources_available = true,
                                          .resources_complete = true,
@@ -221,6 +225,22 @@ static void test_resource_counters_are_serialized_exactly_with_explicit_availabi
     TEST_ASSERT_NOT_NULL(strstr(text, "\"descriptor_pools_created\":null"));
     TEST_ASSERT_NOT_NULL(strstr(text, "\"descriptor_pools_created\":9007199254740993"));
     TEST_ASSERT_NOT_NULL(strstr(text, "\"descriptor_pools_destroyed\":4"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"allocation_origins\":null,\"memory_types\":null"));
+    TEST_ASSERT_NOT_NULL(
+        strstr(text, "\"class\":\"uniform_buffer\",\"allocations\":2,\"frees\":1"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"allocated_bytes\":9007199254740993"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"memory_types\":[{\"valid\":true,\"index\":0,\"flags\":3"));
+    SDL_free(text);
+}
+
+static void test_old_vulkan_diagnostics_do_not_claim_detailed_measurements(void) {
+    start();
+    monitor.graphics.vulkan_available = true;
+    monitor.graphics.vulkan_version = 1;
+    monitor_log_action(&log_state, &monitor, "vector", context(), "test.legacy", "", 2);
+    char *text = read_log();
+    TEST_ASSERT_NOT_NULL(
+        strstr(text, "\"version\":1,\"allocation_origins\":null,\"memory_types\":null"));
     SDL_free(text);
 }
 
@@ -373,6 +393,7 @@ static void test_host_toggle_and_real_clone_move_are_logged_through_adapter(void
 
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_old_vulkan_diagnostics_do_not_claim_detailed_measurements);
     RUN_TEST(test_requires_project_and_does_not_create_files_while_disabled);
     RUN_TEST(test_json_rows_escape_actions_and_report_unknown_metrics_as_null);
     RUN_TEST(test_samples_and_gesture_boundaries_do_not_log_every_motion);

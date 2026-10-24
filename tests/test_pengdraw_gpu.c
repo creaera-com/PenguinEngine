@@ -1,6 +1,7 @@
 /** @file @brief Real GPU API pixel tests; Vulkan software devices are valid for correctness. */
 #include "pengdraw/pengdraw.h"
 #include "unity.h"
+#include <stdio.h>
 #include <stdlib.h>
 static SDL_Renderer *renderer;
 static SDL_Texture *target;
@@ -233,8 +234,60 @@ static void test_instrumented_vulkan_counts_native_pool_work(void) {
     TEST_ASSERT_EQUAL_INT64(0, SDL_GetNumberProperty(props, "penguengine.vulkan.failures", 0));
 }
 
+static Sint64 native_counter(SDL_PropertiesID props, const char *group, unsigned index,
+                             const char *field) {
+    char key[128];
+    snprintf(key, sizeof key, "penguengine.vulkan.%s.%u.%s", group, index, field);
+    return SDL_GetNumberProperty(props, key, 0);
+}
+
+static void test_vulkan_memory_breakdown_matches_native_totals(void) {
+    SDL_GPUDevice *device = SDL_GetPointerProperty(SDL_GetRendererProperties(renderer),
+                                                   SDL_PROP_RENDERER_GPU_DEVICE_POINTER, NULL);
+    SDL_PropertiesID props = SDL_GetGPUDeviceProperties(device);
+    if (SDL_GetNumberProperty(props, "penguengine.vulkan.version", 0) < 2) {
+        if (getenv("PUI_REQUIRE_VULKAN_DIAGNOSTICS")) {
+            TEST_FAIL_MESSAGE("Version 2 Vulkan diagnostics required");
+        }
+        TEST_IGNORE_MESSAGE("Detailed native Vulkan diagnostics disabled");
+    }
+    PDrawShadow shadow = {.enabled = 1, .color = 0x000000ff, .blur = 4};
+    TEST_ASSERT_TRUE(
+        pdraw_shadow_draw(renderer, &shadow, 1, (PDrawRect){20, 30, 40, 30}, silhouette, NULL));
+    TEST_ASSERT_TRUE(SDL_RenderPresent(renderer));
+    TEST_ASSERT_TRUE(SDL_WaitForGPUIdle(device));
+    const char *total_names[] = {"memory_allocations", "memory_frees", "memory_bytes_allocated",
+                                 "memory_bytes_freed"};
+    const char *detail_names[] = {"allocations", "frees", "allocated_bytes", "freed_bytes"};
+    unsigned types =
+        (unsigned)SDL_GetNumberProperty(props, "penguengine.vulkan.memory_type_count", 0);
+    TEST_ASSERT_GREATER_THAN_UINT(0, types);
+    TEST_ASSERT_LESS_OR_EQUAL_UINT(32, types);
+    for (unsigned f = 0; f < 4; f++) {
+        Sint64 classes_sum = 0, types_sum = 0;
+        for (unsigned c = 0; c < 4; c++) {
+            classes_sum += native_counter(props, "class", c, detail_names[f]);
+        }
+        for (unsigned t = 0; t < types; t++) {
+            types_sum += native_counter(props, "memory_type", t, detail_names[f]);
+        }
+        char key[128];
+        snprintf(key, sizeof key, "penguengine.vulkan.%s", total_names[f]);
+        Sint64 total = SDL_GetNumberProperty(props, key, 0);
+        TEST_ASSERT_EQUAL_INT64(total, classes_sum);
+        TEST_ASSERT_EQUAL_INT64(total, types_sum);
+    }
+    TEST_ASSERT_GREATER_THAN_INT64(0, native_counter(props, "class", 1, "bindings"));
+    TEST_ASSERT_GREATER_THAN_INT64(0, native_counter(props, "class", 3, "bindings"));
+    for (unsigned c = 0; c < 4; c++) {
+        TEST_ASSERT_GREATER_OR_EQUAL_INT64(native_counter(props, "class", c, "resource_bytes"),
+                                           native_counter(props, "class", c, "requirement_bytes"));
+    }
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_vulkan_memory_breakdown_matches_native_totals);
     RUN_TEST(test_instrumented_vulkan_counts_native_pool_work);
     RUN_TEST(test_gpu_resource_accounting_reuses_and_releases_shadow_targets);
     RUN_TEST(test_gpu_shadow_targets_keep_capacity_for_smaller_objects);

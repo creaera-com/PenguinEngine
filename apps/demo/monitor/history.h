@@ -4,6 +4,10 @@
 #define PENGUENGINE_MONITOR_HISTORY_H
 #include <stdbool.h>
 #include <stdint.h>
+#define MONITOR_VULKAN_COUNTER_COUNT 16
+#define MONITOR_VULKAN_CLASS_COUNT 4
+#define MONITOR_VULKAN_DETAIL_COUNT 8
+#define MONITOR_VULKAN_MEMORY_TYPES 32
 #define PROCESS_MONITOR_CAPACITY 120
 #define PROCESS_MONITOR_INTERVAL .5
 
@@ -36,7 +40,12 @@ typedef struct {
     uint64_t gpu_shadow_draws, gpu_shadow_failures, gpu_gradient_draws, gpu_gradient_failures;
     unsigned shadow_width, shadow_height, shadow_targets;
     bool vulkan_available;
-    uint64_t vulkan_counters[16]; ///< Optional native SDL backend counters, device lifetime.
+    uint64_t vulkan_counters[MONITOR_VULKAN_COUNTER_COUNT]; ///< Native device-lifetime counters.
+    unsigned vulkan_version, vulkan_memory_type_count;
+    /// Backing allocation origin and successful resource binding totals; not exclusive ownership.
+    uint64_t vulkan_classes[MONITOR_VULKAN_CLASS_COUNT][MONITOR_VULKAN_DETAIL_COUNT];
+    /// Native memory type flags, heap indices and allocation/mapping counters.
+    uint64_t vulkan_memory_types[MONITOR_VULKAN_MEMORY_TYPES][MONITOR_VULKAN_DETAIL_COUNT];
 } MonitorGraphics;
 
 /** @brief Fixed-size ring: memory and work remain bounded regardless of application lifetime. */
