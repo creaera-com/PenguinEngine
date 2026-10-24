@@ -1,8 +1,10 @@
 # Vulkan-Speicherdiagnose
 
-Diese Diagnose beobachtet die native SDL-Vulkan-Implementierung zusätzlich zu den
+Die optionale Diagnose beobachtet die native SDL-Vulkan-Implementierung zusätzlich zu den
 bestehenden pengDraw-, SDL-Heap- und Prozesszählern. Sie ändert weder Poolgrößen noch
-Freigabezeitpunkte. Zusätzliche Zähloperationen können allerdings das Timing verändern.
+Freigabezeitpunkte. Der unabhängige, standardmäßig aktive GPU-Upload-Fix ist in
+[GPU-Rendering](GPU_RENDERING.md) beschrieben; die folgenden Diagnose-Zähler
+beobachten den jeweils gewählten Build. Zusätzliche Zähloperationen können allerdings das Timing verändern.
 
 ## Aktivieren
 
@@ -23,8 +25,8 @@ Das Profil baut absichtlich das festgelegte SDL 3.4.18 aus Quellen, auch wenn SD
 bereits installiert ist. Dafür wird beim ersten Konfigurieren ein Download benötigt.
 Die Instrumentierung erfolgt in einer privaten Kopie im Build-Verzeichnis.
 Installierte Bibliotheken und lokale SDL-Quellen bleiben unverändert. Der Patch
-bricht bei unerwartetem Quelltext ab. Ohne Option bleibt die normale SDL-Auswahl
-bestehen. Nach dem Test die Option wieder auf `OFF` setzen.
+bricht bei unerwartetem Quelltext ab. Ohne Diagnose bleibt der normale Build mit Upload-Fix aktiv. Nach dem Test die
+Diagnoseoption wieder auf `OFF` setzen; der Fix bleibt eingeschaltet.
 
 Im Editor das Projekt öffnen und im Monitor das Performance-Logging aktivieren.
 Jede JSONL-Zeile enthält anschließend `vulkan.available`. Nur bei `true` stammen

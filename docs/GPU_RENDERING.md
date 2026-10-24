@@ -18,6 +18,42 @@ Triangulierung bleiben auf der CPU. Fonts werden derzeit auf der CPU rasterisier
 und als zwischengespeicherte Texturen hochgeladen; Bilddateien werden auf der CPU
 dekodiert. Speichern/Exportieren darf Bilddaten bewusst zur CPU zurücklesen.
 
+## Begrenzte Vertex-Uploads
+
+Der normale Build aktiviert `PENGUI_GPU_UPLOAD_FIX=ON`. CMake baut deshalb SDL
+3.4.18 aus Quellen in einer privaten Kopie und wendet
+`tools/sdl/fix_gpu_uploads.py` an. Python 3 wird dafür benötigt, keine zusätzlichen
+Python-Pakete. Installierte SDL-Bibliotheken und Source-Overrides werden nicht
+verändert. Die Anpassung betrifft SDLs GPU-Renderer gemeinsam für Vulkan, Metal
+und Direct3D 12; die pengUI-/pengDraw-Schnittstellen bleiben unverändert.
+
+SDL verwendet ohne Korrektur einen Vertex-/Transfer-Buffer, dessen Kapazität auf
+die größte bisherige Zeichen-Queue wächst. Bei jedem weiteren Upload im selben
+GPU-Command-Buffer kann SDL zusätzliche Backing-Buffer dieser vollen Kapazität
+anlegen. Viele kleine Schatten-Pässe nach einem großen Artwork-Upload können so
+sehr viel Speicher belegen.
+
+Die Korrektur hält getrennte, wiederverwendbare Buffer-Paare für Uploads in
+Zweierpotenz-Größenklassen ab 256 Bytes. Kleine Quads verwenden dadurch kleine
+Buffer, während große Artwork-Queues ihre passende Kapazität behalten. SDLs
+Cycling, Befehlsreihenfolge und Synchronisation bleiben erhalten. Es werden keine
+zusätzlichen GPU-Wartepunkte eingeführt, keine Shader reduziert und keine Daten
+vorzeitig überschrieben. Die Paare werden mit dem Renderer freigegeben. Ihr
+Speicherbedarf hängt weiterhin von der tatsächlichen Arbeit und Parallelität ab;
+es handelt sich nicht um ein festes Speicherlimit für einen Frame.
+
+Die Option ist unabhängig von `PENGUI_VULKAN_DIAGNOSTICS`. Zum Vergleich mit
+unverändertem SDL kann sie auf `OFF` gesetzt werden. Eine installierte SDL-Version
+wird nur verwendet, wenn außerdem die Vulkan-Diagnose ausgeschaltet ist. Bei
+Quelltextabweichungen bricht der Patch ab, statt unbemerkt unpassenden Code zu ändern.
+
+Ein Unity-Regressionstest kombiniert eine große Zeichen-Queue mit vielen kleinen
+Schatten-Pässen ohne Present/Idle-Wartepunkt dazwischen. Er prüft die Ausgabe und,
+bei aktiver Vulkan-Diagnose, die zusätzlichen Transfer-Zuweisungen. Die normale
+GPU-Testausführung darf ohne verfügbaren GPU-Treiber überspringen; für eine
+verbindliche Vulkan-Prüfung `PDRAW_REQUIRE_GPU=1` und
+`PUI_REQUIRE_VULKAN_DIAGNOSTICS=1` setzen.
+
 ## Renderer anlegen und freigeben
 
 ```c

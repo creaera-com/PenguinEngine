@@ -285,8 +285,52 @@ static void test_vulkan_memory_breakdown_matches_native_totals(void) {
     }
 }
 
+static void test_small_effect_uploads_do_not_cycle_large_artwork_buffers(void) {
+    SDL_GPUDevice *device = SDL_GetPointerProperty(SDL_GetRendererProperties(renderer),
+                                                   SDL_PROP_RENDERER_GPU_DEVICE_POINTER, NULL);
+    SDL_PropertiesID props = SDL_GetGPUDeviceProperties(device);
+    bool diagnostics = SDL_GetNumberProperty(props, "penguengine.vulkan.version", 0) >= 2;
+    SDL_Vertex vertices[3] = {
+        {{10, 10}, {1, 0, 0, 1}, {0, 0}},
+        {{20, 10}, {1, 0, 0, 1}, {0, 0}},
+        {{10, 20}, {1, 0, 0, 1}, {0, 0}},
+    };
+    const int indices_count = 8192 * 3;
+    int *indices = SDL_malloc((size_t)indices_count * sizeof *indices);
+    TEST_ASSERT_NOT_NULL(indices);
+    for (int i = 0; i < indices_count; i++) {
+        indices[i] = i % 3;
+    }
+    bool queued = SDL_RenderGeometry(renderer, NULL, vertices, 3, indices, indices_count);
+    SDL_free(indices);
+    TEST_ASSERT_TRUE(queued);
+    TEST_ASSERT_TRUE(SDL_FlushRenderer(renderer));
+    Sint64 before = native_counter(props, "class", 2, "allocated_bytes");
+    PDrawShadow shadow = {.enabled = 1, .color = 0x000000ff, .offset_x = 70, .blur = 4};
+    /* Intentionally no Present or GPU-idle wait between the large batch and
+     * these tiny passes: this is the allocation pattern seen with many clones. */
+    for (int i = 0; i < 24; i++) {
+        TEST_ASSERT_TRUE(
+            pdraw_shadow_draw(renderer, &shadow, 1, (PDrawRect){20, 30, 40, 30}, silhouette, NULL));
+    }
+    TEST_ASSERT_TRUE(SDL_FlushRenderer(renderer));
+    if (diagnostics) {
+        Sint64 after = native_counter(props, "class", 2, "allocated_bytes");
+        SDL_Log("Large batch + 24 shadows: %llu transfer bytes allocated",
+                (unsigned long long)(after - before));
+        TEST_ASSERT_LESS_THAN_INT64_MESSAGE(
+            4 * 1024 * 1024, after - before,
+            "Tiny effect passes must not allocate a full large vertex staging buffer each");
+    }
+    TEST_ASSERT_EQUAL_UINT8(0, red(100, 40));
+    TEST_ASSERT_EQUAL_UINT8(255, red(145, 110));
+    TEST_ASSERT_TRUE(SDL_RenderPresent(renderer));
+    TEST_ASSERT_TRUE(SDL_WaitForGPUIdle(device));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_small_effect_uploads_do_not_cycle_large_artwork_buffers);
     RUN_TEST(test_vulkan_memory_breakdown_matches_native_totals);
     RUN_TEST(test_instrumented_vulkan_counts_native_pool_work);
     RUN_TEST(test_gpu_resource_accounting_reuses_and_releases_shadow_targets);

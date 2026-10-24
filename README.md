@@ -30,7 +30,7 @@ ctest --test-dir build -C Debug --output-on-failure
 ./build/pengui_playground
 ```
 
-Bei Mehrkonfigurations-Generatoren liegt die App unter `build/Debug/`. In CLion das CMake-Projekt öffnen und `pengui_playground` starten. SDL3 wird, falls nicht installiert, in gepinnter Version über CMake geladen. Der Programmstart benötigt weder Projekt noch Assets einer Engine. JetBrains Mono ist als Atlas eingebettet; Python und Pillow werden nur zum Neuerzeugen dieses Atlas benötigt.
+Bei Mehrkonfigurations-Generatoren liegt die App unter `build/Debug/`. In CLion das CMake-Projekt öffnen und `pengui_playground` starten. SDL3 wird standardmäßig in festgelegter Version über CMake geladen und mit einer Korrektur für den GPU-Upload-Speicherbedarf gebaut. Dafür wird Python 3 benötigt; zusätzliche Python-Pakete sind nicht nötig. Der Programmstart benötigt weder Projekt noch Assets einer Engine. JetBrains Mono ist als Atlas eingebettet; Pillow wird nur zum Neuerzeugen dieses Atlas benötigt.
 
 ## Kleine, getrennte Bausteine
 
