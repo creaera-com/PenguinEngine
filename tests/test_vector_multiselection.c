@@ -1,0 +1,804 @@
+#include "editor_host/host.h"
+#include "editors/vector/document/selection.h"
+#include "editors/vector/geometry/resize.h"
+#include "editors/vector/geometry/rotation.h"
+#include "editors/vector/internal.h"
+#include "editors/vector/rectangle/transform.h"
+#include "editors/vector/workspace/selection.h"
+#include "shell/shell.h"
+#include "unity.h"
+#include <math.h>
+
+static SDL_Window *window;
+static SDL_Renderer *renderer;
+static EditorShell shell;
+static EditorHost host;
+
+static void frame(void) {
+    pui_view_draw(shell.view, &shell.input, (PUIRect){0, 0, 1280, 800}, NULL, NULL);
+}
+
+static void commit(void) {
+    char error[256];
+    TEST_ASSERT_TRUE_MESSAGE(
+        editor_host_commit(&host, shell.view, &shell.input, error, sizeof error), error);
+    frame();
+}
+
+static VectorDocument *document(void) {
+    VectorEditor *editor = host.instance;
+    return vector_document_tabs_active(&editor->documents, shell.view);
+}
+
+static void activate(const char *id) {
+    TEST_ASSERT_TRUE(editor_host_request(&host, id, false));
+    commit();
+}
+
+void setUp(void) {
+    TEST_ASSERT_TRUE(SDL_Init(SDL_INIT_VIDEO));
+    SDL_SetModState(0);
+    window = SDL_CreateWindow("multi", 1280, 800, SDL_WINDOW_HIDDEN);
+    renderer = SDL_CreateRenderer(window, NULL);
+    TEST_ASSERT_NOT_NULL(renderer);
+    char path[1600], error[256];
+    snprintf(path, sizeof path, "%s/shell.yaml", PENGUI_EDITOR_RESOURCES);
+    TEST_ASSERT_TRUE_MESSAGE(editor_shell_load(&shell, renderer, path, error, sizeof error), error);
+    editor_host_init(&host, (EditorServices){PENGUI_EDITOR_RESOURCES});
+    activate("vector");
+    commit();
+    /* These feature fixtures build their own scene independently of startup content. */
+    vector_history_destroy(&document()->history);
+    vector_document_init(document(), document()->id);
+
+    VectorDocument *doc = document();
+    TEST_ASSERT_TRUE(vector_artboard_add(doc, (PUIRect){0, 0, 300, 220}));
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 1, (PUIRect){20, 20, 40, 30}));
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 1, (PUIRect){100, 70, 40, 30}));
+    vector_document_select(doc, 0);
+    doc->active_artboard = 0;
+    commit();
+}
+
+void tearDown(void) {
+    SDL_SetModState(0);
+    editor_shell_destroy(&shell);
+    editor_host_destroy(&host);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+}
+
+static void pointer(SDL_EventType type, float x, float y) {
+    VectorViewport *v = &document()->viewport;
+    x = v->bounds.x + v->x + x * v->zoom;
+    y = v->bounds.y + v->y + y * v->zoom;
+    SDL_Event event = {.type = type};
+    if (type == SDL_EVENT_MOUSE_MOTION) {
+        event.motion.x = x;
+        event.motion.y = y;
+    } else {
+        event.button.button = SDL_BUTTON_LEFT;
+        event.button.x = x;
+        event.button.y = y;
+    }
+    bool consumed = editor_host_event(&host, shell.view, &event);
+    if (event.type != SDL_EVENT_MOUSE_BUTTON_UP) {
+        TEST_ASSERT_TRUE(consumed);
+    }
+    commit();
+}
+
+static void click(float x, float y, bool shift) {
+    SDL_SetModState(shift ? SDL_KMOD_SHIFT : 0);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, x, y);
+    SDL_SetModState(0);
+}
+
+static void cancel(void) {
+    SDL_Event event = {.type = SDL_EVENT_KEY_DOWN};
+    event.key.key = SDLK_ESCAPE;
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &event));
+    commit();
+}
+
+static void test_shift_selection_toggles_and_tree_supports_shift(void) {
+    VectorDocument *doc = document();
+    click(40, 35, false);
+    click(120, 85, true);
+    TEST_ASSERT_EQUAL_INT(2, doc->selection.count);
+    TEST_ASSERT_TRUE(vector_document_is_selected(doc, 1));
+    TEST_ASSERT_TRUE(vector_document_is_selected(doc, 2));
+    TEST_ASSERT_EQUAL_STRING("2 Rechtecke ausgewaehlt",
+                             pui_view_text(shell.view, "vector_selection_count"));
+    click(40, 35, false);
+    TEST_ASSERT_EQUAL_INT(2, doc->selection.count);
+    click(40, 35, true);
+    TEST_ASSERT_FALSE(vector_document_is_selected(doc, 1));
+    TEST_ASSERT_TRUE(vector_document_is_selected(doc, 2));
+    SDL_SetModState(SDL_KMOD_SHIFT);
+    TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "vector.rectangle.select",
+                                        "vector_document_1.rectangle_1"));
+    SDL_SetModState(0);
+    commit();
+    TEST_ASSERT_EQUAL_INT(2, doc->selection.count);
+    click(5, 5, false);
+    TEST_ASSERT_EQUAL_INT(0, doc->selection.count);
+    TEST_ASSERT_EQUAL_UINT(0, doc->active_rectangle);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+}
+
+static void test_marquee_zoom_reverse_additive_and_escape_restore(void) {
+    VectorDocument *doc = document();
+    doc->viewport.zoom = 1.5f;
+    commit();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 180, 120);
+    pointer(SDL_EVENT_MOUSE_MOTION, 5, 5);
+    TEST_ASSERT_EQUAL_INT(2, doc->selection.count);
+    TEST_ASSERT_TRUE(doc->selection_tool.marquee);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 5, 5);
+    TEST_ASSERT_FALSE(doc->selection_tool.marquee);
+    click(40, 35, false);
+    click(120, 85, true); // remove the second rectangle
+    TEST_ASSERT_EQUAL_INT(1, doc->selection.count);
+    SDL_SetModState(SDL_KMOD_SHIFT);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 90, 60);
+    pointer(SDL_EVENT_MOUSE_MOTION, 150, 110);
+    TEST_ASSERT_EQUAL_INT(2, doc->selection.count);
+    cancel();
+    SDL_SetModState(0);
+    TEST_ASSERT_EQUAL_INT(1, doc->selection.count);
+    TEST_ASSERT_TRUE(vector_document_is_selected(doc, 1));
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+}
+
+static void test_group_move_is_one_history_step_and_survives_editor_switch(void) {
+    VectorDocument *doc = document();
+    click(40, 35, false);
+    click(120, 85, true);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 120, 85);
+    pointer(SDL_EVENT_MOUSE_MOTION, 135, 95);
+    TEST_ASSERT_EQUAL_FLOAT(20, doc->rectangles[0].rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(100, doc->rectangles[1].rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(35, vector_rectangle_display_rect(doc, &doc->rectangles[0]).x);
+    TEST_ASSERT_EQUAL_FLOAT(115, vector_rectangle_display_rect(doc, &doc->rectangles[1]).x);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 135, 95);
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+    TEST_ASSERT_EQUAL_FLOAT(35, doc->rectangles[0].rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(115, doc->rectangles[1].rect.x);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    commit();
+    TEST_ASSERT_EQUAL_FLOAT(20, doc->rectangles[0].rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(100, doc->rectangles[1].rect.x);
+    activate("scripts");
+    activate("vector");
+    commit();
+    doc = document();
+    TEST_ASSERT_EQUAL_INT(2, doc->selection.count);
+    TEST_ASSERT_TRUE(vector_history_redo(&doc->history, doc));
+    TEST_ASSERT_EQUAL_FLOAT(35, doc->rectangles[0].rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(115, doc->rectangles[1].rect.x);
+    click(135, 95, false);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 135, 95);
+    pointer(SDL_EVENT_MOUSE_MOTION, 150, 110);
+    cancel();
+    TEST_ASSERT_EQUAL_FLOAT(35, doc->rectangles[0].rect.x);
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+}
+
+static void test_locked_hidden_and_atomic_failure(void) {
+    VectorDocument *doc = document();
+    TEST_ASSERT_TRUE(vector_rectangle_set_state(doc, 2, VECTOR_OBJECT_LOCKED));
+    commit();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 5, 5);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 180, 120);
+    TEST_ASSERT_TRUE(vector_document_is_selected(doc, 1));
+    TEST_ASSERT_FALSE(vector_document_is_selected(doc, 2));
+    unsigned ids[] = {1, 2};
+    int count = doc->history.count;
+    TEST_ASSERT_FALSE(vector_rectangles_translate(doc, ids, 2, 10, 20));
+    TEST_ASSERT_EQUAL_FLOAT(20, doc->rectangles[0].rect.x);
+    TEST_ASSERT_EQUAL_INT(count, doc->history.count);
+    TEST_ASSERT_TRUE(vector_rectangle_set_state(doc, 2, VECTOR_OBJECT_HIDDEN));
+    commit();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 5, 5);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 180, 120);
+    TEST_ASSERT_FALSE(vector_document_is_selected(doc, 2));
+    TEST_ASSERT_TRUE(vector_artboard_set_state(doc, 1, VECTOR_OBJECT_LOCKED));
+    commit();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 5, 5);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 180, 120);
+    TEST_ASSERT_EQUAL_INT(0, doc->selection.count);
+    TEST_ASSERT_EQUAL_UINT(0, doc->active_rectangle);
+}
+
+static void test_group_snapping_keeps_spacing_and_lock_change_cancels_all(void) {
+    VectorDocument *doc = document();
+    click(40, 35, false);
+    click(120, 85, true);
+    doc->grid.snap_enabled = true;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 120, 85);
+    pointer(SDL_EVENT_MOUSE_MOTION, 134, 99);
+    PUIRect first = vector_rectangle_display_rect(doc, &doc->rectangles[0]);
+    PUIRect second = vector_rectangle_display_rect(doc, &doc->rectangles[1]);
+    TEST_ASSERT_EQUAL_FLOAT(80, second.x - first.x);
+    TEST_ASSERT_EQUAL_FLOAT(50, second.y - first.y);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 134, 99);
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+    first = doc->rectangles[0].rect;
+    second = doc->rectangles[1].rect;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, second.x + 20, second.y + 15);
+    pointer(SDL_EVENT_MOUSE_MOTION, second.x + 40, second.y + 35);
+    // Lock a non-primary member while a group gesture is in progress.
+    TEST_ASSERT_TRUE(vector_rectangle_set_state(doc, 1, VECTOR_OBJECT_LOCKED));
+    commit();
+    pointer(SDL_EVENT_MOUSE_MOTION, second.x + 50, second.y + 45);
+    TEST_ASSERT_FALSE(doc->selection_tool.dragging);
+    TEST_ASSERT_EQUAL_FLOAT(first.x, doc->rectangles[0].rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(second.x, doc->rectangles[1].rect.x);
+    TEST_ASSERT_EQUAL_INT(5, doc->history.count);
+}
+
+static void test_editor_switch_discards_marquee_selection_preview(void) {
+    click(40, 35, false);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 5, 5);
+    pointer(SDL_EVENT_MOUSE_MOTION, 180, 120);
+    TEST_ASSERT_EQUAL_INT(2, document()->selection.count);
+    activate("scripts");
+    activate("vector");
+    commit();
+    TEST_ASSERT_EQUAL_INT(1, document()->selection.count);
+    TEST_ASSERT_TRUE(vector_document_is_selected(document(), 1));
+    TEST_ASSERT_FALSE(document()->selection_tool.marquee);
+    TEST_ASSERT_EQUAL_INT(3, document()->history.count);
+}
+
+static void assert_geometry(PUIRect expected, PUIRect actual) {
+    TEST_ASSERT_FLOAT_WITHIN(.001f, expected.x, actual.x);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, expected.y, actual.y);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, expected.w, actual.w);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, expected.h, actual.h);
+}
+
+static void select_pair(void) {
+    vector_document_select(document(), 1);
+    vector_document_toggle(document(), 2);
+    commit();
+}
+
+static void test_all_group_handles_scale_relative_positions_with_single_history_steps(void) {
+    VectorDocument *doc = document();
+    select_pair();
+    doc->viewport.zoom = 1.5f;
+    commit();
+    const float handles[8][2] = {{20, 20},   {80, 20},  {140, 20}, {140, 60},
+                                 {140, 100}, {80, 100}, {20, 100}, {20, 60}};
+    for (int i = 0; i < 8; i++) {
+        unsigned edges = vector_resize_handle_edges(i);
+        float x = handles[i][0], y = handles[i][1];
+        pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, x, y);
+        TEST_ASSERT_EQUAL_UINT(edges, doc->selection_tool.resize_edges);
+        pointer(SDL_EVENT_MOUSE_MOTION, x + 24, y + 16);
+        TEST_ASSERT_EQUAL_INT(3, doc->history.cursor);
+        assert_geometry((PUIRect){20, 20, 40, 30}, doc->rectangles[0].rect);
+        float left = edges & VECTOR_RESIZE_LEFT ? 44 : 20;
+        float top = edges & VECTOR_RESIZE_TOP ? 36 : 20;
+        float right = edges & VECTOR_RESIZE_RIGHT ? 164 : 140;
+        float bottom = edges & VECTOR_RESIZE_BOTTOM ? 116 : 100;
+        float w = right - left, h = bottom - top;
+        PUIRect first = {left, top, w / 3, h * .375f};
+        PUIRect second = {left + w * (2.f / 3), top + h * .625f, w / 3, h * .375f};
+        assert_geometry(first, vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+        assert_geometry(second, vector_rectangle_display_rect(doc, &doc->rectangles[1]));
+        pointer(SDL_EVENT_MOUSE_BUTTON_UP, x + 24, y + 16);
+        TEST_ASSERT_EQUAL_INT(4, doc->history.cursor);
+        TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+        assert_geometry(first, doc->rectangles[0].rect);
+        assert_geometry(second, doc->rectangles[1].rect);
+        TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+        commit();
+        assert_geometry((PUIRect){20, 20, 40, 30}, doc->rectangles[0].rect);
+        assert_geometry((PUIRect){100, 70, 40, 30}, doc->rectangles[1].rect);
+    }
+}
+
+static void test_group_resize_minimum_cancel_noop_and_checkpoint_redo(void) {
+    VectorDocument *doc = document();
+    select_pair();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 20, 20);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 20, 20);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 140, 100);
+    pointer(SDL_EVENT_MOUSE_MOTION, 0, 0);
+    PUIRect first = vector_rectangle_display_rect(doc, &doc->rectangles[0]);
+    PUIRect second = vector_rectangle_display_rect(doc, &doc->rectangles[1]);
+    TEST_ASSERT_TRUE(first.w >= 1 && first.h >= 1 && second.w >= 1 && second.h >= 1);
+    TEST_ASSERT_EQUAL_FLOAT(20, first.x);
+    TEST_ASSERT_EQUAL_FLOAT(20, first.y);
+    cancel();
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    assert_geometry((PUIRect){20, 20, 40, 30}, doc->rectangles[0].rect);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 140, 100);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 164, 116);
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    activate("scripts");
+    activate("vector");
+    commit();
+    doc = document();
+    TEST_ASSERT_TRUE(vector_history_redo(&doc->history, doc));
+    commit();
+    assert_geometry((PUIRect){20, 20, 48, 36}, doc->rectangles[0].rect);
+    assert_geometry((PUIRect){116, 80, 48, 36}, doc->rectangles[1].rect);
+    // A switch while resizing keeps the committed geometry, not the preview.
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 164, 116);
+    pointer(SDL_EVENT_MOUSE_MOTION, 180, 130);
+    activate("scripts");
+    activate("vector");
+    commit();
+    assert_geometry((PUIRect){20, 20, 48, 36}, document()->rectangles[0].rect);
+    TEST_ASSERT_FALSE(document()->selection_tool.dragging);
+}
+
+static void test_group_resize_across_artboards_and_grid_snapping(void) {
+    VectorDocument *doc = document();
+    TEST_ASSERT_TRUE(vector_artboard_add(doc, (PUIRect){320, 0, 180, 200}));
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 2, (PUIRect){20, 20, 40, 30}));
+    vector_document_select(doc, 1);
+    vector_document_toggle(doc, 3);
+    commit();
+    doc->grid.snap_enabled = true;
+    // Shared world bounds: (20,20)-(380,50). Right edge 397 snaps to 400
+    // relative to the primary artboard origin at x=320.
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 380, 35);
+    pointer(SDL_EVENT_MOUSE_MOTION, 397, 35);
+    PUIRect first = vector_rectangle_display_rect(doc, &doc->rectangles[0]);
+    PUIRect third = vector_rectangle_display_rect(doc, &doc->rectangles[2]);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 400, third.x + 320 + third.w);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, first.w, third.w);
+    TEST_ASSERT_EQUAL_FLOAT(20, first.y);
+    TEST_ASSERT_EQUAL_FLOAT(30, first.h);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 397, 35);
+    TEST_ASSERT_EQUAL_UINT(1, doc->rectangles[0].parent_id);
+    TEST_ASSERT_EQUAL_UINT(2, doc->rectangles[2].parent_id);
+    TEST_ASSERT_EQUAL_INT(6, doc->history.count);
+    unsigned ids[] = {1, 3};
+    PUIRect invalid[] = {{0, 0, 20, 20}, {0, 0, 0, 20}};
+    PUIRect unchanged = doc->rectangles[0].rect;
+    TEST_ASSERT_FALSE(vector_rectangles_set_rects(doc, ids, invalid, 2));
+    assert_geometry(unchanged, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_INT(6, doc->history.count);
+}
+
+static void group_modifier_key(SDL_Keycode key, bool down, SDL_Keymod mods) {
+    SDL_SetModState(mods);
+    SDL_Event event = {.type = down ? SDL_EVENT_KEY_DOWN : SDL_EVENT_KEY_UP};
+    event.key.key = key;
+    event.key.mod = mods;
+    TEST_ASSERT_TRUE(editor_host_event(&host, shell.view, &event));
+    commit();
+}
+
+static void test_group_resize_live_aspect_and_center_modifiers(void) {
+    VectorDocument *doc = document();
+    select_pair();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 140, 100);
+    pointer(SDL_EVENT_MOUSE_MOTION, 164, 108);
+    group_modifier_key(SDLK_LSHIFT, true, SDL_KMOD_SHIFT);
+    assert_geometry((PUIRect){20, 20, 48, 36},
+                    vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    group_modifier_key(SDLK_LALT, true, SDL_KMOD_SHIFT | SDL_KMOD_ALT);
+    assert_geometry((PUIRect){-4, 4, 56, 42},
+                    vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    assert_geometry((PUIRect){108, 74, 56, 42},
+                    vector_rectangle_display_rect(doc, &doc->rectangles[1]));
+    group_modifier_key(SDLK_LSHIFT, false, SDL_KMOD_ALT);
+    assert_geometry((PUIRect){-4, 12, 56, 36},
+                    vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    group_modifier_key(SDLK_LALT, false, 0);
+    assert_geometry((PUIRect){20, 20, 48, 33},
+                    vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    assert_geometry((PUIRect){20, 20, 40, 30}, doc->rectangles[0].rect);
+    SDL_SetModState(SDL_KMOD_SHIFT | SDL_KMOD_ALT);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 164, 108);
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+    assert_geometry((PUIRect){-4, 4, 56, 42}, doc->rectangles[0].rect);
+    SDL_SetModState(0);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    activate("scripts");
+    activate("vector");
+    commit();
+    doc = document();
+    TEST_ASSERT_TRUE(vector_history_redo(&doc->history, doc));
+    assert_geometry((PUIRect){108, 74, 56, 42}, doc->rectangles[1].rect);
+}
+
+static void test_single_rotation_live_hit_testing_and_oriented_resize(void) {
+    VectorDocument *doc = document();
+    click(40, 35, false);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 48, 35);
+    TEST_ASSERT_TRUE(doc->selection_tool.rotating);
+    pointer(SDL_EVENT_MOUSE_MOTION, 40, 65);
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_FLOAT(90, vector_rectangle_display_angle(doc, &doc->rectangles[0]));
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 40, 65);
+    TEST_ASSERT_EQUAL_FLOAT(90, doc->rectangles[0].angle);
+    assert_geometry((PUIRect){20, 20, 40, 30}, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+    vector_document_select(doc, 0);
+    doc->active_artboard = 0;
+    commit();
+    click(58, 22, false); // Inside the former rectangle, outside the rotated shape.
+    TEST_ASSERT_EQUAL_UINT(0, doc->active_rectangle);
+    click(40, 53, false); // Inside the rotated extension beyond its former bottom edge.
+    TEST_ASSERT_EQUAL_UINT(1, doc->active_rectangle);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 40, 55);
+    TEST_ASSERT_EQUAL_UINT(VECTOR_RESIZE_RIGHT, doc->selection_tool.resize_edges);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 40, 65);
+    assert_geometry((PUIRect){15, 25, 50, 30}, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_FLOAT(90, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_INT(5, doc->history.count);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[0].angle);
+}
+
+static void test_group_rotation_is_atomic_and_history_survives_editor_switch(void) {
+    VectorDocument *doc = document();
+    select_pair();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 88, 60);
+    pointer(SDL_EVENT_MOUSE_MOTION, 80, 100);
+    assert_geometry((PUIRect){85, 5, 40, 30},
+                    vector_rectangle_display_rect(doc, &doc->rectangles[0]));
+    assert_geometry((PUIRect){35, 85, 40, 30},
+                    vector_rectangle_display_rect(doc, &doc->rectangles[1]));
+    TEST_ASSERT_EQUAL_FLOAT(90, vector_rectangle_display_angle(doc, &doc->rectangles[1]));
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[1].angle);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 80, 100);
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    activate("scripts");
+    activate("vector");
+    commit();
+    doc = document();
+    TEST_ASSERT_TRUE(vector_history_redo(&doc->history, doc));
+    commit();
+    TEST_ASSERT_EQUAL_FLOAT(90, doc->rectangles[0].angle);
+    assert_geometry((PUIRect){35, 85, 40, 30}, doc->rectangles[1].rect);
+    // Axis-aligned scaling of a rotated group stays uniform, avoiding shear.
+    PUIRect bounds;
+    TEST_ASSERT_TRUE(vector_selection_bounds(doc, &bounds));
+    float hx =
+        (bounds.x + bounds.w - doc->viewport.bounds.x - doc->viewport.x) / doc->viewport.zoom;
+    float hy =
+        (bounds.y + bounds.h / 2 - doc->viewport.bounds.y - doc->viewport.y) / doc->viewport.zoom;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, hx, hy);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, hx + 16, hy);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 40.f / 30,
+                             doc->rectangles[0].rect.w / doc->rectangles[0].rect.h);
+    TEST_ASSERT_EQUAL_FLOAT(90, doc->rectangles[0].angle);
+}
+
+static void test_rotation_cancel_noop_shift_and_locked_member(void) {
+    VectorDocument *doc = document();
+    select_pair();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 88, 60);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 88, 60);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 88, 60);
+    pointer(SDL_EVENT_MOUSE_MOTION, 110, 70);
+    TEST_ASSERT_FLOAT_WITHIN(.01f, 18.43495f,
+                             vector_rectangle_display_angle(doc, &doc->rectangles[0]));
+    group_modifier_key(SDLK_LSHIFT, true, SDL_KMOD_SHIFT);
+    TEST_ASSERT_EQUAL_FLOAT(15, vector_rectangle_display_angle(doc, &doc->rectangles[0]));
+    cancel();
+    SDL_SetModState(0);
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 88, 60);
+    pointer(SDL_EVENT_MOUSE_MOTION, 80, 100);
+    TEST_ASSERT_TRUE(vector_rectangle_set_state(doc, 1, VECTOR_OBJECT_LOCKED));
+    commit();
+    pointer(SDL_EVENT_MOUSE_MOTION, 60, 80);
+    TEST_ASSERT_FALSE(doc->selection_tool.rotating);
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[1].angle);
+    TEST_ASSERT_EQUAL_INT(4, doc->history.count);
+}
+
+static void test_rotation_across_artboards_preserves_parents_and_atomic_guards(void) {
+    VectorDocument *doc = document();
+    TEST_ASSERT_TRUE(vector_artboard_add(doc, (PUIRect){320, 0, 180, 200}));
+    TEST_ASSERT_TRUE(vector_rectangle_add(doc, 2, (PUIRect){20, 20, 40, 30}));
+    vector_document_select(doc, 1);
+    vector_document_toggle(doc, 3);
+    commit();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 208, 35);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 200, 195);
+    assert_geometry((PUIRect){180, -140, 40, 30}, doc->rectangles[0].rect);
+    assert_geometry((PUIRect){-140, 180, 40, 30}, doc->rectangles[2].rect);
+    TEST_ASSERT_EQUAL_UINT(1, doc->rectangles[0].parent_id);
+    TEST_ASSERT_EQUAL_UINT(2, doc->rectangles[2].parent_id);
+    unsigned ids[] = {1, 3};
+    PUIRect rects[] = {doc->rectangles[0].rect, doc->rectangles[2].rect};
+    float invalid[] = {45, NAN};
+    TEST_ASSERT_FALSE(vector_rectangles_set_transforms(doc, ids, rects, invalid, 2));
+    TEST_ASSERT_EQUAL_FLOAT(90, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_INT(6, doc->history.count);
+}
+
+static Uint8 world_red(float x, float y) {
+    const VectorViewport *v = &document()->viewport;
+    SDL_Surface *surface = SDL_RenderReadPixels(renderer, NULL);
+    TEST_ASSERT_NOT_NULL(surface);
+    Uint8 r, g, b, a;
+    TEST_ASSERT_TRUE(SDL_ReadSurfacePixel(surface, (int)(v->bounds.x + v->x + x * v->zoom),
+                                          (int)(v->bounds.y + v->y + y * v->zoom), &r, &g, &b, &a));
+    SDL_DestroySurface(surface);
+    return r;
+}
+
+static void test_rotated_rendering_alpha_clipping_and_marquee(void) {
+    VectorDocument *doc = document();
+    unsigned id = 1;
+    PUIRect rect = doc->rectangles[0].rect;
+    float angle = 90;
+    TEST_ASSERT_TRUE(vector_rectangles_set_transforms(doc, &id, &rect, &angle, 1));
+    vector_document_select(doc, 0);
+    doc->active_artboard = 0;
+    commit();
+    TEST_ASSERT_EQUAL_UINT8(115, world_red(40, 52));
+    TEST_ASSERT_EQUAL_UINT8(242, world_red(23, 25));
+    TEST_ASSERT_TRUE(vector_rectangle_set_fill(doc, 1, 0xFF000080));
+    commit();
+    TEST_ASSERT_UINT8_WITHIN(2, 248, world_red(40, 52));
+    Uint8 outside = world_red(-2, 30);
+    rect = (PUIRect){-10, 20, 40, 30};
+    TEST_ASSERT_TRUE(vector_rectangles_set_transforms(doc, &id, &rect, &angle, 1));
+    commit();
+    TEST_ASSERT_EQUAL_UINT8(outside, world_red(-2, 30));
+    // Marquee sees actual rotated geometry, not the old unrotated rectangle.
+    rect = (PUIRect){20, 20, 40, 30};
+    TEST_ASSERT_TRUE(vector_rectangles_set_transforms(doc, &id, &rect, &angle, 1));
+    commit();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 38, 56);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 43, 51);
+    TEST_ASSERT_TRUE(vector_document_is_selected(doc, 1));
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 18, 18);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 24, 26);
+    TEST_ASSERT_FALSE(vector_document_is_selected(doc, 1));
+}
+
+static void test_editor_switch_discards_rotation_preview(void) {
+    VectorDocument *doc = document();
+    select_pair();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 88, 60);
+    pointer(SDL_EVENT_MOUSE_MOTION, 80, 100);
+    TEST_ASSERT_EQUAL_FLOAT(90, vector_rectangle_display_angle(doc, &doc->rectangles[0]));
+    activate("scripts");
+    activate("vector");
+    commit();
+    doc = document();
+    TEST_ASSERT_FALSE(doc->selection_tool.rotating);
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[0].angle);
+    assert_geometry((PUIRect){20, 20, 40, 30}, doc->rectangles[0].rect);
+    TEST_ASSERT_EQUAL_INT(3, doc->history.count);
+}
+
+static void test_move_snap_uses_screen_tolerance_without_rounding_away_fractional_positions(void) {
+    VectorDocument *doc = document();
+    TEST_ASSERT_TRUE(
+        vector_rectangle_update(doc, 1, "Fractional", (PUIRect){20.5f, 20.5f, 32, 32}));
+    vector_document_select(doc, 1);
+    doc->viewport.zoom = 4;
+    doc->grid.snap_enabled = true;
+    doc->grid.snap_tolerance = 5;
+    commit();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 36.5f, 36.5f);
+    TEST_ASSERT_EQUAL_UINT(0, doc->selection_tool.resize_edges);
+    // Desired edge 30.8 is 4.8 screen pixels from line 32, within the 5 px tolerance.
+    pointer(SDL_EVENT_MOUSE_MOTION, 46.8f, 36.5f);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 32, vector_rectangle_display_rect(doc, &doc->rectangles[0]).x);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 20.5f, doc->rectangles[0].rect.x);
+    int before = doc->history.count;
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 46.8f, 36.5f);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 32, doc->rectangles[0].rect.x);
+    TEST_ASSERT_EQUAL_INT(before + 1, doc->history.count);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    commit();
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 20.5f, doc->rectangles[0].rect.x);
+    // Just outside the tolerance: edge 30.7 is 5.2 screen pixels away and must remain free.
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 36.5f, 36.5f);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 46.7f, 36.5f);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 30.7f, doc->rectangles[0].rect.x);
+}
+
+static void test_fractional_move_snap_for_rotated_rectangles_and_groups(void) {
+    VectorDocument *doc = document();
+    unsigned id = 1;
+    PUIRect r = {20.5f, 20.5f, 32, 32};
+    float angle = 90;
+    TEST_ASSERT_TRUE(vector_rectangles_set_transforms(doc, &id, &r, &angle, 1));
+    vector_document_select(doc, 1);
+    doc->viewport.zoom = 4;
+    doc->grid.snap_enabled = true;
+    commit();
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 36.5f, 36.5f);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 46.8f, 36.5f);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 32, doc->rectangles[0].rect.x);
+    TEST_ASSERT_EQUAL_FLOAT(90, doc->rectangles[0].angle);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    commit();
+    TEST_ASSERT_TRUE(vector_rectangle_update(doc, 2, "Second", (PUIRect){100.5f, 70.5f, 32, 32}));
+    select_pair();
+    int before = doc->history.count;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 116.5f, 86.5f);
+    pointer(SDL_EVENT_MOUSE_MOTION, 126.8f, 86.5f);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 32, vector_rectangle_display_rect(doc, &doc->rectangles[0]).x);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 112, vector_rectangle_display_rect(doc, &doc->rectangles[1]).x);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 20.5f, doc->rectangles[0].rect.x);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 126.8f, 86.5f);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 32, doc->rectangles[0].rect.x);
+    TEST_ASSERT_FLOAT_WITHIN(.001f, 112, doc->rectangles[1].rect.x);
+    TEST_ASSERT_EQUAL_INT(before + 1, doc->history.count);
+}
+
+static void test_signed_turn_display_crosses_180_and_accepts_full_turns(void) {
+    VectorDocument *doc = document();
+    click(40, 35, false);
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 48, 35);
+    pointer(SDL_EVENT_MOUSE_MOTION, 40, 65);
+    pointer(SDL_EVENT_MOUSE_MOTION, 10, 35);
+    TEST_ASSERT_EQUAL_STRING("180", pui_view_text(shell.view, "rectangle_angle"));
+    pointer(SDL_EVENT_MOUSE_MOTION, 40, 5);
+    TEST_ASSERT_EQUAL_STRING("270", pui_view_text(shell.view, "rectangle_angle"));
+    TEST_ASSERT_EQUAL_FLOAT(0, doc->rectangles[0].angle);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 70, 35);
+    TEST_ASSERT_EQUAL_FLOAT(360, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_STRING("360", pui_view_text(shell.view, "rectangle_angle"));
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    commit();
+    TEST_ASSERT_EQUAL_STRING("0", pui_view_text(shell.view, "rectangle_angle"));
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, 48, 35);
+    pointer(SDL_EVENT_MOUSE_MOTION, 40, 5);
+    pointer(SDL_EVENT_MOUSE_MOTION, 10, 35);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, 40, 65);
+    TEST_ASSERT_EQUAL_FLOAT(-270, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_STRING("-270", pui_view_text(shell.view, "rectangle_angle"));
+    activate("scripts");
+    activate("vector");
+    commit();
+    TEST_ASSERT_EQUAL_FLOAT(-270, document()->rectangles[0].angle);
+}
+
+static void test_group_history_accepts_before_and_after_angles_over_180(void) {
+    VectorDocument *doc = document();
+    TEST_ASSERT_TRUE(vector_rectangle_set_angle(doc, 1, 270));
+    select_pair();
+    PUIRect bounds;
+    TEST_ASSERT_TRUE(vector_selection_bounds(doc, &bounds));
+    float cx =
+        (bounds.x + bounds.w / 2 - doc->viewport.bounds.x - doc->viewport.x) / doc->viewport.zoom;
+    float cy =
+        (bounds.y + bounds.h / 2 - doc->viewport.bounds.y - doc->viewport.y) / doc->viewport.zoom;
+    pointer(SDL_EVENT_MOUSE_BUTTON_DOWN, cx + 8 / doc->viewport.zoom, cy);
+    pointer(SDL_EVENT_MOUSE_BUTTON_UP, cx, cy + 40);
+    TEST_ASSERT_EQUAL_FLOAT(360, doc->rectangles[0].angle);
+    TEST_ASSERT_EQUAL_FLOAT(90, doc->rectangles[1].angle);
+    activate("scripts");
+    activate("vector");
+    commit();
+    doc = document();
+    TEST_ASSERT_EQUAL_FLOAT(360, doc->rectangles[0].angle);
+    TEST_ASSERT_TRUE(vector_history_undo(&doc->history, doc));
+    TEST_ASSERT_EQUAL_FLOAT(270, doc->rectangles[0].angle);
+    TEST_ASSERT_TRUE(vector_history_redo(&doc->history, doc));
+    TEST_ASSERT_EQUAL_FLOAT(360, doc->rectangles[0].angle);
+}
+
+static void hover_cursor(float x, float y, SDL_SystemCursor expected) {
+    pui_pointer(&shell.input, x, y, false);
+    frame();
+    TEST_ASSERT_EQUAL_INT(expected, pui_view_cursor(shell.view));
+}
+
+static void test_selection_cursors_follow_handles_rotation_and_capture(void) {
+    VectorDocument *doc = document();
+    vector_document_select(doc, doc->rectangles[0].id);
+    commit();
+    const SDL_SystemCursor expected[8] = {
+        SDL_SYSTEM_CURSOR_NWSE_RESIZE, SDL_SYSTEM_CURSOR_NS_RESIZE,   SDL_SYSTEM_CURSOR_NESW_RESIZE,
+        SDL_SYSTEM_CURSOR_EW_RESIZE,   SDL_SYSTEM_CURSOR_NWSE_RESIZE, SDL_SYSTEM_CURSOR_NS_RESIZE,
+        SDL_SYSTEM_CURSOR_NESW_RESIZE, SDL_SYSTEM_CURSOR_EW_RESIZE};
+    for (int i = 0; i < 8; i++) {
+        PUIRect grip = vector_selection_handle_rect(doc, i, 10);
+        hover_cursor(grip.x + 5, grip.y + 5, expected[i]);
+    }
+    doc->rectangles[0].angle = 90;
+    PUIRect grip = vector_selection_handle_rect(doc, 3, 10);
+    hover_cursor(grip.x + 5, grip.y + 5, SDL_SYSTEM_CURSOR_NS_RESIZE);
+    doc->rectangles[0].angle = -45;
+    grip = vector_selection_handle_rect(doc, 3, 10);
+    hover_cursor(grip.x + 5, grip.y + 5, SDL_SYSTEM_CURSOR_NESW_RESIZE);
+    doc->rectangles[0].angle = 0;
+    PUIRect bounds;
+    TEST_ASSERT_TRUE(vector_selection_bounds(doc, &bounds));
+    hover_cursor(bounds.x + bounds.w / 2 + 8, bounds.y + bounds.h / 2, SDL_SYSTEM_CURSOR_CROSSHAIR);
+    TEST_ASSERT_TRUE(pui_view_rotation_cursor(shell.view));
+    SDL_Event event = {.type = SDL_EVENT_MOUSE_BUTTON_DOWN};
+    event.button.button = SDL_BUTTON_LEFT;
+    event.button.x = shell.input.x;
+    event.button.y = shell.input.y;
+    TEST_ASSERT_TRUE(vector_selection_event(doc, shell.view, &event));
+    TEST_ASSERT_TRUE(doc->selection_tool.rotating);
+    hover_cursor(10, 10, SDL_SYSTEM_CURSOR_CROSSHAIR);
+    TEST_ASSERT_TRUE(pui_view_rotation_cursor(shell.view));
+    vector_selection_cancel(doc);
+    hover_cursor(10, 10, SDL_SYSTEM_CURSOR_DEFAULT);
+    TEST_ASSERT_FALSE(pui_view_rotation_cursor(shell.view));
+    TEST_ASSERT_FALSE(pui_view_rotation_cursor(NULL));
+    grip = vector_selection_handle_rect(doc, 3, 10);
+    event.button.x = grip.x + 5;
+    event.button.y = grip.y + 5;
+    TEST_ASSERT_TRUE(vector_selection_event(doc, shell.view, &event));
+    hover_cursor(10, 10, SDL_SYSTEM_CURSOR_EW_RESIZE);
+    event.type = SDL_EVENT_WINDOW_MOUSE_LEAVE;
+    pui_view_event(shell.view, &shell.input, window, &event);
+    frame();
+    TEST_ASSERT_EQUAL_INT(SDL_SYSTEM_CURSOR_EW_RESIZE, pui_view_cursor(shell.view));
+    vector_selection_cancel(doc);
+    frame();
+    TEST_ASSERT_EQUAL_INT(SDL_SYSTEM_CURSOR_DEFAULT, pui_view_cursor(shell.view));
+}
+
+static void test_selection_cursors_support_groups_artboards_and_tool_guards(void) {
+    VectorDocument *doc = document();
+    vector_document_select(doc, doc->rectangles[0].id);
+    vector_document_toggle(doc, doc->rectangles[1].id);
+    commit();
+    PUIRect grip = vector_selection_handle_rect(doc, 5, 10);
+    hover_cursor(grip.x + 5, grip.y + 5, SDL_SYSTEM_CURSOR_NS_RESIZE);
+    doc->rectangle_tool.enabled = true;
+    hover_cursor(grip.x + 5, grip.y + 5, SDL_SYSTEM_CURSOR_DEFAULT);
+    doc->rectangle_tool.enabled = false;
+    doc->curve_tool.pen = true;
+    hover_cursor(grip.x + 5, grip.y + 5, SDL_SYSTEM_CURSOR_DEFAULT);
+    doc->curve_tool.pen = false;
+    vector_document_select(doc, 0);
+    doc->active_artboard = 1;
+    commit();
+    grip = vector_selection_handle_rect(doc, 0, 10);
+    hover_cursor(grip.x + 5, grip.y + 5, SDL_SYSTEM_CURSOR_NWSE_RESIZE);
+    doc->artboards[0].flags |= VECTOR_OBJECT_LOCKED;
+    hover_cursor(grip.x + 5, grip.y + 5, SDL_SYSTEM_CURSOR_DEFAULT);
+    TEST_ASSERT_NULL(pui_view_canvas_input(shell.view));
+    TEST_ASSERT_NULL(pui_view_canvas_input(NULL));
+}
+
+int main(void) {
+    UNITY_BEGIN();
+    RUN_TEST(test_selection_cursors_follow_handles_rotation_and_capture);
+    RUN_TEST(test_selection_cursors_support_groups_artboards_and_tool_guards);
+    RUN_TEST(test_signed_turn_display_crosses_180_and_accepts_full_turns);
+    RUN_TEST(test_group_history_accepts_before_and_after_angles_over_180);
+    RUN_TEST(test_fractional_move_snap_for_rotated_rectangles_and_groups);
+    RUN_TEST(test_move_snap_uses_screen_tolerance_without_rounding_away_fractional_positions);
+    RUN_TEST(test_rotated_rendering_alpha_clipping_and_marquee);
+    RUN_TEST(test_editor_switch_discards_rotation_preview);
+    RUN_TEST(test_single_rotation_live_hit_testing_and_oriented_resize);
+    RUN_TEST(test_group_rotation_is_atomic_and_history_survives_editor_switch);
+    RUN_TEST(test_rotation_cancel_noop_shift_and_locked_member);
+    RUN_TEST(test_rotation_across_artboards_preserves_parents_and_atomic_guards);
+    RUN_TEST(test_group_resize_live_aspect_and_center_modifiers);
+    RUN_TEST(test_all_group_handles_scale_relative_positions_with_single_history_steps);
+    RUN_TEST(test_group_resize_minimum_cancel_noop_and_checkpoint_redo);
+    RUN_TEST(test_group_resize_across_artboards_and_grid_snapping);
+    RUN_TEST(test_editor_switch_discards_marquee_selection_preview);
+    RUN_TEST(test_group_snapping_keeps_spacing_and_lock_change_cancels_all);
+    RUN_TEST(test_shift_selection_toggles_and_tree_supports_shift);
+    RUN_TEST(test_marquee_zoom_reverse_additive_and_escape_restore);
+    RUN_TEST(test_group_move_is_one_history_step_and_survives_editor_switch);
+    RUN_TEST(test_locked_hidden_and_atomic_failure);
+    return UNITY_END();
+}

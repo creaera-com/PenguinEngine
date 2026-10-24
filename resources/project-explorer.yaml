@@ -1,0 +1,34 @@
+schema: pengui/v1
+root:
+  type: panel
+  padding: 8
+  gap: 8
+  children:
+    - type: row
+      padding: 0
+      height: 30
+      children:
+        - {type: label, id: project_hint, text: "Kein Projekt geoeffnet"}
+        - type: popup_button
+          id: project_new_folder
+          icon: tabler:folder-plus
+          width: 30
+          popup_width: 240
+          popup_height: 130
+          children:
+            - type: panel
+              padding: 10
+              gap: 8
+              children:
+                - {type: label, text: Neuer Ordner, height: 24}
+                - {type: input, id: project_folder_name, height: 28}
+                - {type: button, text: Anlegen, action: project.folder.create, height: 28}
+        - {type: button, icon: tabler:refresh, action: project.refresh, width: 30}
+    - type: row
+      padding: 0
+      gap: 8
+      height: 28
+      children:
+        - {type: label, text: Suche, width: 48}
+        - {type: input, id: project_search}
+    - {type: tree, id: project_files, filter_input: project_search}

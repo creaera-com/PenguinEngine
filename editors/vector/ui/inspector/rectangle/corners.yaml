@@ -1,0 +1,15 @@
+schema: pengui/v1
+root:
+  type: section
+  id: rectangle_corners
+  text: Ecken
+  children:
+    - type: row
+      padding: 5
+      gap: 8
+      height: 38
+      children:
+        - {type: label, text: Radius, width: 64}
+        - {type: input, id: rectangle_radius, input_type: decimal, action: vector.rectangle.radius}
+        - {type: label, text: "", width: 64}
+        - {type: spacer}

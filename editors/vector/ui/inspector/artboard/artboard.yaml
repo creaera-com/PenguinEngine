@@ -1,0 +1,41 @@
+schema: pengui/v1
+root:
+  type: panel
+  padding: 0
+  gap: 8
+  children:
+    - type: label
+      text: Artboard
+    - type: section
+      id: section_artboard_settings
+      text: Einstellungen
+      children:
+      - type: row
+        padding: 0
+        gap: 8
+        height: 28
+        children:
+          - {type: label, text: Name, width: 64}
+          - {type: input, id: artboard_name, action: vector.artboard.name}
+      - type: row
+        padding: 0
+        gap: 8
+        height: 28
+        children:
+          - {type: label, text: Breite, width: 64}
+          - {type: input, id: artboard_width, input_type: decimal, action: vector.artboard.width}
+      - type: row
+        padding: 0
+        gap: 8
+        height: 28
+        children:
+          - {type: label, text: Hoehe, width: 64}
+          - {type: input, id: artboard_height, input_type: decimal, action: vector.artboard.height}
+
+    - type: section
+      id: section_artboard_layer
+      text: Ebene
+      children:
+        - {type: checkbox, id: artboard_visible, text: Sichtbar, action: vector.artboard.visible, height: 28}
+        - {type: checkbox, id: artboard_locked, text: Gesperrt, action: vector.artboard.locked, height: 28}
+        - {type: label, id: artboard_edit_hint, text: "", height: 24}

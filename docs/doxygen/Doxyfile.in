@@ -1,19 +1,20 @@
 PROJECT_NAME           = PenguinEngine
 PROJECT_NUMBER         = @PROJECT_VERSION@
-PROJECT_BRIEF          = "C17/SDL3 Engine, Editor und wiederverwendbare UI"
+PROJECT_BRIEF          = "C17: pengUI, pengDraw und modulare Editoren"
 OUTPUT_DIRECTORY       = "@CMAKE_BINARY_DIR@/docs"
 OUTPUT_LANGUAGE        = German
 INPUT_ENCODING         = UTF-8
-INPUT                  = "@PROJECT_SOURCE_DIR@/src" "@PROJECT_SOURCE_DIR@/docs" "@PROJECT_SOURCE_DIR@/README.md"
+INPUT                  = "@PROJECT_SOURCE_DIR@/lib/pengui/include" "@PROJECT_SOURCE_DIR@/lib/pengdraw/include" "@PROJECT_SOURCE_DIR@/apps" "@PROJECT_SOURCE_DIR@/editors" "@PROJECT_SOURCE_DIR@/docs" "@PROJECT_SOURCE_DIR@/README.md" "@PROJECT_SOURCE_DIR@/AGENTS.md" "@PROJECT_SOURCE_DIR@/third_party/tabler-icons/README.md"
 FILE_PATTERNS          = *.h *.dox *.md
 MARKDOWN_SUPPORT       = YES
-IMAGE_PATH             = "@PROJECT_SOURCE_DIR@/docs/images"
+MARKDOWN_ID_STYLE      = GITHUB
+
 RECURSIVE              = YES
-EXCLUDE                = "@PROJECT_SOURCE_DIR@/src/ui/rendering/font_atlas.h"
+EXCLUDE                = "@PROJECT_SOURCE_DIR@/docs/doxygen/Doxyfile.in"
 STRIP_FROM_PATH        = "@PROJECT_SOURCE_DIR@"
 FULL_PATH_NAMES        = YES
 OPTIMIZE_OUTPUT_FOR_C  = YES
-EXTRACT_ALL            = NO
+EXTRACT_ALL            = YES
 EXTRACT_STATIC         = NO
 EXTRACT_PRIVATE        = NO
 HIDE_UNDOC_MEMBERS     = NO
@@ -22,6 +23,7 @@ WARN_IF_UNDOCUMENTED   = YES
 WARN_IF_DOC_ERROR      = YES
 WARN_NO_PARAMDOC       = NO
 WARN_AS_ERROR          = YES
+WARN_LOGFILE           = "@CMAKE_BINARY_DIR@/doxygen-warnings.log"
 QUIET                  = YES
 GENERATE_HTML          = YES
 GENERATE_LATEX         = NO
@@ -39,3 +41,6 @@ HTML_COLORSTYLE        = LIGHT
 HTML_EXTRA_STYLESHEET  = "@PROJECT_SOURCE_DIR@/third_party/doxygen-awesome-css/doxygen-awesome.css" \
                          "@PROJECT_SOURCE_DIR@/third_party/doxygen-awesome-css/doxygen-awesome-sidebar-only.css" \
                          "@PROJECT_SOURCE_DIR@/docs/doxygen/penguin-theme.css"
+
+# Keep optional SDL APIs visible even when documentation is configured without SDL builds.
+PREDEFINED             = PUI_WITH_SDL=1 PDRAW_WITH_SDL=1

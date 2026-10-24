@@ -1,0 +1,267 @@
+schema: pengui/v1
+root:
+  type: split
+  id: vector_columns
+  axis: horizontal
+  flex: middle
+  initial: 450
+  initial_last: 350
+  minimum_first: 350
+  minimum_second: 350
+  minimum_last: 450
+  gap: 9
+  children:
+    - type: tabs
+      id: vector_navigation_tabs
+      children:
+        - type: tab
+          id: vector_explorer_tab
+          text: Explorer
+          icon: tabler:folder
+          padding: 0
+          children:
+            - {type: slot, id: project_explorer}
+        - type: tab
+          id: vector_document_tree_tab
+          text: Document
+          checked: true
+          icon: tabler:stack-2
+          padding: 0
+          children:
+            - type: panel
+              padding: 8
+              children:
+                - type: row
+                  padding: 0
+                  gap: 8
+                  height: 28
+                  children:
+                    - {type: label, text: Suche, width: 48}
+                    - {type: input, id: vector_object_search}
+                - {type: tree, id: vector_document_tree, filter_input: vector_object_search}
+    - type: column
+      padding: 0
+      gap: 6
+      children:
+        - type: toolbar
+          height: 40
+          padding: 5
+          gap: 4
+          children:
+            - {type: button, id: vector_add_document, icon: tabler:file-plus, action: vector.add_document, width: 30}
+            - {type: separator}
+            - {type: toggle, id: vector_add_artboard, icon: tabler:artboard, action: vector.add_artboard, width: 30}
+            - {type: separator}
+            - {type: toggle, id: vector_selection, icon: tabler:pointer-2, action: vector.tool_selection, width: 30}
+            - {type: separator}
+            - {type: toggle, id: vector_add_rect, icon: tabler:rectangle, action: vector.add_rect, width: 30}
+            - {type: toggle, id: vector_add_ellipse, icon: tabler:oval, action: vector.add_ellipse, width: 30}
+            - {type: toggle, id: vector_add_polygon, icon: tabler:pentagon, action: vector.add_polygon, width: 30}
+            - {type: separator}
+            - {type: toggle, id: vector_pen, icon: tabler:pencil, action: vector.tool_pen, width: 30}
+            - {type: toggle, id: vector_nodes, icon: tabler:vector-bezier, action: vector.tool_nodes, width: 30}
+            - {type: separator}
+            - {type: toggle, id: vector_add_text, icon: tabler:typography, action: vector.add_text, width: 30}
+            - {type: separator}
+            - {type: toggle, id: vector_gradient, icon: tabler:color-swatch, action: vector.tool_gradient, width: 30}
+            - {type: separator}
+            - {type: toggle, id: vector_rulers_toggle, icon: tabler:ruler-2, action: vector.rulers.toggle, width: 30}
+            - {type: toggle, id: vector_grid_toggle, icon: tabler:grid-4x4, action: vector.grid.toggle, width: 30}
+            - {type: toggle, id: vector_grid_snap, icon: tabler:magnet, action: vector.grid.snap, width: 30}
+            - {type: toggle, id: vector_element_snap, icon: tabler:grid-goldenratio, action: vector.element.snap, width: 30}
+            - {type: separator}
+            - {type: toggle, id: vector_preview_toolbar, icon: tabler:photo-search, action: vector.preview.select, width: 30}
+            - {type: separator}
+            - {type: button, id: vector_center_artboard, icon: tabler:zoom-pan, action: vector.artboard.center, width: 30}
+            - {type: button, id: vector_zoom_out, icon: tabler:zoom-out, action: vector.zoom.out, width: 28}
+            - {type: button, id: vector_zoom_reset, icon: tabler:zoom-cancel, action: vector.zoom.reset, width: 28}
+            - {type: button, id: vector_zoom_in, icon: tabler:zoom-in, action: vector.zoom.in, width: 28}
+            - {type: separator}
+            - {type: button, id: vector_import_image, icon: tabler:photo-plus, action: editor.import_image, width: 30}
+            - {type: spacer}
+            - {type: slot, id: vector_export_toolbar, width: 30}
+            - type: radial_menu
+              id: vector_object_menu
+              popup_width: 320
+              children:
+                - {type: button, id: vector_objects_copy, text: Kopieren, icon: tabler:copy, action: vector.objects.copy}
+                - {type: button, id: vector_objects_cut, text: Ausschneiden, icon: tabler:cut, action: vector.objects.cut}
+                - {type: button, id: vector_objects_paste, text: Einfuegen, icon: tabler:clipboard, action: vector.objects.paste}
+                - type: radial_menu
+                  id: vector_copies_menu
+                  text: Kopien
+                  icon: tabler:copy-plus
+                  children:
+                    - {type: button, id: vector_objects_duplicate, text: Duplizieren, icon: tabler:layers-subtract, action: vector.objects.duplicate}
+                    - {type: button, id: vector_objects_clone_linked, text: Verknuepfte Instanz, icon: tabler:link, action: vector.objects.clone_linked}
+                    - {type: button, id: vector_objects_detach_instance, text: Instanz entkoppeln, icon: tabler:unlink, action: vector.objects.detach_instance}
+                - {type: button, id: vector_objects_delete, text: Loeschen, icon: tabler:trash, action: vector.objects.delete}
+                - type: radial_menu
+                  id: vector_layers_menu
+                  text: Ebenen
+                  icon: tabler:stack-2
+                  children:
+                    - {type: button, id: vector_order_front, text: Ganz nach oben, icon: tabler:arrow-bar-to-up, action: vector.objects.order_front}
+                    - {type: button, id: vector_order_forward, text: Eins hoch, icon: tabler:arrow-up, action: vector.objects.order_forward}
+                    - {type: button, id: vector_order_back, text: Ganz nach unten, icon: tabler:arrow-bar-to-down, action: vector.objects.order_back}
+                    - {type: button, id: vector_order_backward, text: Eins runter, icon: tabler:arrow-down, action: vector.objects.order_backward}
+                    - {type: button, id: vector_objects_group, text: Gruppieren, icon: tabler:box-multiple, action: vector.objects.group}
+                    - {type: button, id: vector_objects_ungroup, text: Gruppe aufloesen, icon: tabler:box-multiple-0, action: vector.objects.ungroup}
+                    - {type: button, id: vector_mask_create, text: Schnittmaske, icon: tabler:mask, action: vector.objects.mask_create}
+                    - {type: button, id: vector_mask_release, text: Maske loesen, icon: tabler:mask-off, action: vector.objects.mask_release}
+
+                - type: radial_menu
+                  id: vector_transform_menu
+                  text: Transformieren
+                  icon: tabler:transform
+                  children:
+                    - type: radial_menu
+                      id: vector_alignment_menu
+                      text: Ausrichten
+                      icon: tabler:align-left
+                      children:
+                        - {type: button, id: vector_align_left, text: Links, icon: tabler:align-left, action: vector.objects.align_left}
+                        - {type: button, id: vector_align_center_x, text: Zentrieren, icon: tabler:align-center, action: vector.objects.align_center_x}
+                        - {type: button, id: vector_align_right, text: Rechts, icon: tabler:align-right, action: vector.objects.align_right}
+                        - {type: button, id: vector_distribute_x, text: H. Abstand, icon: tabler:spacing-horizontal, action: vector.objects.distribute_x}
+                        - {type: button, id: vector_align_top, text: Oben, icon: tabler:align-box-top-center, action: vector.objects.align_top}
+                        - {type: button, id: vector_align_center_y, text: Mittig, icon: tabler:align-box-center-middle, action: vector.objects.align_center_y}
+                        - {type: button, id: vector_align_bottom, text: Unten, icon: tabler:align-box-bottom-center, action: vector.objects.align_bottom}
+                        - {type: button, id: vector_distribute_y, text: V. Abstand, icon: tabler:spacing-vertical, action: vector.objects.distribute_y}
+                    - {type: button, id: vector_mirror_horizontal, text: H. spiegeln, icon: tabler:flip-horizontal, action: vector.objects.mirror_horizontal}
+                    - {type: button, id: vector_mirror_vertical, text: V. spiegeln, icon: tabler:flip-vertical, action: vector.objects.mirror_vertical}
+                    - {type: button, id: vector_rotate_left, text: Links 90 Grad, icon: tabler:rotate-2, action: vector.objects.rotate_left}
+                    - {type: button, id: vector_rotate_right, text: Rechts 90 Grad, icon: tabler:rotate-clockwise-2, action: vector.objects.rotate_right}
+
+                - type: radial_menu
+                  id: vector_paths_menu
+                  text: Flaechen
+                  icon: tabler:vector-bezier-2
+                  children:
+                    - {type: button, id: vector_path_convert, text: In Pfad, icon: tabler:vector-bezier-2, action: vector.objects.path_convert}
+                    - {type: button, id: vector_path_stroke, text: Kontur zu Pfad, icon: tabler:border-outer, action: vector.objects.path_stroke}
+                    - {type: button, id: vector_path_union, text: Vereinigen, icon: tabler:vector-union, action: vector.objects.path_union}
+                    - {type: button, id: vector_path_subtract, text: Subtrahieren, icon: tabler:vector-diff, action: vector.objects.path_subtract}
+                    - {type: button, id: vector_path_intersect, text: Schnittmenge, icon: tabler:vector-intersection, action: vector.objects.path_intersect}
+                    - {type: button, id: vector_path_xor, text: XOR, icon: tabler:vector-bezier, action: vector.objects.path_xor}
+                    - {type: button, id: vector_path_divide, text: Aufteilen, icon: tabler:vector-triangle, action: vector.objects.path_divide}
+
+        - type: tabs
+          id: vector_document_tabs
+          close_action: editor.close_document
+          children: []
+    - type: split
+      id: vector_right_split
+      axis: vertical
+      flex: first
+      initial_last: 460
+      minimum_first: 200
+      minimum_second: 224
+      gap: 9
+      children:
+        - type: tabs
+          children:
+            - type: tab
+              id: vector_inspector_tab
+              text: Inspector
+              padding: 0
+              children:
+                - {type: slot, id: inspector_content}
+            - type: tab
+              id: vector_palette_tab
+              text: Farbschema
+              padding: 0
+              children:
+                - {type: slot, id: palette_content}
+        - type: tabs
+          id: vector_utility_tabs
+          children:
+            - type: tab
+              id: vector_preview_tab
+              text: Vorschau
+              padding: 0
+              children:
+                - type: panel
+                  padding: 8
+                  gap: 8
+                  children:
+                    - type: row
+                      padding: 0
+                      height: 28
+                      gap: 4
+                      children:
+                        - {type: toggle, id: vector_preview_select, text: Bereich waehlen, icon: tabler:photo-search, action: vector.preview.select}
+                        - {type: button, icon: tabler:x, action: vector.preview.clear, width: 28}
+                    - {type: canvas, id: vector_preview_canvas}
+            - type: tab
+              id: vector_clone_tab
+              text: Klonen
+              padding: 0
+              children:
+                - type: panel
+                  id: vector_clone_panel
+                  scroll: true
+                  padding: 8
+                  gap: 8
+                  children:
+                    - {type: slot, id: repeat_content}
+            - type: tab
+              id: vector_grid_tab
+              text: Raster
+              padding: 0
+              children:
+                - type: panel
+                  id: vector_grid_panel
+                  scroll: true
+                  padding: 8
+                  gap: 8
+                  children:
+                    - type: dropdown
+                      id: vector_grid_type
+                      action: vector.grid.type
+                      value: standard
+                      height: 28
+                      children:
+                        - {type: option, text: Orthogonal, value: standard}
+                        - {type: option, text: Isometrisch, value: isometric}
+                        - {type: option, text: Hexagonal, value: hexagonal}
+                    - type: row
+                      padding: 0
+                      height: 28
+                      gap: 8
+                      children:
+                        - {type: label, text: Breite, width: 80}
+                        - {type: input, id: vector_grid_width, text: "16", action: vector.grid.width}
+                    - type: row
+                      padding: 0
+                      height: 28
+                      gap: 8
+                      children:
+                        - {type: label, text: Hoehe, width: 80}
+                        - {type: input, id: vector_grid_height, text: "16", action: vector.grid.height}
+                    - type: popup_button
+                      text: Rasterfarbe
+                      color_input: vector_grid_color
+                      icon: tabler:palette
+                      placement: below
+                      height: 28
+                      popup_width: 260
+                      popup_height: 304
+                      children:
+                        - type: panel
+                          padding: 12
+                          children:
+                            - {type: color_picker, id: vector_grid_color, value: "#80808080", action: vector.grid.color}
+                    - type: row
+                      padding: 0
+                      height: 28
+                      gap: 8
+                      children:
+                        - {type: label, text: Toleranz, width: 80}
+                        - {type: input, id: vector_grid_tolerance, text: "5", action: vector.grid.tolerance}
+            - type: tab
+              id: vector_monitor_tab
+              text: Monitor
+              padding: 0
+              children:
+                - {type: slot, id: process_monitor_content}

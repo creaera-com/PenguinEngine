@@ -1,7 +1,5 @@
-name: Build and test
-on:
-  push:
-  pull_request:
+name: pengUI build and test
+on: [push, pull_request]
 permissions:
   contents: read
 jobs:
@@ -13,38 +11,36 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - name: Linux desktop dependencies
+      - name: Linux dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev
-      - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-      - name: Build
-        run: cmake --build build --config Debug --parallel 4
-      - name: Test (Unity and SDL smoke)
-        run: ctest --test-dir build -C Debug --output-on-failure
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev libxss-dev libvulkan1 mesa-vulkan-drivers
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+      - run: cmake --build build --config Debug --parallel 4
+      - run: ctest --test-dir build -C Debug --output-on-failure
+      - name: Require GPU shader tests on Linux Vulkan software device
+        if: runner.os == 'Linux'
+        env:
+          PDRAW_REQUIRE_GPU: '1'
+          SDL_GPU_DRIVER: vulkan
+        run: ctest --test-dir build -C Debug -R '^pengdraw_gpu$' --output-on-failure
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S . -B build -DPENGUI_BUILD_SDL=OFF -DPENGUI_BUILD_APP=OFF
+      - run: cmake --build build --parallel 4
+      - run: ctest --test-dir build --output-on-failure
   sanitizers:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cmake -S . -B build-asan -DPENGUIN_BUILD_EDITOR=ON -DSDL_UNIX_CONSOLE_BUILD=ON -DPENGUIN_SANITIZERS=ON -DCMAKE_BUILD_TYPE=Debug
-      - run: cmake --build build-asan --parallel 4
-      - run: ctest --test-dir build-asan --output-on-failure
-
-  documentation-and-style:
+      - run: cmake -S . -B build -DPENGUI_SANITIZERS=ON -DSDL_UNIX_CONSOLE_BUILD=ON -DCMAKE_BUILD_TYPE=Debug
+      - run: cmake --build build --parallel 4
+      - run: ctest --test-dir build --output-on-failure
+  style:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install documentation and formatting tools
-        run: |
-          sudo apt-get update && sudo apt-get install -y doxygen
-          python -m pip install clang-format==23.1.3
-      - name: Check owned C sources
-        run: python tools/format_code.py --check
-      - name: Configure API documentation without SDL
-        run: cmake -S . -B build-docs -DPENGUIN_BUILD_EDITOR=OFF -DBUILD_TESTING=OFF
-      - name: Generate API documentation
-        run: cmake --build build-docs --target api_docs
-      - uses: actions/upload-artifact@v4
-        with:
-          name: penguin-api-documentation
-          path: build-docs/docs/html
+      - run: python -m pip install clang-format==23.1.3
+      - run: python tools/format_code.py --check
+      - run: python tools/check_architecture.py

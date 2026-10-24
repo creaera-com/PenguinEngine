@@ -1,0 +1,449 @@
+/** @file @brief Tree rows, disclosure state, guide drawing and scrolling. */
+#include "view/internal.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/* A neutral selection stays distinct from the panel background and hover. */
+static Uint32 selection_color(void) {
+    Uint32 color = 255;
+    for (int shift = 8; shift <= 24; shift += 8) {
+        unsigned value = (3 * ((PUI_HOVER >> shift) & 255) + ((PUI_MUTED >> shift) & 255)) / 4;
+        color |= value << shift;
+    }
+    return color;
+}
+
+static void tree_vertical(SDL_Renderer *r, float x, float y, float from, float to, float phase) {
+    for (int p = (int)ceilf(phase + from); p < (int)ceilf(phase + to); p++) {
+        if (p % 6 < 3) {
+            SDL_RenderPoint(r, floorf(x), floorf(y + p - phase));
+        }
+    }
+}
+
+void pui_draw_tree_guides(SDL_Renderer *r, const int *depths, int count, int row, PUIRect area,
+                          float indent, float marker_center, float max_indent, float branch_end,
+                          Uint32 rgba) {
+    if (!depths || row < 0 || row >= count || indent <= 0 || area.w <= 0 || area.h <= 0) {
+        return;
+    }
+    /* Skip offscreen rows; the phase stays anchored to tree content while scrolling. */
+    SDL_Rect clip;
+    if (SDL_RenderClipEnabled(r)) {
+        SDL_GetRenderClipRect(r, &clip);
+        if (area.y + area.h <= clip.y || area.y >= clip.y + clip.h) {
+            return;
+        }
+    }
+    int depth = depths[row];
+    float center = area.h * .5f, phase = row * area.h;
+    pui_render_color(r, rgba);
+    for (int level = 1; level < depth && (level - 1) * indent < max_indent; level++) {
+        if (pui_tree_continues(depths, count, row, level)) {
+            tree_vertical(r, area.x + (level - 1) * indent + marker_center, area.y, 0, area.h,
+                          phase);
+        }
+    }
+    if (depth > 0 && (depth - 1) * indent < max_indent) {
+        float x = area.x + (depth - 1) * indent + marker_center;
+        tree_vertical(r, x, area.y, 0,
+                      pui_tree_continues(depths, count, row, depth) ? area.h : center + 1, phase);
+        float end = fminf(branch_end, area.x + area.w);
+        for (int p = 0; p <= (int)floorf(end - x); p++) {
+            if (p % 6 < 3) {
+                SDL_RenderPoint(r, floorf(x + p), floorf(area.y + center));
+            }
+        }
+    }
+    if (row + 1 < count && depths[row + 1] > depth && depth * indent <= max_indent) {
+        tree_vertical(r, area.x + depth * indent + marker_center, area.y, center + 8, area.h,
+                      phase);
+    }
+}
+
+static int tree_rows(PUIView *v, int i, int depth, int *rows, int *depths, int count,
+                     bool enabled) {
+    for (int k = v->layout->nodes[i].child; k >= 0; k = v->layout->nodes[k].next) {
+        v->enabled[k] = enabled && v->layout->nodes[k].enabled;
+        rows[count] = k;
+        depths[count++] = depth;
+        if (v->state[k].open) {
+            count = tree_rows(v, k, depth + 1, rows, depths, count, v->enabled[k]);
+        }
+    }
+    return count;
+}
+
+static int runtime_rows(TreeData *tree, int *rows, int *depths, bool *enabled, bool parent_enabled,
+                        const char *query) {
+    bool filtering = query && *query;
+    bool keep[PUI_LAYOUT_NODES] = {0};
+    if (filtering) {
+        for (int i = 0; i < tree->count; i++) {
+            if (SDL_strcasestr(tree->items[i].text, query)) {
+                keep[i] = true;
+                int depth = tree->items[i].depth;
+                for (int j = i - 1; j >= 0 && depth; j--) {
+                    if (tree->items[j].depth < depth) {
+                        keep[j] = true;
+                        depth = tree->items[j].depth;
+                    }
+                }
+            }
+        }
+    }
+    int count = 0, hidden_depth = -1;
+    bool ancestors[PUI_LAYOUT_NODES + 1] = {parent_enabled};
+    for (int i = 0; i < tree->count; i++) {
+        PUITreeItem *item = &tree->items[i];
+        if (!filtering && hidden_depth >= 0 && item->depth > hidden_depth) {
+            continue;
+        }
+        hidden_depth = -1;
+        bool active = ancestors[item->depth] && item->enabled;
+        ancestors[item->depth + 1] = active;
+        if (filtering && !keep[i]) {
+            continue;
+        }
+        rows[count] = i;
+        depths[count] = item->depth;
+        enabled[count] = active;
+        count++;
+        if (!tree->open[i]) {
+            hidden_depth = item->depth;
+        }
+    }
+    return count;
+}
+
+static const PUINode *row_node(PUIView *view, TreeData *data, int index, PUINode *runtime) {
+    if (!data) {
+        return &view->layout->nodes[index];
+    }
+    const PUITreeItem *source = &data->items[index];
+    *runtime = (PUINode){0};
+    runtime->id = pui_id(source->id);
+    snprintf(runtime->name, sizeof runtime->name, "%s", source->id);
+    snprintf(runtime->text, sizeof runtime->text, "%s", source->text);
+    snprintf(runtime->icon, sizeof runtime->icon, "%s", source->icon);
+    snprintf(runtime->action, sizeof runtime->action, "%s", source->action);
+    runtime->child =
+        index + 1 < data->count && data->items[index + 1].depth > source->depth ? index + 1 : -1;
+    return runtime;
+}
+
+static PUIRect cell_rect(PUIRect row, int column, int leading, int trailing) {
+    float x = column < leading ? row.x + column * 26
+                               : row.x + row.w - (trailing - (column - leading)) * 26;
+    return (PUIRect){x, row.y, 26, row.h};
+}
+
+static void tree_cells(PUIView *view, PUIContext *input, const PUITreeItem *item, PUIRect row,
+                       int trailing, bool enabled, PUIAction action, void *context, bool draw,
+                       bool selected) {
+    for (int c = 0; c < item->cell_count; c++) {
+        const PUITreeCell *cell = &item->cells[c];
+        PUIRect rect = cell_rect(row, c, item->leading_cells, trailing);
+        if (draw) {
+            Uint32 color = !enabled || !cell->enabled ? PUI_DISABLED
+                           : cell->checked            ? (selected ? PUI_TEXT : PUI_ACCENT)
+                                                      : PUI_MUTED;
+            if (enabled && cell->enabled && pui_hovered(input, rect)) {
+                pui_panel(view->renderer, pui_frect(rect), PUI_HOVER);
+            }
+            pui_icon(view->renderer, pui_icon_from_name(cell->icon), rect.x + 5, rect.y + 6, 16,
+                     color);
+        } else {
+            char id[96];
+            snprintf(id, sizeof id, "%s.cell_%d", item->id, c);
+            if (pui_button(input, pui_id(id), rect, enabled && cell->enabled) && action &&
+                *cell->action) {
+                action(context, cell->action, item->id);
+            }
+        }
+    }
+}
+
+void pui_widget_tree_draw(PUIView *v, PUIContext *pui, int i, PUIRect area, PUIAction action,
+                          void *context) {
+    const PUINode *n = &v->layout->nodes[i];
+    Widget *s = &v->state[i];
+    int rows[PUI_LAYOUT_NODES], depths[PUI_LAYOUT_NODES];
+    bool row_enabled[PUI_LAYOUT_NODES];
+    TreeData *data = s->tree;
+    int leading = 0, trailing = 0;
+    if (data) {
+        for (int j = 0; j < data->count; j++) {
+            leading =
+                leading > data->items[j].leading_cells ? leading : data->items[j].leading_cells;
+            int count = data->items[j].cell_count - data->items[j].leading_cells;
+            trailing = trailing > count ? trailing : count;
+        }
+    }
+    const char *query = pui_view_text(v, n->filter_input);
+    if (strcmp(s->text, query ? query : "")) {
+        snprintf(s->text, sizeof s->text, "%s", query ? query : "");
+        s->scroll.offset = 0;
+    }
+    int count = data ? runtime_rows(data, rows, depths, row_enabled, !pui->blocked,
+                                    pui_view_text(v, n->filter_input))
+                     : tree_rows(v, i, 0, rows, depths, 0, !pui->blocked);
+    s->scroll.content = count * 28.f;
+    s->scroll.viewport = area.h;
+    pui_scroll_clamp(&s->scroll);
+    PUIRect track = {area.x + area.w - 8, area.y, 8, area.h};
+    pui_scrollbar(pui, n->id ^ 0x65000000u, track, &s->scroll, PUI_AXIS_Y);
+    for (int k = 0; k < count; k++) {
+        int index = rows[k];
+        PUINode runtime;
+        const PUINode *item = row_node(v, data, index, &runtime);
+        PUIRect r = {area.x, area.y + k * 28 - s->scroll.offset, area.w - 12, 28};
+        if (r.y + r.h <= area.y || r.y >= area.y + area.h) {
+            continue;
+        }
+        bool enabled = data ? row_enabled[k] : v->enabled[index];
+        PUIRect name_area = r;
+        name_area.x += leading * 26;
+        name_area.w = fmaxf(0, r.w - (leading + trailing) * 26);
+        if (data) {
+            tree_cells(v, pui, &data->items[index], r, trailing, enabled, action, context, false,
+                       false);
+        }
+        if (pui_button(pui, item->id, name_area, enabled)) {
+            s->selected = item->id;
+            if (item->child >= 0 && (!query || !*query)) {
+                if (data) {
+                    data->open[index] = !data->open[index];
+                } else {
+                    v->state[index].open = !v->state[index].open;
+                }
+            }
+            if (action && *item->action) {
+                action(context, item->action, item->name);
+            }
+        }
+    }
+    /* Resolve selection before painting so the previous row clears in the same frame. */
+    for (int k = 0; k < count; k++) {
+        int index = rows[k];
+        PUINode runtime;
+        const PUINode *item = row_node(v, data, index, &runtime);
+        PUIRect r = {area.x, area.y + k * 28 - s->scroll.offset, area.w - 12, 28};
+        if (r.y + r.h <= area.y || r.y >= area.y + area.h) {
+            continue;
+        }
+        bool enabled = data ? row_enabled[k] : v->enabled[index];
+        bool selected = s->selected == item->id || (data && data->items[index].selected);
+        Uint32 background = selected                           ? selection_color()
+                            : (enabled && pui_hovered(pui, r)) ? PUI_HOVER
+                                                               : PUI_PANEL;
+        pui_panel(v->renderer, pui_frect(r), background);
+        pui_panel(v->renderer, (SDL_FRect){r.x, r.y + r.h - 1, r.w, 1}, PUI_HOVER);
+        SDL_Rect outer, content, clip = {0};
+        bool clipped = SDL_RenderClipEnabled(v->renderer);
+        SDL_GetRenderClipRect(v->renderer, &outer);
+        content = (SDL_Rect){(int)(r.x + leading * 26), (int)r.y,
+                             (int)fmaxf(0, r.w - (leading + trailing) * 26), (int)r.h};
+        if (clipped) {
+            SDL_GetRectIntersection(&outer, &content, &clip);
+        } else {
+            clip = content;
+        }
+        SDL_SetRenderClipRect(v->renderer, &clip);
+        PUIRect hierarchy = {r.x + leading * 26, r.y, fmaxf(0, r.w - (leading + trailing) * 26),
+                             r.h};
+        float x = hierarchy.x + 8 + depths[k] * 18;
+        pui_draw_tree_guides(v->renderer, depths, count, k, hierarchy, 18, 13, hierarchy.w - 24,
+                             x + 12, PUI_MUTED);
+        PUIIcon marker =
+            item->child >= 0
+                ? ((data ? ((query && *query) || data->open[index]) : v->state[index].open)
+                       ? ICON_DOWN
+                       : ICON_RIGHT)
+                : pui_icon_from_name(item->icon);
+        Uint32 foreground = !enabled ? PUI_DISABLED : PUI_TEXT;
+        pui_icon(v->renderer, marker, x + 4, r.y + 6, 16, foreground);
+        pui_text(v->renderer, x + 26, r.y + 6, item->text, foreground);
+        SDL_SetRenderClipRect(v->renderer, clipped ? &outer : NULL);
+        if (data) {
+            tree_cells(v, pui, &data->items[index], r, trailing, enabled, action, context, true,
+                       selected);
+        }
+        if (leading) {
+            pui_panel(v->renderer, (SDL_FRect){r.x + leading * 26 - 1, r.y, 1, r.h}, PUI_HOVER);
+        }
+        if (trailing) {
+            pui_panel(v->renderer, (SDL_FRect){r.x + r.w - trailing * 26, r.y, 1, r.h}, PUI_HOVER);
+        }
+    }
+    pui_draw_scrollbar(v->renderer, pui, n->id ^ 0x65000000u, track, &s->scroll, PUI_AXIS_Y);
+}
+
+bool pui_widget_tree_scroll(PUIView *view, int i, const SDL_Event *event) {
+    if (view->layout->nodes[i].type != PUI_NODE_TREE) {
+        return false;
+    }
+    pui_scroll_by(&view->state[i].scroll, -event->wheel.y * 48);
+    return true;
+}
+
+void pui_widget_tree_clear(Widget *state) {
+    if (state->tree) {
+        free(state->tree->items);
+        free(state->tree->open);
+        free(state->tree);
+        state->tree = NULL;
+    }
+}
+
+static int find_tree(const PUIView *view, const char *name) {
+    if (view && name) {
+        for (int i = 0; i < view->layout->count; i++) {
+            if (view->layout->nodes[i].type == PUI_NODE_TREE &&
+                !strcmp(view->layout->nodes[i].name, name)) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
+bool pui_view_set_tree_items(PUIView *view, const char *tree, const PUITreeItem *items, int count) {
+    int index = find_tree(view, tree);
+    if (index < 0 || count < 0 || count > PUI_LAYOUT_NODES || (count && !items)) {
+        return false;
+    }
+    for (int i = 0; i < count; i++) {
+        if (items[i].cell_count < 0 || items[i].cell_count > PUI_TREE_MAX_CELLS ||
+            items[i].leading_cells < 0 || items[i].leading_cells > items[i].cell_count) {
+            return false;
+        }
+        for (int c = 0; c < items[i].cell_count; c++) {
+            if (!memchr(items[i].cells[c].icon, 0, sizeof items[i].cells[c].icon) ||
+                !memchr(items[i].cells[c].action, 0, sizeof items[i].cells[c].action)) {
+                return false;
+            }
+        }
+        if (!memchr(items[i].id, 0, sizeof items[i].id) || !*items[i].id ||
+            !memchr(items[i].text, 0, sizeof items[i].text) ||
+            !memchr(items[i].icon, 0, sizeof items[i].icon) ||
+            !memchr(items[i].action, 0, sizeof items[i].action) || items[i].depth < 0 ||
+            items[i].depth >= PUI_LAYOUT_NODES ||
+            items[i].depth > (i ? items[i - 1].depth + 1 : 0)) {
+            return false;
+        }
+        for (int j = 0; j < i; j++) {
+            if (pui_id(items[i].id) == pui_id(items[j].id)) {
+                return false;
+            }
+        }
+    }
+    TreeData *next = calloc(1, sizeof *next);
+    if (!next) {
+        return false;
+    }
+    if (count) {
+        next->items = malloc(count * sizeof *items);
+        next->open = calloc(count, sizeof *next->open);
+        if (!next->items || !next->open) {
+            Widget temporary = {.tree = next};
+            pui_widget_tree_clear(&temporary);
+            return false;
+        }
+        memcpy(next->items, items, count * sizeof *items);
+    }
+    next->count = count;
+    Widget *state = &view->state[index];
+    bool selected_exists = false;
+    for (int i = 0; i < count; i++) {
+        next->open[i] = items[i].open;
+        selected_exists |= state->selected == pui_id(items[i].id);
+        if (state->tree) {
+            for (int j = 0; j < state->tree->count; j++) {
+                if (!strcmp(items[i].id, state->tree->items[j].id)) {
+                    next->open[i] = state->tree->open[j];
+                }
+            }
+        }
+    }
+    pui_widget_tree_clear(state);
+    state->tree = next;
+    if (!selected_exists) {
+        state->selected = 0;
+    }
+    return true;
+}
+
+const char *pui_view_tree_item_at(PUIView *view, const char *tree, float x, float y) {
+    int index = find_tree(view, tree);
+    if (index < 0 || !view->visible[index] || !view->enabled[index] || !isfinite(x) ||
+        !isfinite(y) || !pui_contains(view->hit[index], x, y)) {
+        return NULL;
+    }
+    PUIRect area = view->rect[index];
+    if (x >= area.x + area.w - 12) {
+        return NULL;
+    }
+    int rows[PUI_LAYOUT_NODES], depths[PUI_LAYOUT_NODES];
+    bool enabled[PUI_LAYOUT_NODES];
+    TreeData *data = view->state[index].tree;
+    int count = data ? runtime_rows(data, rows, depths, enabled, true,
+                                    pui_view_text(view, view->layout->nodes[index].filter_input))
+                     : tree_rows(view, index, 0, rows, depths, 0, true);
+    int row = (int)floorf((y - area.y + view->state[index].scroll.offset) / 28.f);
+    if (row < 0 || row >= count || !(data ? enabled[row] : view->enabled[rows[row]])) {
+        return NULL;
+    }
+    return data ? data->items[rows[row]].id : view->layout->nodes[rows[row]].name;
+}
+
+const char *pui_view_selected_tree_item(const PUIView *view, const char *tree) {
+    int index = find_tree(view, tree);
+    if (index < 0) {
+        return NULL;
+    }
+    TreeData *data = view->state[index].tree;
+    if (data) {
+        for (int i = 0; i < data->count; i++) {
+            if (pui_id(data->items[i].id) == view->state[index].selected) {
+                return data->items[i].id;
+            }
+        }
+    }
+    return NULL;
+}
+
+int pui_view_tree_item_count(const PUIView *view, const char *tree) {
+    int index = find_tree(view, tree);
+    return index >= 0 && view->state[index].tree ? view->state[index].tree->count : -1;
+}
+
+bool pui_view_select_tree_item(PUIView *view, const char *tree, const char *item) {
+    int index = find_tree(view, tree);
+    if (index < 0) {
+        return false;
+    }
+    if (!item) {
+        view->state[index].selected = 0;
+        return true;
+    }
+    TreeData *data = view->state[index].tree;
+    if (data) {
+        for (int i = 0; i < data->count; i++) {
+            if (data->items[i].enabled && !strcmp(data->items[i].id, item)) {
+                int depth = data->items[i].depth;
+                for (int j = i - 1; j >= 0 && depth > 0; j--) {
+                    if (data->items[j].depth < depth) {
+                        data->open[j] = true;
+                        depth = data->items[j].depth;
+                    }
+                }
+                view->state[index].selected = pui_id(item);
+                return true;
+            }
+        }
+    }
+    return false;
+}

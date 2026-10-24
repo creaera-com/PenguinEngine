@@ -1,0 +1,38 @@
+schema: pengui/v1
+root:
+  type: section
+  id: section_boarder_settings
+  text: Rahmen
+  children:
+  - type: row
+    padding: 0
+    gap: 8
+    height: 28
+    children:
+      - {type: label, text: Rahmen, width: 64}
+      - {type: input, id: rectangle_stroke_width, input_type: decimal, action: vector.rectangle.stroke_width}
+      - {type: label, text: px, width: 24}
+  - type: button_group
+    padding: 0
+    gap: 2
+    height: 28
+    children:
+      - {type: button, id: rectangle_stroke_inside, text: Innen, action: vector.rectangle.stroke_inside}
+      - {type: button, id: rectangle_stroke_center, text: Mittig, action: vector.rectangle.stroke_center}
+      - {type: button, id: rectangle_stroke_outside, text: Aussen, action: vector.rectangle.stroke_outside}
+  - type: popup_button
+    id: rectangle_stroke_button
+    color_input: rectangle_stroke_color
+    text: Rahmenfarbe
+    placement: below
+    popup_width: 260
+    popup_height: 304
+    children:
+      - type: panel
+        padding: 12
+        children:
+          - type: color_picker
+            id: rectangle_stroke_color
+            mode: hsl
+            value: "#303030FF"
+            action: vector.rectangle.stroke_color

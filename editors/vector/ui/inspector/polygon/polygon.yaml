@@ -1,0 +1,10 @@
+schema: pengui/v1
+root:
+  type: row
+  padding: 0
+  gap: 8
+  height: 28
+  children:
+    - {type: label, text: Ecken, width: 64}
+    - {type: input, id: polygon_sides, action: vector.polygon.sides}
+    - {type: label, text: "3-32", width: 44}

@@ -1,0 +1,2 @@
+# First editor: vector, scripts or game. Command-line --editor overrides this value.
+startup_editor: vector

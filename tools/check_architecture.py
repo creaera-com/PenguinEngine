@@ -1,79 +1,152 @@
-"""Check owned module boundaries, including transitive includes of headless models."""
+"""Check pengUI ownership and transitive SDL-free core dependencies."""
 from pathlib import Path
 import re
 import sys
 
-ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / 'src'
-INCLUDE = re.compile(r'^\s*#\s*include\s*[<"]([^">]+)[">]', re.MULTILINE)
-PUBLIC = [SRC, SRC / 'engine/include', SRC / 'ui/include', SRC / 'platform/sdl/include']
-MODEL = SRC / 'editors/graphics/vector'
-MODEL_FILES = ['document/document.c', 'document/boolean.c', 'document/svg.c', 'document/metadata.c', 'document/history.c',
-               'viewport/grid_view.c', 'viewport/preview_view.c', 'document/nanosvg.c']
+root = Path(__file__).resolve().parents[1]
+lib = root / 'lib/pengui'
+includes = re.compile(r'^\s*#include\s*[<"]([^">]+)', re.M)
+errors = []
 
 
-def includes(path):
-    for name in INCLUDE.findall(path.read_text(encoding='utf-8')):
-        candidates = [path.parent / name, *(base / name for base in PUBLIC)]
+def source(path):
+    text = path.read_text()
+    if path.name == 'pengui.h':
+        # The public header exposes SDL only when its target enables that section.
+        text = text.split('#if defined(PUI_WITH_SDL) && PUI_WITH_SDL', 1)[0]
+    return text
+
+
+def core(path):
+    relative = path.relative_to(lib).as_posix()
+    return (relative.startswith('src/core/') or
+            relative.startswith('src/widgets/') and not path.name.endswith('_sdl.c') or
+            relative in ('src/layout/layout.c', 'src/layout/popup.c', 'src/layout/compose.c', 'src/layout/yaml.c', 'include/pengui/pengui.h'))
+
+
+files = [p for p in lib.rglob('*') if p.suffix in ('.c', '.h')]
+for path in files:
+    for name in includes.findall(source(path)):
+        if name.startswith(('app/', 'apps/', 'engine/', 'editor/', 'editors/', 'penguin/')):
+            errors.append(f'{path.relative_to(root)}: forbidden dependency {name}')
+
+pending = [p for p in files if core(p)]
+visited = set()
+while pending:
+    path = pending.pop()
+    if path in visited:
+        continue
+    visited.add(path)
+    for name in includes.findall(source(path)):
+        if name.startswith(('SDL', 'view/', 'rendering/')):
+            errors.append(f'{path.relative_to(root)}: core reaches SDL dependency {name}')
+        candidates = [path.parent / name, lib / 'src' / name, lib / 'include' / name]
         target = next((p.resolve() for p in candidates if p.is_file()), None)
-        yield name, target
+        if target and target.is_relative_to(lib):
+            pending.append(target)
 
+# pengDraw is a standalone library, including its optional SDL backend.
+draw = root / 'lib/pengdraw'
+for path in draw.rglob('*'):
+    if path.suffix not in ('.c', '.h'):
+        continue
+    for name in includes.findall(path.read_text()):
+        if name.startswith(('pengui/', 'apps/', 'app/', 'editors/', 'editor/', 'editor_host/', 'shell/')):
+            errors.append(f'{path.relative_to(root)}: pengDraw must not depend on UI or editors: {name}')
+        if path.parent.name in ('geometry', 'paint') and name.startswith('SDL'):
+            errors.append(f'{path.relative_to(root)}: pengDraw core must remain SDL-free')
 
-def check(root=SRC):
-    errors = []
-    for path in sorted(root.rglob('*')):
-        if path.suffix not in ('.c', '.h'):
-            continue
-        relative = path.relative_to(SRC).as_posix()
-        shared = relative.startswith(('application/', 'shell/', 'editor/'))
-        if shared:
-            content = path.read_text(encoding='utf-8')
-            if re.search(r'\b(MapPayload|VectorEditor|PeScriptEditor)\b|workspace\.(map|script|vector)\b|pe_(map|script|vector)_active_instance', content):
-                errors.append(f'{relative}: shared integration must not interpret concrete editor state')
-        if relative.startswith('editors/'):
-            own_key = 'vector' if relative.startswith('editors/graphics/vector/') else 'map' if relative.startswith('editors/game/map/') else 'script'
-            for key in re.findall(r'pe_(map|script|vector)_active_instance', path.read_text(encoding='utf-8')):
-                if key != own_key:
-                    errors.append(f'{relative}: foreign editor instance access {key}')
-        for name, target in includes(path):
-            location = target.relative_to(SRC).as_posix() if target and target.is_relative_to(SRC) else ''
-            if shared and location.startswith('editors/'):
-                if relative != 'application/editors.c' or not name.endswith('/adapter.h'):
-                    errors.append(f'{relative}: shared integration may only register public editor entry headers')
-            if relative.startswith(('engine/', 'ui/', 'services/')):
-                if location.startswith(('application/', 'shell/', 'editor/', 'editors/')):
-                    errors.append(f'{relative}: forbidden application dependency {name}')
-            if relative.startswith('editors/'):
-                own = 'editors/graphics/vector/' if relative.startswith('editors/graphics/vector/') else 'editors/game/map/' if relative.startswith('editors/game/map/') else 'editors/script/'
-                if location.startswith('editors/') and not location.startswith(own):
-                    errors.append(f'{relative}: cross-editor include {name}')
-                if location == 'application/internal.h':
-                    errors.append(f'{relative}: use the frontend host, not the composition root')
-    # Pure models/contracts must stay headless, even through an indirect include.
-    starts = [*SRC.joinpath('engine').rglob('*.h'), *SRC.joinpath('engine').rglob('*.c'),
-              *SRC.joinpath('editor/document').rglob('*.h'), *SRC.joinpath('editor/document').rglob('*.c'),
-              *(MODEL / name for name in MODEL_FILES),
-              *SRC.joinpath('ui/core').glob('*.c'), SRC / 'ui/include/penguin/ui.h',
-              *SRC.joinpath('services/json').glob('*.c'), *SRC.joinpath('services/terminal').glob('*.c')]
+# The conditional public SDL section is excluded from the core traversal.
+draw_pending = [p for p in draw.rglob('*') if p.suffix in ('.c', '.h') and
+                (p.parent.name in ('geometry', 'paint') or p.name == 'pengdraw.h')]
+draw_seen = set()
+while draw_pending:
+    path = draw_pending.pop()
+    if path in draw_seen:
+        continue
+    draw_seen.add(path)
+    text = path.read_text().split('#if defined(PDRAW_WITH_SDL)', 1)[0]
+    for name in includes.findall(text):
+        if name.startswith(('SDL', 'pengui/', 'apps/', 'editors/')):
+            errors.append(f'{path.relative_to(root)}: pengDraw core reaches forbidden dependency {name}')
+        target = next((p.resolve() for p in (path.parent / name, draw / 'include' / name)
+                       if p.is_file()), None)
+        if target and target.is_relative_to(draw):
+            draw_pending.append(target)
+
+for path in (root / 'apps').rglob('*'):
+    if path.suffix not in ('.c', '.h'):
+        continue
+    for name in includes.findall(path.read_text()):
+        if 'lib/pengui/src' in name or name.startswith(('core/', 'widgets/', 'view/', 'rendering/', 'layout/')):
+            errors.append(f'{path.relative_to(root)}: app must use public headers')
+# Concrete editors meet only in the registry. Editor internals remain module-local.
+for path in (root / 'editors').rglob('*'):
+    if path.suffix not in ('.c', '.h'):
+        continue
+    domain = path.relative_to(root / 'editors').parts[0]
+    for name in includes.findall(path.read_text()):
+        if (name.startswith('editors/') and not name.startswith(f'editors/{domain}/') or
+                name.startswith(('shell/', 'editor/', 'app/', 'apps/')) or
+                name.startswith('editor_host/') and name != 'editor_host/editor.h'):
+            errors.append(f'{path.relative_to(root)}: editor must depend only on its own module and common contract')
+for path in (root / 'apps').rglob('*.c'):
+    if path == root / 'apps/demo/editor_host/registry.c':
+        continue
+    for name in includes.findall(path.read_text()):
+        if name.startswith('editors/'):
+            errors.append(f'{path.relative_to(root)}: concrete editor includes belong in the registry')
+# The editor coordinates lifecycle through the inspector facade, never individual forms.
+editor_entry = root / 'editors/vector/editor.c'
+entry_text = editor_entry.read_text()
+if re.search(r'editor->inspector\.', entry_text):
+    errors.append('editors/vector/editor.c: inspector internals belong behind its lifecycle contract')
+for name in includes.findall(entry_text):
+    if 'ui/inspector/' in name and not name.endswith('/inspector/inspector.h'):
+        errors.append(f'editors/vector/editor.c: use the inspector facade instead of {name}')
+# Vector model/history may use plain state and geometry headers, but not UI/event wiring.
+vector = root / 'editors/vector'
+# UI bindings are organized by panel; the root contains only the layout entry and guidance.
+for path in (vector / 'ui').iterdir():
+    if path.is_file() and path.suffix in ('.c', '.h'):
+        errors.append(f'{path.relative_to(root)}: place UI bindings in their panel directory')
+for area in ('document', 'history', 'object', 'path', 'mask', 'preview', 'image', 'repeat', 'effects', 'gradient', 'export'):
+    pending = [p for p in (vector / area).rglob('*') if p.suffix in ('.c', '.h')
+               and not (area in ('path', 'mask', 'preview', 'repeat', 'effects', 'gradient', 'export') and p.name in ('render.c', 'render.h'))
+               and not (area in ('preview', 'gradient') and p.name in ('tool.c', 'tool.h'))
+               and not (area == 'image' and p.stem in ('assets', 'import', 'render'))]
     visited = set()
-    pending = list(starts)
     while pending:
         path = pending.pop()
         if path in visited:
             continue
         visited.add(path)
-        for name, target in includes(path):
-            if name.startswith('SDL') or target and target.is_relative_to(SRC) and target.relative_to(SRC).as_posix().startswith(('application/', 'shell/', 'platform/window/')):
-                errors.append(f'{path.relative_to(SRC)}: headless boundary reaches {name}')
-            elif target and target.is_relative_to(SRC):
+        for name in includes.findall(path.read_text()):
+            if name.startswith(('SDL', 'editor_host/')):
+                errors.append(f'{path.relative_to(root)}: model/history must not reach native UI or host APIs')
+            candidates = [path.parent / name, root / name]
+            target = next((p.resolve() for p in candidates if p.is_file()), None)
+            if not target or not target.is_relative_to(vector):
+                continue
+            relative = target.relative_to(vector).as_posix()
+            if (relative == 'internal.h' or relative.startswith(('ui/', 'persistence/')) or
+                    relative.startswith('workspace/') and relative not in ('workspace/viewport.h', 'workspace/selection_state.h', 'workspace/box_tool_state.h') or
+                    relative in ('artboard/tool.h', 'rectangle/tool.h', 'rectangle/render.h', 'path/render.h', 'text/tool.h', 'text/render.h')):
+                errors.append(f'{path.relative_to(root)}: model/history reaches UI wiring {relative}')
+            else:
                 pending.append(target)
-    return errors
 
+# Rectangle geometry stays reusable across object types: no object, tool or host imports.
+for path in (vector / 'geometry').rglob('*'):
+    if path.suffix not in ('.c', '.h'):
+        continue
+    for name in includes.findall(path.read_text()):
+        target = next((p.resolve() for p in (path.parent / name, root / name) if p.is_file()), None)
+        if name.startswith(('SDL', 'editor_host/')) or (target and target.is_relative_to(vector) and not target.is_relative_to(vector / 'geometry')):
+            errors.append(f'{path.relative_to(root)}: rectangle geometry must stay independent of objects and UI')
 
-if __name__ == '__main__':
-    failures = check()
-    for failure in failures:
-        print(failure, file=sys.stderr)
-    if failures:
-        sys.exit(1)
-    print('Module boundaries and headless model dependencies: OK')
+for error in errors:
+    print(error, file=sys.stderr)
+if errors:
+    sys.exit(1)
+print('pengUI / pengDraw ownership and core / SDL boundaries: OK')

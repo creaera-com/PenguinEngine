@@ -1,0 +1,31 @@
+schema: pengui/v1
+root:
+  type: section
+  text: Ellipsensegment
+  gap: 6
+  children:
+    - type: dropdown
+      id: ellipse_mode
+      action: vector.ellipse.mode
+      value: full
+      children:
+        - {type: option, text: Volle Ellipse, value: full}
+        - {type: option, text: Kreisbogen, value: arc}
+        - {type: option, text: Tortenstueck, value: pie}
+        - {type: option, text: Kreisabschnitt, value: chord}
+    - type: row
+      padding: 0
+      gap: 8
+      height: 28
+      children:
+        - {type: label, text: Start, width: 50}
+        - {type: input, id: ellipse_start, input_type: decimal, action: vector.ellipse.start}
+        - {type: label, text: Grad, width: 36}
+    - type: row
+      padding: 0
+      gap: 8
+      height: 28
+      children:
+        - {type: label, text: Ende, width: 50}
+        - {type: input, id: ellipse_end, input_type: decimal, action: vector.ellipse.end}
+        - {type: label, text: Grad, width: 36}

@@ -1,0 +1,10 @@
+schema: pengui/v1
+root:
+  type: panel
+  padding: 0
+  gap: 8
+  children:
+    - {type: label, id: vector_selection_count, text: Mehrfachauswahl, height: 28}
+    - {type: label, text: Gemeinsam verschieben., height: 24}
+    - {type: label, text: "Greifer: skalieren", height: 24}
+    - {type: label, text: "Shift: Auswahl aendern", height: 24}

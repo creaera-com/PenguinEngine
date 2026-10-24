@@ -1,0 +1,101 @@
+schema: pengui/v1
+window: {title: "pengUI - Editor Shell", width: 1280, height: 800}
+theme:
+  button_radius: 4
+  toolbar_radius: 4
+  tab_radius: 4
+  button_transition_ms: 120
+  background: "#151515"
+  panel: "#242424"
+  surface: "#292929"
+  hover: "#393939"
+  highlight_color: "#5B9BD5"
+  text: "#E9E9E9"
+  muted: "#A2A2A2"
+root:
+  type: column
+  padding: 0
+  gap: 6
+  children:
+    - type: toolbar
+      height: 44
+      draggable: true
+      padding: 8
+      gap: 6
+      children:
+        - type: popup_button
+          id: shell_menu
+          icon: tabler:menu-2
+          width: 32
+          placement: below
+          popup_width: 230
+          popup_height: 176
+          children:
+            - type: panel
+              padding: 8
+              gap: 6
+              children:
+                - {type: button, text: Neues Projekt, icon: tabler:folder-plus, action: project.new, height: 30}
+                - {type: button, text: Projekt oeffnen, icon: tabler:folder-open, action: project.open, height: 30}
+                - {type: button, text: Speichern unter, icon: tabler:device-floppy, action: editor.save_as, height: 30}
+                - {type: separator, axis: horizontal, height: 6}
+                - type: popup_button
+                  id: shell_about
+                  text: Ueber
+                  icon: tabler:info-circle
+                  height: 30
+                  modal: true
+                  modal_title: Ueber PenguinEngine
+                  popup_width: 640
+                  popup_height: 600
+                  children:
+                    - type: panel
+                      padding: 16
+                      gap: 6
+                      scroll: true
+                      children:
+                        - {type: label, text: "PenguinEngine / pengUI", height: 30}
+                        - {type: label, text: "Open-Source-Komponenten", height: 26}
+                        - {type: label, text: "SDL3 - Fenster, Eingabe und Rendering | zlib", height: 26}
+                        - {type: label, text: "libyaml 0.2.5 - YAML-Parser | MIT", height: 26}
+                        - {type: label, text: "libtess2 - Pfad-Tessellierung | SGI Free Software License B 2.0", height: 26}
+                        - {type: label, text: "stb_image - PNG/JPEG laden | MIT oder Public Domain", height: 26}
+                        - {type: label, text: "stb_image_write - PNG/JPEG exportieren | MIT oder Public Domain", height: 26}
+                        - {type: label, text: "stb_truetype 1.26 - Schriftrasterisierung | MIT oder Public Domain", height: 26}
+                        - {type: label, text: "Tabler Icons 3.49.0 - Icons | MIT", height: 26}
+                        - {type: label, text: "JetBrains Mono 2.304 - Schrift | SIL Open Font License 1.1", height: 26}
+                        - {type: label, text: "Entwicklung und Dokumentation", height: 30}
+                        - {type: label, text: "Unity - Unit-Tests | MIT", height: 26}
+                        - {type: label, text: "Doxygen Awesome - Dokumentations-Theme | MIT", height: 26}
+                        - {type: label, text: "Lizenztexte: third_party/ und resources/ui/fonts/OFL.txt", height: 26}
+                        - {type: spacer}
+        - {type: separator}
+        - {type: button, id: save, icon: tabler:device-floppy, action: editor.save}
+        - {type: separator}
+        - {type: button, id: undo, icon: tabler:arrow-back-up, action: editor.undo}
+        - {type: button, id: redo, icon: tabler:arrow-forward-up, action: editor.redo}
+        - {type: spacer}
+        - type: button_group
+          id: editor_switcher
+          width: 100
+          gap: 2
+          children:
+            - {type: button, id: game, icon: tabler:device-gamepad, action: editor.game}
+            - {type: button, id: scripts, icon: tabler:code, action: editor.scripts}
+            - {type: button, id: vector, icon: tabler:vector-bezier-2, action: editor.vector}
+        - {type: separator}
+        - {type: button, icon: tabler:minus, action: window.minimize, width: 32}
+        - {type: button, icon: tabler:square, action: window.maximize, width: 32}
+        - {type: button, icon: tabler:x, action: window.close, width: 32}
+    - {type: slot, id: editor_area}
+    - type: panel
+      height: 24
+      padding: 0
+      children:
+        - type: row
+          padding: 0
+          height: 24
+          children:
+            - {type: label, id: status, text: "Ready", height: 24}
+            - {type: label, id: process_status, text: "", width: 440, height: 24}
+            - {type: label, id: viewport_status, text: "", width: 120, height: 24}
