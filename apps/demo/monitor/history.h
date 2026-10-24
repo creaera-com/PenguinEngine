@@ -35,6 +35,8 @@ typedef struct {
     uint64_t shadow_fallback_attempts, gradient_fallback_attempts;
     uint64_t gpu_shadow_draws, gpu_shadow_failures, gpu_gradient_draws, gpu_gradient_failures;
     unsigned shadow_width, shadow_height, shadow_targets;
+    bool vulkan_available;
+    uint64_t vulkan_counters[16]; ///< Optional native SDL backend counters, device lifetime.
 } MonitorGraphics;
 
 /** @brief Fixed-size ring: memory and work remain bounded regardless of application lifetime. */

@@ -190,7 +190,9 @@ static void test_pan_logs_boundaries_coordinates_and_discrete_view_changes(void)
 
 static void test_resource_counters_are_serialized_exactly_with_explicit_availability(void) {
     start();
-    monitor.graphics = (MonitorGraphics){.resources_available = true,
+    monitor.graphics = (MonitorGraphics){.vulkan_available = true,
+                                         .vulkan_counters = {9007199254740993ULL, 4, 128},
+                                         .resources_available = true,
                                          .resources_complete = true,
                                          .effects_available = true,
                                          .textures_created = UINT64_C(9007199254740993),
@@ -215,6 +217,10 @@ static void test_resource_counters_are_serialized_exactly_with_explicit_availabi
     TEST_ASSERT_NOT_NULL(strstr(text, "\"shadow_fallback_attempts\":2"));
     TEST_ASSERT_NOT_NULL(strstr(text, "\"tile_bytes\":1048576"));
     TEST_ASSERT_NOT_NULL(strstr(text, "\"repaints\":20"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"vulkan\":{\"available\":false"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"descriptor_pools_created\":null"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"descriptor_pools_created\":9007199254740993"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"descriptor_pools_destroyed\":4"));
     SDL_free(text);
 }
 

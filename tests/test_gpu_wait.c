@@ -46,6 +46,20 @@ static void test_wait_is_opt_in_and_only_active_after_success(void) {
     SDL_RenderClear(renderer);
     TEST_ASSERT_TRUE(SDL_RenderPresent(renderer));
     ProcessMonitor monitor = {0};
+    process_monitor_graphics(&monitor, renderer);
+    SDL_GPUDevice *device = SDL_GetPointerProperty(SDL_GetRendererProperties(renderer),
+                                                   SDL_PROP_RENDERER_GPU_DEVICE_POINTER, NULL);
+    bool instrumented = SDL_GetBooleanProperty(SDL_GetGPUDeviceProperties(device),
+                                               "penguengine.vulkan.available", false);
+    TEST_ASSERT_EQUAL(instrumented, monitor.graphics.vulkan_available);
+    if (getenv("PUI_REQUIRE_VULKAN_DIAGNOSTICS")) {
+        TEST_ASSERT_TRUE_MESSAGE(instrumented, "Instrumented Vulkan backend required");
+    }
+    if (instrumented) {
+        TEST_ASSERT_GREATER_THAN_UINT64(0, monitor.graphics.vulkan_counters[6]);
+        TEST_ASSERT_GREATER_THAN_UINT64(0, monitor.graphics.vulkan_counters[9]);
+        TEST_ASSERT_GREATER_THAN_UINT64(0, monitor.graphics.vulkan_counters[11]);
+    }
     TEST_ASSERT_TRUE(process_monitor_gpu_wait(&monitor, renderer));
     TEST_ASSERT_TRUE(monitor.gpu_wait_available);
     TEST_ASSERT_FALSE(monitor.gpu_wait_active);

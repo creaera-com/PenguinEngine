@@ -201,8 +201,41 @@ static void test_gpu_resource_accounting_reuses_and_releases_shadow_targets(void
     TEST_ASSERT_EQUAL_UINT64(resources.shadow_bytes + 4, resources.live_bytes);
 }
 
+static void test_instrumented_vulkan_counts_native_pool_work(void) {
+    SDL_GPUDevice *device = SDL_GetPointerProperty(SDL_GetRendererProperties(renderer),
+                                                   SDL_PROP_RENDERER_GPU_DEVICE_POINTER, NULL);
+    SDL_PropertiesID props = SDL_GetGPUDeviceProperties(device);
+    if (!SDL_GetBooleanProperty(props, "penguengine.vulkan.available", false)) {
+        if (getenv("PUI_REQUIRE_VULKAN_DIAGNOSTICS")) {
+            TEST_FAIL_MESSAGE("Instrumented Vulkan backend required");
+        }
+        TEST_IGNORE_MESSAGE("Native Vulkan diagnostics disabled");
+    }
+    PDrawShadow shadow = {.enabled = 1, .color = 0x000000ff, .blur = 4};
+    for (int frame = 0; frame < 4; frame++) {
+        TEST_ASSERT_TRUE(
+            pdraw_shadow_draw(renderer, &shadow, 1, (PDrawRect){20, 30, 40, 30}, silhouette, NULL));
+        TEST_ASSERT_TRUE(SDL_RenderPresent(renderer));
+        TEST_ASSERT_TRUE(SDL_WaitForGPUIdle(device));
+    }
+    Sint64 pools = SDL_GetNumberProperty(props, "penguengine.vulkan.descriptor_pools_created", 0);
+    Sint64 sets = SDL_GetNumberProperty(props, "penguengine.vulkan.descriptor_sets_allocated", 0);
+    TEST_ASSERT_GREATER_THAN_INT64(0, pools);
+    TEST_ASSERT_EQUAL_INT64(pools * 128, sets);
+    TEST_ASSERT_GREATER_THAN_INT64(
+        0, SDL_GetNumberProperty(props, "penguengine.vulkan.descriptor_sets_fetched", 0));
+    TEST_ASSERT_GREATER_THAN_INT64(
+        0, SDL_GetNumberProperty(props, "penguengine.vulkan.descriptor_caches_returned", 0));
+    TEST_ASSERT_GREATER_THAN_INT64(
+        0, SDL_GetNumberProperty(props, "penguengine.vulkan.descriptor_caches_reused", 0));
+    TEST_ASSERT_GREATER_THAN_INT64(
+        0, SDL_GetNumberProperty(props, "penguengine.vulkan.memory_maps", 0));
+    TEST_ASSERT_EQUAL_INT64(0, SDL_GetNumberProperty(props, "penguengine.vulkan.failures", 0));
+}
+
 int main(void) {
     UNITY_BEGIN();
+    RUN_TEST(test_instrumented_vulkan_counts_native_pool_work);
     RUN_TEST(test_gpu_resource_accounting_reuses_and_releases_shadow_targets);
     RUN_TEST(test_gpu_shadow_targets_keep_capacity_for_smaller_objects);
     RUN_TEST(test_gpu_gradients_match_value_sampler_for_all_types_and_alpha);

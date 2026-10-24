@@ -2,6 +2,7 @@
 #include "monitor.h"
 #include "pengdraw/pengdraw.h"
 #include "platform/process_metrics.h"
+#include "vulkan_fields.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -24,6 +25,14 @@ void process_monitor_graphics(ProcessMonitor *m, SDL_Renderer *r) {
                               : NULL;
     if (device) {
         SDL_PropertiesID props = SDL_GetGPUDeviceProperties(device);
+        SDL_LockProperties(props);
+        g.vulkan_available = SDL_GetBooleanProperty(props, "penguengine.vulkan.available", false);
+        for (unsigned i = 0; g.vulkan_available && i < 16; i++) {
+            char key[128];
+            snprintf(key, sizeof key, "penguengine.vulkan.%s", monitor_vulkan_fields[i]);
+            g.vulkan_counters[i] = (uint64_t)SDL_GetNumberProperty(props, key, 0);
+        }
+        SDL_UnlockProperties(props);
         clean_text(g.device, sizeof g.device,
                    SDL_GetStringProperty(props, SDL_PROP_GPU_DEVICE_NAME_STRING, "Unbekannt"));
         char driver[256];

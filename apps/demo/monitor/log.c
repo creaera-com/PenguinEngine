@@ -2,6 +2,7 @@
 #include "log.h"
 #include "platform/process_metrics.h"
 #include "platform/sdl_memory.h"
+#include "vulkan_fields.h"
 #include <inttypes.h>
 #include <math.h>
 #include <stdio.h>
@@ -64,6 +65,15 @@ static bool integer(MonitorLog *log, const char *key, uint64_t value, bool avail
     snprintf(text, sizeof text, "%" PRIu64, value);
     return put(log, ",") && quoted(log, key) && put(log, ":") &&
            put(log, available ? text : "null");
+}
+
+static bool vulkan_resources(MonitorLog *log, const MonitorGraphics *g) {
+    bool ok =
+        put(log, ",\"vulkan\":{\"available\":") && put(log, g->vulkan_available ? "true" : "false");
+    for (unsigned i = 0; ok && i < 16; i++) {
+        ok = integer(log, monitor_vulkan_fields[i], g->vulkan_counters[i], g->vulkan_available);
+    }
+    return ok && put(log, "}");
 }
 
 static bool resources(MonitorLog *log, const MonitorGraphics *g, double now) {
@@ -186,8 +196,8 @@ static void row(MonitorLog *log, const ProcessMonitor *m, const char *editor, Ed
         number(log, "metrics_age_s", sample ? now - sample->time : 0, sample != NULL) &&
         number(log, "gpu_effect_mib", m->graphics.effect_bytes / 1048576.,
                m->graphics.effects_available) &&
-        resources(log, &m->graphics, now) && artwork_cache(log, &d) && sdl_memory(log) &&
-        gpu_wait(log, m);
+        resources(log, &m->graphics, now) && vulkan_resources(log, &m->graphics) &&
+        artwork_cache(log, &d) && sdl_memory(log) && gpu_wait(log, m);
     if (!strcmp(event, "session.start")) {
         ok = ok && field(log, "platform", SDL_GetPlatform()) &&
              field(log, "gpu_device", m->graphics.device) &&
@@ -197,6 +207,10 @@ static void row(MonitorLog *log, const ProcessMonitor *m, const char *editor, Ed
              field(log, "render_resource_scope",
                    "pengDraw-owned logical texture handles; excludes UI, images, fonts, swapchain, "
                    "driver copies and deferred GPU releases") &&
+             field(log, "vulkan_counter_scope",
+                   "optional SDL 3.4.18 native backend; cumulative per device; pool returns reset "
+                   "set indices, not native pools; frees implicitly unmap persistent mappings; "
+                   "requested VkDeviceMemory bytes exclude driver-internal reservations") &&
              field(log, "cache_counter_scope", "active editor instance; resets on unload") &&
              field(log, "sdl_memory_scope",
                    "requested sizes via SDL allocator callbacks since startup; excludes "
