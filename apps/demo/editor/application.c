@@ -4,6 +4,8 @@
 #include "config.h"
 #include "documents/controller.h"
 #include "editor_host/host.h"
+#include "monitor/monitor.h"
+#include "platform/sdl_memory.h"
 #include "project/controller.h"
 #include "shell/shell.h"
 #include <stdio.h>
@@ -17,13 +19,15 @@ typedef struct {
     ProjectController projects;
     DocumentController documents;
     PUIWindow chrome;
-    bool running, smoke;
+    bool running, smoke, disable_sdl_memory;
     const char *resources, *config_path, *initial_editor, *screenshot;
 } EditorApp;
 
 static bool arguments(EditorApp *app, int argc, char **argv) {
     for (int i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "--smoke")) {
+        if (!strcmp(argv[i], "--no-sdl-memory-tracking")) {
+            app->disable_sdl_memory = true;
+        } else if (!strcmp(argv[i], "--smoke")) {
             app->smoke = true;
         } else if (!strcmp(argv[i], "--resources") && i + 1 < argc) {
             app->resources = argv[++i];
@@ -35,7 +39,8 @@ static bool arguments(EditorApp *app, int argc, char **argv) {
             app->screenshot = argv[++i];
         } else {
             fprintf(stderr, "Usage: pengui_editor [--resources directory] [--config file.yaml] "
-                            "[--editor vector|scripts|game] [--smoke] [--screenshot image.bmp]\n");
+                            "[--editor vector|scripts|game] [--smoke] [--screenshot image.bmp] "
+                            "[--no-sdl-memory-tracking]\n");
             return false;
         }
     }
@@ -46,6 +51,10 @@ static void action(void *context, const char *name, const char *widget) {
     EditorApp *app = context;
     editor_host_project(&app->host, app->projects.project.root);
     editor_host_log_action(&app->host, app->shell.view, name, widget);
+    if (!strcmp(name, "monitor.gpu_wait")) {
+        editor_host_action(&app->host, app->shell.view, name, widget);
+        return;
+    }
     if (!strcmp(name, "monitor.log")) {
         editor_host_action(&app->host, app->shell.view, name, widget);
         project_explorer_action(&app->projects.explorer, app->shell.view, "project.refresh", "");
@@ -176,7 +185,13 @@ static bool save_screenshot(EditorApp *app) {
 
 int editor_application_run(int argc, char **argv) {
     EditorApp app = {0};
-    if (!arguments(&app, argc, argv) || !SDL_Init(SDL_INIT_VIDEO)) {
+    if (!arguments(&app, argc, argv)) {
+        return 1;
+    }
+    if (!app.disable_sdl_memory && !app_sdl_memory_install()) {
+        fprintf(stderr, "SDL memory diagnostics unavailable\n");
+    }
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
         return 1;
     }
     char error[256] = {0};
@@ -202,6 +217,11 @@ int editor_application_run(int argc, char **argv) {
             break;
         }
         SDL_RenderPresent(app.renderer);
+        if (!process_monitor_gpu_wait(&app.host.monitor, app.renderer)) {
+            pui_view_set_text(app.shell.view, "status",
+                              "GPU-Warten fehlgeschlagen; Diagnose deaktiviert");
+            editor_host_log_action(&app.host, app.shell.view, "monitor.gpu_wait.failed", "");
+        }
         if (!editor_host_commit(&app.host, app.shell.view, &app.shell.input, error, sizeof error)) {
             fprintf(stderr, "Editor update failed: %s\n", error);
             pui_view_set_text(app.shell.view, "status", error);

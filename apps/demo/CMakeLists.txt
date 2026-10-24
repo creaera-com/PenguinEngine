@@ -15,11 +15,13 @@ add_dependencies(pengui_playground pengui_playground_resources)
 # Editor shell is a separate example app; pengUI itself has no editor dependency.
 include(${PROJECT_SOURCE_DIR}/cmake/TextFonts.cmake)
 add_library(pengui_editor_support STATIC
+ monitor/gpu_wait.c
  monitor/log.c
  monitor/recording.c
  monitor/history.c
  monitor/monitor.c
  monitor/render.c
+ platform/sdl_memory.c
  platform/process_metrics.c
  platform/fonts.c
  platform/image_decode.c

@@ -195,3 +195,59 @@ pengDraw-Bereich eingrenzen. Bleiben sie konstant, ist der zusätzliche Verbrauc
 mit diesen Texturen nicht erklärt; daraus allein folgt noch kein Treiberfehler.
 Die Diagnose legt keine eigenen Texturen an und hält nur einen kleinen Zählerblock
 pro Renderer sowie einen Eintrag pro aktuell erfasster Textur im RAM.
+
+### SDL-Allokationen und optionales Warten auf die GPU
+
+Für den nächsten Vergleich die Anwendung nach dem Neubauen vollständig neu starten:
+
+1. Projekt öffnen, **Performance loggen** einschalten und den problematischen Ablauf
+   mit **Auf GPU warten (Diagnose)** ausgeschaltet durchführen.
+2. Aufzeichnung ausschalten und die Anwendung beenden.
+3. Neu starten, im Monitor **Auf GPU warten (Diagnose)** einschalten, die Aufzeichnung
+   starten und denselben Ablauf durchführen. Beide JSONL-Dateien aufheben.
+
+Der Warteschalter gehört zur laufenden App und bleibt bei Editorwechseln erhalten;
+beim Programmstart ist er immer aus. Er wirkt auch ohne aktive Logdatei. Nach
+`SDL_RenderPresent` wird bei aktivem Schalter die SDL-Renderer-Queue geleert und
+`SDL_WaitForGPUIdle` aufgerufen. Das kann die Anwendung deutlich verlangsamen.
+Ein geringerer Verbrauch wäre ein Hinweis auf ausstehende Arbeit oder verzögerte
+Freigaben, kein alleiniger Beweis für deren Ursache. Auf einem Software-/OpenGL-
+Kompatibilitätsrenderer ohne SDL-GPU-Gerät wird kein Warten behauptet.
+
+In jeder Logzeile stehen dafür zwei zusätzliche Blöcke:
+
+- `gpu_wait`: `requested` ist die Schalterstellung, `available` meldet ein SDL-GPU-Gerät
+  und `active` einen tatsächlich erfolgreichen Warteaufruf im letzten Frame.
+  `calls` und `failures` zählen Versuche und Fehler. `last_ms` und `total_ms` erfassen
+  die Dauer des letzten beziehungsweise aller Warteaufrufe, nicht die gesamte Framezeit.
+  Bei einem Fehler wird der Schalter automatisch ausgeschaltet. Ein Umschalten erscheint
+  als Aktion `monitor.gpu_wait.changed` mit dem neuen Zustand.
+- `sdl_memory`: `available` meldet installierte Speicher-Callbacks, `complete` vollständig
+  erfasste Metadaten. `live_blocks`, `live_bytes` und `peak_bytes` zählen bekannte
+  lebende Blöcke und ihre angeforderten Größen. `malloc_calls`, `calloc_calls`,
+  `realloc_calls`, `free_calls` und `failures` zeigen die Allokationsaktivität.
+  `allocated_bytes` und `freed_bytes` sind logische Größen-Summen; bei erfolgreichem
+  Realloc wird die alte Größe aus- und die neue eingebucht, auch wenn der Zeiger
+  gleich bleibt. Normalerweise gilt `allocated_bytes - freed_bytes == live_bytes`.
+
+Die Speicher-Erfassung startet vor `SDL_Init` und zählt **über die gesamte Prozess-
+Laufzeit**, nicht erst seit Beginn der Logdatei. Eine kleine separate Tabelle hält
+nur Größen zu aktuell bekannten Zeigern. `metadata_bytes` meldet deren angeforderte
+Speichergröße; hinzu kommen 32 KiB feste Hash-Buckets auf 64-Bit-Systemen sowie
+Allocator-Overhead. Metadaten werden mit den ursprünglichen Allokationsfunktionen
+angelegt und nicht rekursiv als SDL-Nutzdaten gezählt. Die Erfassung ist für parallele
+SDL-Aufrufe geschützt. Sie verändert weder Datenzeiger noch deren Ausrichtung und
+leitet bereits vor der Installation entstandene Zeiger an den vorherigen Allocator
+weiter. Deren fehlende Größen werden über `unknown_frees` beziehungsweise
+`unknown_reallocs` kenntlich gemacht. Fehlende Diagnose-Metadaten erhöhen
+`metadata_failures` und setzen `complete` auf `false`.
+
+**Messgrenze:** `sdl_memory` erfasst nur Aufrufe über SDLs Speicher-Callbacks. Direkte
+`malloc`-/`mmap`-Aufrufe im Treiber, anderen Bibliotheken und App-/Engine-Code sowie
+physischer GPU-Speicher sind nicht vollständig enthalten. Angeforderte Größen sind
+keine RSS-Messung und schließen ungenutzte Reserven des zugrunde liegenden Allocators
+nicht ein. Ebenso dürfen sie nicht zu den logischen GPU-Texturgrößen addiert werden.
+Die Erfassung selbst verursacht zusätzlichen Aufwand und kann das Timing verändern.
+Zum Kontrollvergleich kann sie beim Start mit `--no-sdl-memory-tracking` ausgeschaltet
+werden; der Log meldet dann `available: false`. Ein Wechsel der Speicherfunktionen
+während des Betriebs ist ausdrücklich nicht vorgesehen.

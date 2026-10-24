@@ -1,6 +1,7 @@
 /** @file @brief Bounded JSONL streaming with explicit missing metrics and no input contents. */
 #include "log.h"
 #include "platform/process_metrics.h"
+#include "platform/sdl_memory.h"
 #include <inttypes.h>
 #include <math.h>
 #include <stdio.h>
@@ -106,6 +107,39 @@ static bool artwork_cache(MonitorLog *log, const EditorDiagnostics *d) {
            integer(log, "evictions", d->cache_evictions, available) && put(log, "}");
 }
 
+static bool sdl_memory(MonitorLog *log) {
+    AppSDLMemory memory = app_sdl_memory_read();
+    bool ok = put(log, ",\"sdl_memory\":{\"available\":") &&
+              put(log, memory.available ? "true" : "false") && put(log, ",\"complete\":") &&
+              put(log, memory.complete ? "true" : "false");
+    ok = ok && integer(log, "malloc_calls", memory.malloc_calls, memory.available);
+    ok = ok && integer(log, "calloc_calls", memory.calloc_calls, memory.available);
+    ok = ok && integer(log, "realloc_calls", memory.realloc_calls, memory.available);
+    ok = ok && integer(log, "free_calls", memory.free_calls, memory.available);
+    ok = ok && integer(log, "failures", memory.failures, memory.available);
+    ok = ok && integer(log, "metadata_failures", memory.metadata_failures, memory.available);
+    ok = ok && integer(log, "live_blocks", memory.live_blocks, memory.available);
+    ok = ok && integer(log, "live_bytes", memory.live_bytes, memory.available);
+    ok = ok && integer(log, "peak_bytes", memory.peak_bytes, memory.available);
+    ok = ok && integer(log, "allocated_bytes", memory.allocated_bytes, memory.available);
+    ok = ok && integer(log, "freed_bytes", memory.freed_bytes, memory.available);
+    ok = ok && integer(log, "unknown_frees", memory.unknown_frees, memory.available);
+    ok = ok && integer(log, "unknown_reallocs", memory.unknown_reallocs, memory.available);
+    ok = ok && integer(log, "metadata_bytes", memory.metadata_bytes, memory.available);
+    return ok && put(log, "}");
+}
+
+static bool gpu_wait(MonitorLog *log, const ProcessMonitor *m) {
+    return put(log, ",\"gpu_wait\":{\"requested\":") &&
+           put(log, m->gpu_wait_requested ? "true" : "false") && put(log, ",\"available\":") &&
+           put(log, m->gpu_wait_available ? "true" : "false") && put(log, ",\"active\":") &&
+           put(log, m->gpu_wait_active ? "true" : "false") &&
+           integer(log, "calls", m->gpu_wait_calls, true) &&
+           integer(log, "failures", m->gpu_wait_failures, true) &&
+           number(log, "last_ms", m->gpu_wait_last_ms, m->gpu_wait_available) &&
+           number(log, "total_ms", m->gpu_wait_total_ms, m->gpu_wait_available) && put(log, "}");
+}
+
 static void utc(char *text, size_t capacity, bool filename) {
     SDL_Time time;
     SDL_DateTime date;
@@ -152,7 +186,8 @@ static void row(MonitorLog *log, const ProcessMonitor *m, const char *editor, Ed
         number(log, "metrics_age_s", sample ? now - sample->time : 0, sample != NULL) &&
         number(log, "gpu_effect_mib", m->graphics.effect_bytes / 1048576.,
                m->graphics.effects_available) &&
-        resources(log, &m->graphics, now) && artwork_cache(log, &d);
+        resources(log, &m->graphics, now) && artwork_cache(log, &d) && sdl_memory(log) &&
+        gpu_wait(log, m);
     if (!strcmp(event, "session.start")) {
         ok = ok && field(log, "platform", SDL_GetPlatform()) &&
              field(log, "gpu_device", m->graphics.device) &&
@@ -162,7 +197,10 @@ static void row(MonitorLog *log, const ProcessMonitor *m, const char *editor, Ed
              field(log, "render_resource_scope",
                    "pengDraw-owned logical texture handles; excludes UI, images, fonts, swapchain, "
                    "driver copies and deferred GPU releases") &&
-             field(log, "cache_counter_scope", "active editor instance; resets on unload");
+             field(log, "cache_counter_scope", "active editor instance; resets on unload") &&
+             field(log, "sdl_memory_scope",
+                   "requested sizes via SDL allocator callbacks since startup; excludes "
+                   "libc/driver allocations, allocator slack and GPU memory");
     }
     if (!ok || !put(log, "}\n") || !SDL_FlushIO(log->stream)) {
         failed(log);

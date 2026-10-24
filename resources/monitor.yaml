@@ -7,6 +7,8 @@ root:
   children:
     - {type: toggle, id: process_monitor_log, text: "Performance loggen", action: monitor.log, height: 30}
     - {type: label, id: process_monitor_log_status, text: "Kein Projekt geoeffnet", height: 24}
+    - {type: toggle, id: process_monitor_gpu_wait, text: "Auf GPU warten (Diagnose)", action: monitor.gpu_wait, height: 30}
+    - {type: label, id: process_monitor_gpu_wait_status, text: "GPU-Warten aus (Diagnose kann verlangsamen)", height: 24}
     - {type: label, id: process_monitor_gpu_device, text: "GPU: Ermittlung ausstehend", height: 24}
     - {type: label, id: process_monitor_gpu_backend, text: "Renderer: --", height: 24}
     - {type: label, id: process_monitor_gpu_driver, text: "Treiber: --", height: 24}

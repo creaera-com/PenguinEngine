@@ -24,4 +24,8 @@ void process_monitor_recording_sync(const MonitorLog *log, PUIView *view);
 /** @brief Handle the monitor.log toggle; requires the host's current project and context. */
 bool process_monitor_recording_action(MonitorLog *log, const ProcessMonitor *monitor, PUIView *view,
                                       const char *editor, EditorDiagnostics context, double now);
+/** @brief Optionally flush and wait after SDL_RenderPresent; false disables a failed request. */
+bool process_monitor_gpu_wait(ProcessMonitor *monitor, SDL_Renderer *renderer);
+/** @brief Reflect requested versus actually available GPU waiting in YAML controls. */
+void process_monitor_gpu_wait_sync(const ProcessMonitor *monitor, PUIView *view);
 #endif

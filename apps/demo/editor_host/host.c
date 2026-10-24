@@ -146,10 +146,18 @@ bool editor_host_commit(EditorHost *host, PUIView *shell, PUIContext *input, cha
     bool ok = commit_editor(host, shell, input, error, capacity);
     observe(host, shell);
     process_monitor_recording_sync(&host->log, shell);
+    process_monitor_gpu_wait_sync(&host->monitor, shell);
     return ok;
 }
 
 bool editor_host_action(EditorHost *host, PUIView *view, const char *name, const char *widget) {
+    if (!strcmp(name, "monitor.gpu_wait")) {
+        host->monitor.gpu_wait_requested = pui_view_checked(view, "process_monitor_gpu_wait");
+        host->monitor.gpu_wait_active = false;
+        process_monitor_gpu_wait_sync(&host->monitor, view);
+        editor_host_log_action(host, view, "monitor.gpu_wait.changed", widget);
+        return true;
+    }
     if (!strcmp(name, "monitor.log")) {
         return process_monitor_recording_action(&host->log, &host->monitor, view, editor_id(host),
                                                 diagnostics(host, view), seconds());

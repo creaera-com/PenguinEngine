@@ -5,6 +5,7 @@
 #include "editors/vector/internal.h"
 #include "editors/vector/repeat/repeat.h"
 #include "monitor/log.h"
+#include "monitor/monitor.h"
 #include "shell/shell.h"
 #include "unity.h"
 #include <stdio.h>
@@ -87,6 +88,8 @@ static void test_json_rows_escape_actions_and_report_unknown_metrics_as_null(voi
     TEST_ASSERT_NOT_NULL(strstr(text, "quoted\\\"\\\\\\u000a\\u0001"));
     TEST_ASSERT_NOT_NULL(strstr(text, "\"cpu_percent\":null"));
     TEST_ASSERT_NOT_NULL(strstr(text, "\"gpu_effect_mib\":null"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"sdl_memory\":{\"available\":false"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"gpu_wait\":{\"requested\":false"));
     TEST_ASSERT_NOT_NULL(strstr(text, "\"metrics_age_s\":null"));
     TEST_ASSERT_NOT_NULL(strstr(text, "\"instances\":1024.000000"));
     TEST_ASSERT_NOT_NULL(strstr(text, "\"session.stop\""));
@@ -265,6 +268,18 @@ static void test_host_toggle_and_real_clone_move_are_logged_through_adapter(void
     pui_view_set_checked(shell.view, "process_monitor_log", true);
     TEST_ASSERT_TRUE(editor_host_action(&host, shell.view, "monitor.log", "process_monitor_log"));
     TEST_ASSERT_NOT_NULL_MESSAGE(host.log.stream, host.log.error);
+    pui_view_set_checked(shell.view, "process_monitor_gpu_wait", true);
+    TEST_ASSERT_TRUE(
+        editor_host_action(&host, shell.view, "monitor.gpu_wait", "process_monitor_gpu_wait"));
+    TEST_ASSERT_TRUE(host.monitor.gpu_wait_requested);
+    TEST_ASSERT_FALSE(host.monitor.gpu_wait_active);
+    TEST_ASSERT_TRUE(process_monitor_gpu_wait(&host.monitor, renderer));
+    TEST_ASSERT_FALSE(host.monitor.gpu_wait_available);
+    pui_view_set_checked(shell.view, "process_monitor_gpu_wait", false);
+    TEST_ASSERT_TRUE(
+        editor_host_action(&host, shell.view, "monitor.gpu_wait", "process_monitor_gpu_wait"));
+    TEST_ASSERT_FALSE(host.monitor.gpu_wait_requested);
+
     VectorEditor *editor = host.instance;
     VectorDocument *d = vector_document_tabs_active(&editor->documents, shell.view);
     TEST_ASSERT_NOT_NULL(d);
@@ -335,6 +350,8 @@ static void test_host_toggle_and_real_clone_move_are_logged_through_adapter(void
     char *text = SDL_LoadFile(host.log.path, NULL);
     TEST_ASSERT_NOT_NULL(text);
     TEST_ASSERT_NOT_NULL(strstr(text, "selection.move"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "monitor.gpu_wait.changed"));
+    TEST_ASSERT_NOT_NULL(strstr(text, "\"gpu_wait\":{\"requested\":true"));
     TEST_ASSERT_NOT_NULL(strstr(text, "selection.changed"));
     TEST_ASSERT_NOT_NULL(strstr(text, "viewport.pan"));
     TEST_ASSERT_NOT_NULL(strstr(text, "\"selected_ids\":[1]"));

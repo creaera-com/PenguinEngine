@@ -44,6 +44,9 @@ typedef struct {
     unsigned head, count;
     double previous_time, previous_cpu;
     bool cpu_baseline;
+    bool gpu_wait_requested, gpu_wait_available, gpu_wait_active;
+    uint64_t gpu_wait_calls, gpu_wait_failures;
+    double gpu_wait_last_ms, gpu_wait_total_ms;
 } ProcessMonitor;
 
 /** @brief Append valid chronological observations; reject non-finite or non-increasing times.
